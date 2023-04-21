@@ -366,7 +366,7 @@ namespace PhysX
         }
     }
 
-    // Gruber patch begin aoreshko: MADPORT-12
+    // carbonated begin aoreshko game_specific_1
  #if defined(CARBONATED)
     // Pilfered/inspired from SystemComponent::UpdateMaterialSelection
     void CharacterControllerComponent::SetMaterialByName(uint32_t index, const AZStd::string& name)
@@ -403,7 +403,7 @@ namespace PhysX
         m_controller->SetColliderTag(tag);
     }
 #endif
-    // Gruber patch end aoreshko
+    // carbonated end game_specific_1
 
     // TransformNotificationBus
     void CharacterControllerComponent::OnTransformChanged(const AZ::Transform& /*local*/, const AZ::Transform& world)

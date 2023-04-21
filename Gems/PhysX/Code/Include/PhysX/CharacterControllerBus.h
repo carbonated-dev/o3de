@@ -55,12 +55,12 @@ namespace PhysX
         /// @param halfForwardExtent The new half forward extent for the controller.
         virtual void SetHalfForwardExtent(float halfForwardExtent) = 0;
 
-        // Gruber patch begin aoreshko: MADPORT-12
+        // carbonated begin aoreshko game_specific_1
 #if defined(CARBONATED)
         virtual void SetMaterialByName(uint32_t index, const AZStd::string& name) = 0;
         virtual void SetTag(const AZ::Crc32& tag) = 0;
 #endif
-        // Gruber patch end aoreshko
+        // carbonated end game_specific_1
     };
     using CharacterControllerRequestBus = AZ::EBus<CharacterControllerRequests>;
 } // namespace PhysX

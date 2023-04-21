@@ -434,7 +434,7 @@ inline void Color_tpl<T>::clamp(T bottom, T top)
 #define Col_TrackviewDefault    ColorF (0.187820792f, 0.187820792f, 1.0f)
 #define Clr_Empty                               ColorF(0.0f, 0.0f, 0.0f, 1.0f)
 
-// Gruer patch begin aoreshko: MADPORT-12
+// carbonated begin aoreshko game_specific_1
 //////////////////////////////////////////////////////////////////////////////////////////////
 //#define RGBA8(r,g,b,a)   (ColorB((uint8)(r),(uint8)(g),(uint8)(b),(uint8)(a)))
 #if defined(NEED_ENDIAN_SWAP)
@@ -541,4 +541,4 @@ inline void Color_tpl<T>::clamp(T bottom, T top)
 #define Clr_Unknown ColorF(0.0f, 0.0f, 0.0f, 0.0f)
 #define Clr_Unused ColorF(0.0f, 0.0f, 0.0f, 0.0f)
 #define Clr_Debug ColorF(1.0f, 0.0f, 0.0f, 1.0f)
-// Gruer patch end aoreshko
+// carbonated end game_specific_1

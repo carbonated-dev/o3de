@@ -163,6 +163,7 @@ namespace AZ
         //! The positive rotation direction is defined such that the x-axis is rotated into the y-axis.
         Vector2 GetPerpendicular() const;
 
+        // carbonated begin aoreshko game_specific_1
  #if defined(CARBONATED)
         /**
          * Rotates the vector r radians.
@@ -172,6 +173,7 @@ namespace AZ
             return Vector2(cos(r) * m_x - sin(r) * m_y, sin(r) * m_x + cos(r) * m_y);
         }
 #endif
+        // carbonated end game_specific_1
 
         //! Checks the vector is equal to another within a floating point tolerance.
         bool IsClose(const Vector2& v, float tolerance = 0.001f) const;

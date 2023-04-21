@@ -74,12 +74,12 @@ namespace AzFramework
         //! This will use worldTM as a localTM and move the transform relative to the parent.
         void SetParentRelative(AZ::EntityId id) override;
 
-        // Gruber patch begin aoreshko: MADPORT-12
+         // carbonated begin aoreshko game_specific_1
 #if defined(CARBONATED)
         // Ignore network updates... currently
         void SetClientSimulated(bool clientSim);
 #endif
-        // Gruber patch end aoreshko
+        // carbonated end game_specific_1
 
     protected:
 
@@ -198,10 +198,10 @@ namespace AzFramework
         /// Behavior for this entity's transform when its parent's transform changes.
         AZ::OnParentChangedBehavior m_onParentChangedBehavior = AZ::OnParentChangedBehavior::Update;
 
-        // Gruber patch begin aoreshko: MADPORT-12
+        // carbonated begin aoreshko game_specific_1
 #if defined(CARBONATED)
         bool m_isClientSimulated;
 #endif
-        // Gruber patch end aoreshko
+        // carbonated end game_specific_1
     };
 }   // namespace AZ

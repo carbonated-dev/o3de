@@ -518,7 +518,7 @@ namespace AZ
         }
     }
 
-    // Gruer patch begin aoreshko: MADPORT-12
+    // carbonated begin aoreshko game_specific_1
     AZ_FORCE_INLINE const Vector3 Quaternion::operator*(const Vector3& v) const
     {
         // inverse must come last, this ensures associativity, (q1*q2)*v = q1*(q2*v)
@@ -526,5 +526,5 @@ namespace AZ
         Quaternion result = (*this) * Quaternion::CreateFromVector3(v) * GetInverseFast();
         return Vector3(result.m_value);
     }
-    // Gruer patch end aoreshko
+    // // carbonated end game_specific_1
 }
