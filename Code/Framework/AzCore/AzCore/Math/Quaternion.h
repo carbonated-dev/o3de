@@ -227,12 +227,14 @@ namespace AZ
 
         bool operator==(const Quaternion& rhs) const;
         bool operator!=(const Quaternion& rhs) const;
-
+        
         // carbonated begin enable_catbonated_1: Methids called from o2de-gruber
+#if defined(CARBONATED)
          /**
          * Transforms a vector. The multiplication order is defined to be q*v, which matches the matrix multiplication order.
          */
         const Vector3 operator*(const Vector3& v) const;
+#endif
         // carbonated end enable_catbonated_1
 
         //! Transforms a vector using the rotation described by this quaternion
