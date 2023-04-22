@@ -21,33 +21,35 @@ namespace AZ
             switch (numArgs)
             {
             case 1:
-            {
-                if (dc.IsNumber(0))
                 {
-                    float number = 0;
-                    dc.ReadArg(0, number);
-                    *thisPtr = Quaternion(number);
+                    if (dc.IsNumber(0))
+                    {
+                        float number = 0;
+                        dc.ReadArg(0, number);
+                        *thisPtr = Quaternion(number);
+                    }
+                    else
+                    {
+                        AZ_Warning("Script", false, "You should provide only 1 number/float to be splatted");
+                    }
                 }
-                else
-                {
-                    AZ_Warning("Script", false, "You should provide only 1 number/float to be splatted");
-                }
-            } break;
+                break;
             case 4:
-            {
-                if (dc.IsNumber(0) && dc.IsNumber(1) && dc.IsNumber(2) && dc.IsNumber(3))
                 {
-                    float x = 0;
-                    float y = 0;
-                    float z = 0;
-                    float w = 0;
-                    dc.ReadArg(0, x);
-                    dc.ReadArg(1, y);
-                    dc.ReadArg(2, z);
-                    dc.ReadArg(3, w);
-                    *thisPtr = Quaternion(x, y, z, w);
+                    if (dc.IsNumber(0) && dc.IsNumber(1) && dc.IsNumber(2) && dc.IsNumber(3))
+                    {
+                        float x = 0;
+                        float y = 0;
+                        float z = 0;
+                        float w = 0;
+                        dc.ReadArg(0, x);
+                        dc.ReadArg(1, y);
+                        dc.ReadArg(2, z);
+                        dc.ReadArg(3, w);
+                        *thisPtr = Quaternion(x, y, z, w);
+                    }
                 }
-            } break;
+                break;
             }
         }
 
@@ -55,7 +57,6 @@ namespace AZ
         {
             new (thisPtr) AZ::Quaternion(AZ::Quaternion::CreateIdentity());
         }
-
 
         void QuaternionMultiplyGeneric(const Quaternion* thisPtr, ScriptDataContext& dc)
         {
@@ -91,7 +92,6 @@ namespace AZ
             }
         }
 
-
         void QuaternionDivideGeneric(const Quaternion* thisPtr, ScriptDataContext& dc)
         {
             if (dc.GetNumArguments() == 1)
@@ -111,7 +111,6 @@ namespace AZ
                 dc.PushResult(Quaternion::CreateIdentity());
             }
         }
-
 
         void QuaternionSetGeneric(Quaternion* thisPtr, ScriptDataContext& dc)
         {
@@ -149,115 +148,125 @@ namespace AZ
 
             if (!valueWasSet)
             {
-                AZ_Error("Script", false, "Quaternion.Set only supports Set(number), Set(number, number, number, number), Set(Vector3, number)");
+                AZ_Error(
+                    "Script", false, "Quaternion.Set only supports Set(number), Set(number, number, number, number), Set(Vector3, number)");
             }
         }
-    }
-
+    } // namespace Internal
 
     void Quaternion::Reflect(ReflectContext* context)
     {
         auto serializeContext = azrtti_cast<SerializeContext*>(context);
         if (serializeContext)
         {
-            serializeContext->Class<Quaternion>()->
-                Serializer<FloatBasedContainerSerializer<Quaternion, &Quaternion::CreateFromFloat4, &Quaternion::StoreToFloat4, &GetTransformEpsilon, 4> >();
+            serializeContext->Class<Quaternion>()
+                ->Serializer<FloatBasedContainerSerializer<
+                    Quaternion,
+                    &Quaternion::CreateFromFloat4,
+                    &Quaternion::StoreToFloat4,
+                    &GetTransformEpsilon,
+                    4>>();
         }
 
         auto behaviorContext = azrtti_cast<BehaviorContext*>(context);
         if (behaviorContext)
         {
-            behaviorContext->Class<Quaternion>()->
-                Attribute(AZ::Script::Attributes::Scope, AZ::Script::Attributes::ScopeFlags::Common)->
-                Attribute(AZ::Script::Attributes::Module, "math")->
-                Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::ListOnly)->
-                Constructor<float>()->
-                Constructor<float, float, float, float>()->
-                Attribute(AZ::Script::Attributes::Storage, AZ::Script::Attributes::StorageType::Value)->
-                Attribute(AZ::Script::Attributes::ConstructorOverride, &Internal::QuaternionScriptConstructor)->
-                Attribute(AZ::Script::Attributes::GenericConstructorOverride, &Internal::QuaternionDefaultConstructor)->
-                Property("x", &Quaternion::GetX, &Quaternion::SetX)->
-                Property("y", &Quaternion::GetY, &Quaternion::SetY)->
-                Property("z", &Quaternion::GetZ, &Quaternion::SetZ)->
-                Property("w", &Quaternion::GetW, &Quaternion::SetW)->
-                Method<Quaternion(Quaternion::*)() const>("Unary", &Quaternion::operator-)->
-                    Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Unary)->
-                Method("ToString", &QuaternionToString)->
-                    Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::ToString)->
-                Method<Quaternion(Quaternion::*)(float) const>("MultiplyFloat", &Quaternion::operator*)->
-                    Attribute(AZ::Script::Attributes::MethodOverride, &Internal::QuaternionMultiplyGeneric)->
-                    Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Mul)->
-                Method<Quaternion(Quaternion::*)(const Quaternion&) const>("MultiplyQuaternion", &Quaternion::operator*)->
-                    Attribute(AZ::Script::Attributes::Ignore, 0)-> // ignore for script since we already got the generic multiply above
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method<Quaternion(Quaternion::*)(float) const>("DivideFloat", &Quaternion::operator/)->
-                    Attribute(AZ::Script::Attributes::MethodOverride, &Internal::QuaternionDivideGeneric)->
-                    Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Div)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("Clone", [](const Quaternion& rhs) -> Quaternion { return rhs; })->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("Equal", &Quaternion::operator==)->
-                    Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Equal)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("Add", &Quaternion::operator+)->
-                    Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Add)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method<Quaternion(Quaternion::*)(const Quaternion&) const>("Subtract", &Quaternion::operator-)->
-                    Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Sub)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method<void (Quaternion::*)(float, float, float, float)>("Set", &Quaternion::Set)->
-                    Attribute(AZ::Script::Attributes::MethodOverride, &Internal::QuaternionSetGeneric)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("GetElement", &Quaternion::GetElement)->
-                Method("SetElement", &Quaternion::SetElement)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("GetLength", &Quaternion::GetLength)->
-                    Attribute(AZ::ScriptCanvasAttributes::ExplicitOverloadCrc, ExplicitOverloadInfo("Length", "Math"))->
-                Method("GetLengthSq", &Quaternion::GetLengthSq)->
-                Method("GetLengthReciprocal", &Quaternion::GetLengthReciprocal)->
-                Method("GetNormalized", &Quaternion::GetNormalized)->
-                Method("Normalize", &Quaternion::Normalize)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("NormalizeWithLength", &Quaternion::NormalizeWithLength)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("Lerp", &Quaternion::Lerp)->
-                Method("Slerp", &Quaternion::Slerp)->
-                Method("Squad", &Quaternion::Squad)->
-                Method("GetConjugate", &Quaternion::GetConjugate)->
-                Method("GetInverseFast", &Quaternion::GetInverseFast)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("InvertFast", &Quaternion::InvertFast)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("GetInverseFull", &Quaternion::GetInverseFull)->                
-                Method("InvertFull", &Quaternion::InvertFull)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("Dot", &Quaternion::Dot)->
-                Method("IsClose", &Quaternion::IsClose, behaviorContext->MakeDefaultValues(Constants::Tolerance))->
-                Method("IsIdentity", &Quaternion::IsIdentity, behaviorContext->MakeDefaultValues(Constants::Tolerance))->
-                Method("IsZero", &Quaternion::IsZero, behaviorContext->MakeDefaultValues(Constants::FloatEpsilon))->
-                Method("GetEulerDegrees", &Quaternion::GetEulerDegrees)->
-                Method("GetEulerRadians", &Quaternion::GetEulerRadians)->
-                Method("SetFromEulerDegrees", &Quaternion::SetFromEulerDegrees)->
-                Method("SetFromEulerRadians", &Quaternion::SetFromEulerRadians)->
-                Method("GetImaginary", &Quaternion::GetImaginary)->
-                Method("IsFinite", &Quaternion::IsFinite)->
-                Method("GetAngle", &Quaternion::GetAngle)->
-                Method("CreateIdentity", &Quaternion::CreateIdentity)->
-                Method("CreateZero", &Quaternion::CreateZero)->
-                Method("CreateRotationX", &Quaternion::CreateRotationX)->
-                Method("CreateRotationY", &Quaternion::CreateRotationY)->
-                Method("CreateRotationZ", &Quaternion::CreateRotationZ)->
-                Method("CreateFromVector3", &Quaternion::CreateFromVector3)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("CreateFromVector3AndValue", &Quaternion::CreateFromVector3AndValue)->
-                    Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)->
-                Method("CreateFromMatrix3x3", &Quaternion::CreateFromMatrix3x3)->
-                Method("CreateFromMatrix4x4", &Quaternion::CreateFromMatrix4x4)->
-                Method("CreateFromAxisAngle", &Quaternion::CreateFromAxisAngle)->
-                Method("CreateFromScaledAxisAngle", &Quaternion::CreateFromScaledAxisAngle)->
-                Method("CreateShortestArc", &Quaternion::CreateShortestArc)->
-                Method("CreateFromEulerAnglesDegrees", &Quaternion::CreateFromEulerAnglesDegrees)
-                ;
+            behaviorContext->Class<Quaternion>()
+                ->Attribute(AZ::Script::Attributes::Scope, AZ::Script::Attributes::ScopeFlags::Common)
+                ->Attribute(AZ::Script::Attributes::Module, "math")
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::ListOnly)
+                ->Constructor<float>()
+                ->Constructor<float, float, float, float>()
+                ->Attribute(AZ::Script::Attributes::Storage, AZ::Script::Attributes::StorageType::Value)
+                ->Attribute(AZ::Script::Attributes::ConstructorOverride, &Internal::QuaternionScriptConstructor)
+                ->Attribute(AZ::Script::Attributes::GenericConstructorOverride, &Internal::QuaternionDefaultConstructor)
+                ->Property("x", &Quaternion::GetX, &Quaternion::SetX)
+                ->Property("y", &Quaternion::GetY, &Quaternion::SetY)
+                ->Property("z", &Quaternion::GetZ, &Quaternion::SetZ)
+                ->Property("w", &Quaternion::GetW, &Quaternion::SetW)
+                ->Method<Quaternion (Quaternion::*)() const>("Unary", &Quaternion::operator-)
+                ->Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Unary)
+                ->Method("ToString", &QuaternionToString)
+                ->Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::ToString)
+                ->Method<Quaternion (Quaternion::*)(float) const>("MultiplyFloat", &Quaternion::operator*)
+                ->Attribute(AZ::Script::Attributes::MethodOverride, &Internal::QuaternionMultiplyGeneric)
+                ->Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Mul)
+                ->Method<Quaternion (Quaternion::*)(const Quaternion&) const>("MultiplyQuaternion", &Quaternion::operator*)
+                ->Attribute(AZ::Script::Attributes::Ignore, 0)
+                -> // ignore for script since we already got the generic multiply above
+                Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method<Quaternion (Quaternion::*)(float) const>("DivideFloat", &Quaternion::operator/)
+                ->Attribute(AZ::Script::Attributes::MethodOverride, &Internal::QuaternionDivideGeneric)
+                ->Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Div)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method(
+                    "Clone",
+                    [](const Quaternion& rhs) -> Quaternion
+                    {
+                        return rhs;
+                    })
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method("Equal", &Quaternion::operator==)
+                ->Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Equal)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method("Add", &Quaternion::operator+)
+                ->Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Add)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method<Quaternion (Quaternion::*)(const Quaternion&) const>("Subtract", &Quaternion::operator-)
+                ->Attribute(AZ::Script::Attributes::Operator, AZ::Script::Attributes::OperatorType::Sub)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method<void (Quaternion::*)(float, float, float, float)>("Set", &Quaternion::Set)
+                ->Attribute(AZ::Script::Attributes::MethodOverride, &Internal::QuaternionSetGeneric)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method("GetElement", &Quaternion::GetElement)
+                ->Method("SetElement", &Quaternion::SetElement)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method("GetLength", &Quaternion::GetLength)
+                ->Attribute(AZ::ScriptCanvasAttributes::ExplicitOverloadCrc, ExplicitOverloadInfo("Length", "Math"))
+                ->Method("GetLengthSq", &Quaternion::GetLengthSq)
+                ->Method("GetLengthReciprocal", &Quaternion::GetLengthReciprocal)
+                ->Method("GetNormalized", &Quaternion::GetNormalized)
+                ->Method("Normalize", &Quaternion::Normalize)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method("NormalizeWithLength", &Quaternion::NormalizeWithLength)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method("Lerp", &Quaternion::Lerp)
+                ->Method("Slerp", &Quaternion::Slerp)
+                ->Method("Squad", &Quaternion::Squad)
+                ->Method("GetConjugate", &Quaternion::GetConjugate)
+                ->Method("GetInverseFast", &Quaternion::GetInverseFast)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method("InvertFast", &Quaternion::InvertFast)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method("GetInverseFull", &Quaternion::GetInverseFull)
+                ->Method("InvertFull", &Quaternion::InvertFull)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method("Dot", &Quaternion::Dot)
+                ->Method("IsClose", &Quaternion::IsClose, behaviorContext->MakeDefaultValues(Constants::Tolerance))
+                ->Method("IsIdentity", &Quaternion::IsIdentity, behaviorContext->MakeDefaultValues(Constants::Tolerance))
+                ->Method("IsZero", &Quaternion::IsZero, behaviorContext->MakeDefaultValues(Constants::FloatEpsilon))
+                ->Method("GetEulerDegrees", &Quaternion::GetEulerDegrees)
+                ->Method("GetEulerRadians", &Quaternion::GetEulerRadians)
+                ->Method("SetFromEulerDegrees", &Quaternion::SetFromEulerDegrees)
+                ->Method("SetFromEulerRadians", &Quaternion::SetFromEulerRadians)
+                ->Method("GetImaginary", &Quaternion::GetImaginary)
+                ->Method("IsFinite", &Quaternion::IsFinite)
+                ->Method("GetAngle", &Quaternion::GetAngle)
+                ->Method("CreateIdentity", &Quaternion::CreateIdentity)
+                ->Method("CreateZero", &Quaternion::CreateZero)
+                ->Method("CreateRotationX", &Quaternion::CreateRotationX)
+                ->Method("CreateRotationY", &Quaternion::CreateRotationY)
+                ->Method("CreateRotationZ", &Quaternion::CreateRotationZ)
+                ->Method("CreateFromVector3", &Quaternion::CreateFromVector3)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method("CreateFromVector3AndValue", &Quaternion::CreateFromVector3AndValue)
+                ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+                ->Method("CreateFromMatrix3x3", &Quaternion::CreateFromMatrix3x3)
+                ->Method("CreateFromMatrix4x4", &Quaternion::CreateFromMatrix4x4)
+                ->Method("CreateFromAxisAngle", &Quaternion::CreateFromAxisAngle)
+                ->Method("CreateFromScaledAxisAngle", &Quaternion::CreateFromScaledAxisAngle)
+                ->Method("CreateShortestArc", &Quaternion::CreateShortestArc)
+                ->Method("CreateFromEulerAnglesDegrees", &Quaternion::CreateFromEulerAnglesDegrees);
         }
     }
 
@@ -266,18 +275,15 @@ namespace AZ
         return CreateFromBasis(m.GetBasisX(), m.GetBasisY(), m.GetBasisZ());
     }
 
-
     Quaternion Quaternion::CreateFromMatrix3x4(const Matrix3x4& m)
     {
         return CreateFromBasis(m.GetBasisX(), m.GetBasisY(), m.GetBasisZ());
     }
 
-
     Quaternion Quaternion::CreateFromMatrix4x4(const Matrix4x4& m)
     {
         return CreateFromBasis(m.GetBasisXAsVector3(), m.GetBasisYAsVector3(), m.GetBasisZAsVector3());
     }
-
 
     Quaternion Quaternion::CreateFromBasis(const Vector3& basisX, const Vector3& basisY, const Vector3& basisZ)
     {
@@ -311,7 +317,6 @@ namespace AZ
         }
         return result * (0.5f * InvSqrt(trace));
     }
-
 
     Quaternion Quaternion::CreateShortestArc(const Vector3& v1, const Vector3& v2)
     {
@@ -390,7 +395,6 @@ namespace AZ
         return (*this) * sclA + dest * sclB;
     }
 
-
     void Quaternion::SetFromEulerRadians(const Vector3& eulerRadians)
     {
         const Simd::Vec3::FloatType half = Simd::Vec3::Splat(0.5f);
@@ -424,17 +428,13 @@ namespace AZ
         const float sx = Simd::Vec3::SelectFirst(sin);
         const float cx = Simd::Vec3::SelectFirst(cos);
         const float sy = Simd::Vec3::SelectSecond(sin);
-        const float cy = Simd::Vec3::SelectSecond(cos);    
+        const float cy = Simd::Vec3::SelectSecond(cos);
         const float sz = Simd::Vec3::SelectThird(sin);
         const float cz = Simd::Vec3::SelectThird(cos);
 
         // rot = rotx * roty * rotz
         return AZ::Quaternion(
-            cx * sy * sz + sx * cy * cz,
-            cx * sy * cz - sx * cy * sz,
-            cx * cy * sz + sx * sy * cz,
-            cx * cy * cz - sx * sy * sz
-        );
+            cx * sy * sz + sx * cy * cz, cx * sy * cz - sx * cy * sz, cx * cy * sz + sx * sy * cz, cx * cy * cz - sx * sy * sz);
     }
 
     Quaternion Quaternion::CreateFromEulerRadiansYXZ(const Vector3& eulerRadians)
@@ -453,11 +453,7 @@ namespace AZ
 
         // rot = roty * rotx * rotz
         return AZ::Quaternion(
-            cy * sx * cz + sy * cx * sz,
-            sy * cx * cz - cy * sx * sz,
-            cy * cx * sz - sy * sx * cz,
-            cy * cx * cz + sy * sx * sz
-        );
+            cy * sx * cz + sy * cx * sz, sy * cx * cz - cy * sx * sz, cy * cx * sz - sy * sx * cz, cy * cx * cz + sy * sx * sz);
     }
     Quaternion Quaternion::CreateFromEulerRadiansZYX(const Vector3& eulerRadians)
     {
@@ -472,14 +468,10 @@ namespace AZ
         const float cy = Simd::Vec3::SelectSecond(cos);
         const float sz = Simd::Vec3::SelectThird(sin);
         const float cz = Simd::Vec3::SelectThird(cos);
-        
+
         // rot = rotz * roty * rotx
         return AZ::Quaternion(
-            sx * cy * cz - cx * sy * sz,
-            cx * sy * cz + sx * cy * sz,
-            cx * cy * sz - sx * sy * cz,
-            cx * cy * cz + sx * sy * sz
-        );
+            sx * cy * cz - cx * sy * sz, cx * sy * cz + sx * cy * sz, cx * cy * sz - sx * sy * cz, cx * cy * cz + sx * sy * sz);
     }
 
     void Quaternion::ConvertToAxisAngle(Vector3& outAxis, float& outAngle) const
@@ -497,7 +489,6 @@ namespace AZ
             outAngle = 0.0f;
         }
     }
-
 
     Vector3 Quaternion::ConvertToScaledAxisAngle() const
     {
@@ -518,7 +509,7 @@ namespace AZ
         }
     }
 
-    // carbonated begin aoreshko game_specific_1
+    // carbonated begin enable_catbonated_1: Methids called from o2de-gruber
     AZ_FORCE_INLINE const Vector3 Quaternion::operator*(const Vector3& v) const
     {
         // inverse must come last, this ensures associativity, (q1*q2)*v = q1*(q2*v)
@@ -526,5 +517,5 @@ namespace AZ
         Quaternion result = (*this) * Quaternion::CreateFromVector3(v) * GetInverseFast();
         return Vector3(result.m_value);
     }
-    // // carbonated end game_specific_1
-}
+    // carbonated end enable_catbonated__1
+} // namespace AZ

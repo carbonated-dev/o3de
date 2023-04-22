@@ -366,15 +366,19 @@ namespace PhysX
         }
     }
 
-    // carbonated begin aoreshko game_specific_1
+    // carbonated begin enable_catbonated_1: Methids called from o2de-gruber
  #if defined(CARBONATED)
     // Pilfered/inspired from SystemComponent::UpdateMaterialSelection
     void CharacterControllerComponent::SetMaterialByName(uint32_t index, const AZStd::string& name)
     {
         AZ_Assert(m_characterConfig, "Character Config is null!");
 
-        Physics::MaterialFromAssetConfiguration materialConfig;
+        Physics::MaterialAsset::MaterialProperties materialConfig;
+        //Physics::MaterialAsset::MaterialFromAssetConfiguration materialConfig;
+
         const Physics::MaterialLibraryAsset* materialLibrary = m_characterConfig->m_materialSelection.GetMaterialLibraryAssetData();
+        //const Physics::MaterialLibraryAsset* materialLibrary = m_characterConfig->m_materialSelection.GetMaterialLibraryAssetData();
+
         if (materialLibrary == nullptr)
         {
             AZ::Data::AssetId materialLibraryAssetId = m_characterConfig->m_materialSelection.GetMaterialLibraryAssetId();
@@ -403,7 +407,7 @@ namespace PhysX
         m_controller->SetColliderTag(tag);
     }
 #endif
-    // carbonated end game_specific_1
+    // carbonated end enable_catbonated_1
 
     // TransformNotificationBus
     void CharacterControllerComponent::OnTransformChanged(const AZ::Transform& /*local*/, const AZ::Transform& world)

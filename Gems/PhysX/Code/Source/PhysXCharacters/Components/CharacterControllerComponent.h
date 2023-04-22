@@ -125,12 +125,12 @@ namespace PhysX
         float GetHalfForwardExtent() override;
         void SetHalfForwardExtent(float halfForwardExtent) override;
 
-        // carbonated begin aoreshko game_specific_1
+        // carbonated begin enable_catbonated_1: Methids called from o2de-gruber
 #if defined(CARBONATED)
         void SetMaterialByName(uint32_t index, const AZStd::string& name) override;
         void SetTag(const AZ::Crc32& tag) override;
 #endif
-        // carbonated end game_specific_1
+        // carbonated end enable_catbonated_1
 
         // TransformNotificationBus
         void OnTransformChanged(const AZ::Transform& local, const AZ::Transform& world) override;
