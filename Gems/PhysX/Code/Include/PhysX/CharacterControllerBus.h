@@ -55,7 +55,7 @@ namespace PhysX
         /// @param halfForwardExtent The new half forward extent for the controller.
         virtual void SetHalfForwardExtent(float halfForwardExtent) = 0;
 
-        // carbonated begin enable_catbonated_1: Methids called from o2de-gruber
+        // carbonated begin enable_catbonated_1: Methods called from o2de-gruber
 #if defined(CARBONATED)
         virtual void SetMaterialByName(uint32_t index, const AZStd::string& name) = 0;
         virtual void SetTag(const AZ::Crc32& tag) = 0;

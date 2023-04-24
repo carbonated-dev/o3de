@@ -509,7 +509,7 @@ namespace AZ
         }
     }
 
-    // carbonated begin enable_catbonated_1: Methids called from o2de-gruber
+    // carbonated begin enable_catbonated_1: Methods called from o2de-gruber
 #if defined(CARBONATED)
     AZ_FORCE_INLINE const Vector3 Quaternion::operator*(const Vector3& v) const
     {

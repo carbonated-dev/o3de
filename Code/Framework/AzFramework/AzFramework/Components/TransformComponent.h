@@ -74,7 +74,7 @@ namespace AzFramework
         //! This will use worldTM as a localTM and move the transform relative to the parent.
         void SetParentRelative(AZ::EntityId id) override;
 
-         // carbonated begin enable_catbonated_1: Methids called from o2de-gruber
+         // carbonated begin enable_catbonated_1: Methods called from o2de-gruber
 #if defined(CARBONATED)
         // Ignore network updates... currently
         void SetClientSimulated(bool clientSim);
@@ -198,7 +198,7 @@ namespace AzFramework
         /// Behavior for this entity's transform when its parent's transform changes.
         AZ::OnParentChangedBehavior m_onParentChangedBehavior = AZ::OnParentChangedBehavior::Update;
 
-        // carbonated begin enable_catbonated_1: Methids called from o2de-gruber
+        // carbonated begin enable_catbonated_1: Methods called from o2de-gruber
 #if defined(CARBONATED)
         bool m_isClientSimulated;
 #endif

@@ -366,19 +366,18 @@ namespace PhysX
         }
     }
 
-    // carbonated begin enable_catbonated_1: Methids called from o2de-gruber
+    // carbonated begin enable_catbonated_1: Methods called from o2de-gruber
  #if defined(CARBONATED)
     // Pilfered/inspired from SystemComponent::UpdateMaterialSelection
     void CharacterControllerComponent::SetMaterialByName(uint32_t index, const AZStd::string& name)
     {
         AZ_Assert(m_characterConfig, "Character Config is null!");
 
-        Physics::MaterialAsset::MaterialProperties materialConfig;
-        //Physics::MaterialAsset::MaterialFromAssetConfiguration materialConfig;
-
+        // This code is commented because not compatible with o3de
+        /*
+        Physics::MaterialAsset::MaterialFromAssetConfiguration materialConfig;
         const Physics::MaterialLibraryAsset* materialLibrary = m_characterConfig->m_materialSelection.GetMaterialLibraryAssetData();
-        //const Physics::MaterialLibraryAsset* materialLibrary = m_characterConfig->m_materialSelection.GetMaterialLibraryAssetData();
-
+        
         if (materialLibrary == nullptr)
         {
             AZ::Data::AssetId materialLibraryAssetId = m_characterConfig->m_materialSelection.GetMaterialLibraryAssetId();
@@ -400,11 +399,15 @@ namespace PhysX
                 "SetMaterialByName failed!  Could not load the Material Library or get the material data for '%s'",
                 name.c_str());
         }
+        */
     }
 
     void CharacterControllerComponent::SetTag(const AZ::Crc32& tag)
     {
+        // This code is commented because not compatible with o3de
+        /*
         m_controller->SetColliderTag(tag);
+        */
     }
 #endif
     // carbonated end enable_catbonated_1

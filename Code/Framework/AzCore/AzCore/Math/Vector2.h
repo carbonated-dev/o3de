@@ -163,7 +163,7 @@ namespace AZ
         //! The positive rotation direction is defined such that the x-axis is rotated into the y-axis.
         Vector2 GetPerpendicular() const;
 
-       // carbonated begin enable_catbonated_1: Methids called from o2de-gruber
+       // carbonated begin enable_catbonated_1: Methods called from o2de-gruber
 #if defined(CARBONATED)
 #define AZ_MATH_FORCE_INLINE AZ_FORCE_INLINE
         /**
