@@ -226,7 +226,7 @@ namespace AZ
         Quaternion& operator/=(float divisor);
 
         bool operator==(const Quaternion& rhs) const;
-        bool operator!=(const Quaternion& rhs) const;        
+        bool operator!=(const Quaternion& rhs) const;
 
         //! Transforms a vector using the rotation described by this quaternion
         Vector3 TransformVector(const Vector3& v) const;
