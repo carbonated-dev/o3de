@@ -6,10 +6,10 @@
  *
  */
 
-#include <AzCore/Math/Quaternion.h>
-#include <AzCore/Math/Matrix3x3.h>
-#include <AzCore/Math/MathUtils.h>
 #include <AzCore/Math/MathScriptHelpers.h>
+#include <AzCore/Math/MathUtils.h>
+#include <AzCore/Math/Matrix3x3.h>
+#include <AzCore/Math/Quaternion.h>
 
 namespace AZ
 {
