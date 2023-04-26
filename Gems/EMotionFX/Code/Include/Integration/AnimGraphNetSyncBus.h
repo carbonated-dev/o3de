@@ -1,3 +1,4 @@
+// carbonated begin enable_carbonated_2: Methods called from o3de-gruber
 #pragma once
 #if defined(CARBONATED)
 #include <AzCore/EBus/EBus.h>
@@ -23,3 +24,4 @@ namespace EMotionFX
     using AnimGraphNetSyncRequestBus = AZ::EBus<AnimGraphNetSyncRequests>;
 }
 #endif
+// carbonated end enable_carbonated_2
