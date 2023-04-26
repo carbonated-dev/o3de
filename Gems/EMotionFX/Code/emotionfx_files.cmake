@@ -9,6 +9,8 @@
 set(FILES
     Include/Integration/AnimationBus.h
     Include/Integration/MotionExtractionBus.h
+    Include/Integration/AnimGraphNetSyncBus.h    
+    Include/Integration/ApplyMotionSetComponentBus.h
     Source/Integration/System/SystemComponent.cpp
     Source/Integration/System/SystemComponent.h
     Source/Integration/System/PipelineComponent.cpp
