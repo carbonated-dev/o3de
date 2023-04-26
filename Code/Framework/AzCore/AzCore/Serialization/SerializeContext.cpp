@@ -1454,11 +1454,11 @@ namespace AZ
         ObjectCloneData cloneData;
         ErrorHandler m_errorLogger;
 
-        AZ_Error("SerializeContext", false, "Assert: SerializeContext::CloneObject - Attempt to clone a nullptr.");
         //AZ_Assert(ptr, "SerializeContext::CloneObject - Attempt to clone a nullptr.");
 
         if (!ptr)
         {
+            AZ_Error("SerializeContext", false, "Assert: SerializeContext::CloneObject - Attempt to clone a nullptr.");
             return nullptr;
         }
 
