@@ -118,7 +118,8 @@ namespace SerializeContextTools
             }
         };
 
-        stdoutCapturer.Start();
+        // LVB
+        stdoutCapturer.Start(65535 * 20000);
         Application application(argc, argv, &stdoutCapturer);
         AZ::ComponentApplication::StartupParameters startupParameters;
         application.Start({}, startupParameters);
@@ -187,10 +188,12 @@ namespace SerializeContextTools
             AZ_Printf("SerializeContextTools", "Processing didn't complete fully as problems were encountered.\n");
         }
 
+        // LVB
+        stdoutCapturer.Flush(SendStdoutToError);
+
         application.Stop();
 
         // Write out any stdout to stderr at this point
-
         // Because the FILE* stream is buffered, make sure to flush
         // it before stopping the capture of stdout.
         fflush(stdout);

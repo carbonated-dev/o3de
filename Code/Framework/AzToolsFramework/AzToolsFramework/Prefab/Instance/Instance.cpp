@@ -318,6 +318,7 @@ namespace AzToolsFramework
             m_nestedInstances.clear();
             m_cachedInstanceDom = PrefabDom();
             m_containerEntity.reset(aznew AZ::Entity());
+
             RegisterEntity(m_containerEntity->GetId(), GenerateEntityAlias());
 
         }
@@ -361,8 +362,16 @@ namespace AzToolsFramework
                         // Clean up our entity associations
                         if (!m_instanceEntityMapper->UnregisterEntity(entity->GetId()))
                         {
-                            AZ_Assert(false,
+                            /* AZ_Assert(
+                                false,
                                 "Prefab - Attempted to Unregister entity with id '%s' from Prefab Instance derived from source asset '%s' "
+                                "Entity may never have been registered or was Unregistered early.",
+                                entity->GetId().ToString().c_str(),
+                                m_templateSourcePath.c_str());*/
+                           AZ_Error(
+                                "Prefab",
+                                false,
+                                "Assert: Prefab - Attempted to Unregister entity with id '%s' from Prefab Instance derived from source asset '%s' "
                                 "Entity may never have been registered or was Unregistered early.",
                                 entity->GetId().ToString().c_str(),
                                 m_templateSourcePath.c_str());
@@ -384,8 +393,17 @@ namespace AzToolsFramework
             if ((m_entityIdInstanceRelationship ==
                     EntityIdInstanceRelationship::OneToOne) && !(m_instanceEntityMapper->RegisterEntityToInstance(entityId, *this)))
             {
-                AZ_Assert(false,
+                /* AZ_Assert(
+                    false,
                     "Prefab - Failed to register entity with id %s with a Prefab Instance derived from source asset %s "
+                    "This entity is likely already registered. Check for a double add.",
+                    entityId.ToString().c_str(),
+                    m_templateSourcePath.c_str());*/
+
+                 AZ_Error(
+                    "Prefab",
+                    false,
+                    "Assert: Prefab - Failed to register entity with id %s with a Prefab Instance derived from source asset %s "
                     "This entity is likely already registered. Check for a double add.",
                     entityId.ToString().c_str(),
                     m_templateSourcePath.c_str());

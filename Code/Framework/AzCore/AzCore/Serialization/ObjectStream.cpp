@@ -549,7 +549,7 @@ namespace AZ
                         classContainer = parentClassInfo->m_container;
                         // Use the dynamicElementMetadata object to store the ClassElement into
                         bool classElementFound = classContainer->GetElement(dynamicElementMetadata, element);
-                        AZ_Assert(classElementFound, "'%s'(0x%x) is not a valid element name for container type %s", element.m_name ? element.m_name : "NULL", element.m_nameCrc, parentClassInfo->m_name);
+                        //AZ_Assert(classElementFound, "'%s'(0x%x) is not a valid element name for container type %s", element.m_name ? element.m_name : "NULL", element.m_nameCrc, parentClassInfo->m_name);
                         if (classElementFound)
                         {
                             classElement = &dynamicElementMetadata;
@@ -600,6 +600,16 @@ namespace AZ
                                     classElement = nullptr;
                                 }
                             }
+                        }
+                        else
+                        {
+                            AZ_Error(
+                                "ObjectStream",
+                                false,
+                                "Assert: '%s'(0x%x) is not a valid element name for container type %s",
+                                element.m_name ? element.m_name : "NULL",
+                                element.m_nameCrc,
+                                parentClassInfo->m_name);
                         }
                     }
                     else if (parentClassInfo->m_typeId == SerializeTypeInfo<DynamicSerializableField>::GetUuid() && element.m_nameCrc == AZ_CRC("m_data", 0x335cc942))   // special case for dynamic-typed fields

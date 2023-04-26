@@ -219,7 +219,7 @@ namespace AZ
             constexpr bool removeEmptyInstances = true;
             SliceComponent::EntityList sliceEntities = sliceComponent->GetNewEntities();
             sliceComponent->RemoveAllEntities(deleteEntities, removeEmptyInstances);
-            AZ_Printf("Convert-Slice", "  Slice contains %zu entities.\n", sliceEntities.size());
+            AZ_Printf("Convert-Slice", "  Slice (%s) contains %zu entities.\n", outputPath.String().c_str(), sliceEntities.size());
 
             // Create an empty Prefab as the start of our conversion.
             // The entities are added in a separate step so that we can give them deterministic entity aliases that match their entity Ids
@@ -299,7 +299,8 @@ namespace AZ
             // If this slice has nested slices, we need to loop through those, convert them to prefabs as well, and
             // set up the new nesting relationships correctly.
             const SliceComponent::SliceList& sliceList = sliceComponent->GetSlices();
-            AZ_Printf("Convert-Slice", "  Slice contains %zu nested slices.\n", sliceList.size());
+            AZ_Printf("Convert-Slice", "  Slice (%s) contains %zu nested slices.\n", outputPath.String().c_str(), sliceList.size());
+
             if (!sliceList.empty())
             {
                 bool nestedSliceResult = ConvertNestedSlices(sliceComponent, sourceInstance.get(), serializeContext, isDryRun);
@@ -410,7 +411,16 @@ namespace AZ
             {
                 // Get the nested slice asset.  These should already be preloaded due to loading the root asset.
                 auto sliceAsset = slice.GetSliceAsset();
-                AZ_Assert(sliceAsset.IsReady(), "slice asset hasn't been loaded yet!");
+                //AZ_Assert(sliceAsset.IsReady(), "slice asset hasn't been loaded yet!");
+                if (!sliceAsset.IsReady())
+                {
+                    AZ_Error(
+                        "SliceConverter",
+                        false,
+                        "Assert: slice asset hasn't been loaded yet! %s\n",
+                        slice.GetSliceAsset().GetId().m_guid.ToString<AZStd::string>().c_str());
+                    continue;
+                }
 
                 // The slice list gives us asset IDs, and we need to get to the source path.  So first we get the asset path from the ID,
                 // then we get the source path from the asset path.
@@ -624,7 +634,9 @@ namespace AZ
                         }
                         else
                         {
-                            AZ_Assert(false, "Couldn't find nested instance %s", it->c_str());
+                            //AZ_Assert(false, "Couldn't find nested instance %s", it->c_str());
+                            AZ_Error("SliceConverter", false, "Assert: 1. Couldn't find nested instance %s", it->c_str());
+                            continue;
                         }
                     }
                     UpdateCachedTransform(*entity);
@@ -688,7 +700,13 @@ namespace AZ
                                     }
                                     else
                                     {
-                                        AZ_Assert(false, "Could not find parent instance");
+                                        //AZ_Assert(false, "Could not find parent instance");
+                                        AZ_Error(
+                                            "SliceConverter",
+                                            false,
+                                            "Assert: Could not find parent instance. parentInstance->GetTemplateId()=%lu\n",
+                                            parentInstance->GetTemplateId());
+                                        continue;
                                     }
                                 }
 
@@ -707,9 +725,12 @@ namespace AZ
                         {
                             // If the parent ID is set to something valid, but we can't find it in our ID mapper, something went wrong.
                             // We'll assert, but don't change the container entity's parent below.
-                            AZ_Assert(false, "Could not find parent entity id: %s", parentId.ToString().c_str());
+                            //AZ_Assert(false, "Could not find parent entity id: %s", parentId.ToString().c_str());
+                            AZ_Warning("Convert-Slice", false, "Could not find parent entity id: %s\n", parentId.ToString().c_str());
+                            // LVB. Dirty hack to fix parenting between neighbour slices
+                            // If you cannot figure out the parenting, just parent it to the container it belongs to"
+                            SetParentEntity(*entity, containerEntityId, false);
                         }
-
                     }
 
                     SetParentEntity(*entity, containerEntityId, onlySetIfInvalid);
@@ -986,7 +1007,9 @@ namespace AZ
                                 }
                                 else
                                 {
-                                    AZ_Assert(false, "Couldn't find nested instance %s", it->c_str());
+                                    //AZ_Assert(false, "Couldn't find nested instance %s", it->c_str());
+                                    AZ_Error("SliceConverter", false, "Assert: 2. Couldn't find nested instance %s", it->c_str());
+                                    continue;
                                 }
                             }
 
