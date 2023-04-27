@@ -43,6 +43,8 @@ ly_add_target(
             EMFX_ANIMGRAPH_PROFILER_ENABLED
 )
 
+add_compile_definitions(CARBONATED)
+
 ly_add_target(
     NAME EMotionFX.Static STATIC
     NAMESPACE Gem
