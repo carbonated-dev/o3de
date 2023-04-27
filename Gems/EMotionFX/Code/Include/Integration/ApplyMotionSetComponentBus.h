@@ -22,7 +22,6 @@ namespace EMotionFX
 {
     namespace Integration
     {
-#if defined(CARBONATED)
         enum MotionSetGender : int32_t
         {
             MOTION_NONE,
@@ -30,7 +29,6 @@ namespace EMotionFX
             MOTION_FEMALE,
             MOTION_MALE
         };
-#endif
 
         /**
          * EmotionFX Anim Graph Component Request Bus
@@ -44,11 +42,7 @@ namespace EMotionFX
             static const AZ::EBusHandlerPolicy HandlerPolicy = AZ::EBusHandlerPolicy::Single;
 
             // applies the defined motion set to this Entity's AnimGraphInstance
-#if defined(CARBONATED)
             virtual void Apply(const AZ::EntityId& id, const MotionSetGender& preferredGender) = 0;
-#else
-            virtual void Apply(const AZ::EntityId& id) = 0;
-#endif
         };
 
         using ApplyMotionSetComponentRequestBus = AZ::EBus<ApplyMotionSetComponentRequests>;
