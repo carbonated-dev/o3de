@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) Carbonated
+ *
+ */
+
 // carbonated begin enable_carbonated_2: Methods called from o3de-gruber
 #pragma once
 #if defined(CARBONATED)
