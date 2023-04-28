@@ -34,7 +34,7 @@ namespace AzToolsFramework
 
             if (findResult != m_entityToInstanceMap.end())
             {
-                AZ_Warning("Prefab", false, "Entity with id '%llu' is already registered to an instance whose source path is '%s'.",
+                AZ_Warning("Prefab", false, "Entity with id '%llu' is already registered to an instance whose source path is '%s'.\n",
                     static_cast<AZ::u64>(entityId), findResult->second->GetTemplateSourcePath().c_str());
                 return false;
             }

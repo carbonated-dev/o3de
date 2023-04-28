@@ -368,10 +368,10 @@ namespace AzToolsFramework
                                 "Entity may never have been registered or was Unregistered early.",
                                 entity->GetId().ToString().c_str(),
                                 m_templateSourcePath.c_str());*/
-                           AZ_Error(
+                           AZ_Warning(
                                 "Prefab",
                                 false,
-                                "Assert: Prefab - Attempted to Unregister entity with id '%s' from Prefab Instance derived from source asset '%s' "
+                                "Prefab - Attempted to Unregister entity with id '%s' from Prefab Instance derived from source asset '%s' "
                                 "Entity may never have been registered or was Unregistered early.",
                                 entity->GetId().ToString().c_str(),
                                 m_templateSourcePath.c_str());
@@ -400,10 +400,10 @@ namespace AzToolsFramework
                     entityId.ToString().c_str(),
                     m_templateSourcePath.c_str());*/
 
-                 AZ_Error(
+                 AZ_Warning(
                     "Prefab",
                     false,
-                    "Assert: Prefab - Failed to register entity with id %s with a Prefab Instance derived from source asset %s "
+                    "Prefab - Failed to register entity with id %s with a Prefab Instance derived from source asset %s "
                     "This entity is likely already registered. Check for a double add.",
                     entityId.ToString().c_str(),
                     m_templateSourcePath.c_str());
