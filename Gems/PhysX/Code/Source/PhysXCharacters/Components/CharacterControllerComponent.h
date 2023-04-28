@@ -125,6 +125,13 @@ namespace PhysX
         float GetHalfForwardExtent() override;
         void SetHalfForwardExtent(float halfForwardExtent) override;
 
+        // carbonated begin enable_carbonated_1: Methods called from o3de-gruber
+#if defined(CARBONATED)
+        void SetMaterialByName(uint32_t index, const AZStd::string& name) override;
+        void SetTag(const AZ::Crc32& tag) override;
+#endif
+        // carbonated end enable_carbonated_1
+
         // TransformNotificationBus
         void OnTransformChanged(const AZ::Transform& local, const AZ::Transform& world) override;
 

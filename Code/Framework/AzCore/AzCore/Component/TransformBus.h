@@ -302,6 +302,13 @@ namespace AZ
 
         //! Set the behavior at runtime when this entity's parent's transform changes.
         virtual void SetOnParentChangedBehavior([[maybe_unused]] OnParentChangedBehavior onParentChangedBehavior) {}
+
+        // carbonated begin enable_carbonated_1: Methods called from o3de-gruber
+#if defined(CARBONATED)
+        // Ignore network updates... currently
+        virtual void SetClientSimulated(bool /* clientSim */){};
+#endif
+       // carbonated end enable_carbonated_1
     };
 
     //! The EBus for requests to position and parent an entity.
