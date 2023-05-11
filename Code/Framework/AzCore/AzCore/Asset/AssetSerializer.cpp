@@ -309,7 +309,7 @@ namespace AZ {
 
             if (asset.IsError())
             {
-                AZ_Error("Serialization", false, "Dependent asset (%s:%s) could not be loaded.",
+                AZ_Error("Serialization", false, "Assert. Dependent asset (%s:%s) could not be loaded.",
                     asset.GetId().ToString<AZStd::string>().c_str(),
                     asset.GetHint().c_str());
                 return false;
