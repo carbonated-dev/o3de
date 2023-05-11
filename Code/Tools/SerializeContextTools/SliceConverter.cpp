@@ -971,11 +971,11 @@ namespace AZ
                                     else
                                     {
                                         //AZ_Assert(false, "Could not find parent instance");
-                                        AZ_Error(
+                                        AZ_Warning(
                                             "SliceConverter",
                                             false,
-                                            "Assert: Could not find parent instance. parentInstance->GetTemplateId()=%lu\n",
-                                            parentInstance->GetTemplateId());
+                                            "Could not find parent instance. AbsolutePath=%s\n",
+                                            parentInstance->GetAbsoluteInstanceAliasPath().c_str());
                                         continue;
                                     }
                                 }
@@ -1278,7 +1278,7 @@ namespace AZ
                                 else
                                 {
                                     //AZ_Assert(false, "Couldn't find nested instance %s", it->c_str());
-                                    AZ_Error("SliceConverter", false, "Assert: 2. Couldn't find nested instance %s", it->c_str());
+                                    AZ_Warning("SliceConverter", false, "2. Couldn't find nested instance %s. \n", it->c_str());
                                     continue;
                                 }
                             }

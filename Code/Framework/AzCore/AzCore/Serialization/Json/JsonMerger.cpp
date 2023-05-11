@@ -625,6 +625,30 @@ namespace AZ
         {
             if (source != target)
             {
+                // LVB +. Dirty Hack.
+                // The slices allow parenting from neighbour SliceInstances.
+                // Prefabs support only child <-> parent hierarhy.
+                // After consulting with "AMZN_Nick_L#0049" it was decided to not include into target prefabs the "Patches" elements like:
+                //{
+                //    "op" : "replace",
+                //    "path" : "/Entities/Entity_[5874124593605]/Components/Component_[7779879276321866743]/Parent Entity",
+                //    "value" : "../Instance_[17356045201221]/Entity_[5874124593605]"
+                //}
+                // In such case ex-assert "2. Couldn't find nested instance" should be reported as warning
+                
+                if (element.Get().starts_with("/Entities/Entity_[") && element.Get().ends_with("]/Parent Entity") && target.IsString())
+                {
+                    auto s = AZStd::string_view(target.GetString(), target.GetStringLength());
+                    if (s.starts_with("../Instance_["))
+                    {
+                        AZ_Warning("JsonMerger", false, "Incorrect slice parenting was ignored. Element: %s. Path: %s\n", element.Get().cbegin(), s.cbegin());
+                        return settings.m_reporting(
+                            "Ignoring replace operation for value to JSON Patch for the parenting case.",
+                            ResultCode(Tasks::CreatePatch, Outcomes::Success),
+                            element);
+                    }
+                }
+                // LVB -. Dirty Hack
                 patch.PushBack(CreatePatchInternal_Replace(allocator, element, target), allocator);
                 return settings.m_reporting("Successfully completed replace operation for value to JSON Patch.",
                     ResultCode(Tasks::CreatePatch, Outcomes::Success), element);
