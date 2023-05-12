@@ -260,7 +260,7 @@ namespace AZ
             if (!AzToolsFramework::Prefab::PrefabDomUtils::LoadInstanceFromPrefabDom(*rootInstance, newEntities, templateDom,
                 AzToolsFramework::Prefab::PrefabDomUtils::LoadFlags::UseSelectiveDeserialization))
             {
-                AZ_Error("Convert-Slice", false, "  Could not instantiate prefab: %s.\n", prefabPath);
+                AZ_Error("Convert-Slice", false, "  Could not instantiate prefab: %s.\n", prefabPath.String().c_str());
             }
             const AZ::IO::PathView matBaseName = prefabPath.Filename().Stem();
             PatchMaterials(rootInstance, matBaseName);
@@ -268,7 +268,7 @@ namespace AZ
             AzToolsFramework::SliceConverterEditorEntityContextComponent::DisableOnContextEntityLogic();
             if (!prefabLoaderInterface->SaveTemplate(templateId))
             {
-                AZ_Error("Convert-Slice", false, "  Could not save prefab: %s.\n", prefabPath);
+                AZ_Error("Convert-Slice", false, "  Could not save prefab: %s.\n", prefabPath.String().c_str());
             }
         }
 
