@@ -185,13 +185,8 @@ namespace AZ
             for (AZStd::string& filePath : fileList)
             {
                 AZ::IO::Path prefabPath = filePath;
-                if (prefabPath.Extension() == ".prefab" || prefabPath.Extension() == ".slice")
+                if (prefabPath.Extension() == ".prefab")
                 {
-                    if (prefabPath.Extension() == ".slice")
-                    {
-                        prefabPath.ReplaceExtension("prefab");
-                    }
-
                     AZStd::vector<AZ::IO::Path> nestedPrefabPaths;
                     nestedPrefabPaths.push_back(prefabLoaderInterface->GenerateRelativePath(prefabPath));
                     GetAllNestedPrefabs(nestedPrefabPaths[0], nestedPrefabPaths);
