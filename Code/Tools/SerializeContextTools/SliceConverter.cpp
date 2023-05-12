@@ -185,24 +185,30 @@ namespace AZ
             for (AZStd::string& filePath : fileList)
             {
                 AZ::IO::Path prefabPath = filePath;
-                prefabPath.ReplaceExtension("prefab");
+                if (prefabPath.Extension() == ".prefab" || prefabPath.Extension() == ".slice")
+                {
+                    if (prefabPath.Extension() == ".slice")
+                    {
+                        prefabPath.ReplaceExtension("prefab");
+                    }
 
-                AZStd::vector<AZ::IO::Path> nestedPrefabPaths;
-                nestedPrefabPaths.push_back(prefabLoaderInterface->GenerateRelativePath(prefabPath));
-                GetAllNestedPrefabs(nestedPrefabPaths[0], nestedPrefabPaths);
-                for (auto const& path : nestedPrefabPaths)
-                {
-                    PatchPrefabs(path);
+                    AZStd::vector<AZ::IO::Path> nestedPrefabPaths;
+                    nestedPrefabPaths.push_back(prefabLoaderInterface->GenerateRelativePath(prefabPath));
+                    GetAllNestedPrefabs(nestedPrefabPaths[0], nestedPrefabPaths);
+                    for (auto const& path : nestedPrefabPaths)
+                    {
+                        PatchPrefabs(path);
+                    }
+                    // Clear out all registered prefab templates between each top-level file that gets processed.
+                    auto prefabSystemComponentInterface = AZ::Interface<AzToolsFramework::Prefab::PrefabSystemComponentInterface>::Get();
+                    for (auto templateId : m_createdTemplateIds)
+                    {
+                        // We don't just want to call RemoveAllTemplates() because the root template should remain between file conversions.
+                        prefabSystemComponentInterface->RemoveTemplate(templateId);
+                    }
+                    m_aliasIdMapper.clear();
+                    m_createdTemplateIds.clear();
                 }
-                // Clear out all registered prefab templates between each top-level file that gets processed.
-                auto prefabSystemComponentInterface = AZ::Interface<AzToolsFramework::Prefab::PrefabSystemComponentInterface>::Get();
-                for (auto templateId : m_createdTemplateIds)
-                {
-                    // We don't just want to call RemoveAllTemplates() because the root template should remain between file conversions.
-                    prefabSystemComponentInterface->RemoveTemplate(templateId);
-                }
-                m_aliasIdMapper.clear();
-                m_createdTemplateIds.clear();
             }
 
             DisconnectFromAssetProcessor();
