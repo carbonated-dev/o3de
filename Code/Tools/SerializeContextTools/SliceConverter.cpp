@@ -220,7 +220,7 @@ namespace AZ
             if (templateId == AzToolsFramework::Prefab::InvalidTemplateId)
             {
                 templateId = prefabLoaderInterface->LoadTemplateFromFile(prefabPath);
-                AZ_Assert(templateId != AzToolsFramework::Prefab::InvalidTemplateId, "Template with source path %.*s couldn't be loaded correctly.", prefabPath.String().c_str());
+                AZ_Assert(templateId != AzToolsFramework::Prefab::InvalidTemplateId, "Template with source path %s couldn't be loaded correctly.", prefabPath.String().c_str());
             }
             AzToolsFramework::Prefab::PrefabDom& templateDom = prefabSystemComponentInterface->FindTemplateDom(templateId);
             auto rootInstance = AZStd::make_unique<AzToolsFramework::Prefab::Instance>();
@@ -252,7 +252,7 @@ namespace AZ
             if (templateId == AzToolsFramework::Prefab::InvalidTemplateId)
             {
                 templateId = prefabLoaderInterface->LoadTemplateFromFile(prefabPath);
-                AZ_Assert(templateId != AzToolsFramework::Prefab::InvalidTemplateId, "Template with source path %.*s couldn't be loaded correctly.", prefabPath.String().c_str());
+                AZ_Assert(templateId != AzToolsFramework::Prefab::InvalidTemplateId, "Template with source path %*s couldn't be loaded correctly.", prefabPath.String().c_str());
             }
             AzToolsFramework::Prefab::PrefabDom& templateDom = prefabSystemComponentInterface->FindTemplateDom(templateId);
             auto rootInstance = AZStd::make_unique<AzToolsFramework::Prefab::Instance>();
