@@ -140,6 +140,8 @@ namespace AZ
                 return false;
             }
 
+            AZ::TickBus::ExecuteQueuedEvents();
+
             JsonSerializerSettings convertSettings;
             convertSettings.m_keepDefaults = commandLine->HasSwitch("keepdefaults");
             convertSettings.m_registrationContext = application.GetJsonRegistrationContext();
@@ -176,7 +178,6 @@ namespace AZ
             // For slice conversion, disable the EditorEntityContextComponent logic that activates entities on creation.
             // This prevents a lot of error messages and crashes during conversion due to lack of full environment and subsystem setup.
             AzToolsFramework::SliceConverterEditorEntityContextComponent::DisableOnContextEntityLogic();
-
             auto prefabLoaderInterface = AZ::Interface<AzToolsFramework::Prefab::PrefabLoaderInterface>::Get();
             AZ_Assert(prefabLoaderInterface, "SliceConverter - Could not get PrefabLoaderInterface.");
 
