@@ -309,9 +309,22 @@ namespace AZ {
 
             if (asset.IsError())
             {
-                AZ_Error("Serialization", false, "Assert. Dependent asset (%s:%s) could not be loaded.",
+                AZStd::string error = AZStd::string::format(
+                    "Assert: Dependent asset (%s, %s) could not be loaded.",
                     asset.GetId().ToString<AZStd::string>().c_str(),
                     asset.GetHint().c_str());
+
+                AZ_Error("Serialization", false, error.c_str());
+                FILE* trgFile = nullptr;
+                azfopen(&trgFile, "Conversion.log", "at+");
+                if (trgFile)
+                {
+                    // Save data to new file.
+                    fwrite(error.c_str(), error.length(), 1, trgFile);
+                    fwrite("\n", 1, 1, trgFile);
+                    fclose(trgFile);
+                }
+
                 return false;
             }
         }
