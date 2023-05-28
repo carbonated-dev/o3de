@@ -319,6 +319,8 @@ namespace AzToolsFramework
             m_cachedInstanceDom = PrefabDom();
             m_containerEntity.reset(aznew AZ::Entity());
 
+            AZ_Printf("Instance", "*** Reset\n");
+
             RegisterEntity(m_containerEntity->GetId(), GenerateEntityAlias());
 
         }
@@ -456,6 +458,15 @@ namespace AzToolsFramework
 
             instance->m_parent = this;
             auto& alias = instance->GetInstanceAlias();
+
+            AZ_Printf("Instance", "*** AddInstance(%s), alias=(%s)\n", instance->GetEntityId(alias).ToString().c_str(), alias.c_str());
+            for (const auto& [instanceAlias, instance1] : m_nestedInstances)
+            {
+                AZ_Printf(
+                    "Instance", "  Alias=(%s)\n", instanceAlias.c_str());
+            }
+
+
             return *(m_nestedInstances[alias] = AZStd::move(instance));
         }
 
@@ -467,6 +478,7 @@ namespace AzToolsFramework
                 callback(AZStd::move(instance));
             }
             m_nestedInstances.clear();
+            AZ_Printf("Instance", "*** DetachNestedInstances\n");
         }
 
         AZStd::unique_ptr<Instance> Instance::DetachNestedInstance(const InstanceAlias& instanceAlias)
@@ -478,6 +490,12 @@ namespace AzToolsFramework
                 removedNestedInstance = AZStd::move(nestedInstanceIterator->second);
 
                 removedNestedInstance->m_parent = nullptr;
+
+                AZ_Printf("Instance", "*** DetachNestedInstance(%s), nestedInstanceIterator=(%s)\n", instanceAlias.c_str(), nestedInstanceIterator->first.c_str());
+                for (const auto& [instanceAlias1, instance] : m_nestedInstances)
+                {
+                    AZ_Printf("Instance", "  Alias=(%s)\n", instanceAlias1.c_str());
+                }
 
                 m_nestedInstances.erase(instanceAlias);
             }
@@ -846,6 +864,15 @@ namespace AzToolsFramework
 
         InstanceOptionalReference Instance::FindNestedInstance(const InstanceAlias& nestedInstanceAlias)
         {
+            if (nestedInstanceAlias.contains("433308014683015") || nestedInstanceAlias.contains("433269359977351"))
+            {
+                AZ_Printf("Instance", "*** FindNestedInstance(%s)\n", nestedInstanceAlias.c_str());
+                for (const auto& [instanceAlias, instance] : m_nestedInstances)
+                {
+                    AZ_Printf("Instance", "  Alias=(%s), instance=%s\n", instanceAlias.c_str(), instance->GetContainerEntityId().ToString().c_str());
+                }
+            }
+
             auto nestedInstanceIterator = m_nestedInstances.find(nestedInstanceAlias);
             if (nestedInstanceIterator != m_nestedInstances.end())
             {
