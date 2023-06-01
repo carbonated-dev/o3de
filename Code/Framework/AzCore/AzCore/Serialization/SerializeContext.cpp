@@ -1458,7 +1458,19 @@ namespace AZ
 
         if (!ptr)
         {
-            AZ_Error("SerializeContext", false, "Assert: SerializeContext::CloneObject - Attempt to clone a nullptr.");
+            AZStd::string error = AZStd::string::format("Assert: SerializeContext::CloneObject - Attempt to clone a nullptr.");
+
+            AZ_Error("SerializeContext", false, error.c_str());
+            FILE* trgFile = nullptr;
+            azfopen(&trgFile, "Conversion.log", "at+");
+            if (trgFile)
+            {
+                // Save data to new file.
+                fwrite("Warning: ", 9, 1, trgFile);
+                fwrite(error.c_str(), error.length(), 1, trgFile);
+                fwrite("\n", 1, 1, trgFile);
+                fclose(trgFile);
+            }
             return nullptr;
         }
 
@@ -2111,6 +2123,17 @@ namespace AZ
         (void)message;
         AZ_Error("Serialize", false, "%s\n%s", message, GetStackDescription().c_str());
         m_nErrors++;
+
+        FILE* trgFile = nullptr;
+        azfopen(&trgFile, "Conversion.log", "at+");
+        if (trgFile)
+        {
+            // Save data to new file.
+            fwrite("Error: ", 7, 1, trgFile);
+            fwrite(message, strlen(message), 1, trgFile);
+            fwrite("\n", 1, 1, trgFile);
+            fclose(trgFile);
+        }
     }
 
     //=========================================================================
@@ -2120,6 +2143,16 @@ namespace AZ
     {
         (void)message;
         AZ_Warning("Serialize", false, "%s\n%s", message, GetStackDescription().c_str());
+        FILE* trgFile = nullptr;
+        azfopen(&trgFile, "Conversion.log", "at+");
+        if (trgFile)
+        {
+            // Save data to new file.
+            fwrite("Warning: ", 9, 1, trgFile);
+            fwrite(message, strlen(message), 1, trgFile);
+            fwrite("\n", 1, 1, trgFile);
+            fclose(trgFile);
+        }
         m_nWarnings++;
     }
 

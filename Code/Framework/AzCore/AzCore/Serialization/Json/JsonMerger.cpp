@@ -642,10 +642,7 @@ namespace AZ
                     if (s.starts_with("../Instance_["))
                     {
                         AZ_Warning("JsonMerger", false, "Incorrect slice parenting was ignored. Element: %s. Path: %s\n", element.Get().cbegin(), s.cbegin());
-                        return settings.m_reporting(
-                            "Ignoring replace operation for value to JSON Patch for the parenting case.",
-                            ResultCode(Tasks::CreatePatch, Outcomes::Success),
-                            element);
+                        return settings.m_reporting("Ignoring replace operation for value to JSON Patch for the parenting case.", ResultCode(Tasks::CreatePatch, Outcomes::Success), element);
                     }
                 }
                 // LVB -. Dirty Hack

@@ -620,6 +620,17 @@ namespace AZ
             AZ_Printf("Convert-Slice", "------------------------------------------------------------------------------------------\n");
             AZ_Printf("Convert-Slice", "Converting '%s' to '%s'\n", slicePath.c_str(), outputPath.c_str());
 
+            AZStd::string msg = AZStd::string::format("Converting '%s' to '%s'\n", slicePath.c_str(), outputPath.c_str());
+            FILE* trgFile = nullptr;
+            azfopen(&trgFile, "Conversion.log", "at+");
+            if (trgFile)
+            {
+                // Save data to new file.
+                fwrite(msg.c_str(), msg.length(), 1, trgFile);
+                fwrite("\n", 1, 1, trgFile);
+                fclose(trgFile);
+            }
+
             AZ::IO::Path inputPath = slicePath;
             auto fileExtension = inputPath.Extension();
             if (fileExtension == ".ly")
@@ -896,12 +907,21 @@ namespace AZ
                 //AZ_Assert(sliceAsset.IsReady(), "slice asset hasn't been loaded yet!");
                 if (!sliceAsset.IsReady())
                 {
-                    AZ_Error(
-                        "SliceConverter",
-                        false,
-                        "Assert: slice asset hasn't been loaded yet! %s\n",
-                        slice.GetSliceAsset().GetId().m_guid.ToString<AZStd::string>().c_str());
-                    continue;
+                    AZStd::string error = AZStd::string::format(
+                        "Assert: Slice asset hasn't been loaded yet! %s, %s\n",
+                        slice.GetSliceAsset().GetId().ToString<AZStd::string>().c_str(),
+                        slice.GetSliceAsset().GetHint().c_str());
+
+                    AZ_Error("SliceConverter", false, error.c_str());
+                    FILE* trgFile = nullptr;
+                    azfopen(&trgFile, "Conversion.log", "at+");
+                    if (trgFile)
+                    {
+                        // Save data to new file.
+                        fwrite(error.c_str(), error.length(), 1, trgFile);
+                        fwrite("\n", 1, 1, trgFile);
+                        fclose(trgFile);
+                    }
                 }
 
                 // The slice list gives us asset IDs, and we need to get to the source path.  So first we get the asset path from the ID,
@@ -974,13 +994,15 @@ namespace AZ
                 {
                     AZStd::string instanceAlias = GetInstanceAlias(instance);
                     UpdateSliceEntityInstanceMappings(instance.GetEntityIdToBaseMap(), instanceAlias);
+                    AZ_Printf("Convert-Slice", "  instanceAlias=(%s)\n", instanceAlias.c_str());
                 }
 
                 // Now that we have all the entity ID mappings, convert all the instances.
                 size_t curInstance = 0;
                 for (auto& instance : instances)
                 {
-                    AZ_Printf("Convert-Slice", "  Converting instance %zu.\n", curInstance++);
+                    AZStd::string instanceAlias = GetInstanceAlias(instance);
+                    AZ_Printf("Convert-Slice", "  Converting instance %zu. instanceAlias=(%s)\n", curInstance++, instanceAlias.c_str());
                     bool instanceConvertResult = ConvertSliceInstance(instance, sliceAsset, nestedTemplate, sourceInstance);
                     if (!instanceConvertResult)
                     {

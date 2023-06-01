@@ -603,13 +603,25 @@ namespace AZ
                         }
                         else
                         {
-                            AZ_Error(
-                                "ObjectStream",
-                                false,
+                            AZStd::string error = AZStd::string::format(
                                 "Assert: '%s'(0x%x) is not a valid element name for container type %s",
                                 element.m_name ? element.m_name : "NULL",
                                 element.m_nameCrc,
                                 parentClassInfo->m_name);
+
+                            AZ_Error("ObjectStream", false, error.c_str());
+
+                            FILE* trgFile = nullptr;
+                            azfopen(&trgFile, "Conversion.log", "at+");
+                            if (trgFile)
+                            {
+                                // Save data to new file.
+                                fwrite("Warning: ", 9, 1, trgFile);
+                                fwrite(error.c_str(), error.length(), 1, trgFile);
+                                fwrite("\n", 1, 1, trgFile);
+                                fclose(trgFile);
+                            }
+
                         }
                     }
                     else if (parentClassInfo->m_typeId == SerializeTypeInfo<DynamicSerializableField>::GetUuid() && element.m_nameCrc == AZ_CRC("m_data", 0x335cc942))   // special case for dynamic-typed fields

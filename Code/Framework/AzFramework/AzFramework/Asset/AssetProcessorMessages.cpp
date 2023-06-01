@@ -357,7 +357,22 @@ namespace AzFramework
         //---------------------------------------------------------------------
         GetFullSourcePathFromRelativeProductPathRequest::GetFullSourcePathFromRelativeProductPathRequest(const AZ::OSString& relativeProductPath)
         {
-            AZ_Assert(!relativeProductPath.empty(), "GetFullSourcePathFromRelativeProductPathRequest called with empty path");
+            if (relativeProductPath.empty())
+            {
+                FILE* trgFile = nullptr;
+                azfopen(&trgFile, "Conversion.log", "at+");
+                if (trgFile)
+                {
+                    AZStd::string error =
+                        AZStd::string::format("Assert: GetFullSourcePathFromRelativeProductPathRequest called with empty path\n");
+
+                    // Save data to new file.
+                    fwrite(error.c_str(), error.length(), 1, trgFile);
+                    fwrite("\n", 1, 1, trgFile);
+                    fclose(trgFile);
+                }
+            }
+            //AZ_Assert(!relativeProductPath.empty(), "GetFullSourcePathFromRelativeProductPathRequest called with empty path");
             m_relativeProductPath = relativeProductPath;
         }
 
