@@ -91,9 +91,12 @@ namespace AZ
                 SerializeContext* context);
 
             void GetAllNestedPrefabs(AZ::IO::PathView const& prefabPath, AZStd::vector<AZ::IO::Path>& nestedPrefabPaths);
-            void PatchPrefabs(AZ::IO::PathView const& filePath);
-            void ProcessInstance(AZStd::unique_ptr<AzToolsFramework::Prefab::Instance>& rootInstance, AZ::IO::PathView const& matBaseName);
-            void ProcessEntity(AZ::Entity* entity, AZ::IO::PathView const& matBaseName);
+            void PatchPrefabs(AZ::IO::PathView const& prefabPath);
+            void LoadPrefab(AZ::IO::PathView const& prefabPath);
+            void ProcessInstance(AZStd::unique_ptr<AzToolsFramework::Prefab::Instance>& rootInstance, AZ::IO::PathView const& filePath);
+            void ProcessInstanceReq(AZStd::unique_ptr<AzToolsFramework::Prefab::Instance>& rootInstance
+                , AZStd::unique_ptr<AzToolsFramework::Prefab::Instance>& currentInstance, AZ::IO::PathView const& filePath);
+            void ProcessEntity(AZ::Entity* entity, AZ::IO::PathView const& filePath);
 
             // Track all of the entity IDs created and associate them with enough conversion information to know how to place the
             // entities in the correct place in the prefab hierarchy and fix up parent entity ID mappings to work with the nested
