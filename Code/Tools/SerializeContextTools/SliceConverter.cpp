@@ -792,15 +792,13 @@ namespace AZ
                 {
                     AZStd::string instanceAlias = GetInstanceAlias(instance);
                     UpdateSliceEntityInstanceMappings(instance.GetEntityIdToBaseMap(), instanceAlias);
-                    AZ_Printf("Convert-Slice", "  instanceAlias=(%s)\n", instanceAlias.c_str());
                 }
 
                 // Now that we have all the entity ID mappings, convert all the instances.
                 size_t curInstance = 0;
                 for (auto& instance : instances)
                 {
-                    AZStd::string instanceAlias = GetInstanceAlias(instance);
-                    AZ_Printf("Convert-Slice", "  Converting instance %zu. instanceAlias=(%s)\n", curInstance++, instanceAlias.c_str());
+                    AZ_Printf("Convert-Slice", "  Converting instance %zu.\n", curInstance++);
                     bool instanceConvertResult = ConvertSliceInstance(instance, sliceAsset, nestedTemplate, sourceInstance);
                     if (!instanceConvertResult)
                     {
