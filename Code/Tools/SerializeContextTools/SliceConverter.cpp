@@ -56,6 +56,14 @@ namespace AZ
 {
     namespace SerializeContextTools
     {
+        struct DataForSliceInstancesReordering
+        {
+            AZ::SliceComponent::SliceInstance* instance;
+            EntityId parentEntityId;
+            AZStd::string parentEntityAlias;
+        };
+
+
         bool SliceConverter::ConvertSliceFiles(Application& application)
         {
             using namespace AZ::JsonSerializationResult;
@@ -959,10 +967,10 @@ namespace AZ
 
                 // For each slice instance of the nested slice, convert it to a nested prefab instance instead.
 
-                auto instances = slice.GetInstances();
-                AZ_Printf(
-                    "Convert-Slice", "Attaching %zu instances of nested slice '%s'.\n", instances.size(),
-                    nestedPrefabPath.Native().c_str());
+                auto si = slice.GetInstances();
+                AZ_Printf("Convert-Slice", "Attaching %zu instances of nested slice '%s'.\n", si.size(), nestedPrefabPath.Native().c_str());
+
+                AZStd::list<std::unique_ptr<DataForSliceInstancesReordering>> slicesForReorderingList;
 
                 // Before processing any further, save off all the known entity IDs from all the instances and how they map back to
                 // the base nested prefab that they've come from (i.e. this one).  As we proceed up the chain of nesting, this will
@@ -972,17 +980,92 @@ namespace AZ
                 // might have entity ID references that point to other instances.  By having the full instance entity ID map in place
                 // before conversion, we'll be able to fix them up appropriately.
 
-                for (auto& instance : instances)
+                // LVB. Special code that reorders the list of slice instances so parents are before their children
+                // In such case we will have correct parenting but we will lost data for "Child Entity Order" component
+                for (auto& instance : si)
                 {
                     AZStd::string instanceAlias = GetInstanceAlias(instance);
                     UpdateSliceEntityInstanceMappings(instance.GetEntityIdToBaseMap(), instanceAlias);
+                    AZStd::string instanceAlias1 = GetInstanceAlias(instance);
+                    auto dataPatch = instance.GetDataPatch();
+                    auto patches = dataPatch.GetPatchMap();
+                    bool added = false;
+                    for (auto& item : patches)
+                    {
+                        auto address = item.first;
+                        for (auto& addressTypeElement : address)
+                        {
+                            auto element = addressTypeElement.GetPathElement();
+                            if (element.contains("::Parent Entity"))
+                            {
+                                auto entityId = AZStd::any_cast<AZ::u64>(item.second);
+                                auto data = AZStd::make_unique<DataForSliceInstancesReordering>();
+                                data->instance = &instance;
+                                data->parentEntityId = EntityId(entityId);
+                                data->parentEntityAlias = AZStd::string::format("Instance_%s", data->parentEntityId.ToString().c_str());
+                                slicesForReorderingList.emplace_back(AZStd::move(data));
+                                added = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!added)
+                    {
+                        // If the slice instance doesn't have a parent in the DataPatch
+                        auto data = AZStd::make_unique<DataForSliceInstancesReordering>();
+                        data->instance = &instance;
+                        data->parentEntityId = EntityId();
+                        slicesForReorderingList.emplace_back(AZStd::move(data));
+                    }
+                }
+                int swapsCount = 0;
+                bool cycleAgain;
+                do
+                {
+                    cycleAgain = false;
+                    for (auto it = slicesForReorderingList.begin(); it != slicesForReorderingList.end(); it++)
+                    {
+                        auto parentEntityAlias = (*it)->parentEntityAlias;
+                        if (!parentEntityAlias.empty())
+                        {
+                            for (auto it1 = it; it1 != slicesForReorderingList.end(); it1++)
+                            {
+                                AZStd::string currentInstanceAlias = GetInstanceAlias(*(*it1)->instance);
+                                if (currentInstanceAlias == parentEntityAlias)
+                                {
+                                    // Move parent (it1) before a child (it)
+                                    slicesForReorderingList.splice(it, slicesForReorderingList, it1);
+                                    swapsCount++;
+                                    cycleAgain = true;
+                                    break;
+                                }
+                            }
+                            if (cycleAgain)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                } while (cycleAgain);
+
+                if (swapsCount > 0)
+                {
+                    AZ_Printf("SliceConverter", "%i slice instances were reordered for correct parenting.\n", swapsCount);
+                }
+
+                AZStd::list<AZ::SliceComponent::SliceInstance> instances;
+
+                for (auto it = slicesForReorderingList.begin(); it != slicesForReorderingList.end(); it++)
+                {
+                    instances.emplace_back(*((*it)->instance));
                 }
 
                 // Now that we have all the entity ID mappings, convert all the instances.
                 size_t curInstance = 0;
                 for (auto& instance : instances)
                 {
-                    AZ_Printf("Convert-Slice", "  Converting instance %zu.\n", curInstance++);
+                    AZStd::string instanceAlias = GetInstanceAlias(instance);
+                    AZ_Printf("SliceConverter", "  Converting instance %zu. Instance. %s.\n", curInstance++, instanceAlias.c_str());
                     bool instanceConvertResult = ConvertSliceInstance(instance, sliceAsset, nestedTemplate, sourceInstance);
                     if (!instanceConvertResult)
                     {
@@ -993,6 +1076,7 @@ namespace AZ
                 AZ_Printf(
                     "Convert-Slice", "Finished attaching %zu instances of nested slice '%s'.\n", instances.size(),
                     nestedPrefabPath.Native().c_str());
+                slicesForReorderingList.clear();
             }
 
             return true;

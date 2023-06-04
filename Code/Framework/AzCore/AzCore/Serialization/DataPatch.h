@@ -375,6 +375,11 @@ namespace AZ
             return Uuid("{3A8D5EC9-D70E-41CB-879C-DEF6A6D6ED03}");
         }
 
+        PatchMap& GetPatchMap()
+        {
+            return m_patch;
+        }
+
     protected:
         Uuid     m_targetClassId;
         unsigned int m_targetClassVersion;
