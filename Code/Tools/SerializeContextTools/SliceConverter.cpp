@@ -1076,7 +1076,6 @@ namespace AZ
                 AZ_Printf(
                     "Convert-Slice", "Finished attaching %zu instances of nested slice '%s'.\n", instances.size(),
                     nestedPrefabPath.Native().c_str());
-                slicesForReorderingList.clear();
             }
 
             return true;
