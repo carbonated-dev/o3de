@@ -67,7 +67,6 @@ namespace ScriptCanvasEditor
             ScriptCanvasBuilder::BuildVariableOverrides overrides;
             AZ::Uuid sourceId;
             AZStd::string path;
-            
 
             if (rootElement.GetVersion() <= EditorScriptCanvasComponent::Version::PrefabIntegration)
             {
@@ -126,6 +125,8 @@ namespace ScriptCanvasEditor
 
                 sourceId = assetHolder.m_scriptCanvasAsset.GetId().m_guid;
                 path = assetHolder.m_scriptCanvasAsset.GetHint();
+
+                rootElement.RemoveElement(scriptCanvasAssetHolderElementIndex);
             }
 
             // all object stream reads must convert add all new data for JSON reads...
@@ -149,7 +150,7 @@ namespace ScriptCanvasEditor
                 configuration.m_sourceName = configuration.m_sourceHandle.RelativePath().Native();
             }
 
-            if (-1 == rootElement.AddElementWithData(serializeContext, "configuration", overrides))
+            if (-1 == rootElement.AddElementWithData(serializeContext, "configuration", configuration))
             {
                 AZ_Error("ScriptCanvas", false, "EditorScriptCanvasComponent conversion failed: failed to add 'configuration'");
                 return false;
