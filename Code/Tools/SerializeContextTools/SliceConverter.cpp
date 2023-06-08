@@ -56,12 +56,109 @@ namespace AZ
 {
     namespace SerializeContextTools
     {
+    #define SCT_Error(window, expression, ...)                                                                                              \
+    AZ_PUSH_DISABLE_WARNING(4127, "-Wunknown-warning-option")                                                                              \
+    if (!(expression))                                                                                                                     \
+    {                                                                                                                                      \
+        AZ_TraceFmtCompileTimeCheck(                                                                                                       \
+            expression,                                                                                                                    \
+            AZ_VA_HAS_ARGS(__VA_ARGS__),                                                                                                   \
+            "String used in place of boolean expression for SCT_Error.",                                                                    \
+            "Did you mean SCT_Error(" #window ", false, \"%s\", " #expression "); ?",                                                       \
+            "Did you mean SCT_Error(" #window ", false, " #expression ", " #__VA_ARGS__ "); ?");                                            \
+        AZ::Debug::Trace::Instance().Error(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE, window, __VA_ARGS__);                                \
+        AZStd::string msg = AZStd::string::format(__VA_ARGS__);                                                                             \
+        FILE* trgFile = nullptr;                                                                                                            \
+        azfopen(&trgFile, "Conversion.log", "at+");                                                                                         \
+        if (trgFile)                                                                                                                        \
+        {                                                                                                                                   \
+            fwrite(msg.c_str(), msg.length(), 1, trgFile);                                                                                  \
+            fwrite("\n", 1, 1, trgFile);                                                                                                    \
+            fclose(trgFile);                                                                                                                \
+        }                                                                                                                                   \
+    }                                                                                                                                      \
+    AZ_POP_DISABLE_WARNING
+
         struct DataForSliceInstancesReordering
         {
             AZ::SliceComponent::SliceInstance* instance;
             AZStd::string parentEntityAlias;
         };
 
+        AZStd::string currentConvertedSlice;
+
+        struct DataForCollectingAssertInfo
+        {
+            const static int NUMBER_OF_ASSERTS = 4;
+            AZStd::string slicePath;
+            int numberOfAsserts[NUMBER_OF_ASSERTS];
+
+            DataForCollectingAssertInfo(AZStd::string& _slicePath, int assertType)
+            {
+                slicePath = _slicePath;
+                for (auto& item : numberOfAsserts)
+                {
+                    item = 0;
+                }
+                AddAssertType(assertType);
+            }
+
+            void AddAssertType(int assertType)
+            {
+                if (assertType >= 1 && assertType <= NUMBER_OF_ASSERTS)
+                {
+                    numberOfAsserts[assertType - 1]++;
+                }
+                else
+                {
+                    AZ_Assert(false, "We tracked %i asserts. The type %i is not valid", NUMBER_OF_ASSERTS, assertType);
+                }
+            }
+        };
+
+        AZStd::vector<DataForCollectingAssertInfo> assertsInfoVector;
+
+        void AddAssertInfo(AZStd::string& slicePath, int assertType)
+        {
+            for (auto& slice : assertsInfoVector)
+            {
+                if (slice.slicePath == slicePath)
+                {
+                    slice.AddAssertType(assertType);
+                    return;
+                }
+            }
+            assertsInfoVector.emplace_back(DataForCollectingAssertInfo(slicePath, assertType));
+        }
+
+        void PrintAssertsInfo()
+        {
+            if (assertsInfoVector.size() > 0)
+            {
+                FILE* trgFile = nullptr;
+                azfopen(&trgFile, "Conversion.log", "at+");
+                if (trgFile)
+                {
+                    AZStd::string msg;
+                    for (auto& slice : assertsInfoVector)
+                    {
+                        int i = 0;
+                        for (auto& item : slice.numberOfAsserts)
+                        {
+                            i++;
+                            if (item > 0)
+                            {
+                                msg = AZStd::string::format("%s. Assert %i: %03d", slice.slicePath.c_str(), i, item);
+                                fwrite(msg.c_str(), msg.length(), 1, trgFile);
+                                fwrite("\n", 1, 1, trgFile);
+                            }
+                        }
+                    }
+                    fclose(trgFile);
+                }
+                assertsInfoVector.clear();
+            }
+        }
 
         bool SliceConverter::ConvertSliceFiles(Application& application)
         {
@@ -70,7 +167,7 @@ namespace AZ
             const AZ::CommandLine* commandLine = application.GetAzCommandLine();
             if (!commandLine)
             {
-                AZ_Error("SerializeContextTools", false, "Command line not available.");
+                SCT_Error("SerializeContextTools", false, "Command line not available.");
                 return false;
             }
 
@@ -80,19 +177,19 @@ namespace AZ
             convertSettings.m_serializeContext = application.GetSerializeContext();
             if (!convertSettings.m_serializeContext)
             {
-                AZ_Error("Convert-Slice", false, "No serialize context found.");
+                SCT_Error("Convert-Slice", false, "No serialize context found.");
                 return false;
             }
             if (!convertSettings.m_registrationContext)
             {
-                AZ_Error("Convert-Slice", false, "No json registration context found.");
+                SCT_Error("Convert-Slice", false, "No json registration context found.");
                 return false;
             }
 
             // Connect to the Asset Processor so that we can get the correct source path to any nested slice references.
             if (!ConnectToAssetProcessor())
             {
-                AZ_Error("Convert-Slice", false, "  Failed to connect to the Asset Processor.\n");
+                SCT_Error("Convert-Slice", false, "  Failed to connect to the Asset Processor.\n");
                 return false;
             }
 
@@ -135,6 +232,9 @@ namespace AZ
             }
 
             DisconnectFromAssetProcessor();
+
+            PrintAssertsInfo();
+
             return result;
         }
 
@@ -145,7 +245,7 @@ namespace AZ
             const AZ::CommandLine* commandLine = application.GetAzCommandLine();
             if (!commandLine)
             {
-                AZ_Error("SerializeContextTools", false, "Command line not available.");
+                SCT_Error("SerializeContextTools", false, "Command line not available.");
                 return false;
             }
 
@@ -157,19 +257,19 @@ namespace AZ
             convertSettings.m_serializeContext = application.GetSerializeContext();
             if (!convertSettings.m_serializeContext)
             {
-                AZ_Error("Convert-Slice", false, "No serialize context found.");
+                SCT_Error("Convert-Slice", false, "No serialize context found.");
                 return false;
             }
             if (!convertSettings.m_registrationContext)
             {
-                AZ_Error("Convert-Slice", false, "No json registration context found.");
+                SCT_Error("Convert-Slice", false, "No json registration context found.");
                 return false;
             }
 
             // Connect to the Asset Processor so that we can get the correct source path to any nested slice references.
             if (!ConnectToAssetProcessor())
             {
-                AZ_Error("Convert-Slice", false, "  Failed to connect to the Asset Processor.\n");
+                SCT_Error("Convert-Slice", false, "  Failed to connect to the Asset Processor.\n");
                 return false;
             }
 
@@ -238,7 +338,7 @@ namespace AZ
             AzToolsFramework::EntityList newEntities;
             if (!AzToolsFramework::Prefab::PrefabDomUtils::LoadInstanceFromPrefabDom(*rootInstance, newEntities, templateDom, AzToolsFramework::Prefab::PrefabDomUtils::LoadFlags::UseSelectiveDeserialization))
             {
-                AZ_Error("Convert-Slice", false, "  Could not instantiate prefab: %s.\n", prefabPath.String().c_str());
+                SCT_Error("Convert-Slice", false, "  Could not instantiate prefab: %s.\n", prefabPath.String().c_str());
             }
             rootInstance->GetTemplateSourcePath();
             rootInstance->GetNestedInstances(
@@ -286,7 +386,7 @@ namespace AZ
             if (!AzToolsFramework::Prefab::PrefabDomUtils::LoadInstanceFromPrefabDom(*rootInstance, newEntities, templateDom,
                 AzToolsFramework::Prefab::PrefabDomUtils::LoadFlags::UseSelectiveDeserialization))
             {
-                AZ_Error("Convert-Slice", false, "  Could not instantiate prefab: %s.\n", prefabPath.String().c_str());
+                SCT_Error("Convert-Slice", false, "  Could not instantiate prefab: %s.\n", prefabPath.String().c_str());
             }
 
             ProcessInstance(rootInstance, prefabPath);
@@ -294,7 +394,7 @@ namespace AZ
             AzToolsFramework::SliceConverterEditorEntityContextComponent::DisableOnContextEntityLogic();
             if (!prefabLoaderInterface->SaveTemplate(templateId))
             {
-                AZ_Error("Convert-Slice", false, "  Could not save prefab: %s.\n", prefabPath.String().c_str());
+                SCT_Error("Convert-Slice", false, "  Could not save prefab: %s.\n", prefabPath.String().c_str());
             }
         }
 
@@ -647,12 +747,16 @@ namespace AZ
                     return false;
                 }
 
+                AZStd::string prevConvertedSlice = AZStd::string(currentConvertedSlice);
+                currentConvertedSlice = outputPath.c_str();
+
                 AZ::Entity* rootEntity = reinterpret_cast<AZ::Entity*>(classPtr);
                 bool convertResult = ConvertSliceToPrefab(context, outputPath, isDryRun, rootEntity);
 
                 // Delete the root entity pointer.  Otherwise, it will leak itself along with all of the slice asset references held
                 // within it.
                 delete rootEntity;
+                currentConvertedSlice = prevConvertedSlice;
                 return convertResult;
             };
 
@@ -901,16 +1005,8 @@ namespace AZ
                         slice.GetSliceAsset().GetId().ToString<AZStd::string>().c_str(),
                         slice.GetSliceAsset().GetHint().c_str());
 
-                    AZ_Error("SliceConverter", false, error.c_str());
-                    FILE* trgFile = nullptr;
-                    azfopen(&trgFile, "Conversion.log", "at+");
-                    if (trgFile)
-                    {
-                        // Save data to new file.
-                        fwrite(error.c_str(), error.length(), 1, trgFile);
-                        fwrite("\n", 1, 1, trgFile);
-                        fclose(trgFile);
-                    }
+                    SCT_Error("SliceConverter", false, error.c_str());
+                    continue;
                 }
 
                 // The slice list gives us asset IDs, and we need to get to the source path.  So first we get the asset path from the ID,
@@ -926,10 +1022,15 @@ namespace AZ
                     processedAssetPath, assetPath);
                 if (assetPath.empty())
                 {
-                    AZ_Warning("Convert-Slice", false,
+                    SCT_Error(
+                        "Convert-Slice",
+                        false,
                         "  Source path for nested slice '%s' could not be found, slice not converted.", processedAssetPath.c_str());
                     return false;
                 }
+
+                AZStd::string prevConvertedSlice = AZStd::string(currentConvertedSlice);
+                currentConvertedSlice = processedAssetPath;
 
                 // Check to see if we've already converted this slice at a higher level of slice nesting, or if this is our first
                 // occurrence and we need to convert it now.
@@ -951,7 +1052,7 @@ namespace AZ
                     bool nestedSliceResult = ConvertSliceFile(serializeContext, assetPath, isDryRun);
                     if (!nestedSliceResult)
                     {
-                        AZ_Warning("Convert-Slice", nestedSliceResult, "  Nested slice '%s' could not be converted.", assetPath.c_str());
+                        SCT_Error("Convert-Slice", nestedSliceResult, "  Nested slice '%s' could not be converted.", assetPath.c_str());
                         return false;
                     }
 
@@ -1060,11 +1161,13 @@ namespace AZ
                     bool instanceConvertResult = ConvertSliceInstance(*(item.instance), sliceAsset, nestedTemplate, sourceInstance);
                     if (!instanceConvertResult)
                     {
+                        currentConvertedSlice = prevConvertedSlice;
                         return false;
                     }
                 }
 
                 AZ_Printf("Convert-Slice", "Finished attaching %zu instances of nested slice '%s'.\n", slicesForReorderingList.size(), nestedPrefabPath.Native().c_str());
+                currentConvertedSlice = prevConvertedSlice;
             }
 
             return true;
@@ -1085,7 +1188,7 @@ namespace AZ
             }
             else
             {
-                AZ_Error("Convert-Slice", false, "  Couldn't create deterministic instance alias.");
+                SCT_Error("Convert-Slice", false, "  Couldn't create deterministic instance alias.");
                 instanceAlias = AZStd::string::format("Instance_%s", AZ::Entity::MakeId().ToString().c_str());
             }
             return instanceAlias;
@@ -1123,7 +1226,7 @@ namespace AZ
             if (!AzToolsFramework::Prefab::PrefabDomUtils::LoadInstanceFromPrefabDom(
                     *nestedInstance, newEntities, nestedTemplate->get().GetPrefabDom()))
             {
-                AZ_Error(
+                SCT_Error(
                     "Convert-Slice", false, "  Failed to load and instantiate nested Prefab Template '%s'.",
                     nestedTemplate->get().GetFilePath().c_str());
                 return false;
@@ -1191,7 +1294,8 @@ namespace AZ
                         else
                         {
                             //AZ_Assert(false, "Couldn't find nested instance %s", it->c_str());
-                            AZ_Error("SliceConverter", false, "Assert: 1. Couldn't find nested instance %s", it->c_str());
+                            SCT_Error("SliceConverter", false, "%s. Assert 1. Couldn't find nested instance %s", currentConvertedSlice.c_str(), it->c_str());
+                            AddAssertInfo(currentConvertedSlice, 1);
                             continue;
                         }
                     }
@@ -1257,11 +1361,12 @@ namespace AZ
                                     else
                                     {
                                         //AZ_Assert(false, "Could not find parent instance");
-                                        AZ_Warning(
+                                        SCT_Error(
                                             "SliceConverter",
                                             false,
-                                            "Could not find parent instance. AbsolutePath=%s\n",
+                                            "Assert 3. Could not find parent instance. AbsolutePath=%s\n",
                                             parentInstance->GetAbsoluteInstanceAliasPath().c_str());
+                                        AddAssertInfo(currentConvertedSlice, 3);
                                         continue;
                                     }
                                 }
@@ -1282,9 +1387,10 @@ namespace AZ
                             // If the parent ID is set to something valid, but we can't find it in our ID mapper, something went wrong.
                             // We'll assert, but don't change the container entity's parent below.
                             //AZ_Assert(false, "Could not find parent entity id: %s", parentId.ToString().c_str());
-                            AZ_Warning("Convert-Slice", false, "Could not find parent entity id: %s\n", parentId.ToString().c_str());
+                            SCT_Error("Convert-Slice", false, "Assert 4. Could not find parent entity id: %s\n", parentId.ToString().c_str());
                             // LVB. Dirty hack to fix parenting between neighbour slices
                             // If you cannot figure out the parenting, just parent it to the container it belongs to"
+                            AddAssertInfo(currentConvertedSlice, 4);
                             SetParentEntity(*entity, containerEntityId, false);
                         }
                     }
@@ -1398,7 +1504,7 @@ namespace AZ
                     IO::SystemFile::OpenMode::SF_OPEN_CREATE_PATH |
                     IO::SystemFile::OpenMode::SF_OPEN_WRITE_ONLY))
                 {
-                    AZ_Error("Convert-Slice", false, "  Unable to create output file '%.*s'.", AZ_STRING_ARG(outputPath.Native()));
+                    SCT_Error("Convert-Slice", false, "  Unable to create output file '%.*s'.", AZ_STRING_ARG(outputPath.Native()));
                     return false;
                 }
 
@@ -1444,7 +1550,7 @@ namespace AZ
             AzFramework::AssetSystemRequestBus::BroadcastResult(disconnected,
                 &AzFramework::AssetSystem::AssetSystemRequests::WaitUntilAssetProcessorDisconnected, AZStd::chrono::seconds(30));
 
-            AZ_Error("Convert-Slice", disconnected, "Asset Processor failed to disconnect successfully.");
+            SCT_Error("Convert-Slice", disconnected, "Asset Processor failed to disconnect successfully.");
         }
 
         void SliceConverter::UpdateSliceEntityInstanceMappings(
@@ -1477,7 +1583,7 @@ namespace AZ
                 }
                 else
                 {
-                    AZ_Warning("Convert-Slice", false, "  Couldn't find an entity ID conversion for %s.", oldId.ToString().c_str());
+                    SCT_Error("Convert-Slice", false, "  Couldn't find an entity ID conversion for %s.", oldId.ToString().c_str());
                 }
             }
         }
@@ -1534,7 +1640,7 @@ namespace AZ
                             }
                             else
                             {
-                                AZ_Error("Convert-Slice", false, "  Couldn't find source ID %s", sourceId.ToString().c_str());
+                                SCT_Error("Convert-Slice", false, "  Couldn't find source ID %s", sourceId.ToString().c_str());
                                 newId = sourceId;
                             }
                         }
@@ -1564,7 +1670,8 @@ namespace AZ
                                 else
                                 {
                                     //AZ_Assert(false, "Couldn't find nested instance %s", it->c_str());
-                                    AZ_Warning("SliceConverter", false, "2. Couldn't find nested instance %s. \n", it->c_str());
+                                    SCT_Error("SliceConverter", false, "Assert 2. %s Couldn't find nested instance %s. \n", currentConvertedSlice.c_str(), it->c_str());
+                                    AddAssertInfo(currentConvertedSlice, 2);
                                     continue;
                                 }
                             }
