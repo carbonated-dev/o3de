@@ -89,7 +89,7 @@ namespace AZ
 
         struct DataForCollectingAssertInfo
         {
-            const static int NUMBER_OF_ASSERTS = 4;
+            const static int NUMBER_OF_ASSERTS = 5;
             AZStd::string slicePath;
             int numberOfAsserts[NUMBER_OF_ASSERTS];
 
@@ -1029,6 +1029,7 @@ namespace AZ
                     auto dataPatch = instance.GetDataPatch();
                     auto patches = dataPatch.GetPatchMap();
                     bool added = false;
+                    int i = 0;
                     for (auto& item : patches)
                     {
                         auto address = item.first;
@@ -1037,6 +1038,20 @@ namespace AZ
                             auto element = addressTypeElement.GetPathElement();
                             if (element.contains("::Parent Entity"))
                             {
+                                auto exist = AZStd::find_if(slicesForReorderingList.begin(), slicesForReorderingList.end(), [&instance](const DataForSliceInstancesReordering& entry)
+                                    {
+                                        return entry.instance == &instance;
+                                    });
+                                if (exist != slicesForReorderingList.end())
+                                {
+                                    SCT_Error(
+                                        "Convert-Slice",
+                                        false,
+                                        "Assert 5. Trying to add more than 1 parent from DataPatch. Ignoring. There are %i patches. The current patch is %i",
+                                        patches.size(), i);
+                                    AddAssertInfo(currentConvertedSlice, 5);
+                                    continue;
+                                }
                                 auto parentEntityId = EntityId(AZStd::any_cast<AZ::u64>(item.second));
                                 auto data = DataForSliceInstancesReordering();
                                 data.instance = &instance;
@@ -1046,6 +1061,7 @@ namespace AZ
                                 break;
                             }
                         }
+                        i++;
                     }
                     if (!added)
                     {
