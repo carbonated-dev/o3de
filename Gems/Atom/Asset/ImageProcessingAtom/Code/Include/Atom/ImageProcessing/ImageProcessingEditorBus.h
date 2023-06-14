@@ -23,6 +23,9 @@ namespace ImageProcessingAtomEditor
 
         //! Open single texture file
         virtual void OpenSourceTextureFile(const AZ::Uuid& textureSourceID) = 0;
+
+        //! Save default TextureSettings with the preset
+        virtual void SaveDefaultTextureSettings(const AZStd::string& presetName, const AZ::IO::Path& outputFilename) = 0;
     };
 
     using ImageProcessingEditorRequestBus = AZ::EBus<ImageProcessingEditorRequests>;

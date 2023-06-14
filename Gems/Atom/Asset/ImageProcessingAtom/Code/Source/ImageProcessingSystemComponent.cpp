@@ -122,6 +122,17 @@ namespace ImageProcessingAtom
         editor.exec();
     }
 
+    void ImageProcessingSystemComponent::SaveDefaultTextureSettings(const AZStd::string& presetName, const AZ::IO::Path& outputFilename)
+    {
+        TextureSettings textureSettings;
+        textureSettings.m_preset = presetName;
+        auto writeOutcome = TextureSettings::WriteTextureSetting(outputFilename.String(), textureSettings);
+        if (!writeOutcome.IsSuccess())
+        {
+            AZ_Assert(false, "Cannot write TextureSettings %s.", outputFilename.String().c_str());
+        }
+    }
+
     IImageObjectPtr ImageProcessingSystemComponent::LoadImage(const AZStd::string& filePath)
     {
         return IImageObjectPtr(LoadImageFromFile(filePath));

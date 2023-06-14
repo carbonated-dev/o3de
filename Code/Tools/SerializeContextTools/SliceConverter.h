@@ -37,6 +37,7 @@ namespace AZ
         public:
             bool ConvertSliceFiles(Application& application);
             bool PatchMaterials(Application& application);
+            bool ConvertImageSettingsFiles(Application& application);
 
         private:
             // When converting slice entities, especially for nested slices, we need to keep track of the original

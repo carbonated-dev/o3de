@@ -45,8 +45,10 @@
 #include <Atom/RPI.Reflect/Asset/AssetUtils.h>
 #include <AzCore/JSON/document.h>
 #include <AzCore/Serialization/Json/JsonUtils.h>
+#include <Atom/ImageProcessing/ImageProcessingEditorBus.h>
+#include <AzCore/XML/rapidxml.h>
 
-// SliceConverter reads in a slice file (saved in an ObjectStream format), instantiates it, creates a prefab out of the data,
+    // SliceConverter reads in a slice file (saved in an ObjectStream format), instantiates it, creates a prefab out of the data,
 // and saves the prefab in a JSON format.  This can be used for one-time migrations of slices or slice-based levels to prefabs.
 //
 // If the slice contains legacy data, it will print out warnings / errors about the data that couldn't be serialized.
@@ -158,6 +160,140 @@ namespace AZ
                 }
                 assertsInfoVector.clear();
             }
+        }
+
+        AZStd::string UUID2TextureSettingsPresetName(AZStd::string const& uuid)
+        {
+            AZStd::string r;
+            if (uuid == "{5D9ECB52-4CD9-4CB8-80E3-10CAE5EFB8A2}") { r = "AlbedoWithGenericAlpha"; } //AlbedoWithGenericAlpha
+            else if (uuid == "{08A95286-ADB2-41E4-96EB-DB48F4726D6A}") { r = "Albedo"; } //Albedo
+            else if (uuid == "{57ED16B1-407B-4E29-BCFC-D3BAE60F2C85}") { r = "AlbedoWithCoverage"; } //AlbedoWithCoverage
+            else if (uuid == "{7BB7BC6C-D3DA-4184-AC42-BCD8C57DE565}") { r = "AlbedoWithCoverage"; } //AlbedoWithOpacity
+            else if (uuid == "{884B5F7C-44AC-4E9E-8B8A-559D098BE2C7}") { r = "Albedo"; } //CloudShadows
+            else if (uuid == "{0A17A85F-07EE-48A0-8BF8-D42F0A5E0B3C}") { r = "Albedo"; } //ColorChart
+            else if (uuid == "{E06B5087-2640-49B6-B9BA-D40048162B90}") { r = "Decal_AlbedoWithOpacity"; } //Decal_AlbedoWithOpacity
+            else if (uuid == "{5096FC7B-0B2D-4466-9943-AD59922968E8}") { r = "Albedo"; } //Detail_MergedAlbedoNormalsSmoothness
+            else if (uuid == "{B6FC1AEF-907C-4157-9A1A-D9960F0E5B9A}") { r = "Albedo"; } //Detail_MergedAlbedoNormalsSmoothness_Lossless
+            else if (uuid == "{D7B4BEA6-6427-4295-B61B-62776D0056DE}") { r = "Displacement"; } //Displacement
+            else if (uuid == "{908DA68C-97FB-4C4A-97BC-5A55F30F14FA}") { r = "Albedo"; } //EnvironmentProbeHDR
+            else if (uuid == "{E3706342-BF21-4D9C-AE28-9670EB3EF3C5}") { r = "Albedo"; } //EnvironmentProbeHDR_Irradiance
+            else if (uuid == "{0D26B387-2FBA-456D-AB8E-613020BCC7F8}") { r = "Gradient"; } //Gradient
+            else if (uuid == "{B6B04FD3-BD7B-44AC-AD93-6FECD2BD4D76}") { r = "Greyscale"; } //Greyscale
+            else if (uuid == "{3A6BB297-B610-4EA5-8DA4-610FB12B9EC0}") { r = "LUT_RGBA8"; } //LUT_RGBA8
+            else if (uuid == "{3791319D-043B-4011-8B6F-3DE96D0C4309}") { r = "LUT_RG8"; } //LUT_RG8
+            else if (uuid == "{D55CBCD3-AF2D-4515-98AB-E278F6B3B5F6}") { r = "LUT_RG16"; } //LUT_RG16
+            else if (uuid == "{3000A993-0A04-4E08-A813-DFB1A47A0980}") { r = "Albedo"; } //LensOptics
+            else if (uuid == "{1DFEF41A-D97F-40FB-99D3-C142A3E5225E}") { r = "Albedo"; } //LightProjector
+            else if (uuid == "{9ED87726-12AB-4BE0-9397-AD62AE56D9E2}") { r = "Albedo"; } //LoadingScreen
+            else if (uuid == "{0D2F4C31-A665-4862-9C63-9E49A58E9A37}") { r = "Albedo"; } //Minimap
+            else if (uuid == "{8BCC23A5-D08E-458E-B0B3-087C65FA1D31}") { r = "Albedo"; } //MuzzleFlash
+            else if (uuid == "{508B21D5-5250-4003-97EC-1CF28D571ACF}") { r = "Normals"; } //Normals
+            else if (uuid == "{8AE5D8D7-ECF8-4B7D-91DE-8F787E3B4210}") { r = "Normals"; } //NormalsFromDisplacement
+            else if (uuid == "{A92541B8-2E70-4EF1-BA88-1DC1EA2A2341}") { r = "NormalsWithSmoothness"; } //NormalsWithSmoothness_Legacy
+            else if (uuid == "{6EE749F4-846E-4F7A-878C-F211F85EA59F}") { r = "NormalsWithSmoothness"; } //NormalsWithSmoothness
+            else if (uuid == "{F3D5E572-A3CF-435A-A2AB-75D2B6907847}") { r = "Opacity"; } //Opacity
+            else if (uuid == "{C659D222-F56B-4B61-A2F8-C1FA547F3C39}") { r = "ReferenceImage"; } //ReferenceImage
+            else if (uuid == "{46D9F30F-793C-4449-BCEF-12A396E61B2C}") { r = "ReferenceImage_HDRLinear"; } //ReferenceImage_HDRLinear
+            else if (uuid == "{02C3D9F5-3637-49BA-A48A-D68D629A4D14}") { r = "ReferenceImage_Linear"; } //ReferenceImage_Linear
+            else if (uuid == "{EEF24422-C8F0-4ECE-B32A-C70DB8129466}") { r = "ReferenceImage_HDRLinearUncompressed"; } //ReferenceImage_HDRLinearUncompressed
+            else if (uuid == "{7A3CC95E-0A0C-4CA1-8357-5712B028B77D}") { r = "Reflectance"; } //Reflectance
+            else if (uuid == "{851128B5-7454-42C4-83CE-FCFE071834C5}") { r = "Reflectance"; } //ReflectanceWithSmoothness_Legacy
+            else if (uuid == "{9B2114F5-118A-4B3A-9CFE-97FA01EC8CFE}") { r = "Reflectance"; } //Reflectance_Linear
+            else if (uuid == "{C456B8AB-C360-4822-BCDD-225252D0E697}") { r = "Albedo"; } //SF_Image_nonpower2
+            else if (uuid == "{E7F9DF56-DCB0-4683-96EE-F04DA547BE24}") { r = "Albedo"; } //SF_Gradient
+            else if (uuid == "{F34E3711-5F34-4DBC-8F5D-6340D3989F4B}") { r = "Albedo"; } //SF_Font
+            else if (uuid == "{189A42CB-AEE3-4B80-B276-0FDB0ECA140C}") { r = "Albedo"; } //SF_Image
+            else if (uuid == "{271E40C6-C835-433E-8212-3CD25F66F219}") { r = "Skybox"; } //SkyboxLDR
+            else if (uuid == "{1C649C40-700D-4767-A3CE-4F37F7A0E716}") { r = "Skybox"; } //SkyboxHDR
+            else if (uuid == "{7827AA52-0A7B-43E7-8CD4-55E0BC513AF1}") { r = "Albedo"; } //Terrain_Albedo_HighPassed
+            else if (uuid == "{88D07159-2FC0-4CBE-82CC-A9DC258C9351}") { r = "Albedo"; } //Terrain_Albedo
+            else if (uuid == "{DA48DB2F-1840-47A4-93F1-3C44182144C0}") { r = "Albedo"; } //TextureAtlas
+            else if (uuid == "{9CFDBE76-6C90-43D2-9C2F-49EAB2E07005}") { r = "Albedo"; } //TextureAtlas_Lossless
+            else if (uuid == "{2828FBFE-BDF9-45A7-9370-F93822719CCF}") { r = "UserInterface_Compressed"; } //UserInterface_Compressed
+            else if (uuid == "{83003128-F63E-422B-AEC2-68F0A947225F}") { r = "UserInterface_Lossless"; } //UserInterface_Lossless
+            else if (uuid == "{E996A696-991C-4FFC-B270-F5AD408B0618}") { r = "Albedo"; } //Uncompressed
+
+            return r;
+        }
+
+        bool SliceConverter::ConvertImageSettingsFiles(Application& application)
+        {
+            const AZ::CommandLine* commandLine = application.GetAzCommandLine();
+            if (!commandLine)
+            {
+                SCT_Error("SerializeContextTools", false, "Command line not available.");
+                return false;
+            }
+
+            AZ::TickBus::ExecuteQueuedEvents();
+
+            if (!ConnectToAssetProcessor())
+            {
+                SCT_Error("Convert-Slice", false, "  Failed to connect to the Asset Processor.\n");
+                return false;
+            }
+
+            // Loop through the list of requested files and convert them.
+            AZStd::vector<AZStd::string> fileList = Utilities::ReadFileListFromCommandLine(application, "files");
+            for (AZStd::string& filePath : fileList)
+            {
+                AZ::IO::Path outputPath = filePath;
+                outputPath.ReplaceExtension("assetinfo");
+
+                AZ::IO::FileIOStream fileStream;
+                if (fileStream.Open(filePath.c_str(), AZ::IO::OpenMode::ModeRead) && fileStream.GetLength())
+                {
+                    AZ::IO::SizeType length = fileStream.GetLength();
+                    AZStd::vector<char> charBuffer;
+                    charBuffer.resize_no_construct(length + 1);
+                    fileStream.Read(length, charBuffer.data());
+                    charBuffer.back() = 0;
+
+                    AZ::rapidxml::xml_document<char> xmlDoc;
+                    if (xmlDoc.parse<AZ::rapidxml::parse_no_data_nodes>(charBuffer.data()))
+                    {
+                        auto rootNode = xmlDoc.first_node();
+                        if (rootNode)
+                        {
+                            for (auto childNode = rootNode->first_node(); childNode; childNode = childNode->next_sibling())
+                            {
+                                auto attrName = childNode->first_attribute("name", 0, false);
+                                if (attrName && AZStd::string{"TextureSettings"} == attrName->value())
+                                {
+                                    for (auto tsNode = childNode->first_node(); tsNode; tsNode = tsNode->next_sibling())
+                                    {
+                                        attrName = tsNode->first_attribute("name", 0, false);
+                                        if (attrName && AZStd::string{"AZ::Uuid"} == attrName->value())
+                                        {
+                                            auto attrField = tsNode->first_attribute("field", 0, false);
+                                            if (attrField && AZStd::string{"PresetID"} == attrField->value())
+                                            {
+                                                auto attrType = tsNode->first_attribute("type", 0, false);
+                                                if (attrType && AZStd::string{"{E152C105-A133-4D03-BBF8-3D4B2FBA3E2A}"} == attrType->value())
+                                                {
+                                                    auto attrValue = tsNode->first_attribute("value", 0, false);
+                                                    auto presetName = UUID2TextureSettingsPresetName(attrValue->value());
+                                                    ImageProcessingAtomEditor::ImageProcessingEditorRequestBus::Broadcast(&ImageProcessingAtomEditor::ImageProcessingEditorRequests::SaveDefaultTextureSettings, presetName, outputPath);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        SCT_Error("SerializeContextTools", false, "Could not parse imagesettings xml: %s", filePath.c_str());
+                    }
+                }
+            }
+
+            DisconnectFromAssetProcessor();
+
+            PrintAssertsInfo();
+            return true;
         }
 
         bool SliceConverter::ConvertSliceFiles(Application& application)

@@ -166,6 +166,11 @@ namespace SerializeContextTools
                 SliceConverter sliceConverter;
                 result = sliceConverter.PatchMaterials(application);
             }
+            else if (AZ::StringFunc::Equal("convert-imagesettings", action))
+            {
+                SliceConverter sliceConverter;
+                result = sliceConverter.ConvertImageSettingsFiles(application);
+            }
             else
             {
                 commandExecuted = false;
