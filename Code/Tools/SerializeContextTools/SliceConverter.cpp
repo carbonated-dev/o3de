@@ -89,7 +89,7 @@ namespace AZ
 
         struct DataForCollectingAssertInfo
         {
-            const static int NUMBER_OF_ASSERTS = 5;
+            const static int NUMBER_OF_ASSERTS = 6;
             AZStd::string slicePath;
             int numberOfAsserts[NUMBER_OF_ASSERTS];
 
@@ -1533,7 +1533,18 @@ namespace AZ
                         // If we already had an entry for the new ID, it might be because the old and new ID are the same.  This happens
                         // when nesting multiple prefabs directly underneath each other without a nesting entity in-between.
                         // If the IDs are different, it's an unexpected error condition.
-                        AZ_Assert(oldId == newId, "The same entity instance ID has unexpectedly appeared twice in the same nested prefab.");
+                        //AZ_Assert(oldId == newId, "The same entity instance ID has unexpectedly appeared twice in the same nested prefab.");
+                        if (oldId != newId)
+                        {
+                            SCT_Error(
+                                "SliceConverter",
+                                false,
+                                "Assert 6. The same entity instance ID has unexpectedly appeared twice in the same nested prefab. "
+                                "oldId=%s, newId=%s\n",
+                                oldId.ToString().c_str(),
+                                newId.ToString().c_str());
+                            AddAssertInfo(currentConvertedSlice, 6);
+                        }
                     }
                 }
                 else
