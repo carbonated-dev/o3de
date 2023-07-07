@@ -5,7 +5,6 @@
         "azslc": ["--min-descriptors=64,4,-1,-1,-1" //Sets,Spaces,Samplers,Textures,Buffers
                 , "--unique-idx"
                 , "--namespace=mt"
-                , "--namespace=vk"
                 , "--pad-root-const"
         ],
         "dxc": ["-spirv"

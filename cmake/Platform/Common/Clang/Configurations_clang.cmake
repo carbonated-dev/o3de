@@ -33,6 +33,7 @@ ly_append_configurations_options(
         -Wno-reorder
         -Wno-switch
         -Wno-undefined-var-template
+        -Wno-deprecated-declarations # workaround for MTLCommandBufferErrorBlacklisted is deprecated
 
         ###################
         # Enabled warnings (that are disabled by default)
