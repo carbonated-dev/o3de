@@ -533,6 +533,13 @@ namespace O3DELauncher
 
             if (CreateSystemInterface)
             {
+                // carbonated begin (akostin/mp305): Fix the order of adding typed instances of system assets
+                // Process queued events before creating system interface.
+                // In particular, it is required to add typed instances of system assets (StreamingImageAsset, ResourcePoolAsset,
+                // AttachmentImageAsset) to the InstanceDatabase.
+                AZ::TickBus::ExecuteQueuedEvents();
+                // carbonated end
+
                 systemInitParams.pSystem = CreateSystemInterface(systemInitParams);
             }
         }
@@ -543,6 +550,10 @@ namespace O3DELauncher
         AZ::ComponentApplicationLifecycle::SignalEvent(*settingsRegistry, "LegacySystemInterfaceCreated", R"({})");
 
         ReturnCode status = ReturnCode::Success;
+
+        // carbonated begin (akostin/mp305-1): Broadcast OnCryGameInitialize
+        CrySystemEventBus::Broadcast(&CrySystemEventBus::Events::OnCryGameInitialize);
+        // carbonated begin
 
         if (systemInitParams.pSystem)
         {
