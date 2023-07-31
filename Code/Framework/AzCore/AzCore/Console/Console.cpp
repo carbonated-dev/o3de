@@ -122,6 +122,29 @@ namespace AZ
 
             CVarFixedString commandLowercase(command);
             AZStd::to_lower(commandLowercase.begin(), commandLowercase.end());
+#ifdef CARBONATED
+            // Workaround to prevent double loading starting level that is set in "Registry\autoexec.game.setreg"
+            // At the fist pass it loads the "LoadLevel" command from "Registry\autoexec.game.setreg" file and puts it into m_deferredCommands
+            // At the second pass it loads one from the "Cache\pc\bootstrap.game.debug.setreg" or "Cache\pc\bootstrap.game.profile.setreg" or "Cache\pc\bootstrap.game.release.setreg"
+            // and puts the same "LoadLevel" command into the m_deferredCommands.
+            // Let's try to filter that
+            if (commandLowercase == "loadlevel")
+            {
+                for (auto &it: m_deferredCommands)
+                {
+                    if (it.m_command == deferredCommand.m_command && it.m_arguments.size() == deferredCommand.m_arguments.size() &&
+                        it.m_arguments.size() > 0)
+                    {
+                        if (it.m_arguments[0] == deferredCommand.m_arguments[0])
+                        {
+                            return AZ::Failure(AZStd::string::format(
+                                "Command \"%s\" with the same level name is already in the queue. Ignoring", commandLowercase.c_str()));
+                        }
+                    }
+                }
+            }
+#endif
+
             m_deferredCommands.emplace_back(AZStd::move(deferredCommand));
             return AZ::Failure(AZStd::string::format(
                 "Command \"%s\" is not yet registered. Deferring to attempt execution later.", commandLowercase.c_str()));
