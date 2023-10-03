@@ -43,4 +43,7 @@ ShaderResourceGroup PassSrg : SRG_PerPass
     Texture2D<uint4> m_tileLightData;
     StructuredBuffer<uint> m_lightListRemapped;
     Texture2D<float> m_linearDepthTexture;
+
+    // Whether the m_linearDepthTexture is linear depth or original depth
+    uint m_isOriginalDepth;
 }
