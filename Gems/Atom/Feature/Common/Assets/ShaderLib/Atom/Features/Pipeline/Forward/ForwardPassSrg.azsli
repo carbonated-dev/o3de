@@ -45,5 +45,7 @@ ShaderResourceGroup PassSrg : SRG_PerPass
     Texture2D<float> m_linearDepthTexture;
 
     // Whether the m_linearDepthTexture is linear depth or original depth
+    // This is useful for render pipeline doesn't have pass to convert original depth to linear depth
+    // We can use m_linearDepthTexture for original depth and set this flag to true. And the shaders can calculate linear depth themselves.
     uint m_isOriginalDepth;
 }
