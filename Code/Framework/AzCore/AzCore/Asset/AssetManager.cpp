@@ -2388,9 +2388,16 @@ namespace AZ::Data
         uint64_t totalSize = 0;
 
         AZStd::lock_guard<AZStd::recursive_mutex> assetLock(m_assetMutex);
+
+        // we need to cache the AssetStreamInfo since json objects are referencing the names in it. 
+        AZStd::vector<AssetStreamInfo> cachedStreamInfos;
+        cachedStreamInfos.reserve(m_assets.size());
+
         for (const auto& assetEntry : m_assets)
         {
-            AssetStreamInfo streamInfo = GetLoadStreamInfoForAsset(assetEntry.first, assetEntry.second->GetType());
+            cachedStreamInfos.emplace_back(GetLoadStreamInfoForAsset(assetEntry.first, assetEntry.second->GetType()));
+
+            const AssetStreamInfo& streamInfo = cachedStreamInfos.back();
             totalSize += streamInfo.m_dataLen;
             auto& typeInfo = assetTypeInfos[AZStd::string(assetEntry.second->RTTI_GetTypeName())];
             typeInfo.size += streamInfo.m_dataLen;
