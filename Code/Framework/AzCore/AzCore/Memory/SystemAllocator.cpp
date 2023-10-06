@@ -24,6 +24,8 @@
 
 #include <AzCore/Memory/HphaAllocator.h>
 
+#define USE_OS_ALLOCATE 1
+
 namespace AZ
 {
     //////////////////////////////////////////////////////////////////////////
@@ -81,8 +83,12 @@ namespace AZ
         AZ_Assert((alignment & (alignment - 1)) == 0, "Alignment must be power of 2!");
 
         byteSize = MemorySizeAdjustedUp(byteSize);
-        SystemAllocator::pointer address =
-            m_subAllocator->allocate(byteSize, alignment);
+
+#if USE_OS_ALLOCATE
+        SystemAllocator::pointer address = AZ_OS_MALLOC(byteSize, alignment);
+#else
+        SystemAllocator::pointer address = m_subAllocator->allocate(byteSize, alignment);
+#endif
 
         if (address == nullptr)
         {
@@ -116,7 +122,11 @@ namespace AZ
         byteSize = MemorySizeAdjustedUp(byteSize);
         AZ_PROFILE_MEMORY_FREE(MemoryReserved, ptr);
         AZ_MEMORY_PROFILE(ProfileDeallocation(ptr, byteSize, alignment, nullptr));
+#if USE_OS_ALLOCATE
+        AZ_OS_FREE(ptr);
+#else
         m_subAllocator->deallocate(ptr, byteSize, alignment);
+#endif
     }
 
     //=========================================================================
@@ -129,7 +139,11 @@ namespace AZ
 
         AZ_PROFILE_MEMORY_FREE(MemoryReserved, ptr);
 
+#if USE_OS_ALLOCATE
+        pointer newAddress = AZ_OS_REALLOC(ptr, newSize, newAlignment);
+#else
         pointer newAddress = m_subAllocator->reallocate(ptr, newSize, newAlignment);
+#endif
 
 #if defined(AZ_ENABLE_TRACING)
         [[maybe_unused]] const size_type allocatedSize = get_allocated_size(newAddress, 1);
@@ -146,9 +160,13 @@ namespace AZ
     //=========================================================================
     SystemAllocator::size_type SystemAllocator::get_allocated_size(pointer ptr, align_type alignment) const
     {
+#if USE_OS_ALLOCATE
+        return ptr ? AZ_OS_MSIZE(ptr, alignment) : 0;
+#else
         size_type allocSize = MemorySizeAdjustedDown(m_subAllocator->get_allocated_size(ptr, alignment));
 
         return allocSize;
+#endif
     }
 
 } // namespace AZ
