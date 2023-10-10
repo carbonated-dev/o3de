@@ -48,8 +48,11 @@ namespace AZ::Render
 
         //! RPI::SceneNotificationBus
         void OnEndPrepareRender() override;
+        void OnRenderPipelineChanged(AZ::RPI::RenderPipeline* pipeline, AZ::RPI::SceneNotification::RenderPipelineChangeType changeType) override;
 
     private:
+        void UpdatePasses(AZ::RPI::RenderPipeline* renderPipeline);
+
         AZ::RPI::RasterPass* m_rasterPass = nullptr;
         AZ::RPI::Pass* m_compositePass = nullptr;
     };

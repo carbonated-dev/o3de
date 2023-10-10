@@ -116,24 +116,18 @@ namespace AZ::Render
             return;
         }
 
-        const auto mergeTemplateName = Name("SilhouettePassTemplate");
-        auto compositePassFilter = AZ::RPI::PassFilter::CreateWithTemplateName(mergeTemplateName, renderPipeline);
-        if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(compositePassFilter); foundPass)
-        {
-            m_compositePass = foundPass;
-        }
+        // update our render pass members in case they were added as part of a pipeline 
+        UpdatePasses(renderPipeline);
 
-        const auto gatherTemplateName = Name("SilhouetteGatherPassTemplate");
-        auto gatherPassFilter = AZ::RPI::PassFilter::CreateWithTemplateName(gatherTemplateName, renderPipeline);
-        if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(gatherPassFilter); foundPass)
-        {
-            m_rasterPass = static_cast<AZ::RPI::RasterPass*>(foundPass);
-        }
-
+        // if we already have valid render pass members then we don't need to dynamically
+        // create them and add them to the pipeline
         if (m_compositePass && m_rasterPass)
         {
             return;
         }
+
+        const auto mergeTemplateName = Name("SilhouettePassTemplate");
+        const auto gatherTemplateName = Name("SilhouetteGatherPassTemplate");
 
         Name postProcessPassName = Name("PostProcessPass");
         if (renderPipeline->FindFirstPass(postProcessPassName) == nullptr)
@@ -175,6 +169,33 @@ namespace AZ::Render
         {
             m_compositePass = pass.get();
             renderPipeline->AddPassAfter(pass, postProcessPassName);
+        }
+    }
+
+    void SilhouetteFeatureProcessor::OnRenderPipelineChanged(AZ::RPI::RenderPipeline* pipeline, [[maybe_unused]] AZ::RPI::SceneNotification::RenderPipelineChangeType changeType)
+    {
+        // update our render pass members in case the pipeline was removed
+        UpdatePasses(pipeline);
+    }
+
+    void SilhouetteFeatureProcessor::UpdatePasses(AZ::RPI::RenderPipeline* renderPipeline)
+    {
+        m_compositePass = nullptr;
+
+        const auto mergeTemplateName = Name("SilhouettePassTemplate");
+        auto compositePassFilter = AZ::RPI::PassFilter::CreateWithTemplateName(mergeTemplateName, renderPipeline);
+        if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(compositePassFilter); foundPass)
+        {
+            m_compositePass = foundPass;
+        }
+
+        m_rasterPass = nullptr;
+
+        const auto gatherTemplateName = Name("SilhouetteGatherPassTemplate");
+        auto gatherPassFilter = AZ::RPI::PassFilter::CreateWithTemplateName(gatherTemplateName, renderPipeline);
+        if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(gatherPassFilter); foundPass)
+        {
+            m_rasterPass = static_cast<AZ::RPI::RasterPass*>(foundPass);
         }
     }
 } // namespace AZ::Render
