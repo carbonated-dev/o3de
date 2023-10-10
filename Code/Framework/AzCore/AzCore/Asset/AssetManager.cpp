@@ -2436,7 +2436,7 @@ namespace AZ::Data
         path /= "log";
 
         [[maybe_unused]] const bool dirCreated = AZ::IO::SystemFile::CreateDir(path.c_str());
-        AZ_Assert(dirCreated, "Failed to create a MemoryCaptures directory for gpu pool dump, requested path = %s", path.c_str())
+        AZ_Assert(dirCreated, "Failed to create destination folder for asset info dump '%s'", path.c_str())
 
         time_t ltime;
         time(&ltime);
