@@ -172,12 +172,10 @@ namespace AZ
 
         AZStd::span<const uint8_t> StreamingImageAsset::GetSubImageData(uint32_t mip, uint32_t slice)
         {
-            const bool forceLoad = true;
-
             auto mipChainIndex = GetMipChainIndex(mip);
             const ImageMipChainAsset* mipChainAsset = GetImageMipChainAsset(mip);
 
-            if (mipChainAsset == nullptr && forceLoad)
+            if (mipChainAsset == nullptr)
             {
                 MipChain& mipChain = m_mipChains[mipChainIndex];
 

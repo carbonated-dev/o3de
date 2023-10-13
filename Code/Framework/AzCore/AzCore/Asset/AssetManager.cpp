@@ -2461,6 +2461,8 @@ namespace AZ::Data
         
         outputFile.Write(jsonStringBuffer.GetString(), jsonStringBuffer.GetSize());
         outputFile.Close();
+
+        AZ_TracePrintf("AssetManager", "Loaded assets size info is saved to file [%s]", filename.c_str());
     }
 
 } // namespace AZ::Data
