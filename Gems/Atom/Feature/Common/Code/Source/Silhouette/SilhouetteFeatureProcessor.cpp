@@ -115,7 +115,6 @@ namespace AZ::Render
         {
             return;
         }
-
         // update our render pass members in case they were added as part of a pipeline 
         UpdatePasses(renderPipeline);
 
@@ -170,6 +169,9 @@ namespace AZ::Render
             m_compositePass = pass.get();
             renderPipeline->AddPassAfter(pass, postProcessPassName);
         }
+
+        // remember which render pipeline we added our passes to
+        m_renderPipeline = renderPipeline;
     }
 
     void SilhouetteFeatureProcessor::OnRenderPipelineChanged(AZ::RPI::RenderPipeline* pipeline, [[maybe_unused]] AZ::RPI::SceneNotification::RenderPipelineChangeType changeType)
@@ -180,6 +182,13 @@ namespace AZ::Render
 
     void SilhouetteFeatureProcessor::UpdatePasses(AZ::RPI::RenderPipeline* renderPipeline)
     {
+        // if we assigned passes to a render pipeline already (m_renderPipeline) then ignore
+        // all other render pipelines
+        if (m_renderPipeline && renderPipeline != m_renderPipeline)
+        {
+            return;
+        }
+
         m_compositePass = nullptr;
 
         const auto mergeTemplateName = Name("SilhouettePassTemplate");
@@ -197,5 +206,8 @@ namespace AZ::Render
         {
             m_rasterPass = static_cast<AZ::RPI::RasterPass*>(foundPass);
         }
+
+        // remember which render pipeline we found our passes on
+        m_renderPipeline = (m_compositePass && m_rasterPass) ? renderPipeline : nullptr;
     }
 } // namespace AZ::Render

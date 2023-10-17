@@ -55,6 +55,7 @@ namespace AZ::Render
 
         AZ::RPI::RasterPass* m_rasterPass = nullptr;
         AZ::RPI::Pass* m_compositePass = nullptr;
+        AZ::RPI::RenderPipeline* m_renderPipeline = nullptr;
     };
 }
 
