@@ -90,7 +90,7 @@ real3 SpecularGGX( real3 dirToCamera, real3 dirToLight, real3 normal, real3 spec
     real NdotH = saturate(dot(normal, halfVector));
     real NdotL = saturate(dot(normal, dirToLight));
     real HdotV = saturate(dot(halfVector, dirToCamera)); // Note that HdotL = HdotV, so we don't need to calculate both
-    
+
     // D, G and F from the lighting equation
     // Note: the division by (4.0 * NdotL * NdotV) is already factored out in the G function as an optimization
     real D = NormalDistributionGGX(NdotH, roughnessA2);
