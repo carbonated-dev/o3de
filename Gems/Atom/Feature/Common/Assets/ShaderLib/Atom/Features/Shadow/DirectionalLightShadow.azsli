@@ -33,6 +33,7 @@ option ShadowFilterMethod o_directional_shadow_filtering_method = ShadowFilterMe
 option bool o_directional_shadow_receiver_plane_bias_enable = true;
 option bool o_blend_between_cascades_enable = false;
 
+
 // DirectionalLightShadow calculates lit ratio for a directional light.
 class DirectionalLightShadow
 {
@@ -76,6 +77,7 @@ DirectionalShadowCalculator DirectionalLightShadow::MakeShadowCalculator(uint li
     calc.SetWorldNormal(normalVector);
     calc.SetLightIndex(lightIndex);
     calc.SetFilterMode(o_directional_shadow_filtering_method);
+    calc.SetFilteringSampleCount(o_directional_shadow_filtering_sample_count);
     calc.SetWorldPos(worldPos);
     return calc;
 }

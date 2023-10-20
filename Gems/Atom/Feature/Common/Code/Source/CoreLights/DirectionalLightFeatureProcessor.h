@@ -407,6 +407,7 @@ namespace AZ
 
             Name m_lightTypeName = Name("directional");
             Name m_directionalShadowFilteringMethodName = Name("o_directional_shadow_filtering_method");
+            Name m_directionalShadowFilteringSamplecountName = Name("o_directional_shadow_filtering_sample_count");
             Name m_directionalShadowReceiverPlaneBiasEnableName = Name("o_directional_shadow_receiver_plane_bias_enable");
             Name m_BlendBetweenCascadesEnableName = Name("o_blend_between_cascades_enable");
             static constexpr const char* FeatureProcessorName = "DirectionalLightFeatureProcessor";
