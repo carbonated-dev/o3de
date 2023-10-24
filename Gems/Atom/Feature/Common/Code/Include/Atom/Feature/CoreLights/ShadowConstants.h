@@ -43,10 +43,9 @@ namespace AZ
         // and represents m_filteringSampleCountMode in CoreLights/ViewSrg.azsli
         enum class ShadowFilterSampleCount : uint32_t
         {
-            Tap0 = 0,
-            Tap4,
-            Tap9,
-            Tap16,
+            PcfTap4 = 0,
+            PcfTap9,
+            PcfTap16,
 
             Count
         };

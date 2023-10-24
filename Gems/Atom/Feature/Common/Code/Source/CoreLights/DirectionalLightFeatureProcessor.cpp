@@ -592,18 +592,14 @@ namespace AZ
             }
 
             //Remap the count value to an enum value associated with that count.
-            ShadowFilterSampleCount samplingCountMode = ShadowFilterSampleCount::Tap0;
+            ShadowFilterSampleCount samplingCountMode = ShadowFilterSampleCount::PcfTap16;
             if (count <= 4)
             {
-                samplingCountMode = ShadowFilterSampleCount::Tap4;
+                samplingCountMode = ShadowFilterSampleCount::PcfTap4;
             }
             else if (count <= 9)
             {
-                samplingCountMode = ShadowFilterSampleCount::Tap9;
-            }
-            else
-            {
-                samplingCountMode = ShadowFilterSampleCount::Tap16;
+                samplingCountMode = ShadowFilterSampleCount::PcfTap9;
             }
 
             for (auto& it : m_shadowData)

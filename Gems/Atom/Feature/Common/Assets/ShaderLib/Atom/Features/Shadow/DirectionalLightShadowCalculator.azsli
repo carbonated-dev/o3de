@@ -11,8 +11,8 @@
 #endif
 
 enum class ShadowFilterMethod {None, Pcf, Esm, EsmPcf};
-enum class ShadowFilterSampleCount {Tap0, Tap4, Tap9, Tap16};
-option ShadowFilterSampleCount o_directional_shadow_filtering_sample_count = ShadowFilterSampleCount::Tap16;
+enum class ShadowFilterSampleCount {PcfTap4, PcfTap9, PcfTap16};
+option ShadowFilterSampleCount o_directional_shadow_filtering_sample_count = ShadowFilterSampleCount::PcfTap16;
 
 // avoiding artifact between cascade levels.
 #define PIXEL_MARGIN (1.5)
@@ -308,11 +308,11 @@ float DirectionalShadowCalculator::SamplePcfBicubic(const float3 shadowCoord, co
     
     switch(filteringSampleCountMode)
     {
-        case ShadowFilterSampleCount::Tap4:
+        case ShadowFilterSampleCount::PcfTap4:
             return SampleShadowMapBicubic_4Tap(param);
-        case ShadowFilterSampleCount::Tap9:
+        case ShadowFilterSampleCount::PcfTap9:
             return SampleShadowMapBicubic_9Tap(param);
-        case ShadowFilterSampleCount::Tap16:
+        case ShadowFilterSampleCount::PcfTap16:
             return SampleShadowMapBicubic_16Tap(param);
         default:
             //Use 16 tap by default
