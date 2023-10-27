@@ -96,7 +96,7 @@ namespace AZ
                 }
                 else
                 {
-                    AZ_Assert(false, "Sahder source is not added by default. It can be added by enabling /O3DE/Atom/RHI/GraphicsDevMode via settings registry and re-building the shader.");
+                    AZ_Assert(false, "Shader source is not added by default. It can be added by enabling /O3DE/Atom/RHI/GraphicsDevMode via settings registry and re-building the shader.");
                 }
             }
             
