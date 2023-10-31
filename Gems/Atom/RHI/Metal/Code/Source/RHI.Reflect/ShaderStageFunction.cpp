@@ -81,10 +81,7 @@ namespace AZ
             }
 
             HashValue64 hash = HashValue64{ 0 };
-            if (!m_byteCode.empty())
-            {
-                hash = TypeHash64(m_byteCode.data(), m_byteCode.size(), hash);
-            }
+            hash = TypeHash64(m_byteCode.data(), m_byteCode.size(), hash);
             
             if(!m_sourceCode.empty())
             {
