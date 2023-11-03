@@ -556,7 +556,8 @@ namespace AZ
                 {
                     modelAsset.BlockUntilLoadComplete();
                 }
-                AZ::Render::MaterialAssignmentMap assignedMaterials = AZ::Render::GetDefautMaterialMapFromModelAsset(modelAsset);
+                AZ_Assert(false, "Need to restore AZ::Render::GetDefautMaterialMapFromModelAsset()");
+                AZ::Render::MaterialAssignmentMap assignedMaterials; // AZ::Render::GetDefautMaterialMapFromModelAsset(modelAsset);
                 AZ::IO::Path path = modelAsset.GetHint();
                 AZStd::string matBaseName = AZ::IO::PathView(modelAsset.GetHint()).Filename().Stem().String();
                 auto mtlDB = AZ::JsonSerializationUtils::ReadJsonFile("mtldb.json");
@@ -692,7 +693,8 @@ namespace AZ
                                 {
                                     AzToolsFramework::Prefab::PrefabDom newPatches(&(overridePatches.GetAllocator()));
                                     instanceToTemplateInterface->GeneratePatch(newPatches, *entityDomInTopTemplate, entityDomAfterUpdate);
-                                    instanceToTemplateInterface->AppendEntityAliasPathToPatchPaths(newPatches, entityPathFromTopInstance);
+                                    AZ_Assert(false, "Need to restore AppendEntityAliasPathToPatchPaths");
+                                    // instanceToTemplateInterface->AppendEntityAliasPathToPatchPaths(newPatches, entityPathFromTopInstance);
                                     for (auto& newPatch : newPatches.GetArray())
                                     {
                                         overridePatches.PushBack(newPatch.Move(), overridePatches.GetAllocator());

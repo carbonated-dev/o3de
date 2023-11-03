@@ -146,16 +146,13 @@ namespace SerializeContextTools
             }
         };
 
-		/* LVB
         AZStd::string commandOutput;
         auto CaptureStdout = [&commandOutput](AZStd::span<AZStd::byte const> outputBytes)
         {
             commandOutput += AZStd::string_view(reinterpret_cast<const char*>(outputBytes.data()), outputBytes.size());
-        };*/
+        };
 
-        // LVB
-        stdoutCapturer.Start(65535 * 20000);
-        // LVB stdoutCapturer.Start(CaptureStdout);	   
+        stdoutCapturer.Start(CaptureStdout, AZStd::chrono::milliseconds(5), 65535 * 20000);
         Application application(argc, argv, &stdoutCapturer);
 		
         AZ::ComponentApplication::StartupParameters startupParameters;
@@ -225,16 +222,16 @@ namespace SerializeContextTools
             // stderr messages are suppressed in this case								  
             fflush(stdout);
             suppressStderr = true;
-            stdoutCapturer.Stop(SendStdoutToError);
-            // LVB stdoutCapturer.Stop();
+            //stdoutCapturer.Stop(SendStdoutToError);
+            stdoutCapturer.Stop();
 			
             PrintHelp();
             result = true;
             // Flush stdout stream before restarting the capture to make sure
             // all the help text is output
             fflush(stdout);
-            stdoutCapturer.Start();
-            // LVB stdoutCapturer.Start(AZStd::move(CaptureStdout));
+            //stdoutCapturer.Start();
+            stdoutCapturer.Start(AZStd::move(CaptureStdout));
         }
 
         if (!result)
@@ -242,21 +239,16 @@ namespace SerializeContextTools
             AZ_Printf("SerializeContextTools", "Processing didn't complete fully as problems were encountered.\n");
         }
 
-        // LVB
-        stdoutCapturer.Flush(SendStdoutToError);							
         application.Stop();
 
         // Write out any stdout to stderr at this point					   
         // Because the FILE* stream is buffered, make sure to flush
         // it before stopping the capture of stdout.
         fflush(stdout);
-		// LVB stdoutCapturer.Stop();
+		stdoutCapturer.Stop();
 		
         suppressStderr = result;
-        stdoutCapturer.Stop(SendStdoutToError);
 
-        return result ? 0 : -1;
-/* LVB
         // Write out any error output if the command result is non-zero
         if (!result)
         {
@@ -265,6 +257,5 @@ namespace SerializeContextTools
         }
 
         return 0;
-*/
     }
 }
