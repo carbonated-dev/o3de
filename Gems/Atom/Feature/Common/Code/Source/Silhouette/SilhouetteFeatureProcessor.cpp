@@ -115,7 +115,7 @@ namespace AZ::Render
             return;
         }
 
-        // the silhouette passes are alrady added in another render pipeline
+        // the silhouette passes are already added in another render pipeline
         if (m_renderPipeline)
         {
             return;
@@ -130,7 +130,7 @@ namespace AZ::Render
             return;
         }
 
-        // unset the render pipeline untill we added the passes successfully 
+        // unset the render pipeline until we add the passes successfully 
         m_renderPipeline = nullptr;
 
         const auto mergeTemplateName = Name("SilhouettePassTemplate");
