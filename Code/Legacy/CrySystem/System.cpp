@@ -24,6 +24,7 @@
 #include <AzFramework/API/ApplicationAPI.h>
 #include <AzFramework/API/ApplicationAPI_Platform.h>
 #include <AzFramework/Input/Devices/Keyboard/InputDeviceKeyboard.h>
+#include <AzFramework/Spawnable/RootSpawnableInterface.h>
 #include <AzCore/Debug/Profiler.h>
 #include <AzCore/Debug/Trace.h>
 #include <AzCore/Interface/Interface.h>
@@ -37,6 +38,7 @@
 #if defined(CARBONATED)
 #include <CryCommon/CrySystemPostTickBus.h>
 #include <CryCommon/CrySystemPreTickBus.h>
+#include "CryNetwork/CryNetwork.h"
 #endif
 // carbonated end
 
@@ -203,6 +205,14 @@ CSystem::CSystem()
     m_env.bIgnoreAllAsserts = false;
     m_env.bNoAssertDialog = false;
 
+    // carbonated begin (akostin/mp-413-1): Revert bClient, bServer, bMultiplayer in SSystemGlobalEnvironment
+#if defined(CARBONATED)
+#if !defined(CONSOLE)
+    m_env.SetIsClient(false);
+#endif
+#endif
+    // carbonated end
+
     //////////////////////////////////////////////////////////////////////////
 
     m_sysNoUpdate = NULL;
@@ -217,7 +227,6 @@ CSystem::CSystem()
     m_pUserCallback = NULL;
     m_sys_firstlaunch = NULL;
 
-    //  m_sys_filecache = NULL;
     m_gpu_particle_physics = NULL;
 
     m_bInitializedSuccessfully = false;
@@ -296,6 +305,30 @@ void CSystem::ShutDown()
 {
     CryLogAlways("System Shutdown");
 
+    // Disconnect any networking connections at the beginning of shutting down.
+    // This needs to happen before unloading the level because the network connection might queue
+    // references to entities and assets that could prevent cleanup from happening during the level unload.
+    if (const auto console = AZ::Interface<AZ::IConsole>::Get())
+    {
+        console->PerformCommand("disconnect");
+    }
+
+    // On shutdown, we need to start by unloading the level spawnable and processing the spawnable queue
+    // to clean up any remaining references. Otherwise, we'll get lots of errors on shutdown due to assets still
+    // being in use as various subsystems get shut down. By the time the spawnable system shuts down, it will try
+    // to clean up the assets, but the asset handlers for those assets will also be deregistered and destroyed by then,
+    // causing even more errors.
+    // By unloading the level before shutting down any subsystems, we can avoid the cascade of errors.
+    ILevelSystem* levelSystem = GetILevelSystem();
+    if (levelSystem)
+    {
+        levelSystem->UnloadLevel();
+        if (auto spawnableInterface = AzFramework::RootSpawnableInterface::Get(); spawnableInterface)
+        {
+            spawnableInterface->ProcessSpawnableQueueUntilEmpty();
+        }
+    }
+
     // don't broadcast OnCrySystemShutdown unless
     // we'd previously broadcast OnCrySystemInitialized
     if (m_bInitializedSuccessfully)
@@ -348,6 +381,12 @@ void CSystem::ShutDown()
 
     SAFE_RELEASE(m_env.pMovieSystem);
     SAFE_RELEASE(m_env.pCryFont);
+
+    // carbonated begin (akostin/mp-402-1): Revert pNetwork in SSystemGlobalEnvironment
+#if defined(CARBONATED)
+    CryNetwork::NetworkInstance::Release();
+#endif
+    // carbonated end
     if (m_env.pConsole)
     {
         ((CXConsole*)m_env.pConsole)->FreeRenderResources();
@@ -859,6 +898,12 @@ inline const char* ValidatorModuleToString(EValidatorModule module)
         return "System";
     case VALIDATOR_MODULE_AUDIO:
         return "Audio";
+        // carbonated begin (akostin/mp344): IGame partially reverted for the sake of GridMate
+#if defined(CARBONATED)
+    case VALIDATOR_MODULE_GAME:
+        return "Game";
+#endif
+        // carbonated end
     case VALIDATOR_MODULE_MOVIE:
         return "Movie";
     case VALIDATOR_MODULE_EDITOR:

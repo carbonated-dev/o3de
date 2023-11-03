@@ -82,6 +82,7 @@ set(FILES
     Debug/Budget.cpp
     Debug/BudgetTracker.h
     Debug/BudgetTracker.cpp
+	Debug/EngineAnalyticsBus.h	
     Debug/MemoryProfiler.h
     Debug/PerformanceCollector.h
     Debug/PerformanceCollector.cpp
@@ -148,6 +149,8 @@ set(FILES
     EBus/Internal/StoragePolicies.h
     Instance/InstancePool.h
     Interface/Interface.h
+    IO/AnsiTerminalUtils.cpp
+    IO/AnsiTerminalUtils.h
     IO/ByteContainerStream.h
     IO/CompressionBus.h
     IO/CompressionBus.cpp
@@ -339,6 +342,9 @@ set(FILES
     Math/Matrix4x4.cpp
     Math/Matrix4x4.h
     Math/Matrix4x4.inl
+    Math/MatrixMxN.cpp
+    Math/MatrixMxN.h
+    Math/MatrixMxN.inl
     Math/MatrixUtils.h
     Math/MatrixUtils.cpp
     Math/Obb.cpp
@@ -389,6 +395,9 @@ set(FILES
     Math/Vector4.cpp
     Math/Vector4.h
     Math/Vector4.inl
+    Math/VectorN.cpp
+    Math/VectorN.h
+    Math/VectorN.inl
     Math/VectorConversions.h
     Math/VertexContainer.h
     Math/VertexContainer.cpp
@@ -414,6 +423,8 @@ set(FILES
     Memory/HphaAllocator.cpp
     Memory/HphaAllocator.h
     Memory/IAllocator.h
+    Memory/MallocSchema.cpp
+    Memory/MallocSchema.h
     Memory/Memory_fwd.h
     Memory/Memory.cpp
     Memory/Memory.h
@@ -544,6 +555,8 @@ set(FILES
     Serialization/AZStdAnyDataContainer.inl
     Serialization/DynamicSerializableField.cpp
     Serialization/DynamicSerializableField.h
+    Serialization/EnumConstantJsonSerializer.cpp
+    Serialization/EnumConstantJsonSerializer.h
     Serialization/EditContext.cpp
     Serialization/EditContext.h
     Serialization/EditContext.inl
@@ -641,6 +654,8 @@ set(FILES
     Settings/SettingsRegistryScriptUtils.h
     Settings/SettingsRegistryVisitorUtils.cpp
     Settings/SettingsRegistryVisitorUtils.h
+    Settings/TextParser.cpp
+    Settings/TextParser.h
     Slice/SliceAsset.cpp
     Slice/SliceAsset.h
     Slice/SliceAssetHandler.cpp

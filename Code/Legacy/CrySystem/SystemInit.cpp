@@ -33,6 +33,7 @@
 
 #include <AzFramework/IO/LocalFileIO.h>
 #include <AzFramework/Input/Devices/Mouse/InputDeviceMouse.h>
+#include <AzFramework/Quality/QualitySystemBus.h>
 
 #include "AZCoreLogSink.h"
 #include <AzCore/Component/ComponentApplicationBus.h>
@@ -86,6 +87,12 @@
 #include <AzCore/Jobs/JobManagerBus.h>
 #include <AzFramework/Archive/Archive.h>
 #include <CrySystemBus.h>
+
+// carbonated begin (akostin/mp-402-1): Revert pNetwork in SSystemGlobalEnvironment
+#if defined(CARBONATED)
+#include "CryNetwork/CryNetwork.h"
+#endif
+// carbonated end
 
 #if defined(ANDROID)
 #include <AzCore/Android/Utils.h>
@@ -1053,6 +1060,22 @@ bool CSystem::Init(const SSystemInitParams& startupParams)
                 AzFramework::SystemCursorState::ConstrainedAndHidden);
         }
 
+        // carbonated begin (akostin/mp-402-1): Revert pNetwork in SSystemGlobalEnvironment
+#if defined(CARBONATED)
+        //////////////////////////////////////////////////////////////////////////
+        // NETWORK
+        //////////////////////////////////////////////////////////////////////////
+
+        m_env.pNetwork = CryNetwork::NetworkInstance::Create();
+        if (!m_env.pNetwork)
+        {
+            AZ_Assert(false, "Network System did not initialize correctly; it was not found in the system environment.");
+            return false;
+        }
+        InlineInitializationProcessing("CSystem::Init InitNetwork");
+#endif
+        // carbonated end
+
         // CONSOLE
         //////////////////////////////////////////////////////////////////////////
         if (!InitConsole())
@@ -1065,8 +1088,6 @@ bool CSystem::Init(const SSystemInitParams& startupParams)
             m_pUserCallback->OnInitProgress("Initializing additional systems...");
         }
         AZ_Printf(AZ_TRACE_SYSTEM_WINDOW, "Initializing additional systems\n");
-
-        InlineInitializationProcessing("CSystem::Init AIInit");
 
         //////////////////////////////////////////////////////////////////////////
         // LEVEL SYSTEM
@@ -1085,8 +1106,6 @@ bool CSystem::Init(const SSystemInitParams& startupParams)
         }
 
         InlineInitializationProcessing("CSystem::Init Level System");
-
-        InlineInitializationProcessing("CSystem::Init InitLmbrAWS");
 
         // Az to Cry console binding
         AZ::Interface<AZ::IConsole>::Get()->VisitRegisteredFunctors(
@@ -1116,11 +1135,11 @@ bool CSystem::Init(const SSystemInitParams& startupParams)
 
     InlineInitializationProcessing("CSystem::Init End");
 
-#if defined(IS_PROSDK)
-    SDKEvaluation::InitSDKEvaluation(gEnv, &m_pUserCallback);
-#endif
-
-    InlineInitializationProcessing("CSystem::Init End");
+    // All CVARs should now be registered, load and apply quality settings for the default quality group
+    // using device rules to auto-detected the correct quality level 
+    AzFramework::QualitySystemEvents::Bus::Broadcast(
+        &AzFramework::QualitySystemEvents::LoadDefaultQualityGroup,
+        AzFramework::QualityLevel::LevelFromDeviceRules);
 
     // Send out EBus event
     EBUS_EVENT(CrySystemEventBus, OnCrySystemInitialized, *this, startupParams);
@@ -1405,12 +1424,6 @@ void CSystem::CreateSystemVars()
     m_env.pConsole->CreateKeyBind("alt_keyboard_key_function_F12", "Screenshot");
     m_env.pConsole->CreateKeyBind("alt_keyboard_key_function_F11", "RecordClip");
 
-    /*
-        // experimental feature? - needs to be created very early
-        m_sys_filecache = REGISTER_INT("sys_FileCache",0,0,
-            "To speed up loading from non HD media\n"
-            "0=off / 1=enabled");
-    */
     REGISTER_CVAR2("sys_trackview", &g_cvars.sys_trackview, 1, 0, "Enables TrackView Update");
 
     // Defines selected language.
@@ -1440,10 +1453,6 @@ void CSystem::CreateSystemVars()
 #if defined(WIN32) || defined(WIN64)
     REGISTER_INT("sys_screensaver_allowed", 0, VF_NULL, "Specifies if screen saver is allowed to start up while the game is running.");
 #endif
-
-    // Since the UI Canvas Editor is incomplete, we have a variable to enable it.
-    // By default it is now enabled. Modify system.cfg or game.cfg to disable it
-    REGISTER_INT("sys_enableCanvasEditor", 1, VF_NULL, "Enables the UI Canvas Editor");
 }
 
 /////////////////////////////////////////////////////////////////////

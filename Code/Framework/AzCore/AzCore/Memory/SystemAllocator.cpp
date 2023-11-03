@@ -9,6 +9,8 @@
 #include <AzCore/Memory/SystemAllocator.h>
 #include <AzCore/Memory/AllocatorManager.h>
 
+#include <AzCore/Memory/MallocSchema.h>
+
 #include <AzCore/Memory/OSAllocator.h>
 #include <AzCore/Memory/AllocationRecords.h>
 
@@ -79,8 +81,8 @@ namespace AZ
         AZ_Assert((alignment & (alignment - 1)) == 0, "Alignment must be power of 2!");
 
         byteSize = MemorySizeAdjustedUp(byteSize);
-        SystemAllocator::pointer address =
-            m_subAllocator->allocate(byteSize, alignment);
+
+        SystemAllocator::pointer address = m_subAllocator->allocate(byteSize, alignment);
 
         if (address == nullptr)
         {
@@ -130,7 +132,7 @@ namespace AZ
         pointer newAddress = m_subAllocator->reallocate(ptr, newSize, newAlignment);
 
 #if defined(AZ_ENABLE_TRACING)
-        const size_type allocatedSize = get_allocated_size(newAddress, 1);
+        [[maybe_unused]] const size_type allocatedSize = get_allocated_size(newAddress, 1);
         AZ_PROFILE_MEMORY_ALLOC(MemoryReserved, newAddress, newSize, "SystemAllocator realloc");
         AZ_MEMORY_PROFILE(ProfileReallocation(ptr, newAddress, allocatedSize, newAlignment));
 #endif
@@ -145,7 +147,6 @@ namespace AZ
     SystemAllocator::size_type SystemAllocator::get_allocated_size(pointer ptr, align_type alignment) const
     {
         size_type allocSize = MemorySizeAdjustedDown(m_subAllocator->get_allocated_size(ptr, alignment));
-
         return allocSize;
     }
 

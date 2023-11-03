@@ -124,14 +124,13 @@ namespace AzFramework
         void SetLocalTM(const AZ::Transform& t)
         {
             // Gruber patch begin // VMED -- missed ExtractScaleExact, CreateFromTransform are replaced
-            AZ::Transform copy = t;
-            const float uniformScale = copy.GetUniformScale();
+            const float uniformScale = t.GetUniformScale();
             m_localScale.Set(AZ::Vector3(uniformScale, uniformScale, uniformScale));
 #if defined(CARBONATED)
-            AZ_Assert(copy.GetTranslation().IsFinite(), "SetLocalTM: Transform is invalid");
+            AZ_Assert(t.GetTranslation().IsFinite(), "SetLocalTM: Transform is invalid");
 #endif
-            m_localTranslation.Set(copy.GetTranslation());
-            m_localRotation.Set(copy.GetRotation());
+            m_localTranslation.Set(t.GetTranslation());
+            m_localRotation.Set(t.GetRotation());
             // Gruber patch end // VMED
         }
 
@@ -140,7 +139,7 @@ namespace AzFramework
             AZ::Transform newXform = AZ::Transform::CreateFromQuaternionAndTranslation(m_localRotation.Get(), m_localTranslation.Get());
             // Gruber patch begin // VMED -- missed MultiplyByScale is replaced
             newXform.MultiplyByUniformScale(m_localScale.Get().GetX()); // local scale is setup as uniform scale
-            //  Gruber patch end // VMED
+            // Gruber patch end // VMED
             return newXform;
         }
 
@@ -179,6 +178,9 @@ namespace AzFramework
 
             void MarshalCtorData(ReplicaChunkBase* chunk, WriteBuffer& wb) override
             {
+#if defined(CARBONATED_LOG)
+                AZ_Printf("TransformReplicaChunk", "MarshalCtorData");
+#endif
                 TransformReplicaChunk* transformChunk = static_cast<TransformReplicaChunk*>(chunk);
                 TransformComponent* transformComponent = static_cast<TransformComponent*>(transformChunk->GetHandler());
                 if (transformComponent)
@@ -807,12 +809,7 @@ namespace AzFramework
         return scale.GetZ();
     }
 
-    void TransformComponent::SetLocalScale(const AZ::Vector3& scale)
-    {
-        AZ::Transform newLocalTM = m_localTM;
-        newLocalTM.ExtractScaleExact();
-        newLocalTM.MultiplyByScale(scale);
-        SetLocalTM(newLocalTM);
+
     }
 
     void TransformComponent::SetLocalScaleX(float scaleX)
@@ -849,6 +846,20 @@ namespace AzFramework
     }
 #endif
 
+    void TransformComponent::SetLocalScale(const AZ::Vector3& /* scale */)
+    {
+        AZ::Transform newLocalTM = m_localTM;
+
+        // Gruber patch begin // commented out as unsupported
+        AZ_Assert(false, "To be fixed");
+#if 0
+        newLocalTM.ExtractScaleExact();
+        newLocalTM.MultiplyByScale(scale);
+#endif
+        // Gruber patch end
+
+        SetLocalTM(newLocalTM);
+    }
     
     AZ::Vector3 TransformComponent::GetLocalScale()
     {
@@ -1073,12 +1084,9 @@ namespace AzFramework
         const AZ::Vector3 newTranslation = m_netTargetTranslation->GetInterpolatedValue(localTime);
         const AZ::Quaternion newRotation = m_netTargetRotation->GetInterpolatedValue(localTime);
         AZ::Transform newXform = AZ::Transform::CreateFromQuaternionAndTranslation(newRotation, newTranslation);
-        // Gruber patch begin // FIXME // AVK -- missed MultiplyByScale
-        AZ_Assert(false, "Must be fixed");
-#if 0
-        newXform.MultiplyByScale(m_netTargetScale);
-#endif
-        // Gruber patch end // FIXME // AVK
+        // Gruber patch begin // VMED -- missed MultiplyByScale is replaced
+        newXform.MultiplyByUniformScale(m_netTargetScale.GetX()); // local scale is setup as uniform scale
+        // Gruber patch end // VMED
 #if defined(CARBONATED)
         AZ_Assert(newXform.IsFinite(), "Interpolated Transform is invalid");
 #endif
@@ -1172,18 +1180,31 @@ namespace AzFramework
 
             if (oldParent.IsValid())
             {
-                EBUS_EVENT_PTR(m_notificationBus, AZ::TransformNotificationBus, OnTransformChanged, m_localTM, m_worldTM);
+                AZ::TransformNotificationBus::Event(
+                    m_notificationBus, &AZ::TransformNotificationBus::Events::OnTransformChanged, m_localTM, m_worldTM);
+                m_transformChangedEvent.Signal(m_localTM, m_worldTM);
             }
         }
 
-        EBUS_EVENT_PTR(m_notificationBus, AZ::TransformNotificationBus, OnParentChanged, oldParent, parentId);
+        AZ::TransformNotificationBus::Event(m_notificationBus, &AZ::TransformNotificationBus::Events::OnParentChanged, oldParent, parentId);
+        m_parentChangedEvent.Signal(oldParent, parentId);
 
-        if (oldParent != parentId) // Don't send removal notification while activating.
+        if (oldParent.IsValid() && oldParent != parentId) // Don't send removal notification while activating.
         {
-            EBUS_EVENT_ID(oldParent, AZ::TransformNotificationBus, OnChildRemoved, GetEntityId());
+            AZ::TransformNotificationBus::Event(oldParent, &AZ::TransformNotificationBus::Events::OnChildRemoved, GetEntityId());
+            auto oldParentTransform = AZ::TransformBus::FindFirstHandler(oldParent);
+            if (oldParentTransform)
+            {
+                oldParentTransform->NotifyChildChangedEvent(AZ::ChildChangeType::Removed, GetEntityId());
+            }
         }
 
-        EBUS_EVENT_ID(parentId, AZ::TransformNotificationBus, OnChildAdded, GetEntityId());
+        AZ::TransformNotificationBus::Event(parentId, &AZ::TransformNotificationBus::Events::OnChildAdded, GetEntityId());
+        auto newParentTransform = AZ::TransformBus::FindFirstHandler(parentId);
+        if (newParentTransform)
+        {
+            newParentTransform->NotifyChildChangedEvent(AZ::ChildChangeType::Added, GetEntityId());
+        }
     }
 
     void TransformComponent::SetLocalTMImpl(const AZ::Transform& tm)
@@ -1238,8 +1259,8 @@ namespace AzFramework
         }
 #endif
 
-        AZ::Entity* parentEntity = nullptr;
-        EBUS_EVENT_RESULT(parentEntity, AZ::ComponentApplicationBus, FindEntity, parentEntityId);
+        AZ::ComponentApplicationRequests* componentApplication = AZ::Interface<AZ::ComponentApplicationRequests>::Get();
+        AZ::Entity* parentEntity = (componentApplication != nullptr) ? componentApplication->FindEntity(parentEntityId) : nullptr;
         AZ_Assert(parentEntity, "We expect to have a parent entity associated with the provided parent's entity Id.");
         if (parentEntity)
         {
@@ -1283,7 +1304,6 @@ namespace AzFramework
         {
             m_localTM = m_worldTM;
         }
-
         AZ::TransformNotificationBus::Event(
             m_notificationBus, &AZ::TransformNotificationBus::Events::OnTransformChanged, m_localTM, m_worldTM);
         m_transformChangedEvent.Signal(m_localTM, m_worldTM);
@@ -1464,7 +1484,9 @@ namespace AzFramework
                 ->Event("GetScaleZ", &AZ::TransformBus::Events::GetScaleZ)
                     ->Attribute(AZ::Script::Attributes::Deprecated, true)
                     ->Attribute(AZ::Script::Attributes::ExcludeFrom, AZ::Script::Attributes::ExcludeFlags::All)
+#endif
                 ->Event("SetLocalScale", &AZ::TransformBus::Events::SetLocalScale)
+#if 0
                 ->Event("SetLocalScaleX", &AZ::TransformBus::Events::SetLocalScaleX)
                 ->Event("SetLocalScaleY", &AZ::TransformBus::Events::SetLocalScaleY)
                 ->Event("SetLocalScaleZ", &AZ::TransformBus::Events::SetLocalScaleZ)

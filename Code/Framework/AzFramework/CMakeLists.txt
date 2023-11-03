@@ -10,7 +10,8 @@ include(AzFramework/feature_options.cmake)
 
 o3de_pal_dir(pal_dir ${CMAKE_CURRENT_LIST_DIR}/Platform/${PAL_PLATFORM_NAME} ${O3DE_ENGINE_RESTRICTED_PATH} ${LY_ROOT_FOLDER})
 set(common_dir ${CMAKE_CURRENT_LIST_DIR}/Platform/Common)
-if(CARBONATED)
+
+if(CARBONATED_ENGINE_ADDONS)
 set(azframeworkaddon_dependency AZ::AzFrameworkAddon.Static)
 set(gridmate_dependency AZ::GridMate)
 endif()
@@ -108,6 +109,7 @@ if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
         )
         ly_add_googletest(
             NAME AZ::AzFramework.Tests
+            LABELS REQUIRES_tiaf;TIAF_shard_fixture
         )
 
         include(${test_pal_dir}/platform_specific_test_targets.cmake)

@@ -17,6 +17,8 @@
 #include <AzCore/std/parallel/atomic.h>
 #include <AzCore/std/parallel/mutex.h>
 #include <AzFramework/Spawnable/SpawnableEntitiesInterface.h>
+#include <AzFramework/Spawnable/Spawnable.h>    // Gruber patch // VMED
+#include <AzCore/Component/EntityId.h> // Gruber patch. // LVB. // Support unique instances
 
 namespace AZ
 {
@@ -82,6 +84,13 @@ namespace AzFramework
         void LoadBarrier(
             EntitySpawnTicket& spawnInfo, BarrierCallback completionCallback, LoadBarrierOptionalArgs optionalArgs = {}) override;
 
+// Gruber patch begin. // LVB. // Support unique instances
+#ifdef CARBONATED
+        AZStd::shared_ptr<SpawnableInstanceDescriptor> GetOwningSpawnable(const AZ::EntityId& entityId) override;
+        void DespawnAllEntitiesInTicketByEntityID(const AZ::EntityId& entityId, DespawnAllEntitiesOptionalArgs optionalArgs) override; // async
+#endif
+// Gruber patch end. // LVB. // Support unique instances
+
         //
         // The following function is thread safe but intended to be run from the main thread.
         //
@@ -134,6 +143,11 @@ namespace AzFramework
             Ticket* m_ticket;
             EntitySpawnTicket::Id m_ticketId;
             uint32_t m_requestId;
+// Gruber patch begin // VMED // Custom entity id remapper
+#ifdef CARBONATED
+            EntityIdToEntityIdMap m_customEntityIdMapper;
+#endif
+// Gruber patch end // VMED 
         };
         struct SpawnEntitiesCommand final
         {
@@ -315,6 +329,21 @@ namespace AzFramework
         AZStd::unordered_map<EntitySpawnTicket::Id, Ticket*> m_entitySpawnTicketMap;
         AZStd::atomic_int m_totalTickets{ 0 };
         AZStd::atomic_int m_ticketsPendingRegistration{ 0 };
+
+// Gruber patch begin. // LVB. // Support unique instances
+#ifdef CARBONATED
+        AZStd::unordered_map<AZ::EntityId, AZStd::shared_ptr<SpawnableInstanceDescriptor>> m_entitySpawnableMap;  ///< A cached mapping built for quick lookups between an EntityId and its owning SpawnableInstance.
+
+        // Support the same generated entity ids on all clients and on the server
+        void InitializeEntityIdMappingsWithSeed(
+            AZ::EntityId seedEntityId, const Spawnable::EntityList& entities, EntityIdMap& idMap, AZStd::unordered_set<AZ::EntityId>& previouslySpawned);
+
+        void InitializeEntityIdMappingsWithExternalRemapper(
+            const Spawnable::EntityList& entities, EntityIdMap& idMap, AZStd::unordered_set<AZ::EntityId>& previouslySpawned,
+            const EntityIdToEntityIdMap& customEntityIdMapper);
+#endif
+// Gruber patch end. // LVB. // Support unique instances
+
     };
 
     AZ_DEFINE_ENUM_BITWISE_OPERATORS(AzFramework::SpawnableEntitiesManager::CommandQueuePriority);

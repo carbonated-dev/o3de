@@ -13,6 +13,13 @@
 #include <AzCore/Settings/SettingsRegistry.h>
 #include <AzCore/std/parallel/scoped_lock.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
+// Gruber patch begin // VMED
+#ifdef CARBONATED
+#include <AzCore/std/sort.h> 
+#include <AzFramework/Helpers/EntityHelpers.h> // Helper methods to evaluate Entities moved here
+#include <AzFramework/StringFunc/StringFunc.h>
+#endif
+// Gruber patch end // VMED
 #include <AzFramework/Components/TransformComponent.h>
 #include <AzFramework/Entity/GameEntityContextBus.h>
 #include <AzFramework/Spawnable/Spawnable.h>
@@ -27,7 +34,8 @@ namespace AzFramework
         Queue& queue = priority <= m_highPriorityThreshold ? m_highPriorityQueue : m_regularPriorityQueue;
         {
             AZStd::scoped_lock queueLock(queue.m_pendingRequestMutex);
-            request.m_requestId = GetTicketPayload<Ticket>(ticket).m_nextRequestId++;
+            auto& payload = GetTicketPayload<Ticket>(ticket);
+            request.m_requestId = payload.m_nextRequestId++;
             queue.m_pendingRequest.push(AZStd::move(request));
         }
     }
@@ -61,6 +69,11 @@ namespace AzFramework
             optionalArgs.m_serializeContext == nullptr ? m_defaultSerializeContext : optionalArgs.m_serializeContext;
         queueEntry.m_completionCallback = AZStd::move(optionalArgs.m_completionCallback);
         queueEntry.m_preInsertionCallback = AZStd::move(optionalArgs.m_preInsertionCallback);
+// Gruber patch begin // VMED // Custom entity id remapper
+#ifdef CARBONATED
+        queueEntry.m_customEntityIdMapper = optionalArgs.m_customEntityIdMapper;
+#endif
+// Gruber patch end // VMED // Custom entity id remapper
         QueueRequest(ticket, optionalArgs.m_priority, AZStd::move(queueEntry));
     }
 
@@ -286,6 +299,58 @@ namespace AzFramework
         return queue.m_delayed.empty() ? CommandQueueStatus::NoCommandsLeft : CommandQueueStatus::HasCommandsLeft;
     }
 
+// Gruber patch begin. // LVB. // Support unique instances
+#ifdef CARBONATED
+    AZStd::shared_ptr<SpawnableInstanceDescriptor> SpawnableEntitiesManager::GetOwningSpawnable(const AZ::EntityId& entityId)
+    {
+        auto entityInfoMapIt = m_entitySpawnableMap.find(entityId);
+        if (entityInfoMapIt != m_entitySpawnableMap.end())
+        {
+            return entityInfoMapIt->second;
+        }
+        return SpawnableInstanceDescriptor::GetInvalidDescriptor();
+    }
+
+    void SpawnableEntitiesManager::DespawnAllEntitiesInTicketByEntityID(const AZ::EntityId& entityId, DespawnAllEntitiesOptionalArgs optionalArgs)
+    {
+        constexpr EntitySpawnTicket::Id InvalidTicketId = (EntitySpawnTicket::Id)-1;
+
+        if (entityId.IsValid())
+        {
+            EntitySpawnTicket::Id ticketId = InvalidTicketId;
+
+            AZStd::shared_ptr<SpawnableInstanceDescriptor> spawnableInfo = GetOwningSpawnable(entityId);
+            if (spawnableInfo && spawnableInfo->IsValid())
+            {
+                // get ticket id from SpawnableInstanceDescriptor
+                ticketId = spawnableInfo->GetEntitySpawnTicketId();
+            }
+            else
+            {
+                // get ticket id from Entity (when SpawnableInstanceDescriptor is absent)
+                const AZ::Entity* entity = EntityHelpers::GetEntity(entityId);
+                if (entity) // "entity is NULL" if entity with this entityId is missed or already removed
+                {
+                    ticketId = entity->GetEntitySpawnTicketId();
+                }
+            }
+
+            if (ticketId != InvalidTicketId)
+            {
+                SpawnableEntitiesInterface::Get()->RetrieveTicket(ticketId,
+                    [optionalArgs](EntitySpawnTicket&& entitySpawnTicket)
+                    {
+                        if (entitySpawnTicket.IsValid())
+                        {
+                            SpawnableEntitiesInterface::Get()->DespawnAllEntities(entitySpawnTicket, optionalArgs);
+                        }
+                    });
+            }
+        }
+    }
+#endif
+// Gruber patch end. // LVB. // Support unique instances
+
     void* SpawnableEntitiesManager::CreateTicket(AZ::Data::Asset<Spawnable>&& spawnable)
     {
         static AZStd::atomic_uint32_t idCounter { 1 };
@@ -426,6 +491,75 @@ namespace AzFramework
         }
     }
 
+// Gruber patch begin // VMED // Support the same generated entity ids on all clients and on the server
+#ifdef CARBONATED
+    void SpawnableEntitiesManager::InitializeEntityIdMappingsWithSeed(
+        AZ::EntityId seedEntityId, const Spawnable::EntityList& entities, EntityIdMap& idMap, AZStd::unordered_set<AZ::EntityId>& previouslySpawned)
+    {
+        // Make sure we don't have any previous data lingering around.
+        idMap.clear();
+        previouslySpawned.clear();
+
+        idMap.reserve(entities.size());
+        previouslySpawned.reserve(entities.size());
+
+        // Sort entity ids to get the same id remap order on the different platforms (Win, Mac, iOS, etc)
+        AzFramework::EntityIdList sortedEntityIds;
+        sortedEntityIds.reserve(entities.size());
+        for (const auto& entity : entities)
+        {
+            sortedEntityIds.push_back(entity->GetId());
+        }
+        AZStd::sort(sortedEntityIds.begin(), sortedEntityIds.end());
+
+        for (const auto& entityId : sortedEntityIds)
+        {
+            idMap.emplace(entityId, seedEntityId);
+            seedEntityId = AZ::EntityId(static_cast<AZ::u64>(seedEntityId)+1);
+        }
+    }
+
+    void SpawnableEntitiesManager::InitializeEntityIdMappingsWithExternalRemapper(
+        const Spawnable::EntityList& entities, EntityIdMap& idMap, AZStd::unordered_set<AZ::EntityId>& previouslySpawned,
+        const EntityIdToEntityIdMap& customEntityIdMapper)
+    {
+        // Make sure we don't have any previous data lingering around.
+        idMap.clear();
+        previouslySpawned.clear();
+
+        idMap.reserve(entities.size());
+        previouslySpawned.reserve(entities.size());
+
+        for (const auto& entity : entities)
+        {
+            auto iter = customEntityIdMapper.find(entity->GetId());
+            AZ::EntityId newEntityId = (iter != customEntityIdMapper.end()) ? iter->second : AZ::Entity::MakeId();
+            if (iter != customEntityIdMapper.end())
+            {
+#if defined(CARBONATED_LOG)
+                AZ_Printf(
+                    "SpawnableEntitiesManager",
+                    "  Remapping at creation from static %s to runtime %s from the map",
+                    entity->GetId().ToString().c_str(),
+                    newEntityId.ToString().c_str());
+#endif
+            }
+            else
+            {
+#if defined(CARBONATED_LOG)
+                AZ_Printf(
+                    "SpawnableEntitiesManager",
+                    "  Remapping at creation from static %s to runtime %s random",
+                    entity->GetId().ToString().c_str(),
+                    newEntityId.ToString().c_str());
+#endif
+            }
+            idMap.emplace(entity->GetId(), newEntityId);
+        }
+    }
+#endif
+// Gruber patch end // VMED 
+
     void SpawnableEntitiesManager::RefreshEntityIdMapping(
         const AZ::EntityId& entityId, EntityIdMap& idMap, AZStd::unordered_set<AZ::EntityId>& previouslySpawned)
     {
@@ -434,18 +568,62 @@ namespace AzFramework
             // This entity has already been spawned at least once before, so we need to generate a new id for it and
             // preserve the new id to fix up any future entity references to this entity.
             idMap[entityId] = AZ::Entity::MakeId();
+#if defined(CARBONATED_LOG)
+            AZ_Printf(
+                "SpawnableEntitiesManager",
+                "RefreshEntityIdMapping. entityId %s. Create Random. %s",
+                entityId.ToString().c_str(),
+                idMap[entityId].ToString().c_str());
+#endif
         }
         else
         {
             // This entity hasn't been spawned yet, so use the first id we've already generated for this entity and mark
             // it as spawned so we know not to reuse this id next time.
             previouslySpawned.emplace(entityId);
+#if defined(CARBONATED_LOG)
+            AZ_Printf("SpawnableEntitiesManager", "RefreshEntityIdMapping. entityId %s. Keep the same", entityId.ToString().c_str());
+#endif
         }
     }
 
     auto SpawnableEntitiesManager::ProcessRequest(SpawnAllEntitiesCommand& request) -> CommandResult
     {
         Ticket& ticket = *request.m_ticket;
+
+// Gruber patch begin // VMED // Detect a level spawnable 
+#ifdef CARBONATED
+        AZ::EntityId seedEntityId;
+        if (!ticket.m_spawnable->IsDynamic())
+        {
+            AZStd::string fileName;
+            if (AzFramework::StringFunc::Path::GetFullFileName(ticket.m_spawnable.GetHint().c_str(), fileName))
+            {
+                AZ::Crc32 crc32 = AZ::Crc32(fileName.c_str());
+                AZ::u64 crc64 = crc32.operator unsigned int();
+                AZ::u64 iCrc64 = ((crc64 << 10) / 1000000) * 1000000; // we have approx 0% probability to collide an existing entity id
+                                                                      // with the ids group in interval [seedEntityId, seedEntityId+NumOfEntities]
+                seedEntityId = AZ::EntityId(iCrc64);
+#if defined(CARBONATED_LOG)
+                AZ_Printf("SpawnableEntitiesManager", "Level FileName=%s. seedEntityId=%llu", fileName.c_str(), seedEntityId);
+#endif
+            }
+            else
+            {
+                AZ_Error(
+                    "SpawnableEntitiesManager", false, "Can't define the name of the level in %s", ticket.m_spawnable.GetHint().c_str());
+            }
+        }
+#if defined(CARBONATED_LOG)
+        AZ_Printf(
+            "SpawnableEntitiesManager",
+            "ProcessRequest. ticket.m_spawnable.GetHint().c_str()=%s, GetId()=%s",
+            ticket.m_spawnable.GetHint().c_str(),
+            ticket.m_spawnable.GetId().ToFixedString().c_str());
+#endif
+#endif
+// Gruber patch end // VMED
+
         if (ticket.m_spawnable.IsReady() && request.m_requestId == ticket.m_currentRequestId)
         {
             if (Spawnable::EntityAliasConstVisitor aliases = ticket.m_spawnable->TryGetAliasesConst();
@@ -471,6 +649,20 @@ namespace AzFramework
                 // in every entity we're about to instantiate is intended to point to an entity in our newly-instantiated batch, regardless
                 // of spawn order.  If we didn't clear out the map, it would be possible for some entities here to have references to
                 // previously-spawned entities from a previous SpawnEntities or SpawnAllEntities call.
+
+// Gruber patch begin // VMED // Support the same generated entity ids on all clients and on the server
+#ifdef CARBONATED
+                if (seedEntityId.IsValid())
+                {
+                    InitializeEntityIdMappingsWithSeed(seedEntityId, entitiesToSpawn, ticket.m_entityIdReferenceMap, ticket.m_previouslySpawned);
+                }
+                else if (request.m_customEntityIdMapper.size() > 0)
+                {
+                    InitializeEntityIdMappingsWithExternalRemapper(entitiesToSpawn, ticket.m_entityIdReferenceMap, ticket.m_previouslySpawned, request.m_customEntityIdMapper);
+                }
+                else
+#endif
+// Gruber patch end // VMED
                 InitializeEntityIdMappings(entitiesToSpawn, ticket.m_entityIdReferenceMap, ticket.m_previouslySpawned);
 
                 auto aliasIt = aliases.begin();
@@ -530,11 +722,54 @@ namespace AzFramework
 
                 auto newEntitiesBegin = ticket.m_spawnedEntities.begin() + spawnedEntitiesInitialCount;
                 auto newEntitiesEnd = ticket.m_spawnedEntities.end();
+
+// Gruber patch begin // VMED
+#ifdef CARBONATED
+                AZStd::shared_ptr<SpawnableInstanceDescriptor> spawnableInfo;
+                if (ticket.m_spawnable->IsDynamic())
+                {
+                    spawnableInfo = AZStd::make_shared<SpawnableInstanceDescriptor>(ticket.m_spawnable.GetId(), ticket.m_ticketId);
+                    spawnableInfo->SetEntityIdMap(ticket.m_entityIdReferenceMap);
+                    spawnableInfo->SetInstantiatedEntities(ticket.m_spawnedEntities);
+
+                    // We should add that into m_entitySpawnableMap before "Events::AddGameEntity" because Activate is called there and we
+                    // need this data there
+                    for (auto it = newEntitiesBegin; it != newEntitiesEnd; ++it)
+                    {
+                        AZ::Entity* clone = (*it);
+                        m_entitySpawnableMap.insert(AZStd::make_pair(clone->GetId(), spawnableInfo));
+                    }
+                }
+#endif
+// Gruber patch end // VMED
+
                 // Let other systems know about newly spawned entities for any pre-processing before adding to the scene/game context.
                 if (request.m_preInsertionCallback)
                 {
                     request.m_preInsertionCallback(request.m_ticketId, SpawnableEntityContainerView(newEntitiesBegin, newEntitiesEnd));
                 }
+
+// Gruber patch begin // VMED // Preprocess entity components for a level spawnable
+#ifdef CARBONATED
+                if (!ticket.m_spawnable->IsDynamic())   // That means that this spawnable is a Level
+                {
+                    AzFramework::EntityContext* gameContext = nullptr;
+                    AzFramework::GameEntityContextRequestBus::BroadcastResult(
+                        gameContext, &AzFramework::GameEntityContextRequestBus::Events::GetGameEntityContextInstance);
+                    if (gameContext != nullptr)
+                    {
+                        AzFramework::EntityContextEventBus::Event(
+                            gameContext->GetContextId(),
+                            &AzFramework::EntityContextEventBus::Events::OnEntityContextLoadedFromStream,
+                            ticket.m_spawnedEntities);
+                    }
+                    else
+                    {
+                        AZ_Error("SpawnableEntitiesManager::ProcessRequest", false, "Game entity context for level is not found");
+                    }
+                }
+#endif
+// Gruber patch end // VMED // Preprocess netbinding entity components for level
 
                 // Add to the game context, now the entities are active
                 for (auto it = newEntitiesBegin; it != newEntitiesEnd; ++it)
@@ -670,6 +905,23 @@ namespace AzFramework
                 }
 
                 // Add to the game context, now the entities are active
+// Gruber patch begin // VMED
+#ifdef CARBONATED
+                AZStd::shared_ptr<SpawnableInstanceDescriptor> spawnableInfo;
+                if (ticket.m_spawnable->IsDynamic())
+                {
+                    spawnableInfo = AZStd::make_shared<SpawnableInstanceDescriptor>(ticket.m_spawnable.GetId(), ticket.m_ticketId); 
+                    spawnableInfo->SetEntityIdMap(ticket.m_entityIdReferenceMap);
+                    spawnableInfo->SetInstantiatedEntities(ticket.m_spawnedEntities);
+
+                    for (auto it = ticket.m_spawnedEntities.begin() + spawnedEntitiesInitialCount; it != ticket.m_spawnedEntities.end(); ++it)
+                    {
+                        AZ::Entity* clone = (*it);
+                        m_entitySpawnableMap.insert(AZStd::make_pair(clone->GetId(), spawnableInfo));
+                    }
+                }
+#endif
+// Gruber patch end // VMED
                 for (auto it = ticket.m_spawnedEntities.begin() + spawnedEntitiesInitialCount; it != ticket.m_spawnedEntities.end(); ++it)
                 {
                     AZ::Entity* clone = (*it);
@@ -695,6 +947,13 @@ namespace AzFramework
     auto SpawnableEntitiesManager::ProcessRequest(DespawnAllEntitiesCommand& request) -> CommandResult
     {
         Ticket& ticket = *request.m_ticket;
+
+// Gruber patch begin // VMED // entity state ticket notificator
+#ifdef CARBONATED
+        EntitySpawnTicketStateBus::Broadcast(&EntitySpawnTicketStateBus::Events::OnRemoveEntities, ticket.m_ticketId);
+#endif
+// Gruber patch end // VMED // entity state ticket notificator
+
         if (request.m_requestId == ticket.m_currentRequestId)
         {
             for (AZ::Entity* entity : ticket.m_spawnedEntities)
@@ -705,6 +964,12 @@ namespace AzFramework
                     entity->SetEntitySpawnTicketId(0);
                     GameEntityContextRequestBus::Broadcast(
                         &GameEntityContextRequestBus::Events::DestroyGameEntity, entity->GetId());
+
+// Gruber patch begin. // LVB. // Support unique instances
+#ifdef CARBONATED
+                    m_entitySpawnableMap.erase(entity->GetId());
+#endif
+// Gruber patch end. // LVB. // Support unique instances
                 }
             }
 
@@ -728,6 +993,13 @@ namespace AzFramework
     auto SpawnableEntitiesManager::ProcessRequest(DespawnEntityCommand& request) -> CommandResult
     {
         Ticket& ticket = *request.m_ticket;
+
+// Gruber patch begin // VMED // entity state ticket notificator
+#ifdef CARBONATED
+        EntitySpawnTicketStateBus::Broadcast(&EntitySpawnTicketStateBus::Events::OnRemoveEntities, ticket.m_ticketId);
+#endif
+// Gruber patch end // VMED // entity state ticket notificator
+
         if (request.m_requestId == ticket.m_currentRequestId)
         {
             AZStd::vector<AZ::Entity*>& spawnedEntities = request.m_ticket->m_spawnedEntities;
@@ -739,6 +1011,13 @@ namespace AzFramework
                     (*entityIterator)->SetEntitySpawnTicketId(0);
                     GameEntityContextRequestBus::Broadcast(
                         &GameEntityContextRequestBus::Events::DestroyGameEntity, (*entityIterator)->GetId());
+
+// Gruber patch begin. // LVB. // Support unique instances
+#ifdef CARBONATED
+                    m_entitySpawnableMap.erase((*entityIterator)->GetId());
+#endif
+// Gruber patch end. // LVB. // Support unique instances
+
                     AZStd::iter_swap(entityIterator, spawnedEntities.rbegin());
                     spawnedEntities.pop_back();
                     break;
@@ -776,6 +1055,11 @@ namespace AzFramework
                     entity->SetEntitySpawnTicketId(0);
                     GameEntityContextRequestBus::Broadcast(
                         &GameEntityContextRequestBus::Events::DestroyGameEntity, entity->GetId());
+// Gruber patch begin. // LVB. // Support unique instances
+#ifdef CARBONATED
+                    m_entitySpawnableMap.erase(entity->GetId());
+#endif
+// Gruber patch end. // LVB. // Support unique instances
                 }
             }
 
@@ -982,14 +1266,32 @@ namespace AzFramework
             }
             else
             {
-                AZ_Assert(false, "The EntitySpawnTicket corresponding to id '%lu' cannot be found", request.m_ticketId);
+                // Attempting to retrieve a ticket that no longer exists will call the callback with an invalid ticket.
+                request.m_callback(InternalToExternalTicket(nullptr, this));
                 return CommandResult::Executed;
             }
         }
 
-        // About to make a copy so increase the reference count.
-        entitySpawnTicketIterator->second->m_referenceCount++;
-        request.m_callback(InternalToExternalTicket(entitySpawnTicketIterator->second, this));
+        if (entitySpawnTicketIterator->second->m_referenceCount > 0)
+        {
+            // About to make a copy so increase the reference count.
+            entitySpawnTicketIterator->second->m_referenceCount++;
+            request.m_callback(InternalToExternalTicket(entitySpawnTicketIterator->second, this));
+        }
+        else
+        {
+            // Attempting to retrieve a ticket that no longer has any references but hasn't technically
+            // been deleted yet will call the callback with an invalid ticket.
+            // For example, this can occur in the following situation:
+            // - An entity with a ticket deactivates and destroys its reference, causing DestroyTicket to get queued,
+            //   with the ticket currently having a reference count of 0.
+            // - One of the entities from that ticket then deactivates and tries to queue a RetrieveTicket so that it
+            //   can queue a DespawnEntity command for itself.
+            // If we "reanimated" the ticket here, bumped its reference count, and called the callback, the callback could end up
+            // holding onto an invalid pointer once the DestroyTicket got processed.
+            request.m_callback(InternalToExternalTicket(nullptr, this));
+        }
+
         return CommandResult::Executed;
     }
 
@@ -1024,6 +1326,12 @@ namespace AzFramework
                     entity->SetEntitySpawnTicketId(0);
                     GameEntityContextRequestBus::Broadcast(
                         &GameEntityContextRequestBus::Events::DestroyGameEntity, entity->GetId());
+// Gruber patch begin. // LVB. // Support unique instances
+#ifdef CARBONATED
+                    m_entitySpawnableMap.erase(entity->GetId());
+#endif
+// Gruber patch end. // LVB. // Support unique instances
+
                 }
             }
 

@@ -12,6 +12,11 @@
 
 partial ShaderResourceGroup ViewSrg
 { 
+    
+    // The per-instance data for the visible objects in each view. The per-instance data is an index
+    // used to look up the actual instance data from a persistant buffer
+    StructuredBuffer<uint> m_instanceData;
+    
     // Light visibility grid is this wide 
     // e.g. if the screen resolution is 1904 x 800 with 16x16 bins then grid width is 1904/16 = 119 
     uint m_tileGridWidth;
@@ -117,7 +122,7 @@ partial ShaderResourceGroup ViewSrg
         uint m_cascadeCount;
         float m_shadowBias; 
         float m_normalShadowBias; 
-        uint m_filteringSampleCount;
+        uint m_filteringSampleCountMode;
         uint m_debugFlags;
         uint m_shadowFilterMethod;
         float m_far_minus_near;

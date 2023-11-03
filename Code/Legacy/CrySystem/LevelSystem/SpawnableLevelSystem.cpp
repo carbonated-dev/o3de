@@ -326,6 +326,13 @@ namespace LegacyLevelSystem
             AZ::Data::Asset<AzFramework::Spawnable> rootSpawnable(
                 rootSpawnableAssetId, azrtti_typeid<AzFramework::Spawnable>(), levelName);
 
+// Gruber patch begin. // LVB
+#ifdef CARBONATED
+            rootSpawnable.QueueLoad();
+            rootSpawnable.BlockUntilLoadComplete();
+#endif
+// Gruber patch end. // LVB
+
             m_rootSpawnableId = rootSpawnableAssetId;
             m_rootSpawnableGeneration = AzFramework::RootSpawnableInterface::Get()->AssignRootSpawnable(rootSpawnable);
 
@@ -589,6 +596,9 @@ namespace LegacyLevelSystem
 
         // Delete level entities and remove them from the game entity context
         AzFramework::RootSpawnableInterface::Get()->ReleaseRootSpawnable();
+        
+        // Process the queued deactivate calls for the unloaded entities
+        AzFramework::RootSpawnableInterface::Get()->ProcessSpawnableQueueUntilEmpty();
 
         m_lastLevelName.clear();
 

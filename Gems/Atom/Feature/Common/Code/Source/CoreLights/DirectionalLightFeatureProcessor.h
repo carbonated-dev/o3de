@@ -106,7 +106,7 @@ namespace AZ
             float m_shadowBias = 0.0015f;
             // Reduces acne by biasing the shadowmap lookup along the geometric normal.
             float m_normalShadowBias = 2.5f;
-            uint32_t m_filteringSampleCount = 0;
+            uint32_t m_filteringSampleCountMode = 0;
             uint32_t m_debugFlags = 0;
             uint32_t m_shadowFilterMethod = 0; 
             float m_far_minus_near = 0;
@@ -189,7 +189,7 @@ namespace AZ
                 // with the ddx/ddy functions. 
                 bool m_isReceiverPlaneBiasEnabled = true;
 
-                bool m_blendBetwenCascades = false;
+                bool m_blendBetweenCascades = false;
 
                 // Fullscreen Blur...
 
@@ -254,6 +254,11 @@ namespace AZ
             ShadowProperty& GetShadowProperty(LightHandle handle) { return m_shadowProperties.GetData(handle.GetIndex()); }
 
         private:
+
+            // This is currently fixed, but could be exposed to allow for user configuration
+            // See DirectionalLightShadowCalculator.azsli : DirectionalShadowCalculator::CalculateCascadeBlendAmount()
+            static constexpr const float CascadeBlendArea = 0.015;
+
             // RPI::SceneNotificationBus::Handler overrides...
             void OnRenderPipelineChanged(AZ::RPI::RenderPipeline* pipeline, RPI::SceneNotification::RenderPipelineChangeType changeType) override;
             void OnRenderPipelinePersistentViewChanged(RPI::RenderPipeline* renderPipeline, RPI::PipelineViewTag viewTag, RPI::ViewPtr newView, RPI::ViewPtr previousView) override;
@@ -396,11 +401,13 @@ namespace AZ
 
             bool m_lightBufferNeedsUpdate = false;
             bool m_shadowBufferNeedsUpdate = false;
+            bool m_previousExcludeCvarValue = false;
             uint32_t m_shadowBufferNameIndex = 0;
             uint32_t m_shadowmapIndexTableBufferNameIndex = 0;
 
             Name m_lightTypeName = Name("directional");
             Name m_directionalShadowFilteringMethodName = Name("o_directional_shadow_filtering_method");
+            Name m_directionalShadowFilteringSamplecountName = Name("o_directional_shadow_filtering_sample_count");
             Name m_directionalShadowReceiverPlaneBiasEnableName = Name("o_directional_shadow_receiver_plane_bias_enable");
             Name m_BlendBetweenCascadesEnableName = Name("o_blend_between_cascades_enable");
             static constexpr const char* FeatureProcessorName = "DirectionalLightFeatureProcessor";

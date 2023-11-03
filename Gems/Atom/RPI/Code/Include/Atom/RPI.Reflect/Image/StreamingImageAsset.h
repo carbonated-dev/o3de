@@ -13,6 +13,7 @@
 #include <Atom/RPI.Reflect/Image/ImageAsset.h>
 #include <Atom/RPI.Reflect/Image/StreamingImagePoolAsset.h>
 #include <Atom/RPI.Reflect/Image/ImageMipChainAsset.h>
+#include <AzCore/std/containers/vector.h>
 
 namespace AZ
 {
@@ -81,7 +82,7 @@ namespace AZ
             //! Given a mip chain index, returns the number of mip levels in the chain.
             size_t GetMipCount(size_t mipChainIndex) const;
 
-            //! Get image data for specified mip and slice. It may return empty array if its mipchain assets are not loaded
+            //! Get image data for specified mip and slice. It may trigger mipchain asset loading if the asset wasn't loaded
             AZStd::span<const uint8_t> GetSubImageData(uint32_t mip, uint32_t slice);
 
             //! Returns streaming image pool asset id of the pool that will be used to create the streaming image.
@@ -104,6 +105,13 @@ namespace AZ
 
             //! Whether the image has all referenced ImageMipChainAssets loaded
             bool HasFullMipChainAssets() const;
+
+            //! Returns the image tags
+            const AZStd::vector<AZ::Name>& GetTags() const;
+
+            //! Removes up to `mipChainLevel` mipchains, reducing quality (used by the image tag system).
+            //! The last mipchain won't be removed
+            void RemoveFrontMipchains(size_t mipChainLevel);
 
         private:
             struct MipChain
@@ -144,6 +152,8 @@ namespace AZ
             //! mip chain index, not the level. And will fail for any level
             //! that resides in the tail mip chain.
             const ImageMipChainAsset* GetImageMipChainAsset(AZ::u32 mipLevel) const;
+
+            AZStd::vector<AZ::Name> m_tags;
         };
     }
 }

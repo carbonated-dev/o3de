@@ -162,6 +162,11 @@ public: // member functions
     //! Get the transformation from viewport space to canvas space
     virtual void GetViewportToCanvasMatrix(AZ::Matrix4x4& matrix) = 0;
 
+#if defined(CARBONATED)
+    // Returns the authoered size of the canvas
+    virtual AZ::Vector2 GetAuthoredCanvasSize() = 0;
+#endif
+
     //! Returns the "target" size of the canvas (in pixels)
     //
     //! The target canvas size changes depending on whether you're running in
@@ -366,6 +371,18 @@ public: // member functions
 
     //! Called when the canvas sends an action to the listener
     virtual void OnAction(AZ::EntityId entityId, const LyShine::ActionName& actionName) = 0;
+// Carbonated begin. (vlagutin/CarbonatedUiCanvasBus): Missing custom (CARBONATED) multitouch functionality from LY
+#if defined(CARBONATED)
+    //! Called when the canvas sends an action to the listener (With bonus multitouch info)
+    virtual void OnActionMultitouch(
+        [[maybe_unused]] AZ::EntityId entityId,
+        [[maybe_unused]] const LyShine::ActionName& actionName,
+        [[maybe_unused]] const AZ::Vector2& actionPosition,
+        [[maybe_unused]] int multiTouchIndex){};
+    //! Called when the canvas's enabled state changed
+    virtual void OnEnableStateChanged([[maybe_unused]] AZ::EntityId entityId, [[maybe_unused]] bool state){};
+#endif
+// Carbonated end
 };
 
 typedef AZ::EBus<UiCanvasActionNotification> UiCanvasNotificationBus;

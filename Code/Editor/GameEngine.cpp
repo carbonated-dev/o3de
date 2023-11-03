@@ -25,6 +25,7 @@
 // AzFramework
 #include <AzFramework/Asset/AssetSystemBus.h>
 #include <AzFramework/Input/Devices/Mouse/InputDeviceMouse.h>
+#include <AzFramework/Input/Devices/Keyboard/InputDeviceKeyboard.h>
 #include <AzFramework/Input/Buses/Requests/InputSystemCursorRequestBus.h>
 #include <AzFramework/Archive/IArchive.h>
 
@@ -48,7 +49,11 @@
 #include "AnimationContext.h"
 #include "MainWindow.h"
 #include "Include/IObjectManager.h"
-#include "ActionManager.h"
+
+#if defined(CARBONATED) // aefimov MAD-10299 assert modal dialog fix
+#include <AzCore/EBus/EBus.h>
+#include <AzCore/NativeUI/NativeUIRequests.h>
+#endif
 
 // Implementation of System Callback structure.
 struct SSystemUserCallback
@@ -549,8 +554,6 @@ void CGameEngine::SwitchToInGame()
     m_pISystem->GetIMovieSystem()->EnablePhysicsEvents(true);
     m_bInGameMode = true;
 
-    // Disable accelerators.
-    GetIEditor()->EnableAcceleratos(false);
     //! Send event to switch into game.
     GetIEditor()->GetObjectManager()->SendEvent(EVENT_INGAME);
 
@@ -585,9 +588,6 @@ void CGameEngine::SwitchToInEditor()
     CViewport* pGameViewport = GetIEditor()->GetViewManager()->GetGameViewport();
 
     m_pISystem->GetIMovieSystem()->EnablePhysicsEvents(m_bSimulationMode);
-
-    // Enable accelerators.
-    GetIEditor()->EnableAcceleratos(true);
 
     // [Anton] - order changed, see comments for CGameEngine::SetSimulationMode
     //! Send event to switch out of game.
@@ -775,6 +775,18 @@ void CGameEngine::Update()
         return;
     }
 
+#if defined(CARBONATED) && defined(AZ_PLATFORM_WINDOWS) // aefimov MAD-10299 assert modal dialog fix
+    if (gEnv->IsEditor())
+    {
+        bool result = false;
+        EBUS_EVENT_RESULT(result, AZ::NativeUI::NativeUIRequestBus, IsDisplayingBlockingDialog);
+        if (result)
+        {
+            return;
+        }
+    }
+#endif
+
     switch (m_ePendingGameMode)
     {
     case ePGM_SwitchToInGame:
@@ -816,6 +828,22 @@ void CGameEngine::Update()
         if (CViewport* pRenderViewport = GetIEditor()->GetViewManager()->GetGameViewport())
         {
             pRenderViewport->Update();
+        }
+
+        // Check for the Escape key to exit game mode here rather than in Qt, 
+        // because all Qt events are usually filtered out in game mode in 
+        // QtEditorApplication_<platform>.cpp nativeEventFilter() to prevent 
+        // using Editor menu actions and shortcuts that shouldn't trigger while 
+        // playing the game.
+        // When the user opens the console, Qt events will be allowed 
+        // so the user can interact with limited Editor content like the console.
+        const AzFramework::InputChannel* inputChannel = nullptr;
+        const AzFramework::InputChannelId channelId(AzFramework::InputDeviceKeyboard::Key::Escape);
+        AzFramework::InputChannelRequestBus::EventResult(inputChannel, channelId, &AzFramework::InputChannelRequests::GetInputChannel);
+        if(inputChannel && inputChannel->GetState() == AzFramework::InputChannel::State::Began)
+        {
+            // leave game mode
+            RequestSetGameMode(false);
         }
     }
     else

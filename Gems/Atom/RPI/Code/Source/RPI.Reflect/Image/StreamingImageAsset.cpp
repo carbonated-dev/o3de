@@ -37,6 +37,7 @@ namespace AZ
                     ->Field("m_tailMipChain", &StreamingImageAsset::m_tailMipChain)
                     ->Field("m_totalImageDataSize", &StreamingImageAsset::m_totalImageDataSize)
                     ->Field("m_averageColor", &StreamingImageAsset::m_averageColor)
+                    ->Field("m_tags", &StreamingImageAsset::m_tags)
                     ;
             }
         }
@@ -60,7 +61,7 @@ namespace AZ
         {
             if (mipLevel >= m_imageDescriptor.m_mipLevels)
             {
-                AZ_Assert(false, "Input mipLevel doesn't exist");
+                AZ_Error("StreamingImageAsset", false, "Input mipLevel doesn't exist"); // Gruber patch begin // VMED // error instead mipmap assert (MADPORT-459)
                 mipLevel = m_imageDescriptor.m_mipLevels - 1;
             }
             return m_mipLevelToChainIndex[mipLevel];
@@ -133,9 +134,59 @@ namespace AZ
             return imageDescriptor;
         }
 
+        const AZStd::vector<AZ::Name>& StreamingImageAsset::GetTags() const
+        {
+            return m_tags;
+        }
+
+        void StreamingImageAsset::RemoveFrontMipchains(size_t mipChainLevel)
+        {
+            mipChainLevel = AZStd::min(mipChainLevel, m_mipChains.size() - 1);
+            if (mipChainLevel == 0)
+            {
+                return;
+            }
+
+            AZ::u16 mipmapShift = m_mipChains[mipChainLevel].m_mipOffset;
+
+            AZStd::move(m_mipLevelToChainIndex.begin() + mipmapShift, m_mipLevelToChainIndex.end(), m_mipLevelToChainIndex.begin());
+            AZ_Assert(m_mipLevelToChainIndex.front() == mipChainLevel, "unmatching mipchain index");
+
+            for (AZ::u16& chainIndex : m_mipLevelToChainIndex)
+            {
+                chainIndex -= aznumeric_cast<AZ::u16>(mipChainLevel);
+            }
+
+            AZStd::move(m_mipChains.begin() + mipChainLevel, m_mipChains.end(), m_mipChains.begin());
+            m_mipChains.resize(m_mipChains.size() - mipChainLevel);
+
+            for (auto& mipChain : m_mipChains)
+            {
+                // Assert that the offset does not become negative after subtraction:
+                AZ_Assert(mipChain.m_mipOffset >= mipmapShift, "unexpected mipoffset");
+                mipChain.m_mipOffset -= mipmapShift;
+            }
+
+            m_imageDescriptor.m_mipLevels -= mipmapShift;
+            m_imageDescriptor.m_size = m_imageDescriptor.m_size.GetReducedMip(mipmapShift);
+        }
+
         AZStd::span<const uint8_t> StreamingImageAsset::GetSubImageData(uint32_t mip, uint32_t slice)
         {
+            auto mipChainIndex = GetMipChainIndex(mip);
             const ImageMipChainAsset* mipChainAsset = GetImageMipChainAsset(mip);
+
+            if (mipChainAsset == nullptr)
+            {
+                MipChain& mipChain = m_mipChains[mipChainIndex];
+
+                if (mipChain.m_asset.QueueLoad())
+                {
+                    mipChain.m_asset.BlockUntilLoadComplete();
+                }
+
+                mipChainAsset = GetImageMipChainAsset(mip);
+            }
 
             if (mipChainAsset == nullptr)
             {
@@ -144,7 +195,6 @@ namespace AZ
                 return AZStd::span<const uint8_t>();
             }
 
-            auto mipChainIndex = GetMipChainIndex(mip);
             auto mipChainOffset = aznumeric_cast<AZ::u32>(GetMipLevel(mipChainIndex));
             return mipChainAsset->GetSubImageData(mip - mipChainOffset, slice);
         }

@@ -366,18 +366,13 @@ def sync_layout_vfs(target_platform, project_path, asset_type, warning_on_missin
     create_link(vfs_asset_source, temp_vfs_layout_project_config_path, copy)
 
     # Copy minimum assets to the layout necessary for vfs
-    root_assets = ['engine.json', 'bootstrap.game.debug.setreg', 'bootstrap.game.profile.setreg', 'bootstrap.game.release.setreg']
+    root_assets = ['engine.json',
+                   'bootstrap.client.debug.setreg', 'bootstrap.client.profile.setreg', 'bootstrap.client.release.setreg',
+                   'bootstrap.server.debug.setreg', 'bootstrap.server.profile.setreg', 'bootstrap.server.release.setreg',
+                   'bootstrap.unified.debug.setreg', 'bootstrap.unified.profile.setreg', 'bootstrap.unified.release.setreg']
     for root_asset in root_assets:
         logging.debug("Copying %s -> %s",  os.path.join(project_asset_folder, root_asset), layout_target)
         shutil.copy2(os.path.join(project_asset_folder, root_asset), layout_target)
-
-    # Reset the 'gems' junction if any in the layout
-    layout_gems_folder_src = os.path.join(project_asset_folder, 'gems')
-    layout_gems_folder_target = os.path.join(layout_target, 'gems')
-    if os.path.isdir(layout_gems_folder_target):
-        remove_link(layout_gems_folder_target)
-    if os.path.isdir(layout_gems_folder_src):
-        create_link(layout_gems_folder_src, layout_gems_folder_target, copy)
 
 
 
@@ -443,14 +438,6 @@ def sync_layout_non_vfs(mode, target_platform, project_path, asset_type, warning
     copy_asset_files_to_layout(project_asset_folder=project_asset_folder,
                                target_platform=target_platform,
                                layout_target=layout_target)
-
-    # Reset the 'gems' junction if any in the layout (only in loose mode).
-    layout_gems_folder_src = os.path.join(project_asset_folder, 'gems')
-
-    # The gems link only is valid in LOOSE mode. If in PAK, then dont re-link
-    if mode == ASSET_MODE_LOOSE and os.path.isdir(layout_gems_folder_src):
-        if os.path.isdir(layout_gems_folder_src):
-            create_link(layout_gems_folder_src, layout_gems_folder_target, copy)
 
 
 def sync_layout_pak(target_platform, project_path, asset_type, warning_on_missing_assets, layout_target,

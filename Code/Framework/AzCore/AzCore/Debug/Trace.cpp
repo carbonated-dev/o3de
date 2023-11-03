@@ -569,7 +569,7 @@ namespace AZ::Debug
             window = g_dbgSystemWnd;
         }
 
-        Platform::OutputToDebugger(window, message);
+        //Platform::OutputToDebugger(window, message); // carbonated (akostin/mp-402-2): Avoid duplicating logs in the debugger console
 
         if (!DebugInternal::g_suppressEBusCalls)
         {
@@ -584,6 +584,7 @@ namespace AZ::Debug
             }
         }
 
+        Platform::OutputToDebugger(window, message); // carbonated (akostin/mp-402-2): Avoid duplicating logs in the debugger console
         RawOutput(window, message);
     }
 
@@ -603,7 +604,8 @@ namespace AZ::Debug
 
         // If the raw output stream environment variable is set to a non-nullptr FILE* stream
         // write to that stream, otherwise write stdout
-        if (FILE* rawOutputStream = s_fileStream ? *s_fileStream : stdout; rawOutputStream != nullptr)
+        FILE* stdoutStream = stdout;
+        if (FILE* rawOutputStream = s_fileStream ? *s_fileStream : stdoutStream; rawOutputStream != nullptr)
         {
             fwrite(windowView.data(), 1, windowView.size(), rawOutputStream);
             fwrite(windowMessageSeparator.data(), 1, windowMessageSeparator.size(), rawOutputStream);
@@ -643,7 +645,9 @@ namespace AZ::Debug
                     continue;
                 }
 
-                azstrcat(lines[i], AZ_ARRAY_SIZE(lines[i]), "\n");
+                const size_t endOfStr = AZStd::min(strlen(lines[i]), AZ_ARRAY_SIZE(lines[i]) - 2);
+                lines[i][endOfStr] = '\n';
+                lines[i][endOfStr + 1] = '\0';
 
                 // Use Output instead of AZ_Printf to be consistent with the exception output code and avoid
                 // this accidentally being suppressed as a normal message

@@ -11,6 +11,7 @@
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/Serialization/EditContextConstants.inl>
+#include <Atom/RHI/RHIMemoryStatisticsInterface.h>
 #include <Atom/RPI.Public/Pass/PassSystemInterface.h>
 #include <AzFramework/Components/ConsoleBus.h>
 #include <ImGuiBus.h>
@@ -60,6 +61,14 @@ namespace AtomImGuiTools
 #if defined(IMGUI_ENABLED)
         ImGui::ImGuiUpdateListenerBus::Handler::BusConnect();
         AtomImGuiToolsRequestBus::Handler::BusConnect();
+
+        // load switchable render pipeline paths from setting registry
+        auto settingsRegistry = AZ::SettingsRegistry::Get();
+        const char* settingName = "/O3DE/Viewport/SwitchableRenderPipelines";
+        if (settingsRegistry)
+        {
+            settingsRegistry->GetObject<AZStd::set<AZStd::string>>(m_switchableRenderPipelines, settingName);
+        }           
 #endif
         CrySystemEventBus::Handler::BusConnect();
     }
@@ -88,7 +97,7 @@ namespace AtomImGuiTools
         }
         if (m_showTransientAttachmentProfiler)
         {
-            auto* transientStats = AZ::RHI::RHISystemInterface::Get()->GetTransientAttachmentStatistics();
+            auto* transientStats = AZ::RHI::RHIMemoryStatisticsInterface::Get()->GetTransientAttachmentStatistics();
             if (transientStats)
             {
                 m_showTransientAttachmentProfiler = m_imguiTransientAttachmentProfiler.Draw(*transientStats);
@@ -102,6 +111,11 @@ namespace AtomImGuiTools
     {
         if (ImGui::BeginMenu("Atom Tools"))
         {
+            if (ImGui::MenuItem("Dump loaded Asset info", ""))
+            {
+                AZ::Data::AssetManager::Instance().DumpLoadedAssetsInfo();
+            }
+
             ImGui::MenuItem("Pass Viewer", "", &m_showPassTree);
             ImGui::MenuItem("Gpu Profiler", "", &m_showGpuProfiler);
             if (ImGui::MenuItem("Transient Attachment Profiler", "", &m_showTransientAttachmentProfiler))
@@ -121,6 +135,21 @@ namespace AtomImGuiTools
                 }
             }
             ImGui::EndMenu();
+        }
+
+        if (m_switchableRenderPipelines.size() > 0)
+        {
+            if (ImGui::BeginMenu("Render Pipelines"))
+            {
+                for (const auto& renderPipelinePath : m_switchableRenderPipelines)
+                {
+                    if (ImGui::MenuItem(renderPipelinePath.c_str()))
+                    {
+                        AZ::Interface<AZ::IConsole>::Get()->PerformCommand("r_renderPipelinePath", { renderPipelinePath });
+                    }
+                }
+                ImGui::EndMenu();
+            }
         }
     }
     

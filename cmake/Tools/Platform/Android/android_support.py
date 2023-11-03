@@ -821,9 +821,10 @@ class AndroidProjectGenerator(object):
 
         gradle_build_env = dict()
 
-        engine_root_as_path= pathlib.Path(self.engine_root)
+        engine_root_as_path = pathlib.Path(self.engine_root)
+        project_path_as_path = pathlib.Path(self.project_path)
 
-        absolute_cmakelist_path = (engine_root_as_path / 'CMakeLists.txt').resolve().as_posix()
+        absolute_cmakelist_path = (project_path_as_path / 'CMakeLists.txt').resolve().as_posix()
         absolute_azandroid_path = (engine_root_as_path / 'Code/Framework/AzAndroid/java').resolve().as_posix()
 
         gradle_build_env['TARGET_TYPE'] = 'application'
@@ -843,7 +844,7 @@ class AndroidProjectGenerator(object):
             # Prepare the cmake argument list based on the collected android settings and each build config
             cmake_argument_list = [
                 '"-GNinja"',
-                f'"-S{template_engine_root}"',
+                f'"-S{project_path_as_path.as_posix()}"',
                 f'"-DCMAKE_BUILD_TYPE={native_config_lower}"',
                 f'"-DCMAKE_TOOLCHAIN_FILE={template_engine_root}/cmake/Platform/Android/Toolchain_android.cmake"',
                 f'"-DLY_3RDPARTY_PATH={template_third_party_path}"',
@@ -853,7 +854,7 @@ class AndroidProjectGenerator(object):
                 cmake_argument_list.append(f'"-DLY_ANDROID_VULKAN_VALIDATION_PATH={pathlib.PurePath(self.vulkan_validation_path).as_posix()}"')
 
             if not self.is_test_project:
-                cmake_argument_list.append(f'"-DLY_PROJECTS={pathlib.PurePath(self.project_path).as_posix()}"')
+                cmake_argument_list.append(f'"-DLY_PROJECTS={project_path_as_path.as_posix()}"')
             else:
                 cmake_argument_list.append('"-DLY_TEST_PROJECT=1"')
 
@@ -1631,6 +1632,18 @@ class AndroidSDKResolver(object):
         self.available_updates = {}
         self.refresh_sdk_installation()
 
+    def call_sdk_manager(self, arguments, action):
+        result_code, result_stdout, result_stderr = self.sdk_manager.exec(arguments, capture_stdout=True, suppress_stderr=False)
+        if result_code != 0:
+            # Provide a more concise error if a known execption is thrown indicating the wrong version of JAVA is set in the environment
+            if "java.lang.UnsupportedClassVersionError" in result_stderr:
+                err_msg = "The current installed java runtime is not compatible with the sdkmanager. Make sure that " \
+                          "java runtime version 11 is installed and JAVA_HOME is set to that path."
+            else:
+                err_msg = result_stderr
+            raise common.LmbrCmdError(f"An error occurred while {action}: \n{err_msg}")
+        return result_stdout
+
     def refresh_sdk_installation(self):
         """
         Utilize the sdk_manager command line tool from the Android SDK to collect / refresh the list of
@@ -1650,7 +1663,7 @@ class AndroidSDKResolver(object):
             package_map[item_components[0]] = AndroidSDKResolver.AvailableUpdate(item_components)
 
         # Use the SDK manager to collect the available and installed packages
-        result_code, result_stdout, result_stderr = self.sdk_manager.exec(['--list'], capture_stdout=True, suppress_stderr=True)
+        result_stdout = self.call_sdk_manager(['--list'], "retrieving package list")
 
         current_append_map = None
         current_item_factory = None
@@ -1737,9 +1750,7 @@ class AndroidSDKResolver(object):
 
         # Perform the package installation
         logging.info(f"Installing {available_package_to_install.description} ...")
-        result_code, result_stdout, result_stderr = self.sdk_manager.exec(['--install', available_package_to_install.path], capture_stdout=True, suppress_stderr=True)
-        if result_code != 0:
-            raise common.LmbrCmdError(f"Error installing package {available_package_to_install.path}: \n{result_stderr}")
+        self.call_sdk_manager(['--install', available_package_to_install.path], f"installing package {available_package_to_install.path}")
 
         # Refresh the tracked SDK Contents
         self.refresh_sdk_installation()
@@ -1751,5 +1762,4 @@ class AndroidSDKResolver(object):
             logging.info(f"{installed_package_detail.description} (version {installed_package_detail.version}) Installed")
             return installed_package_detail
         else:
-            raise common.LmbrCmdError(f"Error installing package {available_package_to_install.path}: \n{result_stderr}")
-
+            raise common.LmbrCmdError(f"Unable to verify package at {available_package_to_install.path}")

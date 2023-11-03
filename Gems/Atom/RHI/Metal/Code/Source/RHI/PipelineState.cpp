@@ -10,6 +10,7 @@
 #include <Atom/RHI.Reflect/Metal/PipelineLayoutDescriptor.h>
 #include <Atom/RHI.Reflect/Metal/ShaderStageFunction.h>
 #include <Atom/RHI.Reflect/ShaderStageFunction.h>
+#include <Atom/RHI/Factory.h>
 #include <RHI/Conversions.h>
 #include <RHI/Device.h>
 #include <RHI/PipelineState.h>
@@ -78,17 +79,25 @@ namespace AZ
             {
                 dispatch_data_t dispatchByteCodeData = dispatch_data_create(shaderByteCode, byteCodeLength, NULL, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
                 lib = [mtlDevice newLibraryWithData:dispatchByteCodeData error:&error];
+                dispatch_release(dispatchByteCodeData);
             }
             else
             {
-                //In case byte code was not generated try to create the lib with source code
-                MTLCompileOptions* compileOptions = [MTLCompileOptions alloc];
-                compileOptions.fastMathEnabled = YES;
-                compileOptions.languageVersion = MTLLanguageVersion2_2;
-                lib = [mtlDevice newLibraryWithSource:source
-                                               options:compileOptions
-                                                 error:&error];
-                [compileOptions release];
+                if(!sourceStr.empty())
+                {
+                    //In case byte code was not generated try to create the lib with source code
+                    MTLCompileOptions* compileOptions = [MTLCompileOptions alloc];
+                    compileOptions.fastMathEnabled = YES;
+                    compileOptions.languageVersion = MTLLanguageVersion2_2;
+                    lib = [mtlDevice newLibraryWithSource:source
+                                                  options:compileOptions
+                                                    error:&error];
+                    [compileOptions release];
+                }
+                else
+                {
+                    AZ_Assert(false, "Shader source is not added by default. It can be added by enabling /O3DE/Atom/RHI/GraphicsDevMode via settings registry and re-building the shader.");
+                }
             }
             
             if (error)
@@ -168,7 +177,12 @@ namespace AZ
                 [depthStencilDesc release];
                 depthStencilDesc = nil;
             }
+#if defined(__IPHONE_16_0) || defined(__MAC_13_0)
+            m_renderPipelineDesc.rasterSampleCount = descriptor.m_renderStates.m_multisampleState.m_samples;
+#else
             m_renderPipelineDesc.sampleCount = descriptor.m_renderStates.m_multisampleState.m_samples;
+#endif
+            
             m_renderPipelineDesc.alphaToCoverageEnabled = descriptor.m_renderStates.m_blendState.m_alphaToCoverageEnable;
             
             PipelineLibrary* pipelineLibrary = static_cast<PipelineLibrary*>(pipelineLibraryBase);
@@ -182,7 +196,24 @@ namespace AZ
                 m_graphicsPipelineState = [device.GetMtlDevice() newRenderPipelineStateWithDescriptor:m_renderPipelineDesc options : MTLPipelineOptionBufferTypeInfo reflection : &ref error : &error];
             }
             
+            if(m_graphicsPipelineState==nil)
+            {
+                if (RHI::Validation::IsEnabled())
+                {
+                    NSLog(@" error => %@ ", [error userInfo] );
+                }
+                AZ_Assert(false, "Could not create Pipeline object!.");
+            }
             AZ_Assert(m_graphicsPipelineState, "Could not create Pipeline object!.");
+            
+            //We keep the descriptors alive in case we want to build the PSO cache. Delete them otherwise.
+            if (!r_enablePsoCaching)
+            {
+                [m_renderPipelineDesc release];
+                m_renderPipelineDesc = nil;
+            }
+            
+             
             m_pipelineStateMultiSampleState = descriptor.m_renderStates.m_multisampleState;
             
             //Cache the rasterizer state
@@ -228,6 +259,13 @@ namespace AZ
             }
             
             AZ_Assert(m_computePipelineState, "Could not create Pipeline object!.");
+            
+            //We keep the descriptors alive in case we want to build the PSO cache. Delete them otherwise.
+            if (!r_enablePsoCaching)
+            {
+                [m_computePipelineDesc release];
+                m_computePipelineDesc = nil;
+            }
             
             if (m_computePipelineState)
             {
