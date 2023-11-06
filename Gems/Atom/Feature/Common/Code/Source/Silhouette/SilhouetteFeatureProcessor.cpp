@@ -182,7 +182,7 @@ namespace AZ::Render
         m_renderPipeline = renderPipeline;
     }
 
-    void SilhouetteFeatureProcessor::OnRenderPipelineChanged(AZ::RPI::RenderPipeline* pipeline, [[maybe_unused]] AZ::RPI::SceneNotification::RenderPipelineChangeType changeType)
+    void SilhouetteFeatureProcessor::OnRenderPipelineChanged(AZ::RPI::RenderPipeline* pipeline, AZ::RPI::SceneNotification::RenderPipelineChangeType changeType)
     {
         // Only need to recache silhouette passes if the pipeline had them
         if (pipeline == m_renderPipeline)
