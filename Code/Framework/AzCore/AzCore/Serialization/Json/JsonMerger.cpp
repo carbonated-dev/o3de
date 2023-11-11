@@ -15,6 +15,25 @@
 
 namespace AZ
 {
+
+#if defined(CARBONATED)
+    // Gruber patch begin. LVB. Descriptive error reporting
+    static void CreatePathString(AZStd::string& str, const rapidjson::Value& target, const rapidjson::Pointer& path)
+    {
+        const rapidjson::Pointer::Token* const tokens = path.GetTokens();
+
+        for (int i = 0; i < path.GetTokenCount(); i++)
+        {
+            str += tokens[i].name;
+            if (i < path.GetTokenCount() - 1)
+            {
+                str += "/";
+            }
+        }
+    }
+    // Gruber patch end. LVB. Descriptive error reporting
+#endif
+
     JsonSerializationResult::ResultCode JsonMerger::ApplyPatch(rapidjson::Value& target,
         rapidjson::Document::AllocatorType& allocator, const rapidjson::Value& patch,
         JsonApplyPatchSettings& settings)
@@ -306,8 +325,16 @@ namespace AZ
         rapidjson::Value* parentValue = parent.Get(target);
         if (!parentValue)
         {
-            return settings.m_reporting(R"(The target path for "add" operation does not exist.)",
-                ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#if defined(CARBONATED)
+            // Gruber patch begin. LVB. Descriptive error reporting
+            AZStd::string s = ". Token=(";
+            CreatePathString(s, target, path);
+
+            return settings.m_reporting(R"(The target path for "add" operation does not exist)" + s, ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+            // Gruber patch end. LVB. Descriptive error reporting
+#else
+            return settings.m_reporting(R"(The target path for "add" operation does not exist)", ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif
         }
 
         if (parentValue->IsObject())
@@ -360,8 +387,16 @@ namespace AZ
                 }
                 else
                 {
-                    return settings.m_reporting(R"(The target path for "add" operation is not a valid index.)",
-                        ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#if defined(CARBONATED)
+                    // Gruber patch begin. LVB. Descriptive error reporting
+                    AZStd::string s = ". Token=(";
+                    CreatePathString(s, target, path);
+
+                    return settings.m_reporting(R"(The target path for "add" operation is not a valid index)" + s, ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+                    // Gruber patch end. LVB. Descriptive error reporting
+#else
+                    return settings.m_reporting(R"(The target path for "add" operation is not a valid index)", ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif
                 }
             }
         }
@@ -393,8 +428,16 @@ namespace AZ
         rapidjson::Value* parentValue = parent.Get(target);
         if (!parentValue)
         {
-            return settings.m_reporting(R"(The target path for "remove" operation does not exist.)",
-                ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#if defined(CARBONATED)
+            // Gruber patch begin. LVB. Descriptive error reporting
+            AZStd::string s = ". Token=(";
+            CreatePathString(s, target, path);
+
+            return settings.m_reporting(R"(The target path for "remove" operation does not exist)" + s, ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+            // Gruber patch end. LVB. Descriptive error reporting
+#else
+            return settings.m_reporting(R"(The target path for "remove" operation does not exist)", ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif
         }
 
         if (parentValue->IsObject())
@@ -419,8 +462,16 @@ namespace AZ
             }
             else
             {
-                return settings.m_reporting(R"(The target path for "remove" operation has an invalid index.)",
-                    ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#if defined(CARBONATED)
+                // Gruber patch begin. LVB. Descriptive error reporting
+                AZStd::string s = ". Token=(";
+                CreatePathString(s, target, path);
+
+                return settings.m_reporting(R"(The target path for "remove" operation has an invalid index)" + s, ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+                // Gruber patch end. LVB. Descriptive error reporting
+#else
+                return settings.m_reporting(R"(The target path for "remove" operation has an invalid index)", ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif
             }
         }
         else
@@ -452,8 +503,24 @@ namespace AZ
         rapidjson::Value* memberValue = path.Get(target);
         if (!memberValue)
         {
-            return settings.m_reporting(R"(The target for "replace" operation doesn't exist.)",
-                ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+            // Gruber patch begin. LVB. Descriptive error reporting
+#if defined(CARBONATED)
+            AZStd::string s = ". Token=(";
+            CreatePathString(s, target, path);
+
+            SpecialCaseType specialCaseType = SpecialCaseType::None; 
+            if (s.contains("Transform Data/Translate/"))
+            {
+                specialCaseType = SpecialCaseType::IncorrectTransform;
+            }
+
+            return settings.m_reporting(R"(The target for "replace" operation doesn't exist)" + s,
+                ResultCode(Tasks::Merge, Outcomes::Invalid, specialCaseType),
+                element);
+            // Gruber patch end. LVB. Descriptive error reporting
+#else
+            return settings.m_reporting(R"(The target for "replace" operation doesn't exist)", ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif
         }
 
         memberValue->CopyFrom(value->value, allocator, true);

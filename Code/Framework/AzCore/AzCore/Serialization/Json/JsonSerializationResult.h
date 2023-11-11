@@ -53,7 +53,11 @@ namespace AZ
         };
 
         //! The result of the task.
+#if defined(CARBONATED)
+        enum class Outcomes : uint8_t
+#else
         enum class Outcomes : uint16_t
+#endif
         {
             Success = 1,        //!< Task completed successfully.
             Skipped,            //!< Task skipped a field or value.
@@ -70,6 +74,14 @@ namespace AZ
             Catastrophic        //!< A general failure occurred.
         };
 
+#if defined(CARBONATED)
+        enum class SpecialCaseType : uint8_t
+        {
+            None = 1,
+            IncorrectTransform
+        };
+
+#endif
         class Result;
 
         //! A lightweight result returned by all major functions in the Json Serialization.
@@ -79,8 +91,11 @@ namespace AZ
         {
         public:
             explicit ResultCode(Tasks task);
-            ResultCode(Tasks task, Outcomes result);
-            
+#if defined(CARBONATED)
+            ResultCode(Tasks task, Outcomes outcome, SpecialCaseType specialCase = SpecialCaseType::None);
+#else
+            ResultCode(Tasks task, Outcomes outcome);
+#endif
             bool HasDoneWork() const;
 
             ResultCode& Combine(ResultCode other);
@@ -90,6 +105,10 @@ namespace AZ
             Tasks GetTask() const;
             Processing GetProcessing() const;
             Outcomes GetOutcome() const;
+
+#if defined(CARBONATED)
+            SpecialCaseType SpecialCase() const; // Gruber patch. // LVB. // For the debug purposes we can assign that for some particular cases and put special marks in the log
+#endif
 
             //! Append the provided string with a description of the result code.
             //! @output The string to append to.
@@ -117,6 +136,10 @@ namespace AZ
                 Tasks m_task;
                 Processing m_processing;
                 Outcomes m_outcome;
+#if defined(CARBONATED)
+                // Gruber patch. // LVB. // For the debug purposes we can assign that for some particular cases and put special marks in the log
+                SpecialCaseType m_specialCase;
+#endif
             } m_options;
             uint32_t m_code;
         };
@@ -130,8 +153,12 @@ namespace AZ
         {
         public:
             Result(const JsonIssueCallback& callback, AZStd::string_view message, ResultCode result, AZStd::string_view path);
+#if defined(CARBONATED)
+            // Gruber patch. // LVB. // For the debug purposes we can assign that for some particular cases and put special marks in the log
+            Result(const JsonIssueCallback& callback, AZStd::string_view message, Tasks task, Outcomes outcome, SpecialCaseType specialCaseType, AZStd::string_view path);
+#else
             Result(const JsonIssueCallback& callback, AZStd::string_view message, Tasks task, Outcomes outcome, AZStd::string_view path);
-
+#endif
             operator ResultCode() const;
             ResultCode GetResultCode() const;
 

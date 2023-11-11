@@ -48,7 +48,12 @@ namespace AzToolsFramework
 
                         scratchBuffer.clear();
 
+#if defined(CARBONATED)
+                        // Gruber patch. // LVB. // For the debug purposes we can assign that for some particular cases and put special marks in the log
+                        return JSR::ResultCode(result.GetTask(), JSR::Outcomes::Skipped, result.SpecialCase());
+#else
                         return JSR::ResultCode(result.GetTask(), JSR::Outcomes::Skipped);
+#endif
                     }
 
                     return result;

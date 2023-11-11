@@ -113,7 +113,13 @@ namespace AZ
             TransformNotificationBus::Handler::BusConnect(m_entityId);
 
             m_featureProcessor = RPI::Scene::GetFeatureProcessorForEntity<DiffuseProbeGridFeatureProcessorInterface>(entityId);
-            AZ_Assert(m_featureProcessor, "DiffuseProbeGridComponentController was unable to find a DiffuseProbeGridFeatureProcessor on the EntityContext provided.");
+            // Gruber patch begin
+            AZ_Assert(m_featureProcessor, "DiffuseProbeGridComponentController was unable to find a DiffuseProbeGridFeatureProcessor on the EntityContext provided. EntityId=%llu", entityId);
+            if (!m_featureProcessor)
+            {
+                return;
+            }
+            // Gruber patch end
 
             m_transformInterface = TransformBus::FindFirstHandler(entityId);
             AZ_Assert(m_transformInterface, "Unable to attach to a TransformBus handler");

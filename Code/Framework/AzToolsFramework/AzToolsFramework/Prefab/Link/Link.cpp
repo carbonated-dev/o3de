@@ -219,10 +219,18 @@ namespace AzToolsFramework
                     applyPatchResult.GetOutcome() == AZ::JsonSerializationResult::Outcomes::Skipped)
                 {
                     AZ_Warning(
-                        "Prefab", false,
-                        "Link::UpdateTarget - Some of the patches couldn't be applied on the source template '%s' present under the  "
-                        "target Template '%s'.",
-                        sourceTemplateName->get().GetString(), targetTemplateName->get().GetString());
+                        "Prefab",
+                        false,
+                        "Link::UpdateTarget - Some of the patches couldn't be applied on the source template '%s' present under the target "
+                        "Template '%s'.",
+                        sourceTemplateName->get().GetString(),
+                        targetTemplateName->get().GetString());
+#if defined(CARBONATED)
+                    if (applyPatchResult.SpecialCase() == AZ::JsonSerializationResult::SpecialCaseType::IncorrectTransform)
+                    {
+                        AZ_Printf("Prefab", "Special case for Link::UpdateTarget: %s", sourceTemplateName->get().GetString());
+                    }
+#endif
                 }
             }
 

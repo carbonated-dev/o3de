@@ -140,9 +140,18 @@ namespace AZ::JsonSerializationResult
         : m_code(code)
     {}
 
+#if defined(CARBONATED)
+    ResultCode::ResultCode(Tasks task, Outcomes outcome, SpecialCaseType specialCase)
+        : m_code(0)
+#else
     ResultCode::ResultCode(Tasks task, Outcomes outcome)
+#endif
     {
         m_options.m_task = task;
+#if defined(CARBONATED)
+        // Gruber patch. // LVB. // For the debug purposes we can assign that for some particular cases and put special marks in the log
+        m_options.m_specialCase = specialCase;
+#endif
         switch (outcome)
         {
         case Outcomes::Success:         // fall through
@@ -207,6 +216,15 @@ namespace AZ::JsonSerializationResult
             result.m_options.m_processing = Processing::PartialAlter;
         }
 
+#if defined(CARBONATED)
+        // Gruber patch. // LVB. // For the debug purposes we can assign that for some particular cases and put special marks in the log
+
+        if (lhs.m_options.m_specialCase == SpecialCaseType::IncorrectTransform ||
+            rhs.m_options.m_specialCase == SpecialCaseType::IncorrectTransform)
+        {
+            result.m_options.m_specialCase = lhs.m_options.m_specialCase;
+        }
+#endif
         return result;
     }
 
@@ -226,6 +244,14 @@ namespace AZ::JsonSerializationResult
         return m_options.m_outcome == static_cast<Outcomes>(0) ?
             Outcomes::DefaultsUsed : m_options.m_outcome;
     }
+
+#if defined(CARBONATED)
+    // Gruber patch. // LVB. // For the debug purposes we can assign that for some particular cases and put special marks in the log
+    SpecialCaseType ResultCode::SpecialCase() const
+    {
+        return m_options.m_specialCase;
+    }
+#endif
 
     void ResultCode::AppendToString(AZ::OSString& target, AZStd::string_view path) const
     {
@@ -256,9 +282,16 @@ namespace AZ::JsonSerializationResult
         : m_result(callback(message, result, path))
     {}
 
-    Result::Result(const JsonIssueCallback& callback, AZStd::string_view message, Tasks task, Outcomes outcome, AZStd::string_view path)
+#if defined(CARBONATED)
+    // Gruber patch. // LVB. // For the debug purposes we can assign that for some particular cases and put special marks in the log
+    Result::Result(const JsonIssueCallback& callback, AZStd::string_view message, Tasks task, Outcomes outcome, SpecialCaseType specialCaseType, AZStd::string_view path)
+        : m_result(callback(message, ResultCode(task, outcome, specialCaseType), path))
+    {}
+#else
+    Result(const JsonIssueCallback& callback, AZStd::string_view message, Tasks task, Outcomes outcome, AZStd::string_view path)
         : m_result(callback(message, ResultCode(task, outcome), path))
     {}
+#endif
 
     Result::operator ResultCode() const
     {
