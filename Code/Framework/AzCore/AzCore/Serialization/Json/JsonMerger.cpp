@@ -18,7 +18,7 @@ namespace AZ
 
 #if defined(CARBONATED)
     // Gruber patch begin. LVB. Descriptive error reporting
-    static void CreatePathString(AZStd::string& str, const rapidjson::Value& target, const rapidjson::Pointer& path)
+    static void CreatePathString(AZStd::string& str, const rapidjson::Pointer& path)
     {
         const rapidjson::Pointer::Token* const tokens = path.GetTokens();
 
@@ -328,7 +328,7 @@ namespace AZ
 #if defined(CARBONATED)
             // Gruber patch begin. LVB. Descriptive error reporting
             AZStd::string s = ". Token=(";
-            CreatePathString(s, target, path);
+            CreatePathString(s, path);
 
             return settings.m_reporting(R"(The target path for "add" operation does not exist)" + s, ResultCode(Tasks::Merge, Outcomes::Invalid), element);
             // Gruber patch end. LVB. Descriptive error reporting
@@ -390,7 +390,7 @@ namespace AZ
 #if defined(CARBONATED)
                     // Gruber patch begin. LVB. Descriptive error reporting
                     AZStd::string s = ". Token=(";
-                    CreatePathString(s, target, path);
+                    CreatePathString(s, path);
 
                     return settings.m_reporting(R"(The target path for "add" operation is not a valid index)" + s, ResultCode(Tasks::Merge, Outcomes::Invalid), element);
                     // Gruber patch end. LVB. Descriptive error reporting
@@ -431,7 +431,7 @@ namespace AZ
 #if defined(CARBONATED)
             // Gruber patch begin. LVB. Descriptive error reporting
             AZStd::string s = ". Token=(";
-            CreatePathString(s, target, path);
+            CreatePathString(s, path);
 
             return settings.m_reporting(R"(The target path for "remove" operation does not exist)" + s, ResultCode(Tasks::Merge, Outcomes::Invalid), element);
             // Gruber patch end. LVB. Descriptive error reporting
@@ -465,7 +465,7 @@ namespace AZ
 #if defined(CARBONATED)
                 // Gruber patch begin. LVB. Descriptive error reporting
                 AZStd::string s = ". Token=(";
-                CreatePathString(s, target, path);
+                CreatePathString(s, path);
 
                 return settings.m_reporting(R"(The target path for "remove" operation has an invalid index)" + s, ResultCode(Tasks::Merge, Outcomes::Invalid), element);
                 // Gruber patch end. LVB. Descriptive error reporting
@@ -506,7 +506,7 @@ namespace AZ
             // Gruber patch begin. LVB. Descriptive error reporting
 #if defined(CARBONATED)
             AZStd::string s = ". Token=(";
-            CreatePathString(s, target, path);
+            CreatePathString(s, path);
 
             SpecialCaseType specialCaseType = SpecialCaseType::None; 
             if (s.contains("Transform Data/Translate/"))
