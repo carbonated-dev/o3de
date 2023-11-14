@@ -32,14 +32,14 @@ void ApplyDirectionalLights(Surface surface, inout LightingData lightingData, fl
 #if ENABLE_TRANSMISSION
         if (o_transmission_mode == TransmissionMode::ThickObject)
         {
-            real2 visibilityAndThickness = DirectionalLightShadow::GetVisibilityThickTransmission(shadowIndex, surface.position, surface.vertexNormal, screenUv);
+            real2 visibilityAndThickness = DirectionalLightShadow::GetVisibilityThickTransmission(shadowIndex, real3(surface.position), surface.vertexNormal, screenUv);
             litRatio = visibilityAndThickness.x;
             transmissionDistance = visibilityAndThickness.y;
         } 
         else if (o_transmission_mode == TransmissionMode::ThinObject) 
         {
             real2 visibilityAndThickness = DirectionalLightShadow::GetVisibilityThinTransmission(
-                                                shadowIndex, surface.position, surface.vertexNormal, screenUv, surface.transmission.GetShrinkFactor());
+                                                shadowIndex, real3(surface.position), surface.vertexNormal, screenUv, surface.transmission.GetShrinkFactor());
 
             litRatio = visibilityAndThickness.x;
             transmissionDistance = visibilityAndThickness.y;

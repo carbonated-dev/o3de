@@ -78,7 +78,7 @@ PSOutput ShadowCatcherPS(VSOutput IN)
     if (ViewSrg::m_directionalLightShadows[ViewSrg::m_shadowIndexDirectionalLight].m_debugFlags & 
         ViewSrg::DirectionalLightShadowDebugColoringBitMask)
     {
-        real3 debugColor = real3(1,1,1) * litRatio * 0.5f;
+        real3 debugColor = real3(1,1,1) * litRatio * 0.5;
         debugColor = DirectionalLightShadow::AddDebugColoring(debugColor, ViewSrg::m_shadowIndexDirectionalLight, real3(IN.m_worldPosition), real3(IN.m_worldNormal));
         OUT.m_color.rgb = debugColor;
         OUT.m_color.a = 1; 
