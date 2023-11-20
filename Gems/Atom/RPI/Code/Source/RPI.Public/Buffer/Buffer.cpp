@@ -136,16 +136,24 @@ namespace AZ
 
             if (resultCode == RHI::ResultCode::Success)
             {
-                m_bufferAsset = { &bufferAsset, AZ::Data::AssetLoadBehavior::PreLoad };
                 InitBufferView();
                 
                 if (bufferAsset.GetBuffer().size() > 0 && !initWithData)
                 {
+                    m_bufferAsset = { &bufferAsset, AZ::Data::AssetLoadBehavior::PreLoad };
+
                     AZ_PROFILE_SCOPE(RPI, "Stream Upload");
                     m_streamFence = RHI::Factory::Get().CreateFence();
                     if (m_streamFence)
                     {
                         m_streamFence->Init(m_rhiBufferPool->GetDevice(), RHI::FenceState::Reset);
+                        m_streamFence->WaitOnCpuAsync(
+                            [this]()
+                            {
+                                this->m_pendingUploadMutex.lock();
+                                this->m_bufferAsset.Reset();
+                                this->m_pendingUploadMutex.unlock();
+                            });
                     }
 
                     RHI::BufferDescriptor bufferDescriptor = bufferAsset.GetBufferDescriptor();
