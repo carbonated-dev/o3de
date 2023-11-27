@@ -63,7 +63,7 @@ namespace AZ
 
             AZStd::span<const Data::Asset<ModelLodAsset>> GetLodAssets() const;
 
-            // These two functions are used for keep references for BufferAssets so we can release them when they are done using after RPI::Model was created
+            // These two functions are used to keep references for BufferAssets so we can release them when they are done using after RPI::Model was created
             // Sometime they might need to be stay in memory for certain cpu operations such as ray intersection etc.
 
             //! Increase reference for an overall reference count for all BufferAssets referenced by this ModelAsset
@@ -71,10 +71,10 @@ namespace AZ
             void AddRefBufferAssets();
 
             //! Reduce reference for an overall reference count for all BufferAssets referenced by this ModelAsset
-            //! When the ref count reaches 0 after the reduce, it would release all the BufferAssets from thos ModelAsset
+            //! When the ref count reaches 0 after the reduce, it would release all the BufferAssets from the ModelAsset
             void ReleaseRefBufferAssets();
 
-            //! Returns true if the ModelAsset contains data which requires by LocalRayIntersectionAgainstModel() function.
+            //! Returns true if the ModelAsset contains data which is required by LocalRayIntersectionAgainstModel() function.
             bool SupportLocalRayIntersection() const;
 
             //! Checks a ray for intersection against this model. The ray must be in the same coordinate space as the model.
@@ -153,7 +153,7 @@ namespace AZ
             mutable AZStd::optional<AZStd::size_t> m_modelTriangleCount;
 
             // An overall reference count for all BufferAssets referenced by this ModelAsset
-            // Set defaul to 1 since the ModelAsset would load all its BufferAssets by default.
+            // Set default to 1 since the ModelAsset would load all its BufferAssets by default.
             // ModelAsset would release these BufferAssets if this ref count reach 0 to save memory
             AZStd::atomic<size_t> m_bufferAssetsRef = 1;
             

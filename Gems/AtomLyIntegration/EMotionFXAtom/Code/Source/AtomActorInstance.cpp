@@ -678,7 +678,7 @@ namespace AZ::Render
             meshDescriptor.m_isAlwaysDynamic = true;
             meshDescriptor.m_excludeFromReflectionCubeMaps = true;
 
-            meshDescriptor.m_supportRayIntersection = true; // we need keep the buffer data for initialize actor. 
+            meshDescriptor.m_supportRayIntersection = true; // we need to keep the buffer data in order to initialize the actor.
 
             m_meshHandle = AZStd::make_shared<MeshFeatureProcessorInterface::MeshHandle>(
                 m_meshFeatureProcessor->AcquireMesh(meshDescriptor, ConvertToCustomMaterialMap(materials)));

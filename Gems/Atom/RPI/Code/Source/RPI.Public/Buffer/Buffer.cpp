@@ -150,6 +150,7 @@ namespace AZ
                         m_streamFence->WaitOnCpuAsync(
                             [this]()
                             {
+                                // Once the uploading to gpu process is done, we shouldn't need to keep the reference of the m_bufferAsset
                                 this->m_pendingUploadMutex.lock();
                                 this->m_bufferAsset.Reset();
                                 this->m_pendingUploadMutex.unlock();
