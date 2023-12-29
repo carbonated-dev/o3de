@@ -144,6 +144,11 @@ namespace AZ
                     if (m_streamFence)
                     {
                         m_streamFence->Init(m_rhiBufferPool->GetDevice(), RHI::FenceState::Reset);
+#if defined(CARBONATED)
+                        // Workaround for deadlock that occur if the buffer is destroyed in the same time as the WaitOnCpu is executed.
+                        // The fence is waiting for the cpu signal that will never occur. Buffer keeps the reference for the fence destruction in the main thread
+                        // and it blocks the thread by calling thread.join(). But the fence is waiting for the sync object that waits for the cpu signal that will never occur in this case.
+#else
                         m_streamFence->WaitOnCpuAsync(
                             [this]()
                             {
@@ -152,6 +157,7 @@ namespace AZ
                                 this->m_bufferAsset.Reset();
                                 this->m_pendingUploadMutex.unlock();
                             });
+#endif // #if defined(CARBONATED)
                     }
 
                     RHI::BufferDescriptor bufferDescriptor = bufferAsset.GetBufferDescriptor();
