@@ -85,10 +85,14 @@ AZ_CVAR(uint32_t, r_resolutionMode, 0, nullptr, AZ::ConsoleFunctorFlags::DontRep
 
 void cvar_r_renderScale_Changed(const float& newRenderScale)
 {
-    AzFramework::WindowSize newSize =
-        AzFramework::WindowSize(static_cast<uint32_t>(r_width * newRenderScale), static_cast<uint32_t>(r_height * newRenderScale));
-    AzFramework::WindowRequestBus::Broadcast(&AzFramework::WindowRequestBus::Events::SetEnableCustomizedResolution, true);
-    AzFramework::WindowRequestBus::Broadcast(&AzFramework::WindowRequestBus::Events::SetRenderResolution, newSize);
+    AZ_Error("AtomBootstrap", newRenderScale > 0, "RenderScale should be greater than 0");
+    if (newRenderScale > 0)
+    {
+        AzFramework::WindowSize newSize =
+            AzFramework::WindowSize(static_cast<uint32_t>(r_width * newRenderScale), static_cast<uint32_t>(r_height * newRenderScale));
+        AzFramework::WindowRequestBus::Broadcast(&AzFramework::WindowRequestBus::Events::SetEnableCustomizedResolution, true);
+        AzFramework::WindowRequestBus::Broadcast(&AzFramework::WindowRequestBus::Events::SetRenderResolution, newSize);
+    }
 }
 AZ_CVAR(float, r_renderScale, 1.0f, cvar_r_renderScale_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "Scale to apply to the window resolution.");
 
@@ -664,7 +668,7 @@ namespace AZ
                     return nullptr;
                 }
             }
- 
+
             AzFramework::WindowSize BootstrapSystemComponent::GetWindowResolution() const
             {
                 float scale = AZStd::max(static_cast<float>(r_renderScale), 0.f);
