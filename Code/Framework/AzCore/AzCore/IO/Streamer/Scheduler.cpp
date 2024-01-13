@@ -112,6 +112,8 @@ namespace AZ::IO
 
     void Scheduler::SuspendProcessing()
     {
+        AZ_Printf("srvdbg", "Scheduler::SuspendProcessing");
+
         m_isSuspended = true;
     }
 
@@ -119,6 +121,8 @@ namespace AZ::IO
     {
         if (m_isSuspended)
         {
+            AZ_Printf("srvdbg", "Scheduler::ResumeProcessing");
+
             m_isSuspended = false;
             m_context.WakeUpSchedulingThread();
         }

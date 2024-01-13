@@ -239,11 +239,15 @@ namespace AZ::IO
 
     void Streamer::SuspendProcessing()
     {
+        AZ_Printf("srvdbg", "Streamer::SuspendProcessing");
+
         m_streamStack->SuspendProcessing();
     }
 
     void Streamer::ResumeProcessing()
     {
+        AZ_Printf("srvdbg", "Streamer::ResumeProcessing");
+
         m_streamStack->ResumeProcessing();
     }
 
