@@ -112,7 +112,7 @@ namespace AZ::IO
 
     bool StorageDrive::ExecuteRequests()
     {
-        //AZ_Printf("srvdbg", "StorageDrive::ExecuteRequests %s\n", GetName().c_str());
+        //AZ_Printf("srvdbg", "StorageDrive::ExecuteRequests %s", GetName().c_str());
 
         if (!m_pendingRequests.empty())
         {
@@ -123,14 +123,14 @@ namespace AZ::IO
                 if constexpr (AZStd::is_same_v<Command, Requests::ReadData>)
                 {
                     auto data = AZStd::get_if<Requests::ReadData>(&request->GetCommand());
-                    AZ_Printf("srvdbg", "StorageDrive::ExecuteRequests ReadFile %s\n", data->m_path.GetRelativePathCStr());
+                    AZ_Printf("srvdbg", "StorageDrive::ExecuteRequests ReadFile %s", data->m_path.GetRelativePathCStr());
 
                     ReadFile(request);
                 }
                 else if constexpr (AZStd::is_same_v<Command, Requests::FileExistsCheckData>)
                 {
                     auto& fileExists = AZStd::get<Requests::FileExistsCheckData>(request->GetCommand());
-                    AZ_Printf("srvdbg", "StorageDrive::ExecuteRequests FileExists %s\n", fileExists.m_path.GetRelativePathCStr());
+                    AZ_Printf("srvdbg", "StorageDrive::ExecuteRequests FileExists %s", fileExists.m_path.GetRelativePathCStr());
 
                     FileExistsRequest(request);
                 }
@@ -262,7 +262,7 @@ namespace AZ::IO
     {
         {
             auto data = AZStd::get_if<Requests::ReadData>(&request->GetCommand());
-            AZ_Printf("srvdbg", "StorageDrive::ReadFile %s\n", data->m_path.GetRelativePathCStr());
+            AZ_Printf("srvdbg", "StorageDrive::ReadFile %s", data->m_path.GetRelativePathCStr());
         }
         AZ_PROFILE_FUNCTION(AzCore);
 

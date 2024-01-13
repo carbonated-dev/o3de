@@ -34,7 +34,7 @@
 // Set this to 1 to enable debug logging for asset loads/unloads
 #define ENABLE_ASSET_DEBUGGING 1
 #if ENABLE_ASSET_DEBUGGING == 1
-#define ASSET_DEBUG_OUTPUT(OUTPUT) AZ_Printf("srvdbg AssetManager Debug", "%s\n", (OUTPUT).c_str())
+#define ASSET_DEBUG_OUTPUT(OUTPUT) AZ_Printf("srvdbg AssetManager Debug", "%s", (OUTPUT).c_str())
 #else
 #define ASSET_DEBUG_OUTPUT(OUTPUT)
 #endif
@@ -367,7 +367,7 @@ namespace AZ::Data
 
         void Finish()
         {
-            AZ_Printf("srvdbg", "Finish()\n");
+            AZ_Printf("srvdbg", "Finish()");
             AZ_PROFILE_FUNCTION(AzCore);
             m_loadCompleted = true;
             m_waitEvent.release();
@@ -1075,6 +1075,8 @@ namespace AZ::Data
                 }
                 if (assetData->GetStatus() == AssetData::AssetStatus::NotLoaded)
                 {
+                    AZ_Printf("srvdbg", "Set Queued %s", assetData->GetId().ToString<AZStd::string>().c_str());
+
                     assetData->m_status = AssetData::AssetStatus::Queued;
                     UpdateDebugStatus(asset);
                     loadInfo = GetModifiedLoadStreamInfoForAsset(asset, handler);
@@ -1090,6 +1092,8 @@ namespace AZ::Data
                     }
                     else
                     {
+                        AZ_Printf("srvdbg", "Error loading %s", assetData->GetId().ToString<AZStd::string>().c_str());
+
                         // Asset creation was successful, but asset loading isn't, so trigger the OnAssetError notification
                         triggerAssetErrorNotification = true;
                     }
@@ -1109,17 +1113,23 @@ namespace AZ::Data
         {
             AZ_Assert(loadInfo.IsValid(), "Expected valid stream info when dataStream is valid.");
             constexpr bool isReload = false;
+
+            AZ_Printf("srvdbg", "QueueAsyncStreamLoad %s", assetData->GetId().ToString<AZStd::string>().c_str());
+
             QueueAsyncStreamLoad(asset, dataStream, loadInfo, isReload,
                 handler, loadParams, signalLoaded);
         }
         else
         {
+            AZ_Printf("srvdbg", "No data stream %s", assetData->GetId().ToString<AZStd::string>().c_str());
+
             AZ_Assert(!loadInfo.IsValid(), "Expected invalid stream info when dataStream is invalid.");
 
             if(!wasUnloaded && assetData && assetData->GetStatus() == AssetData::AssetStatus::Queued)
             {
                 auto&& [deadline, priority] = GetEffectiveDeadlineAndPriority(*handler, assetData->GetType(), loadParams);
 
+                AZ_Printf("srvdbg", "RescheduleStreamerRequest %s", assetData->GetId().ToString<AZStd::string>().c_str());
                 RescheduleStreamerRequest(assetData->GetId(), deadline, priority);
             }
 
@@ -1554,6 +1564,7 @@ namespace AZ::Data
                 // isn't immediately destroyed. Since reloads are not a shipping feature, we'll
                 // hold this reference indefinitely, but we'll only hold the most recent one for
                 // a given asset Id.
+                AZ_Printf("srvdbg", "Set Queued New %s", newAssetData->GetId().ToString<AZStd::string>().c_str());
 
                 newAssetData->m_status = AssetData::AssetStatus::Queued;
                 newAsset = Asset<AssetData>(newAssetData, assetReferenceLoadBehavior);
@@ -1793,7 +1804,7 @@ namespace AZ::Data
                         return;
                     }
 
-                    AZ_Printf("srvdbg", "Set StreamReady %s\n", loadingAsset.GetId().ToString<AZStd::string>().c_str());
+                    AZ_Printf("srvdbg", "Set StreamReady %s", loadingAsset.GetId().ToString<AZStd::string>().c_str());
 
                     data->m_status = AssetData::AssetStatus::StreamReady;
                     UpdateDebugStatus(loadingAsset);
@@ -1828,6 +1839,8 @@ namespace AZ::Data
             }
             else
             {
+                AZ_Printf("srvdbg", "Load cancelled %s", assetId.ToString<AZStd::string>().c_str());
+
                 BlockingAssetLoadBus::Event(assetId, &BlockingAssetLoadBus::Events::OnLoadCanceled, assetId);
                 AssetManagerBus::Broadcast(&AssetManagerBus::Events::OnAssetCanceled, assetId);
             }
@@ -1854,6 +1867,9 @@ namespace AZ::Data
 
         // Track the load request and queue the asset data stream load.
         AddActiveStreamerRequest(asset.GetId(), dataStream);
+
+        AZ_Printf("srvdbg", "Open stream %s for %s", streamInfo.m_streamName.c_str(), asset.GetId().ToString<AZStd::string>().c_str());
+
         dataStream->Open(
             streamInfo.m_streamName,
             streamInfo.m_dataOffset,

@@ -79,6 +79,8 @@ namespace AZ::IO
     {
         AZ_Assert(m_isRunning, "Trying to queue a request when Streamer's scheduler isn't running.");
 
+        AZ_Printf("srvdbg", "Scheduler::QueueRequest");
+
         {
             AZStd::scoped_lock lock(m_pendingRequestsLock);
             m_pendingRequests.push_back(AZStd::move(request));
