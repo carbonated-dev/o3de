@@ -273,13 +273,13 @@ namespace AZ
 
         void StreamerContext::WakeUpSchedulingThread()
         {
-            AZ_Printf("srvdbg", "StreamerContext::WakeUpSchedulingThread");
+            AZ_Printf("srvdbg", "StreamerContext::WakeUpSchedulingThread %p", this);
             m_threadSync.Resume();
         }
 
         void StreamerContext::SuspendSchedulingThread()
         {
-            AZ_Printf("srvdbg", "StreamerContext::SuspendSchedulingThread");
+            AZ_Printf("srvdbg", "StreamerContext::SuspendSchedulingThread %p", this);
             m_threadSync.Suspend();
         }
 

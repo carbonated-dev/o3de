@@ -194,6 +194,8 @@ namespace AZ::IO
 
     void Scheduler::Thread_MainLoop()
     {
+        AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop enter %p", this);
+
         m_threadData.m_streamStack->SetContext(m_context);
         AZStd::vector<FileRequestPtr> outstandingRequests;
 
@@ -202,6 +204,15 @@ namespace AZ::IO
             {
                 AZ_PROFILE_SCOPE(AzCore, "Scheduler suspended.");
                 m_context.SuspendSchedulingThread();
+            }
+
+            if (m_isSuspended)
+            {
+                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop is suspended %p", this);
+            }
+            else
+            {
+                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop do active cycle %p", this);
             }
 
             // Only do processing if the thread hasn't been suspended.
@@ -265,6 +276,8 @@ namespace AZ::IO
         // Make sure all requests in the stack are cleared out. This dangling async processes or async processes crashing as assigned
         // such as memory buffers are no longer available.
         Thread_ProcessTillIdle();
+
+        AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop exit %p", this);
     }
 
     void Scheduler::Thread_QueueNextRequest()
