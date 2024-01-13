@@ -245,6 +245,10 @@ namespace AZ::IO
         if (!m_pendingReadRequests.empty())
         {
             FileRequest* request = m_pendingReadRequests.front();
+
+            auto data = AZStd::get_if<Requests::ReadData>(&request->GetCommand());
+            AZ_Printf("srvdbg", "StorageDriveWin ReadFile %s, %s\n", data->m_path.GetRelativePathCStr(), GetName().c_str());
+
             if (ReadRequest(request))
             {
                 m_pendingReadRequests.pop_front();
@@ -260,6 +264,9 @@ namespace AZ::IO
                     using Command = AZStd::decay_t<decltype(args)>;
                     if constexpr (AZStd::is_same_v<Command, Requests::FileExistsCheckData>)
                     {
+                        auto& fileExists = AZStd::get<Requests::FileExistsCheckData>(request->GetCommand());
+                        AZ_Printf("srvdbg", "StorageDriveWin FileExists %s, %s\n", fileExists.m_path.GetRelativePathCStr(), GetName().c_str());
+
                         FileExistsRequest(request);
                         m_pendingRequests.pop_front();
                         return true;
@@ -1028,6 +1035,9 @@ namespace AZ::IO
                     ? IStreamerTypes::RequestStatus::Completed
                     : IStreamerTypes::RequestStatus::Failed
         );
+
+        AZ_Printf("srvdbg", "StorageDriveWin::FinalizeSingleRequest %s\n", readCommand->m_path.GetRelativePathCStr());
+
         m_context->MarkRequestAsCompleted(fileReadInfo.m_request);
 
         m_fileCache_activeReads[status.m_fileHandleIndex]--;

@@ -135,6 +135,8 @@ namespace AZ::IO
 
     bool FullFileDecompressor::ExecuteRequests()
     {
+        //AZ_Printf("srvdbg", "FullFileDecompressor::ExecuteRequests %s\n", GetName().c_str());
+
         bool result = false;
         // First queue jobs as this might open up new read slots.
         if (m_numInFlightReads > 0 && m_numRunningJobs < m_maxNumJobs)
@@ -378,9 +380,11 @@ namespace AZ::IO
 
     void FullFileDecompressor::PrepareReadRequest(FileRequest* request, Requests::ReadRequestData& data)
     {
+        AZ_Printf("srvdbg", "PrepareReadRequest %s\n", data.m_path.GetRelativePathCStr());
         CompressionInfo info;
         if (CompressionUtils::FindCompressionInfo(info, data.m_path.GetRelativePath()))
         {
+            AZ_Printf("srvdbg", "  decompress\n");
             FileRequest* nextRequest = m_context->GetNewInternalRequest();
             if (info.m_isCompressed)
             {
@@ -432,6 +436,7 @@ namespace AZ::IO
         }
         else
         {
+            AZ_Printf("srvdbg", "  normal\n");
             StreamStackEntry::PrepareRequest(request);
         }
     }

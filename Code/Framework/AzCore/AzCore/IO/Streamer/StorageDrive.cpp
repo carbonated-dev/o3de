@@ -112,6 +112,8 @@ namespace AZ::IO
 
     bool StorageDrive::ExecuteRequests()
     {
+        //AZ_Printf("srvdbg", "StorageDrive::ExecuteRequests %s\n", GetName().c_str());
+
         if (!m_pendingRequests.empty())
         {
             FileRequest* request = m_pendingRequests.front();
@@ -120,10 +122,16 @@ namespace AZ::IO
                 using Command = AZStd::decay_t<decltype(args)>;
                 if constexpr (AZStd::is_same_v<Command, Requests::ReadData>)
                 {
+                    auto data = AZStd::get_if<Requests::ReadData>(&request->GetCommand());
+                    AZ_Printf("srvdbg", "StorageDrive::ExecuteRequests ReadFile %s\n", data->m_path.GetRelativePathCStr());
+
                     ReadFile(request);
                 }
                 else if constexpr (AZStd::is_same_v<Command, Requests::FileExistsCheckData>)
                 {
+                    auto& fileExists = AZStd::get<Requests::FileExistsCheckData>(request->GetCommand());
+                    AZ_Printf("srvdbg", "StorageDrive::ExecuteRequests FileExists %s\n", fileExists.m_path.GetRelativePathCStr());
+
                     FileExistsRequest(request);
                 }
                 else if constexpr (AZStd::is_same_v<Command, Requests::FileMetaDataRetrievalData>)
@@ -252,6 +260,10 @@ namespace AZ::IO
 
     void StorageDrive::ReadFile(FileRequest* request)
     {
+        {
+            auto data = AZStd::get_if<Requests::ReadData>(&request->GetCommand());
+            AZ_Printf("srvdbg", "StorageDrive::ReadFile %s\n", data->m_path.GetRelativePathCStr());
+        }
         AZ_PROFILE_FUNCTION(AzCore);
 
         auto data = AZStd::get_if<Requests::ReadData>(&request->GetCommand());

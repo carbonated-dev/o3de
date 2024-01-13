@@ -159,6 +159,8 @@ namespace AZ
         {
             AZ_PROFILE_FUNCTION(AzCore);
 
+             AZ_Printf("srvdbg", "StreamerContext::FinalizeCompletedRequests begin\n");
+
 #if AZ_STREAMER_ADD_EXTRA_PROFILING_INFO
             auto now = AZStd::chrono::steady_clock::now();
 #endif
@@ -172,6 +174,7 @@ namespace AZ
                 }
                 if (completed.empty())
                 {
+                    AZ_Printf("srvdbg", "StreamerContext::FinalizeCompletedRequests end 1 %d\n", hasCompletedRequests);
                     return hasCompletedRequests;
                 }
 
@@ -264,6 +267,7 @@ namespace AZ
                     completed.pop();
                 }
             }
+            AZ_Printf("srvdbg", "StreamerContext::FinalizeCompletedRequests end 2 %d\n", hasCompletedRequests);
             return hasCompletedRequests;
         }
 
