@@ -200,7 +200,7 @@ namespace AZ::IO
 
     void Scheduler::Thread_MainLoop()
     {
-        AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop enter %p", this);
+        //AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop enter %p", this);
 
         m_threadData.m_streamStack->SetContext(m_context);
         AZStd::vector<FileRequestPtr> outstandingRequests;
@@ -209,11 +209,11 @@ namespace AZ::IO
         {
             if (m_isSuspended)
             {
-                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop begin is suspended %p", this);
+                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop begin suspended %p", this);
             }
             else
             {
-                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop begin do active cycle %p", this);
+                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop begin active %p", this);
             }
 
             {
@@ -268,19 +268,19 @@ namespace AZ::IO
                 }
                 else
                 {
-                    AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop still have requests %p", this);
+                    //AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop still have requests %p", this);
                 }
             }
-
+            
             if (m_isSuspended)
             {
-                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop end (suspended) %p", this);
+                //AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop end (suspended) %p", this);
             }
             else
             {
-                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop end (active) %p", this);
+                //AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop end (active) %p", this);
             }
-
+            
 #if AZ_STREAMER_ADD_EXTRA_PROFILING_INFO
             m_stackStatus = StreamStackEntry::Status{};
             m_threadData.m_streamStack->UpdateStatus(m_stackStatus);
@@ -298,7 +298,7 @@ namespace AZ::IO
         // such as memory buffers are no longer available.
         Thread_ProcessTillIdle();
 
-        AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop exit %p", this);
+        //AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop exit %p", this);
     }
 
     void Scheduler::Thread_QueueNextRequest()

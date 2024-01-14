@@ -990,7 +990,7 @@ namespace AzFramework
 #if defined(DEBUG_DUMP_CATALOG)
             AZStd::lock_guard<AZStd::recursive_mutex> lock(m_registryMutex);
 
-            AZ_Printf("srvdbg", "Begin asset catalog check");
+            AZ_Printf("srvdbg", "Begin asset catalog check");  // actually AZ_Printf goes to debugger console only, not the log file
             for (auto& it : m_registry->m_assetIdToInfo)
             {
                 //AZ_TracePrintf("Asset Registry: AssetID->Info", "%s --> %s %llu bytes\n", it.first.ToString<AZStd::string>().c_str(), it.second.m_relativePath.c_str(), it.second.m_sizeBytes);

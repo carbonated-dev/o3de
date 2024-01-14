@@ -246,8 +246,8 @@ namespace AZ::IO
         {
             FileRequest* request = m_pendingReadRequests.front();
 
-            auto data = AZStd::get_if<Requests::ReadData>(&request->GetCommand());
-            AZ_Printf("srvdbg", "StorageDriveWin ReadFile %s, %s", data->m_path.GetRelativePathCStr(), GetName().c_str());
+            //auto data = AZStd::get_if<Requests::ReadData>(&request->GetCommand());
+            //AZ_Printf("srvdbg", "StorageDriveWin ReadFile %s, %s", data->m_path.GetRelativePathCStr(), GetName().c_str());
 
             if (ReadRequest(request))
             {
@@ -264,8 +264,8 @@ namespace AZ::IO
                     using Command = AZStd::decay_t<decltype(args)>;
                     if constexpr (AZStd::is_same_v<Command, Requests::FileExistsCheckData>)
                     {
-                        auto& fileExists = AZStd::get<Requests::FileExistsCheckData>(request->GetCommand());
-                        AZ_Printf("srvdbg", "StorageDriveWin FileExists %s, %s", fileExists.m_path.GetRelativePathCStr(), GetName().c_str());
+                        //auto& fileExists = AZStd::get<Requests::FileExistsCheckData>(request->GetCommand());
+                        //AZ_Printf("srvdbg", "StorageDriveWin FileExists %s, %s", fileExists.m_path.GetRelativePathCStr(), GetName().c_str());
 
                         FileExistsRequest(request);
                         m_pendingRequests.pop_front();
@@ -1036,7 +1036,7 @@ namespace AZ::IO
                     : IStreamerTypes::RequestStatus::Failed
         );
 
-        AZ_Printf("srvdbg", "StorageDriveWin::FinalizeSingleRequest %s", readCommand->m_path.GetRelativePathCStr());
+        //AZ_Printf("srvdbg", "StorageDriveWin::FinalizeSingleRequest %s", readCommand->m_path.GetRelativePathCStr());
 
         m_context->MarkRequestAsCompleted(fileReadInfo.m_request);
 

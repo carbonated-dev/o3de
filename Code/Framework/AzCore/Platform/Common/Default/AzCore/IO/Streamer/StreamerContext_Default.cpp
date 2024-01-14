@@ -19,13 +19,22 @@ namespace AZ::Platform
         };
 
         AZStd::unique_lock<AZStd::mutex> lock(m_threadSleepLock);
+
+        AZ_Printf("srvdbg", "StreamerContextThreadSync::Suspend before wait %p", this);
+
         m_threadSleepCondition.wait(lock, predicate);
+
+        AZ_Printf("srvdbg", "StreamerContextThreadSync::Suspend after wait %p", this);
+
         m_threadWakeUpQueued.store(false, AZStd::memory_order_release);
     }
 
     void StreamerContextThreadSync::Resume()
     {
         AZStd::unique_lock<AZStd::mutex> lock(m_threadSleepLock);
+
+        AZ_Printf("srvdbg", "StreamerContextThreadSync::Resume %p", this);
+
         m_threadWakeUpQueued.store(true, AZStd::memory_order_release);
         m_threadSleepCondition.notify_one();
     }

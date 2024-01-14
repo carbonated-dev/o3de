@@ -128,7 +128,7 @@ namespace AZ::Data
         // If the asset load is requesting more than 0 bytes of data, queue it up with the file streamer.
         if (m_requestedAssetSize > 0)
         {
-            AZ_Printf("srvdbg", "Requesting %d bytes", m_requestedAssetSize);
+            //AZ_Printf("srvdbg", "Requesting %d bytes", m_requestedAssetSize);
 
             // Set up the callback that will process the asset data once the raw file load is finished.
             auto streamerCallback = [this, loadCallback](AZ::IO::FileRequestHandle fileHandle)
@@ -136,7 +136,7 @@ namespace AZ::Data
                 AZ_PROFILE_SCOPE(AzCore, "AZ::Data::LoadAssetDataStreamCallback %s",
                     m_filePath.c_str());
 
-                AZ_Printf("srvdbg", "Streamer callback for %s", m_filePath.c_str());
+                //AZ_Printf("srvdbg", "Streamer callback for %s", m_filePath.c_str());
 
                 // Get the results
                 auto streamer = AZ::Interface<AZ::IO::IStreamer>::Get();
@@ -186,7 +186,7 @@ namespace AZ::Data
         }
         else
         {
-            AZ_Printf("srvdbg", "Requesting zero bytes");
+            //AZ_Printf("srvdbg", "Requesting zero bytes");
 
             // If 0 bytes are requested, skip the file streamer entirely, and just directly call the load callback.
             if (loadCallback)

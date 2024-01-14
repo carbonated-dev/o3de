@@ -159,7 +159,7 @@ namespace AZ
         {
             AZ_PROFILE_FUNCTION(AzCore);
 
-             AZ_Printf("srvdbg", "StreamerContext::FinalizeCompletedRequests begin %p", this);
+             //AZ_Printf("srvdbg", "StreamerContext::FinalizeCompletedRequests begin %p", this);
 
 #if AZ_STREAMER_ADD_EXTRA_PROFILING_INFO
             auto now = AZStd::chrono::steady_clock::now();
@@ -174,7 +174,7 @@ namespace AZ
                 }
                 if (completed.empty())
                 {
-                    AZ_Printf("srvdbg", "StreamerContext::FinalizeCompletedRequests end %d, %p", hasCompletedRequests, this);
+                    //AZ_Printf("srvdbg", "StreamerContext::FinalizeCompletedRequests end %d, %p", hasCompletedRequests, this);
                     return hasCompletedRequests;
                 }
 
@@ -267,7 +267,7 @@ namespace AZ
                     completed.pop();
                 }
             }
-            AZ_Printf("srvdbg", "StreamerContext::FinalizeCompletedRequests end2 %d, %p", hasCompletedRequests, this);
+            //AZ_Printf("srvdbg", "StreamerContext::FinalizeCompletedRequests end2 %d, %p", hasCompletedRequests, this);
             return hasCompletedRequests;
         }
 

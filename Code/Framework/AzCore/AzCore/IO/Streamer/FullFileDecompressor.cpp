@@ -380,11 +380,11 @@ namespace AZ::IO
 
     void FullFileDecompressor::PrepareReadRequest(FileRequest* request, Requests::ReadRequestData& data)
     {
-        AZ_Printf("srvdbg", "PrepareReadRequest %s", data.m_path.GetRelativePathCStr());
+        //AZ_Printf("srvdbg", "PrepareReadRequest %s", data.m_path.GetRelativePathCStr());
         CompressionInfo info;
         if (CompressionUtils::FindCompressionInfo(info, data.m_path.GetRelativePath()))
         {
-            AZ_Printf("srvdbg", "  decompress");
+            //AZ_Printf("srvdbg", "  decompress");
             FileRequest* nextRequest = m_context->GetNewInternalRequest();
             if (info.m_isCompressed)
             {
@@ -436,7 +436,7 @@ namespace AZ::IO
         }
         else
         {
-            AZ_Printf("srvdbg", "  normal");
+            //AZ_Printf("srvdbg", "  normal");
             StreamStackEntry::PrepareRequest(request);
         }
     }
