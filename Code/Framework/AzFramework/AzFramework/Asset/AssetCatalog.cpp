@@ -990,12 +990,13 @@ namespace AzFramework
 #if defined(DEBUG_DUMP_CATALOG)
             AZStd::lock_guard<AZStd::recursive_mutex> lock(m_registryMutex);
 
+            AZ_Printf("srvdbg", "Begin asset catalog check");
             for (auto& it : m_registry->m_assetIdToInfo)
             {
                 //AZ_TracePrintf("Asset Registry: AssetID->Info", "%s --> %s %llu bytes\n", it.first.ToString<AZStd::string>().c_str(), it.second.m_relativePath.c_str(), it.second.m_sizeBytes);
                 if (it.second.m_sizeBytes == 0)
                 {
-                    AZ_Printf("srvdbg", "Asset Registry: AssetID->Info", "%s --> %s zero size", it.first.ToString<AZStd::string>().c_str())
+                    AZ_Printf("srvdbg", "Asset Registry: AssetID->Info", "%s --> %s zero size", it.first.ToString<AZStd::string>().c_str());
                 }
             }
 
