@@ -30,7 +30,7 @@
 #include <AzFramework/StringFunc/StringFunc.h>
 
 // uncomment to have the catalog be dumped to stdout:
-//#define DEBUG_DUMP_CATALOG
+#define DEBUG_DUMP_CATALOG
 
 
 namespace AzFramework
@@ -992,7 +992,11 @@ namespace AzFramework
 
             for (auto& it : m_registry->m_assetIdToInfo)
             {
-                AZ_TracePrintf("Asset Registry: AssetID->Info", "%s --> %s %llu bytes\n", it.first.ToString<AZStd::string>().c_str(), it.second.m_relativePath.c_str(), it.second.m_sizeBytes);
+                //AZ_TracePrintf("Asset Registry: AssetID->Info", "%s --> %s %llu bytes\n", it.first.ToString<AZStd::string>().c_str(), it.second.m_relativePath.c_str(), it.second.m_sizeBytes);
+                if (it.second.m_sizeBytes == 0)
+                {
+                    AZ_Printf("srvdbg", "Asset Registry: AssetID->Info", "%s --> %s zero size", it.first.ToString<AZStd::string>().c_str())
+                }
             }
 
 #endif
