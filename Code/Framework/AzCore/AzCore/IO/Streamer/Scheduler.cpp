@@ -58,6 +58,8 @@ namespace AZ::IO
 
     void Scheduler::Stop()
     {
+        AZ_Printf("srvdbg", "Scheduler::Stop %p", this);
+
         m_isRunning = false;
         m_context.WakeUpSchedulingThread();
         m_mainLoop.join();
@@ -79,7 +81,7 @@ namespace AZ::IO
     {
         AZ_Assert(m_isRunning, "Trying to queue a request when Streamer's scheduler isn't running.");
 
-        AZ_Printf("srvdbg", "Scheduler::QueueRequest");
+        AZ_Printf("srvdbg", "Scheduler::QueueRequest & WakeUp, %p", this);
 
         {
             AZStd::scoped_lock lock(m_pendingRequestsLock);
@@ -92,6 +94,8 @@ namespace AZ::IO
     {
         AZ_Assert(m_isRunning, "Trying to queue a batch of requests when Streamer's scheduler isn't running.");
 
+        AZ_Printf("srvdbg", "Scheduler::QueueRequestBatch1 & WakeUp, %p", this);
+
         {
             AZStd::scoped_lock lock(m_pendingRequestsLock);
             m_pendingRequests.insert(m_pendingRequests.end(), requests.begin(), requests.end());
@@ -103,6 +107,8 @@ namespace AZ::IO
     {
         AZ_Assert(m_isRunning, "Trying to queue a batch of requests when Streamer's scheduler isn't running.");
 
+        AZ_Printf("srvdbg", "Scheduler::QueueRequestBatch2 & WakeUp, %p", this);
+
         {
             AZStd::scoped_lock lock(m_pendingRequestsLock);
             AZStd::move(requests.begin(), requests.end(), AZStd::back_inserter(m_pendingRequests));
@@ -112,7 +118,7 @@ namespace AZ::IO
 
     void Scheduler::SuspendProcessing()
     {
-        AZ_Printf("srvdbg", "Scheduler::SuspendProcessing");
+        AZ_Printf("srvdbg", "Scheduler::SuspendProcessing %p", this);
 
         m_isSuspended = true;
     }
@@ -121,7 +127,7 @@ namespace AZ::IO
     {
         if (m_isSuspended)
         {
-            AZ_Printf("srvdbg", "Scheduler::ResumeProcessing");
+            AZ_Printf("srvdbg", "Scheduler::ResumeProcessing %p", this);
 
             m_isSuspended = false;
             m_context.WakeUpSchedulingThread();
@@ -201,19 +207,21 @@ namespace AZ::IO
 
         while (m_isRunning)
         {
+            if (m_isSuspended)
+            {
+                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop begin is suspended %p", this);
+            }
+            else
+            {
+                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop begin do active cycle %p", this);
+            }
+
             {
                 AZ_PROFILE_SCOPE(AzCore, "Scheduler suspended.");
                 m_context.SuspendSchedulingThread();
             }
 
-            if (m_isSuspended)
-            {
-                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop is suspended %p", this);
-            }
-            else
-            {
-                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop do active cycle %p", this);
-            }
+            AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop after suspend %p", this);
 
             // Only do processing if the thread hasn't been suspended.
             while (!m_isSuspended)
@@ -258,6 +266,19 @@ namespace AZ::IO
                 {
                     break;
                 }
+                else
+                {
+                    AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop still have requests %p", this);
+                }
+            }
+
+            if (m_isSuspended)
+            {
+                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop end (suspended) %p", this);
+            }
+            else
+            {
+                AZ_Printf("srvdbg", "Scheduler::Thread_MainLoop end (active) %p", this);
             }
 
 #if AZ_STREAMER_ADD_EXTRA_PROFILING_INFO
