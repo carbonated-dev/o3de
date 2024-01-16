@@ -32,9 +32,9 @@
 #include <AzCore/Serialization/ObjectStream.h>
 
 // Set this to 1 to enable debug logging for asset loads/unloads
-#define ENABLE_ASSET_DEBUGGING 0
+#define ENABLE_ASSET_DEBUGGING 1
 #if ENABLE_ASSET_DEBUGGING == 1
-#define ASSET_DEBUG_OUTPUT(OUTPUT) AZ_Printf("AssetManager Debug", "%s\n", (OUTPUT).c_str())
+#define ASSET_DEBUG_OUTPUT(OUTPUT) AZ_Printf("AssetManager Debug", "%s", (OUTPUT).c_str())
 #else
 #define ASSET_DEBUG_OUTPUT(OUTPUT)
 #endif
