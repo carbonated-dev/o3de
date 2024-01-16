@@ -331,6 +331,8 @@ namespace AZ::Data
         {
             AZ_PROFILE_SCOPE(AzCore, "WaitForAsset - %s", m_assetData.GetHint().c_str());
 
+            printf("srvdbg WaitForAsset %s\n", m_assetData.GetHint().c_str());
+
             // Continue to loop until the load completes.  (Most of the time in the loop will be spent in a thread-blocking state)
             while (!m_loadCompleted)
             {
