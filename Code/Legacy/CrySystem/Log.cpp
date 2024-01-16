@@ -1222,6 +1222,14 @@ bool CLog::LogToMainThread(AZStd::string_view szString, ELogType logType, bool a
 {
     if (CryGetCurrentThreadId() != m_nMainThreadId)
     {
+        if (destination == SLogMsg::Destination::File && szString.size() < 512 - 1)
+        {
+            char buf[512];
+            memcpy(buf, szString.data(), szString.size());
+            buf[szString.size()] = 0;
+            printf("srvdbg toMain %s\n", buf);
+        }
+
         // When logging from other thread then main, push all log strings to queue.
         constexpr size_t fixedBufferMaxSize = AZStd::variant_alternative_t<0, SLogMsg::MessageString>{}.max_size();
         SLogMsg msg;
