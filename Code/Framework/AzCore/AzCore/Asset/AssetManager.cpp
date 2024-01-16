@@ -32,7 +32,7 @@
 #include <AzCore/Serialization/ObjectStream.h>
 
 // Set this to 1 to enable debug logging for asset loads/unloads
-#define ENABLE_ASSET_DEBUGGING 1
+#define ENABLE_ASSET_DEBUGGING 0
 #if ENABLE_ASSET_DEBUGGING == 1
 #define ASSET_DEBUG_OUTPUT(OUTPUT) AZ_Printf("AssetManager Debug", "%s", (OUTPUT).c_str())
 #else
@@ -357,6 +357,8 @@ namespace AZ::Data
                 // (Load jobs will attempt to reuse blocked threads before spinning off new job threads)
                 ProcessLoadJob();
             }
+
+            printf("srvdbg Asset complete %s\n", m_assetData.GetHint().c_str());
 
             // Pump the AssetBus function queue once more after the load has completed in case additional
             // functions have been queued between the last call to DispatchEvents and the completion

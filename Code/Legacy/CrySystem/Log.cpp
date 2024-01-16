@@ -1227,7 +1227,7 @@ bool CLog::LogToMainThread(AZStd::string_view szString, ELogType logType, bool a
             char buf[512];
             memcpy(buf, szString.data(), szString.size());
             buf[szString.size()] = 0;
-            printf("srvdbg toMain %s\n", buf);
+            printf("srvdbg toMain %s", buf);
         }
 
         // When logging from other thread then main, push all log strings to queue.
