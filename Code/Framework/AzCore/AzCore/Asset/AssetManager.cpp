@@ -185,10 +185,22 @@ namespace AZ::Data
 
         void LoadAndSignal(Asset<AssetData>& asset)
         {
+            const bool bMotion = asset.GetHint().ends_with(".motion");
+
             ASSET_DEBUG_OUTPUT(AZStd::string::format("LoadAndSignal - Pre - " AZ_STRING_FORMAT,
                 AZ_STRING_ARG(asset.GetId().ToFixedString())));
 
+            if (bMotion)
+            {
+                AZ_Printf("srvdbg", "Motion before LoadData %s", asset.GetHint().c_str());
+            }
+
             const bool loadSucceeded = LoadData();
+
+            if (bMotion)
+            {
+                AZ_Printf("srvdbg", "Motion after LoadData %s", asset.GetHint().c_str());
+            }
 
             ASSET_DEBUG_OUTPUT(AZStd::string::format(
                 "LoadAndSignal - Post - Result: %s - Signal: %s - " AZ_STRING_FORMAT,
@@ -200,11 +212,21 @@ namespace AZ::Data
             {
                 // This asset has preload dependencies, we need to evaluate whether they're all ready before calling PostLoad
                 AssetLoadBus::Event(asset.GetId(), &AssetLoadBus::Events::OnAssetDataLoaded, asset);
+
+                if (bMotion)
+                {
+                    AZ_Printf("srvdbg", "Motion after Event %s", asset.GetHint().c_str());
+                }
             }
             else
             {
                 // As long as we don't need to signal preload dependencies, just finish the load whether or not it was successful.
                 m_owner->PostLoad(asset, loadSucceeded, m_isReload, m_assetHandler);
+
+                if (bMotion)
+                {
+                    AZ_Printf("srvdbg", "Motion after PostLoad %s", asset.GetHint().c_str());
+                }
             }
         }
 
