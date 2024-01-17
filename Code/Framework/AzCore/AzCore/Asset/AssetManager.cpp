@@ -332,7 +332,7 @@ namespace AZ::Data
             AZ_PROFILE_SCOPE(AzCore, "WaitForAsset - %s", m_assetData.GetHint().c_str());
 
             printf("srvdbg b %s\n", m_assetData.GetHint().c_str());
-            //AZ_Printf("srvdbg", "b %s\n", m_assetData.GetHint().c_str());
+            AZ_Printf("srvdbg", "b %s", m_assetData.GetHint().c_str());
 
             // Continue to loop until the load completes.  (Most of the time in the loop will be spent in a thread-blocking state)
             while (!m_loadCompleted)
@@ -360,7 +360,7 @@ namespace AZ::Data
             }
 
             printf("srvdbg e %s\n", m_assetData.GetHint().c_str());
-            //AZ_Printf("srvdbg", "e %s\n", m_assetData.GetHint().c_str());
+            AZ_Printf("srvdbg", "e %s", m_assetData.GetHint().c_str());
 
             // Pump the AssetBus function queue once more after the load has completed in case additional
             // functions have been queued between the last call to DispatchEvents and the completion
