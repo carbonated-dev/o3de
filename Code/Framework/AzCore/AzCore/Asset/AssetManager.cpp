@@ -193,6 +193,7 @@ namespace AZ::Data
             if (bMotion)
             {
                 AZ_Printf("srvdbg", "Motion before LoadData %s", asset.GetHint().c_str());
+                printf("srvdbg bld %s\n", asset.GetHint().c_str());
             }
 
             const bool loadSucceeded = LoadData();
@@ -200,6 +201,7 @@ namespace AZ::Data
             if (bMotion)
             {
                 AZ_Printf("srvdbg", "Motion after LoadData %s", asset.GetHint().c_str());
+                printf("srvdbg ald %s\n", asset.GetHint().c_str());
             }
 
             ASSET_DEBUG_OUTPUT(AZStd::string::format(
@@ -216,6 +218,7 @@ namespace AZ::Data
                 if (bMotion)
                 {
                     AZ_Printf("srvdbg", "Motion after Event %s", asset.GetHint().c_str());
+                    printf("srvdbg ae %s\n", asset.GetHint().c_str());
                 }
             }
             else
@@ -226,6 +229,7 @@ namespace AZ::Data
                 if (bMotion)
                 {
                     AZ_Printf("srvdbg", "Motion after PostLoad %s", asset.GetHint().c_str());
+                    printf("srvdbg apl %s\n", asset.GetHint().c_str());
                 }
             }
         }
