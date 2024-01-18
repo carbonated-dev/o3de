@@ -388,8 +388,8 @@ namespace AZ::Data
 
             if (bMotion)
             {
-                printf("srvdbg b %s\n", m_assetData.GetHint().c_str());
-                AZ_Printf("srvdbg", "b %s", m_assetData.GetHint().c_str());
+                printf("srvdbg b %s, dispatch %d\n", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
+                AZ_Printf("srvdbg", "b %s, dispatch %d", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
             }
 
             // Continue to loop until the load completes.  (Most of the time in the loop will be spent in a thread-blocking state)
@@ -397,6 +397,11 @@ namespace AZ::Data
             {
                 if (m_shouldDispatchEvents)
                 {
+                    if (bMotion)
+                    {
+                        printf("srvdbg de %s\n", m_assetData.GetHint().c_str());
+                        AZ_Printf("srvdbg", "de %s", m_assetData.GetHint().c_str());
+                    }
                     // The event will wake up either when the load finishes, a load job is queued for processing, or every
                     // N milliseconds to see if it should dispatch events.
                     constexpr int MaxWaitBetweenDispatchMs = 1;
@@ -407,6 +412,11 @@ namespace AZ::Data
                 }
                 else
                 {
+                    if (bMotion)
+                    {
+                        printf("srvdbg we %s\n", m_assetData.GetHint().c_str());
+                        AZ_Printf("srvdbg", "we %s", m_assetData.GetHint().c_str());
+                    }
 
                     // Don't wake up until a load job is queued for processing or the load is entirely finished.
                     m_waitEvent.acquire();
