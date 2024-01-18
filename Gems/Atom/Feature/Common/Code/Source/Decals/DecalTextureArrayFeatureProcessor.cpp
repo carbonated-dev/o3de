@@ -7,6 +7,7 @@
  */
 
 #include <Decals/DecalTextureArrayFeatureProcessor.h>
+#include <Atom/Feature/CoreLights/LightCommon.h>
 #include <Atom/Feature/Mesh/MeshCommon.h>
 #include <Atom/Feature/Mesh/MeshFeatureProcessor.h>
 #include <Atom/RHI/Factory.h>
@@ -421,21 +422,7 @@ namespace AZ
         void DecalTextureArrayFeatureProcessor::OnRenderPipelinePersistentViewChanged(
             RPI::RenderPipeline* renderPipeline, [[maybe_unused]] RPI::PipelineViewTag viewTag, RPI::ViewPtr newView, RPI::ViewPtr previousView)
         {
-            // Check if render pipeline is using GPU culling
-            if (!renderPipeline->FindFirstPass(AZ::Name("LightCullingPass")))
-            {
-                return;
-            }
-
-            if (previousView)
-            {
-                m_hasGPUCulling.erase(AZStd::make_pair(renderPipeline, previousView.get()));
-            }
-
-            if (newView)
-            {
-                m_hasGPUCulling.insert(AZStd::make_pair(renderPipeline, newView.get()));
-            }
+            Render::LightCommon::CacheGPUCullingPipelineInfo(renderPipeline, newView, previousView, m_hasGPUCulling);
         }
 
         void DecalTextureArrayFeatureProcessor::RemoveMaterialFromDecal(const uint16_t decalIndex)
@@ -627,22 +614,10 @@ namespace AZ
             }
         }
 
-        bool DecalTextureArrayFeatureProcessor::HasGPUCulling(const RPI::ViewPtr& view) const
-        {
-            for (const auto& renderPipeline : GetParentScene()->GetRenderPipelines())
-            {
-                if (renderPipeline->NeedsRender() &&
-                    m_hasGPUCulling.contains(AZStd::pair(renderPipeline.get(), view.get())))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         void DecalTextureArrayFeatureProcessor::CullDecals(const RPI::ViewPtr& view)
         {
-            if (!AZ::RHI::CheckBitsAll(view->GetUsageFlags(), RPI::View::UsageFlags::UsageCamera) || HasGPUCulling(view))
+            if (!AZ::RHI::CheckBitsAll(view->GetUsageFlags(), RPI::View::UsageFlags::UsageCamera) ||
+                Render::LightCommon::HasGPUCulling(GetParentScene(), view, m_hasGPUCulling))
             {
                 return;
             }
@@ -687,25 +662,14 @@ namespace AZ
             }
 
             // Update buffer and View SRG
-            GpuBufferHandler& bufferHandler = GetOrCreateVisibleBuffer();
+            GpuBufferHandler& bufferHandler = Render::LightCommon::GetOrCreateVisibleBuffer(
+                m_visibleDecalBufferUsedCount,
+                m_visibleDecalBufferHandlers,
+                "DecalVisibilityBuffer",
+                "m_visibleDecalIndices",
+                "m_visibleDecalCount");
             bufferHandler.UpdateBuffer(visibilityBuffer);
             bufferHandler.UpdateSrg(view->GetShaderResourceGroup().get());
-        }
-
-        GpuBufferHandler& DecalTextureArrayFeatureProcessor::GetOrCreateVisibleBuffer()
-        {
-            while (m_visibleDecalBufferUsedCount >= m_visibleDecalBufferHandlers.size())
-            {
-                GpuBufferHandler::Descriptor desc;
-                desc.m_bufferName = "DecalVisibilityBuffer";
-                desc.m_bufferSrgName = "m_visibleDecalIndices";
-                desc.m_elementCountSrgName = "m_visibleDecalCount";
-                desc.m_elementFormat = AZ::RHI::Format::R32_UINT;
-                desc.m_srgLayout = RPI::RPISystemInterface::Get()->GetViewSrgLayout().get();
-
-                m_visibleDecalBufferHandlers.emplace_back(desc);
-            }
-            return m_visibleDecalBufferHandlers[m_visibleDecalBufferUsedCount++];
         }
 
         AZ::Data::AssetId DecalTextureArrayFeatureProcessor::GetMaterialUsedByDecal(const DecalHandle handle) const
