@@ -154,10 +154,17 @@ namespace AZ::Data
         {
             Asset<AssetData> asset = m_asset.GetStrongReference();
 
+            const bool bMotion = asset.GetHint().ends_with(".motion");
+
             // Verify that we didn't somehow get here after the Asset Manager has finished shutting down.
             AZ_Assert(AssetManager::IsReady(), "Asset Manager shutdown didn't clean up pending asset loads properly.");
             if (!AssetManager::IsReady())
             {
+                if (bMotion)
+                {
+                    AZ_Printf("srvdbg", "Motion not ready %s", asset.GetHint().c_str());
+                    printf("srvdbg nrd %s\n", asset.GetHint().c_str());
+                }
                 return;
             }
 
@@ -167,6 +174,12 @@ namespace AZ::Data
 
             if (shouldCancel)
             {
+                if (bMotion)
+                {
+                    AZ_Printf("srvdbg", "Motion cancel %s", asset.GetHint().c_str());
+                    printf("srvdbg mc %s\n", asset.GetHint().c_str());
+                }
+
                 BlockingAssetLoadBus::Event(m_asset.GetId(), &BlockingAssetLoadBus::Events::OnLoadCanceled, m_asset.GetId());
                 AssetManagerBus::Broadcast(&AssetManagerBus::Events::OnAssetCanceled, m_asset.GetId());
             }
@@ -178,7 +191,21 @@ namespace AZ::Data
 
                 if (m_owner->ValidateAndRegisterAssetLoading(asset))
                 {
+                    if (bMotion)
+                    {
+                        AZ_Printf("srvdbg", "Motion LoadAndSignal %s", asset.GetHint().c_str());
+                        printf("srvdbg las %s\n", asset.GetHint().c_str());
+                    }
+
                     LoadAndSignal(asset);
+                }
+                else
+                {
+                    if (bMotion)
+                    {
+                        AZ_Printf("srvdbg", "Motion not validated %s", asset.GetHint().c_str());
+                        printf("srvdbg nv %s\n", asset.GetHint().c_str());
+                    }
                 }
             }
         }
@@ -1970,10 +1997,11 @@ namespace AZ::Data
     {
         AssetData* data = asset.Get();
         {
-
             AZStd::scoped_lock<AZStd::recursive_mutex> assetLock(m_assetMutex);
             if (data)
             {
+                const bool bMotion = asset.GetHint().ends_with(".motion");
+
                 // The purpose of this function is to validate this asset is still in a StreamReady
                 // and only then continue the load.  We change status to loading if everything
                 // is expected which the blocking RegisterAssetLoading call does not do because it
@@ -1983,6 +2011,12 @@ namespace AZ::Data
                     // Something else has attempted to load this asset
                     ASSET_DEBUG_OUTPUT(AZStd::string::format(
                         "ValidateAndRegisterAssetLoading - Aborting, status (%d) is not StreamReady", static_cast<int>(data->GetStatus())));
+
+                    if (bMotion)
+                    {
+                        AZ_Printf("srvdbg", "Motion not streaming ready %s", asset.GetHint().c_str());
+                        printf("srvdbg nsr %s\n", asset.GetHint().c_str());
+                    }
                     return false;
                 }
                 data->m_status = AssetData::AssetStatus::Loading;
