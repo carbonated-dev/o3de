@@ -154,7 +154,7 @@ namespace AZ::Data
         {
             Asset<AssetData> asset = m_asset.GetStrongReference();
 
-            const bool bMotion = asset.GetHint().ends_with(".motion");
+            const bool bMotion = asset.GetHint().ends_with(".motion") || asset.GetHint().ends_with(".spawnable");
 
             // Verify that we didn't somehow get here after the Asset Manager has finished shutting down.
             AZ_Assert(AssetManager::IsReady(), "Asset Manager shutdown didn't clean up pending asset loads properly.");
@@ -212,7 +212,7 @@ namespace AZ::Data
 
         void LoadAndSignal(Asset<AssetData>& asset)
         {
-            const bool bMotion = asset.GetHint().ends_with(".motion");
+            const bool bMotion = asset.GetHint().ends_with(".motion") || asset.GetHint().ends_with(".spawnable");
 
             ASSET_DEBUG_OUTPUT(AZStd::string::format("LoadAndSignal - Pre - " AZ_STRING_FORMAT,
                 AZ_STRING_ARG(asset.GetId().ToFixedString())));
@@ -384,8 +384,13 @@ namespace AZ::Data
         {
             AZ_PROFILE_SCOPE(AzCore, "WaitForAsset - %s", m_assetData.GetHint().c_str());
 
-            printf("srvdbg b %s\n", m_assetData.GetHint().c_str());
-            AZ_Printf("srvdbg", "b %s", m_assetData.GetHint().c_str());
+            const bool bMotion = m_assetData.GetHint().ends_with(".motion") || m_assetData.GetHint().ends_with(".spawnable");
+
+            if (bMotion)
+            {
+                printf("srvdbg b %s\n", m_assetData.GetHint().c_str());
+                AZ_Printf("srvdbg", "b %s", m_assetData.GetHint().c_str());
+            }
 
             // Continue to loop until the load completes.  (Most of the time in the loop will be spent in a thread-blocking state)
             while (!m_loadCompleted)
@@ -412,8 +417,11 @@ namespace AZ::Data
                 ProcessLoadJob();
             }
 
-            printf("srvdbg e %s\n", m_assetData.GetHint().c_str());
-            AZ_Printf("srvdbg", "e %s", m_assetData.GetHint().c_str());
+            if (bMotion)
+            {
+                printf("srvdbg e %s\n", m_assetData.GetHint().c_str());
+                AZ_Printf("srvdbg", "e %s", m_assetData.GetHint().c_str());
+            }
 
             // Pump the AssetBus function queue once more after the load has completed in case additional
             // functions have been queued between the last call to DispatchEvents and the completion
@@ -436,8 +444,16 @@ namespace AZ::Data
             AZStd::scoped_lock<AZStd::mutex> mutexLock(m_loadJobMutex);
             bool jobProcessed = false;
 
+            const bool bMotion = m_assetData.GetHint().ends_with(".motion") || m_assetData.GetHint().ends_with(".spawnable");
+
             if (m_loadJob)
             {
+                if (bMotion)
+                {
+                    AZ_Printf("srvdbg", "Motion before process job %s", m_assetData.GetHint().c_str());
+                    printf("srvdbg bpj %s\n", m_assetData.GetHint().c_str());
+                }
+
                 m_loadJob->Process();
                 if (m_loadJob->IsAutoDelete())
                 {
@@ -445,6 +461,14 @@ namespace AZ::Data
                 }
                 m_loadJob = nullptr;
                 jobProcessed = true;
+            }
+            else
+            {
+                if (bMotion)
+                {
+                    AZ_Printf("srvdbg", "Motion no job %s", m_assetData.GetHint().c_str());
+                    printf("srvdbg nj %s\n", m_assetData.GetHint().c_str());
+                }
             }
 
             return jobProcessed;
@@ -2000,7 +2024,7 @@ namespace AZ::Data
             AZStd::scoped_lock<AZStd::recursive_mutex> assetLock(m_assetMutex);
             if (data)
             {
-                const bool bMotion = asset.GetHint().ends_with(".motion");
+                const bool bMotion = asset.GetHint().ends_with(".motion") || asset.GetHint().ends_with(".spawnable");
 
                 // The purpose of this function is to validate this asset is still in a StreamReady
                 // and only then continue the load.  We change status to loading if everything
