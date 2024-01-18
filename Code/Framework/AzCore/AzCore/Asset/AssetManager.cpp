@@ -412,6 +412,12 @@ namespace AZ::Data
                     m_waitEvent.acquire();
                 }
 
+                if (bMotion)
+                {
+                    printf("srvdbg p %s\n", m_assetData.GetHint().c_str());
+                    AZ_Printf("srvdbg", "p %s", m_assetData.GetHint().c_str());
+                }
+
                 // Check to see if any load jobs have been provided for this thread to process.
                 // (Load jobs will attempt to reuse blocked threads before spinning off new job threads)
                 ProcessLoadJob();
@@ -441,37 +447,44 @@ namespace AZ::Data
 
         bool ProcessLoadJob()
         {
-            AZStd::scoped_lock<AZStd::mutex> mutexLock(m_loadJobMutex);
-            bool jobProcessed = false;
-
             const bool bMotion = m_assetData.GetHint().ends_with(".motion") || m_assetData.GetHint().ends_with(".spawnable");
-
-            if (m_loadJob)
+            if (bMotion)
             {
-                if (bMotion)
-                {
-                    AZ_Printf("srvdbg", "Motion before process job %s", m_assetData.GetHint().c_str());
-                    printf("srvdbg bpj %s\n", m_assetData.GetHint().c_str());
-                }
-
-                m_loadJob->Process();
-                if (m_loadJob->IsAutoDelete())
-                {
-                    delete m_loadJob;
-                }
-                m_loadJob = nullptr;
-                jobProcessed = true;
-            }
-            else
-            {
-                if (bMotion)
-                {
-                    AZ_Printf("srvdbg", "Motion no job %s", m_assetData.GetHint().c_str());
-                    printf("srvdbg nj %s\n", m_assetData.GetHint().c_str());
-                }
+                AZ_Printf("srvdbg", "Motion pld %s", m_assetData.GetHint().c_str());
+                printf("srvdbg pld %s\n", m_assetData.GetHint().c_str());
             }
 
-            return jobProcessed;
+            {
+                AZStd::scoped_lock<AZStd::mutex> mutexLock(m_loadJobMutex);
+                bool jobProcessed = false;
+
+                if (m_loadJob)
+                {
+                    if (bMotion)
+                    {
+                        AZ_Printf("srvdbg", "Motion before process job %s", m_assetData.GetHint().c_str());
+                        printf("srvdbg bpj %s\n", m_assetData.GetHint().c_str());
+                    }
+
+                    m_loadJob->Process();
+                    if (m_loadJob->IsAutoDelete())
+                    {
+                        delete m_loadJob;
+                    }
+                    m_loadJob = nullptr;
+                    jobProcessed = true;
+                }
+                else
+                {
+                    if (bMotion)
+                    {
+                        AZ_Printf("srvdbg", "Motion no job %s", m_assetData.GetHint().c_str());
+                        printf("srvdbg nj %s\n", m_assetData.GetHint().c_str());
+                    }
+                }
+
+                return jobProcessed;
+            }
         }
 
         Asset<AssetData> m_assetData;
