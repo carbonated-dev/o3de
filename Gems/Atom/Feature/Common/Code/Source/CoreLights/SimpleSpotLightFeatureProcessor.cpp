@@ -20,6 +20,7 @@
 #include <AzCore/Math/Vector3.h>
 #include <numeric>
 
+//! If modified, ensure that r_maxVisibleSpotLights is equal to or lower than ENABLE_SIMPLE_SPOTLIGHTS_CAP which is the limit set by the shader on GPU.
 AZ_CVAR(int, r_maxVisibleSpotLights, -1, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Maximum number of visible spot lights to use when culling is not available. -1 means no limit");
 
 namespace AZ
@@ -431,13 +432,16 @@ namespace AZ
                 }
             }
 
-            // Update buffer and View SRG
-            GpuBufferHandler& bufferHandler = Render::LightCommon::GetOrCreateVisibleBuffer(
-                m_visibleSpotLightsBufferUsedCount,
-                m_visibleSpotLightsBufferHandlers,
+            //Create the appropriate buffer handlers for the visibility data
+            Render::LightCommon::UpdateVisibleBuffers(
                 "SimpleSpotLightVisibilityBuffer",
                 "m_visibleSimpleSpotLightIndices",
-                "m_visibleSimpleSpotLightCount");
+                "m_visibleSimpleSpotLightCount",
+                m_visibleSpotLightsBufferUsedCount,
+                m_visibleSpotLightsBufferHandlers);
+
+            // Update buffer and View SRG
+            GpuBufferHandler& bufferHandler = m_visibleSpotLightsBufferHandlers[m_visibleSpotLightsBufferUsedCount++];
             bufferHandler.UpdateBuffer(visibilityBuffer);
             bufferHandler.UpdateSrg(view->GetShaderResourceGroup().get());
         }

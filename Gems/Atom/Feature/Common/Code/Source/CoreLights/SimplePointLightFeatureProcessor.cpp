@@ -21,6 +21,7 @@
 #include <Atom/RPI.Public/View.h>
 #include <numeric>
 
+//! If modified, ensure that r_maxVisiblePointLights is equal to or lower than ENABLE_SIMPLE_POINTLIGHTS_CAP which is the limit set by the shader on GPU.
 AZ_CVAR(int, r_maxVisiblePointLights, -1, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Maximum number of visible point lights to use when culling is not available. -1 means no limit");
 
 namespace AZ
@@ -268,13 +269,16 @@ namespace AZ
                 }
             }
 
-            // Update buffer and View SRG
-            GpuBufferHandler& bufferHandler = Render::LightCommon::GetOrCreateVisibleBuffer(
-                m_visiblePointLightsBufferUsedCount,
-                m_visiblePointLightsBufferHandlers,
+            // Create the appropriate buffer handlers for the visibility data
+            Render::LightCommon::UpdateVisibleBuffers(
                 "SimplePointLightVisibilityBuffer",
                 "m_visibleSimplePointLightIndices",
-                "m_visibleSimplePointLightCount");
+                "m_visibleSimplePointLightCount",
+                m_visiblePointLightsBufferUsedCount,
+                m_visiblePointLightsBufferHandlers);
+
+            // Update buffer and View SRG
+            GpuBufferHandler& bufferHandler = m_visiblePointLightsBufferHandlers[m_visiblePointLightsBufferUsedCount++];
             bufferHandler.UpdateBuffer(visibilityBuffer);
             bufferHandler.UpdateSrg(view->GetShaderResourceGroup().get());
         }

@@ -35,25 +35,24 @@ namespace AZ::Render::LightCommon
     //! @param newView The new view triggered from view changes via OnRenderPipelinePersistentViewChanged
     //! @param previousView The previous view triggered from view changes via OnRenderPipelinePersistentViewChanged
     //! @param gpuCullingData - Update an Unordered set of Render Pipelines and views that will contain the LightCullingPass
-     void CacheGPUCullingPipelineInfo(
+    void CacheGPUCullingPipelineInfo(
         RPI::RenderPipeline* renderPipeline,
         RPI::ViewPtr newView,
         RPI::ViewPtr previousView,
         AZStd::unordered_set<AZStd::pair<const RPI::RenderPipeline*, const RPI::View*>>& gpuCullingData);
 
-     //! Get or create a buffer that will be used for visibility when doing CPU culling.
-     //! This function will be called for multiple views and as a result will create new buffers if the demand increases
-     //! @param visibleBufferUsedCount - Number of visible objects cached for the gpu buffer
-     //! @param visibleBufferHandlers - Handle to gpu buffers
-     //! @param bufferName - Gpu Buffer name
-     //! @param bufferSrgName - Gpu buffer srg name
-     //! @param elementCountSrgName - Count SRG name related to the number of objects represented by the buffer
-     GpuBufferHandler& GetOrCreateVisibleBuffer(
-         uint32_t& visibleBufferUsedCount,
-         AZStd::vector<GpuBufferHandler>& visibleBufferHandlers,
-         const AZStd::string_view& bufferName,
-         const AZStd::string_view& bufferSrgName,
-         const AZStd::string_view& elementCountSrgName);
+    //! Populate and cache multiple buffer handlers (one per view) that will be used to hold visibility data from cpu culling
+    //! @param inputBufferName - Gpu Buffer name
+    //! @param inputBufferSrgName - Gpu buffer srg name
+    //! @param inputElementCountSrgName - Count SRG name related to the number of objects represented by the buffer
+    //! @param inputVisibleBufferUsedCount - Number of buffers already cached per view
+    //! @param outputVisibleBufferHandlers - Handle to the vector gpu buffer handlers that needs to be populated
+    void UpdateVisibleBuffers(
+         const AZStd::string_view& inputBufferName,
+         const AZStd::string_view& inputBufferSrgName,
+         const AZStd::string_view& inputElementCountSrgName,
+         uint32_t inputVisibleBufferUsedCount,
+         AZStd::vector<GpuBufferHandler>& outputVisibleBufferHandlers);
 
 } // namespace AZ::Render::LightCommon
 

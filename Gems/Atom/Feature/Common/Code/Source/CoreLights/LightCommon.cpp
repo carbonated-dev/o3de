@@ -49,25 +49,24 @@ namespace AZ::Render::LightCommon
         }
     }
 
-    GpuBufferHandler& GetOrCreateVisibleBuffer(
-        uint32_t& visibleBufferUsedCount,
-        AZStd::vector<GpuBufferHandler>& visibleBufferHandlers,
-        const AZStd::string_view& bufferName,
-        const AZStd::string_view& bufferSrgName,
-        const AZStd::string_view& elementCountSrgName)
+    void UpdateVisibleBuffers(
+        const AZStd::string_view& inputBufferName,
+        const AZStd::string_view& inputBufferSrgName,
+        const AZStd::string_view& inputElementCountSrgName,
+        uint32_t inputVisibleBufferUsedCount,
+        AZStd::vector<GpuBufferHandler>& outputVisibleBufferHandlers)
     {
-        while (visibleBufferUsedCount >= visibleBufferHandlers.size())
+        while (inputVisibleBufferUsedCount >= outputVisibleBufferHandlers.size())
         {
             GpuBufferHandler::Descriptor desc;
-            desc.m_bufferName = bufferName;
-            desc.m_bufferSrgName = bufferSrgName;
-            desc.m_elementCountSrgName = elementCountSrgName;
+            desc.m_bufferName = inputBufferName;
+            desc.m_bufferSrgName = inputBufferSrgName;
+            desc.m_elementCountSrgName = inputElementCountSrgName;
             desc.m_elementFormat = AZ::RHI::Format::R32_UINT;
             desc.m_srgLayout = RPI::RPISystemInterface::Get()->GetViewSrgLayout().get();
 
-            visibleBufferHandlers.emplace_back(desc);
+            outputVisibleBufferHandlers.emplace_back(GpuBufferHandler(desc));
         }
-        return visibleBufferHandlers[visibleBufferUsedCount++];
     }
 
 } // namespace AZ::Render::LightCommon

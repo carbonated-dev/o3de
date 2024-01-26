@@ -26,6 +26,7 @@
 #include <AzCore/std/containers/span.h>
 #include <numeric>
 
+//! If modified, ensure that r_maxVisibleDecals is equal to or lower than ENABLE_DECALS_CAP which is the limit set by the shader on GPU.
 AZ_CVAR(int, r_maxVisibleDecals, -1, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Maximum number of visible decals to use when culling is not available. -1 means no limit");
 
 namespace AZ
@@ -661,13 +662,16 @@ namespace AZ
                 }
             }
 
-            // Update buffer and View SRG
-            GpuBufferHandler& bufferHandler = Render::LightCommon::GetOrCreateVisibleBuffer(
-                m_visibleDecalBufferUsedCount,
-                m_visibleDecalBufferHandlers,
+            // Create the appropriate buffer handlers for the visibility data
+            Render::LightCommon::UpdateVisibleBuffers(
                 "DecalVisibilityBuffer",
                 "m_visibleDecalIndices",
-                "m_visibleDecalCount");
+                "m_visibleDecalCount",
+                m_visibleDecalBufferUsedCount,
+                m_visibleDecalBufferHandlers);
+
+            // Update buffer and View SRG
+            GpuBufferHandler& bufferHandler = m_visibleDecalBufferHandlers[m_visibleDecalBufferUsedCount++];
             bufferHandler.UpdateBuffer(visibilityBuffer);
             bufferHandler.UpdateSrg(view->GetShaderResourceGroup().get());
         }
