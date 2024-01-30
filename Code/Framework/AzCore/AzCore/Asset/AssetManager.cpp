@@ -266,6 +266,7 @@ namespace AZ::Data
             // Track all blocking requests with the AssetManager.  This enables load jobs to potentially get routed
             // to the thread that's currently blocking waiting on the load job to complete.
             AssetManager::Instance().AddBlockingRequest(m_assetData.GetId(), this);
+            AZ_Printf("assetdbg", "br %s", m_assetData.GetHint().c_str());
         }
 
         ~WaitForAsset() override
