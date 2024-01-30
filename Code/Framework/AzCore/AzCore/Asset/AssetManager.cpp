@@ -234,8 +234,8 @@ namespace AZ::Data
                     AssetHandler::LoadResult result =
                         m_assetHandler->LoadAssetDataFromStream(asset, m_dataStream, m_loadParams.m_assetLoadFilterCB);
 
-                    AZ_Printf("assetdbg", "lfs %s, %d", assetName.c_str(), int(result));
-                    printf("lfs %s, %d\n", assetName.c_str(), int(result));
+                    AZ_Printf("assetdbg", "lfs %s, %d", asset.GetHint().c_str(), int(result));
+                    printf("lfs %s, %d\n", asset.GetHint().c_str(), int(result));
 
                     loadedSuccessfully = (result == AssetHandler::LoadResult::LoadComplete);
                 }
