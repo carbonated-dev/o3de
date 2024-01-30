@@ -331,6 +331,7 @@ set(FILES
     ShaderResourceGroups/CoreLights/SceneSrg.azsli
     ShaderResourceGroups/CoreLights/ViewSrg.azsli
     ShaderResourceGroups/Decals/ViewSrg.azsli
+    ShaderResourceGroups/Fog/SceneSrg.azsli
     ShaderResourceGroups/PostProcessing/SceneSrg.azsli
     ShaderResourceGroups/PostProcessing/ViewSrg.azsli
     ShaderResourceGroups/SkyBox/SceneSrg.azsli
