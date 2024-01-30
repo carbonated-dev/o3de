@@ -177,6 +177,7 @@ namespace AZ::Data
             }
             else
             {
+                AZ_Printf("assetdbg", "pr %s", asset.GetHint().c_str());
 
                 AZ_PROFILE_SCOPE(AzCore, "AZ::Data::LoadAssetJob::Process: %s",
                     asset.GetHint().c_str());
@@ -305,6 +306,7 @@ namespace AZ::Data
             AZ_Assert(!m_loadJob, "Trying to process multiple load jobs for the same asset with the same blocking handler.");
             if (!m_loadJob)
             {
+                AZ_Printf("assetdbg", "j %s", m_assetData.GetHint().c_str());
                 m_loadJob = loadJob;
                 m_waitEvent.release();
                 return true;
@@ -315,6 +317,7 @@ namespace AZ::Data
 
         void OnLoadComplete() override
         {
+            AZ_Printf("assetdbg", "lc %s", m_assetData.GetHint().c_str());
             Finish();
         }
 
@@ -1846,6 +1849,10 @@ namespace AZ::Data
                 if (jobQueued)
                 {
                     AZ_Printf("assetdbg", "queued %s", assetName.c_str());
+                }
+                else if (assetName.ends_with(".imagemipchain"))
+                {
+                    AZ_Printf("assetdbg", "not queued %s", assetName.c_str());
                 }
                 if (!jobQueued && (assetName.ends_with(".motion") || (assetName.ends_with(".spawnable") && assetName.starts_with("levels"))))
                 {
