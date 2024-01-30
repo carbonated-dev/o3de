@@ -177,7 +177,7 @@ namespace AZ::Data
             }
             else
             {
-                if (asset.GetHint().ends_with(".imagemipchain"))
+                if (asset.GetHint().ends_with(".1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "pr %s", asset.GetHint().c_str());
                     //printf("pr %s\n", asset.GetHint().c_str());
@@ -237,7 +237,7 @@ namespace AZ::Data
                     AssetHandler::LoadResult result =
                         m_assetHandler->LoadAssetDataFromStream(asset, m_dataStream, m_loadParams.m_assetLoadFilterCB);
 
-                    if (asset.GetHint().ends_with(".imagemipchain"))
+                    if (asset.GetHint().ends_with(".1003.imagemipchain"))
                     {
                         AZ_Printf("assetdbg", "lfs %s, %d", asset.GetHint().c_str(), int(result));
                         //printf("lfs %s, %d\n", asset.GetHint().c_str(), int(result));
@@ -302,11 +302,6 @@ namespace AZ::Data
         {
             if(m_shouldDispatchEvents)
             {
-                if (m_assetData.GetHint().ends_with(".imagemipchain"))
-                {
-                    AZ_Printf("assetdbg", "dsp %s", m_assetData.GetHint().c_str());
-                    //printf("dsp %s\n", m_assetData.GetHint().c_str());
-                }
                 // Any load job that is going to be dispatching events should not accept additional work since dispatching events
                 // can lead to more code that's blocking on an asset load which prevents us from finishing the dispatch
                 // and doing the assigned work.
@@ -321,7 +316,7 @@ namespace AZ::Data
             AZ_Assert(!m_loadJob, "Trying to process multiple load jobs for the same asset with the same blocking handler.");
             if (!m_loadJob)
             {
-                if (m_assetData.GetHint().ends_with(".imagemipchain"))
+                if (m_assetData.GetHint().ends_with(".1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "j %s", m_assetData.GetHint().c_str());
                     //printf("j %s\n", m_assetData.GetHint().c_str());
@@ -336,7 +331,7 @@ namespace AZ::Data
 
         void OnLoadComplete() override
         {
-            if (m_assetData.GetHint().ends_with(".imagemipchain"))
+            if (m_assetData.GetHint().ends_with(".1003.imagemipchain"))
             {
                 AZ_Printf("assetdbg", "lc %s", m_assetData.GetHint().c_str());
                 //printf("lc %s\n", m_assetData.GetHint().c_str());
@@ -366,7 +361,7 @@ namespace AZ::Data
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
             AZ_Printf("assetdbg", "b %s,%d", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
-            if (m_assetData.GetHint().ends_with(".imagemipchain"))
+            if (m_assetData.GetHint().ends_with(".1003.imagemipchain"))
             {
                 //printf("b %s,%d\n", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
             }
@@ -415,7 +410,7 @@ namespace AZ::Data
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
             AZ_Printf("assetdbg", "e %s", m_assetData.GetHint().c_str());
-            if (m_assetData.GetHint().ends_with(".imagemipchain"))
+            if (m_assetData.GetHint().ends_with(".1003.imagemipchain"))
             {
                 //printf("e %s\n", m_assetData.GetHint().c_str());
             }
@@ -2426,7 +2421,7 @@ namespace AZ::Data
 
         if (assetHandler)
         {
-            if (asset.GetHint().ends_with(".imagemipchain"))
+            if (asset.GetHint().ends_with(".1003.imagemipchain"))
             {
                 AZ_Printf("assetdbg", "ia %s", asset.GetHint().c_str());
                 //printf("ia %s\n", asset.GetHint().c_str());
