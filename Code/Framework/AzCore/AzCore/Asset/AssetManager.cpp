@@ -338,7 +338,7 @@ namespace AZ::Data
 
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
-            AZ_Printf("assetdbg", "b %s", m_assetData.GetHint().c_str());
+            AZ_Printf("assetdbg", "b %s,%d", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
 #endif
             // Gruber patch end // AE -- FIXME track asset blocking requests
 
@@ -1842,7 +1842,7 @@ namespace AZ::Data
 // Gruber patch begin // AE -- FIXME delay for motion assets, they are blocking, but a request might be not ready yet
 #if defined(CARBONATED) && defined(AZ_PLATFORM_LINUX)
                 const AZStd::string& assetName = loadingAsset.GetHint();
-                if (!jobQueued && (assetName.ends_with(".motion") || assetName.ends_with(".imagemipchain") || (assetName.ends_with(".spawnable") && assetName.starts_with("levels"))))
+                if (!jobQueued && (assetName.ends_with(".motion") || (assetName.ends_with(".spawnable") && assetName.starts_with("levels"))))
                 {
                     AZStd::this_thread::sleep_for(AZStd::chrono::milliseconds(10));  // 2ms is not enough for local
 
