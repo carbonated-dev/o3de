@@ -178,6 +178,7 @@ namespace AZ::Data
             else
             {
                 AZ_Printf("assetdbg", "pr %s", asset.GetHint().c_str());
+                printf("pr %s\n", asset.GetHint().c_str());
 
                 AZ_PROFILE_SCOPE(AzCore, "AZ::Data::LoadAssetJob::Process: %s",
                     asset.GetHint().c_str());
@@ -268,6 +269,7 @@ namespace AZ::Data
             // to the thread that's currently blocking waiting on the load job to complete.
             AssetManager::Instance().AddBlockingRequest(m_assetData.GetId(), this);
             AZ_Printf("assetdbg", "br %s", m_assetData.GetHint().c_str());
+            printf("br %s\n", m_assetData.GetHint().c_str());
         }
 
         ~WaitForAsset() override
@@ -307,6 +309,7 @@ namespace AZ::Data
             if (!m_loadJob)
             {
                 AZ_Printf("assetdbg", "j %s", m_assetData.GetHint().c_str());
+                printf("j %s\n", m_assetData.GetHint().c_str());
                 m_loadJob = loadJob;
                 m_waitEvent.release();
                 return true;
@@ -318,6 +321,7 @@ namespace AZ::Data
         void OnLoadComplete() override
         {
             AZ_Printf("assetdbg", "lc %s", m_assetData.GetHint().c_str());
+            printf("lc %s\n", m_assetData.GetHint().c_str());
             Finish();
         }
 
@@ -343,6 +347,7 @@ namespace AZ::Data
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
             AZ_Printf("assetdbg", "b %s,%d", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
+            printf("b %s,%d\n", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
 #endif
             // Gruber patch end // AE -- FIXME track asset blocking requests
 
@@ -388,6 +393,7 @@ namespace AZ::Data
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
             AZ_Printf("assetdbg", "e %s", m_assetData.GetHint().c_str());
+            printf("e %s\n", m_assetData.GetHint().c_str());
 #endif
             // Gruber patch end // AE -- FIXME track asset blocking requests
         }
@@ -1849,10 +1855,12 @@ namespace AZ::Data
                 if (jobQueued)
                 {
                     AZ_Printf("assetdbg", "queued %s", assetName.c_str());
+                    printf("queued %s\n", assetName.c_str());
                 }
                 else if (assetName.ends_with(".imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "not queued %s", assetName.c_str());
+                    printf("not queued %s\n", assetName.c_str());
                 }
                 if (!jobQueued && (assetName.ends_with(".motion") || (assetName.ends_with(".spawnable") && assetName.starts_with("levels"))))
                 {
@@ -1867,6 +1875,7 @@ namespace AZ::Data
                             if (blockingRequest->second->QueueAssetLoadJob(loadJob))
                             {
                                 AZ_Printf("assetdbg", "fixed %s", loadingAsset.GetHint().c_str());
+                                printf("fixed %s\n", loadingAsset.GetHint().c_str());
                                 jobQueued = true;
                                 break;
                             }
@@ -1876,6 +1885,7 @@ namespace AZ::Data
                     if (!jobQueued)
                     {
                         AZ_Printf("assetdbg", "not fixed %s", loadingAsset.GetHint().c_str());
+                        printf("not fixed %s\n", loadingAsset.GetHint().c_str());
                     }
                 }
 #endif
