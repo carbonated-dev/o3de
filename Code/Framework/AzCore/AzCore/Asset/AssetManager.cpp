@@ -233,6 +233,10 @@ namespace AZ::Data
                 {
                     AssetHandler::LoadResult result =
                         m_assetHandler->LoadAssetDataFromStream(asset, m_dataStream, m_loadParams.m_assetLoadFilterCB);
+
+                    AZ_Printf("assetdbg", "lfs %s, %d", assetName.c_str(), int(result));
+                    printf("lfs %s, %d\n", assetName.c_str(), int(result));
+
                     loadedSuccessfully = (result == AssetHandler::LoadResult::LoadComplete);
                 }
             }
@@ -294,6 +298,8 @@ namespace AZ::Data
         {
             if(m_shouldDispatchEvents)
             {
+                AZ_Printf("assetdbg", "dsp %s", m_assetData.GetHint().c_str());
+                printf("dsp %s\n", m_assetData.GetHint().c_str());
                 // Any load job that is going to be dispatching events should not accept additional work since dispatching events
                 // can lead to more code that's blocking on an asset load which prevents us from finishing the dispatch
                 // and doing the assigned work.
@@ -1862,7 +1868,7 @@ namespace AZ::Data
                     AZ_Printf("assetdbg", "not queued %s", assetName.c_str());
                     printf("not queued %s\n", assetName.c_str());
                 }
-                if (!jobQueued && (assetName.ends_with(".motion") || (assetName.ends_with(".spawnable") && assetName.starts_with("levels"))))
+                if (!jobQueued && assetName.ends_with(".motion"))
                 {
                     AZStd::this_thread::sleep_for(AZStd::chrono::milliseconds(10));  // 2ms is not enough for local
 
@@ -2411,6 +2417,8 @@ namespace AZ::Data
 
         if (assetHandler)
         {
+            AZ_Printf("assetdbg", "ia %s", asset.GetHint().c_str());
+            printf("ia %s\n", asset.GetHint().c_str());
             // Queue the result for dispatch to main thread.
             assetHandler->InitAsset(asset, loadSucceeded, isReload);
         }
