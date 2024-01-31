@@ -16,6 +16,8 @@ namespace AZ
 {
     Job::Job(bool isAutoDelete, AZ::JobContext* context, bool isCompletion, AZ::s8 priority)
     {
+        bDebug = false;
+
         if (context)
         {
             m_context = context;
@@ -250,6 +252,10 @@ namespace AZ
         unsigned int countAndFlags = m_dependentCountAndFlags.fetch_sub(1, AZStd::memory_order_acq_rel);
     #endif
         unsigned int count = countAndFlags & FLAG_DEPENDENTCOUNT_MASK;
+        if (bDebug)
+        {
+            AZ_Printf("assetdbg", "Job count=%u, countAndFlags=%x", count, countAndFlags);
+        }
         if (count == 1)
         {
             if (!(countAndFlags & FLAG_CHILD_JOBS))
@@ -258,6 +264,10 @@ namespace AZ
                 AZ_Assert(m_state == STATE_STARTED, "Job has not been started but the dependent count is zero, must be a dependency error");
                 SetState(STATE_PENDING);
     #endif
+                if (bDebug)
+                {
+                    AZ_Printf("assetdbg", "Add pending job", count, countAndFlags);
+                }
                 m_context->GetJobManager().AddPendingJob(this);
             }
         }

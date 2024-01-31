@@ -176,6 +176,8 @@ namespace AZ
         int GetState() const    { return m_state; }
 #endif // AZ_DEBUG_JOB_STATE
 
+        bool bDebug;
+
     protected:
 
         /// Override to implement your processing.

@@ -127,6 +127,11 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
 
     if (job->IsCompletion())
     {
+        if (job->bDebug)
+        {
+            AZ_Printf("assetdbg", "Job IsCompletion");
+        }
+
         // This is a completion job.  Process it in place, as it only signals (no work).
         AZ::Job* currentJob = nullptr;
         if (info)
@@ -145,6 +150,11 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
     }
     else if (info && info->m_isWorker && (info->m_owningManager == this))
     {
+        if (job->bDebug)
+        {
+            AZ_Printf("assetdbg", "Job ActivateWorker");
+        }
+
         //current thread is a worker, insert into the local queue based on the job's priority
         info->m_pendingJobs.LocalInsert(job);
 #ifdef JOBMANAGER_ENABLE_STATS
@@ -155,7 +165,12 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
     }
     else
     {
-        //current thread is not a worker thread, insert into the global queue based on the job's priority
+        if (job->bDebug)
+        {
+            AZ_Printf("assetdbg", "Job else, IsAsync %d", IsAsynchronous());
+        }
+
+        // current thread is not a worker thread, insert into the global queue based on the job's priority
         if (IsAsynchronous())
         {
             AZStd::lock_guard<GlobalQueueMutexType> lock(m_globalJobQueueMutex);
@@ -182,7 +197,19 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
             //no workers, so must process the jobs right now
             if (!info)  //unless we're already processing
             {
+                if (job->bDebug)
+                {
+                    AZ_Printf("assetdbg", "Job process now");
+                }
+
                 ProcessJobsSynchronous(GetCurrentOrCreateThreadInfo(), nullptr, nullptr);
+            }
+            else
+            {
+                if (job->bDebug)
+                {
+                    AZ_Printf("assetdbg", "Job already processing");
+                }
             }
         }
     }

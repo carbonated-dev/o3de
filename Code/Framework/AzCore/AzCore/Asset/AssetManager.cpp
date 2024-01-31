@@ -159,10 +159,19 @@ namespace AZ::Data
         {
             Asset<AssetData> asset = m_asset.GetStrongReference();
 
+            if (asset.GetHint().ends_with(".1003.imagemipchain"))
+            {
+                AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());
+            }
+
             // Verify that we didn't somehow get here after the Asset Manager has finished shutting down.
             AZ_Assert(AssetManager::IsReady(), "Asset Manager shutdown didn't clean up pending asset loads properly.");
             if (!AssetManager::IsReady())
             {
+                if (asset.GetHint().ends_with(".1003.imagemipchain"))
+                {
+                    AZ_Printf("assetdbg", "nr %s", asset.GetHint().c_str());
+                }
                 return;
             }
 
@@ -172,6 +181,10 @@ namespace AZ::Data
 
             if (shouldCancel)
             {
+                if (asset.GetHint().ends_with(".1003.imagemipchain"))
+                {
+                    AZ_Printf("assetdbg", "cl %s", asset.GetHint().c_str());
+                }
                 BlockingAssetLoadBus::Event(m_asset.GetId(), &BlockingAssetLoadBus::Events::OnLoadCanceled, m_asset.GetId());
                 AssetManagerBus::Broadcast(&AssetManagerBus::Events::OnAssetCanceled, m_asset.GetId());
             }
@@ -1902,6 +1915,10 @@ namespace AZ::Data
 // Gruber patch end // AE -- FIXME delay for motion assets, they are blocking, but a request might be not ready yet
                 if (!jobQueued)
                 {
+                    if (loadingAsset.GetHint().ends_with(".1003.imagemipchain"))
+                    {
+                        loadJob->bDebug = true;
+                    }
                     loadJob->Start();
                 }
             }
