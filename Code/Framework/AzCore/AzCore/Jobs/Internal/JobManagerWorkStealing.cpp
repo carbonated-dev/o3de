@@ -199,7 +199,7 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
             {
                 if (job->bDebug)
                 {
-                    AZ_Printf("assetdbg", "Job %p process now", job);
+                    AZ_Printf("assetdbg", "Job %p process sync", job);
                 }
 
                 ProcessJobsSynchronous(GetCurrentOrCreateThreadInfo(), nullptr, nullptr);

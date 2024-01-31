@@ -266,7 +266,7 @@ namespace AZ
     #endif
                 if (bDebug)
                 {
-                    AZ_Printf("assetdbg", "Add pending job %p", this);
+                    AZ_Printf("assetdbg", "Job %p add pending", this);
                 }
                 m_context->GetJobManager().AddPendingJob(this);
             }
