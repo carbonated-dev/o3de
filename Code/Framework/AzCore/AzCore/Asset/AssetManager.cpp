@@ -159,19 +159,19 @@ namespace AZ::Data
         {
             Asset<AssetData> asset = m_asset.GetStrongReference();
 
-            if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+            /*if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
             {
                 AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());
-            }
+            }*/
 
             // Verify that we didn't somehow get here after the Asset Manager has finished shutting down.
             AZ_Assert(AssetManager::IsReady(), "Asset Manager shutdown didn't clean up pending asset loads properly.");
             if (!AssetManager::IsReady())
             {
-                if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                /*if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "Not ready %s", asset.GetHint().c_str());
-                }
+                }*/
                 return;
             }
 
@@ -181,19 +181,19 @@ namespace AZ::Data
 
             if (shouldCancel)
             {
-                if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                /*if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "Cancel %s", asset.GetHint().c_str());
-                }
+                }*/
                 BlockingAssetLoadBus::Event(m_asset.GetId(), &BlockingAssetLoadBus::Events::OnLoadCanceled, m_asset.GetId());
                 AssetManagerBus::Broadcast(&AssetManagerBus::Events::OnAssetCanceled, m_asset.GetId());
             }
             else
             {
-                if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                /*if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "Do it %s", asset.GetHint().c_str());
-                }
+                }*/
 
                 AZ_PROFILE_SCOPE(AzCore, "AZ::Data::LoadAssetJob::Process: %s",
                     asset.GetHint().c_str());
@@ -249,10 +249,10 @@ namespace AZ::Data
                     AssetHandler::LoadResult result =
                         m_assetHandler->LoadAssetDataFromStream(asset, m_dataStream, m_loadParams.m_assetLoadFilterCB);
 
-                    if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                    /*if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                     {
                         AZ_Printf("assetdbg", "Fully loaded %s, %d", asset.GetHint().c_str(), int(result));
-                    }
+                    }*/
 
                     loadedSuccessfully = (result == AssetHandler::LoadResult::LoadComplete);
                 }
@@ -327,10 +327,10 @@ namespace AZ::Data
             AZ_Assert(!m_loadJob, "Trying to process multiple load jobs for the same asset with the same blocking handler.");
             if (!m_loadJob)
             {
-                if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                /*if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "Set job and release %s", m_assetData.GetHint().c_str());
-                }
+                }*/
                 m_loadJob = loadJob;
                 m_waitEvent.release();
                 return true;
@@ -341,10 +341,10 @@ namespace AZ::Data
 
         void OnLoadComplete() override
         {
-            if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+            /*if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
             {
                 AZ_Printf("assetdbg", "OnLoadComplete %s", m_assetData.GetHint().c_str());
-            }
+            }*/
             Finish();
         }
 
@@ -417,8 +417,8 @@ namespace AZ::Data
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
             AZ_Printf("assetdbg", "e %s", m_assetData.GetHint().c_str());
-            if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
-                printf("assetdbg e %s\n", m_assetData.GetHint().c_str());
+            //if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+            //    printf("assetdbg e %s\n", m_assetData.GetHint().c_str());
 #endif
             // Gruber patch end // AE -- FIXME track asset blocking requests
         }
@@ -1839,10 +1839,10 @@ namespace AZ::Data
 
             if (loadingAsset)
             {
-                if (loadingAsset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                /*if (loadingAsset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "assetDataStreamCallback %s", loadingAsset.GetHint().c_str());
-                }
+                }*/
 
                 AZ_PROFILE_SCOPE(AzCore, "AZ::Data::LoadAssetStreamerCallback %s",
                     loadingAsset.GetHint().c_str());
@@ -1910,11 +1910,11 @@ namespace AZ::Data
 // Gruber patch end // AE -- FIXME delay for motion assets, they are blocking, but a request might be not ready yet
                 if (!jobQueued)
                 {
-                    if (loadingAsset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                    /*if (loadingAsset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                     {
                         //AZ_Printf("assetdbg", "not queued %s", loadingAsset.GetHint().c_str());
                         loadJob->bDebug = true;
-                    }
+                    }*/
                     loadJob->Start();
                 }
             }
@@ -2434,10 +2434,10 @@ namespace AZ::Data
 
         if (assetHandler)
         {
-            if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+            /*if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
             {
-                AZ_Printf("assetdbg", "ia %s", asset.GetHint().c_str());
-            }
+                AZ_Printf("assetdbg", "InitAsset %s", asset.GetHint().c_str());
+            }*/
             // Queue the result for dispatch to main thread.
             assetHandler->InitAsset(asset, loadSucceeded, isReload);
         }
