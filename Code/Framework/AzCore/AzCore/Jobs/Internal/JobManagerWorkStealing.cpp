@@ -129,7 +129,8 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
     {
         if (job->bDebug)
         {
-            printf("assetdbg Job %p IsCompletion\n", job);
+            AZ_Printf("assetdbg", "Job %p IsCompletion", job);
+            //printf("assetdbg Job %p IsCompletion\n", job);
         }
 
         // This is a completion job.  Process it in place, as it only signals (no work).
@@ -152,7 +153,8 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
     {
         if (job->bDebug)
         {
-            printf("assetdbg Job %p ActivateWorker\n", job);
+            AZ_Printf("assetdbg", "Job %p ActivateWorker", job);
+            //printf("assetdbg Job %p ActivateWorker\n", job);
         }
 
         //current thread is a worker, insert into the local queue based on the job's priority
@@ -167,7 +169,8 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
     {
         if (job->bDebug)
         {
-            printf("assetdbg Job %p else, IsAsync %d\n", job, IsAsynchronous());
+            AZ_Printf("assetdbg", "Job %p else, IsAsync %d", job, IsAsynchronous());
+            //printf("assetdbg Job %p else, IsAsync %d\n", job, IsAsynchronous());
         }
 
         // current thread is not a worker thread, insert into the global queue based on the job's priority
@@ -199,7 +202,8 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
             {
                 if (job->bDebug)
                 {
-                    printf("assetdbg Job %p process sync\n", job);
+                    AZ_Printf("assetdbg", "Job %p process sync", job);
+                    //printf("assetdbg Job %p process sync\n", job);
                 }
 
                 ProcessJobsSynchronous(GetCurrentOrCreateThreadInfo(), nullptr, nullptr);
@@ -208,7 +212,8 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
             {
                 if (job->bDebug)
                 {
-                    printf("assetdbg Job %p already processing\n", job);
+                    AZ_Printf("assetdbg", "Job %p already processing", job);
+                    //printf("assetdbg Job %p already processing\n", job);
                 }
             }
         }
