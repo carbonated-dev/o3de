@@ -129,7 +129,7 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
     {
         if (job->bDebug)
         {
-            AZ_Printf("assetdbg", "Job %p IsCompletion", job);
+            //AZ_Printf("assetdbg", "Job %p IsCompletion", job);
             //printf("assetdbg Job %p IsCompletion\n", job);
         }
 
@@ -153,7 +153,7 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
     {
         if (job->bDebug)
         {
-            AZ_Printf("assetdbg", "Job %p ActivateWorker", job);
+            //AZ_Printf("assetdbg", "Job %p ActivateWorker", job);
             //printf("assetdbg Job %p ActivateWorker\n", job);
         }
 
@@ -169,7 +169,7 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
     {
         if (job->bDebug)
         {
-            AZ_Printf("assetdbg", "Job %p else, IsAsync %d", job, IsAsynchronous());
+            //AZ_Printf("assetdbg", "Job %p else, IsAsync %d", job, IsAsynchronous());
             //printf("assetdbg Job %p else, IsAsync %d\n", job, IsAsynchronous());
         }
 
@@ -202,7 +202,7 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
             {
                 if (job->bDebug)
                 {
-                    AZ_Printf("assetdbg", "Job %p process sync", job);
+                    //AZ_Printf("assetdbg", "Job %p process sync", job);
                     //printf("assetdbg Job %p process sync\n", job);
                 }
 
@@ -212,7 +212,7 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
             {
                 if (job->bDebug)
                 {
-                    AZ_Printf("assetdbg", "Job %p already processing", job);
+                    //AZ_Printf("assetdbg", "Job %p already processing", job);
                     //printf("assetdbg Job %p already processing\n", job);
                 }
             }
