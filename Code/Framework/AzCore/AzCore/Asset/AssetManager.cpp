@@ -1847,6 +1847,11 @@ namespace AZ::Data
 
             if (loadingAsset)
             {
+                if (loadingAsset.GetHint().ends_with(".1003.imagemipchain"))
+                {
+                    AZ_Printf("assetdbg", "assetDataStreamCallback %s", loadingAsset.GetHint().c_str());
+                }
+
                 AZ_PROFILE_SCOPE(AzCore, "AZ::Data::LoadAssetStreamerCallback %s",
                     loadingAsset.GetHint().c_str());
                 {
