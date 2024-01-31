@@ -176,7 +176,7 @@ namespace AZ
         int GetState() const    { return m_state; }
 #endif // AZ_DEBUG_JOB_STATE
 
-        bool bDebug;
+        //bool bDebug;
 
     protected:
 
