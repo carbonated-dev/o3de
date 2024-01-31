@@ -170,7 +170,7 @@ namespace AZ::Data
             {
                 if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
-                    AZ_Printf("assetdbg", "nr %s", asset.GetHint().c_str());
+                    AZ_Printf("assetdbg", "Not ready %s", asset.GetHint().c_str());
                 }
                 return;
             }
@@ -183,7 +183,7 @@ namespace AZ::Data
             {
                 if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
-                    AZ_Printf("assetdbg", "cl %s", asset.GetHint().c_str());
+                    AZ_Printf("assetdbg", "Cancel %s", asset.GetHint().c_str());
                 }
                 BlockingAssetLoadBus::Event(m_asset.GetId(), &BlockingAssetLoadBus::Events::OnLoadCanceled, m_asset.GetId());
                 AssetManagerBus::Broadcast(&AssetManagerBus::Events::OnAssetCanceled, m_asset.GetId());
@@ -192,7 +192,7 @@ namespace AZ::Data
             {
                 if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
-                    AZ_Printf("assetdbg", "pr %s", asset.GetHint().c_str());
+                    AZ_Printf("assetdbg", "Do it %s", asset.GetHint().c_str());
                 }
 
                 AZ_PROFILE_SCOPE(AzCore, "AZ::Data::LoadAssetJob::Process: %s",
@@ -251,7 +251,7 @@ namespace AZ::Data
 
                     if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                     {
-                        AZ_Printf("assetdbg", "lfs %s, %d", asset.GetHint().c_str(), int(result));
+                        AZ_Printf("assetdbg", "Fully loaded %s, %d", asset.GetHint().c_str(), int(result));
                     }
 
                     loadedSuccessfully = (result == AssetHandler::LoadResult::LoadComplete);
@@ -329,7 +329,7 @@ namespace AZ::Data
             {
                 if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
-                    AZ_Printf("assetdbg", "j %s", m_assetData.GetHint().c_str());
+                    AZ_Printf("assetdbg", "Set job and release %s", m_assetData.GetHint().c_str());
                 }
                 m_loadJob = loadJob;
                 m_waitEvent.release();
@@ -343,7 +343,7 @@ namespace AZ::Data
         {
             if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
             {
-                AZ_Printf("assetdbg", "lc %s", m_assetData.GetHint().c_str());
+                AZ_Printf("assetdbg", "OnLoadComplete %s", m_assetData.GetHint().c_str());
             }
             Finish();
         }
@@ -369,8 +369,8 @@ namespace AZ::Data
 
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
-            if (m_assetData.GetHint().starts_with("aoecircle.tga.1003.imagemipchain"))
-                AZ_Printf("assetdbg", "b %s,%d", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
+            //if (m_assetData.GetHint().starts_with("aoecircle.tga.1003.imagemipchain"))
+            AZ_Printf("assetdbg", "b %s,%d", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
 #endif
             // Gruber patch end // AE -- FIXME track asset blocking requests
 
@@ -415,8 +415,8 @@ namespace AZ::Data
 
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
-            if (m_assetData.GetHint().starts_with("aoecircle.tga.1003.imagemipchain"))
-                AZ_Printf("assetdbg", "e %s", m_assetData.GetHint().c_str());
+            //if (m_assetData.GetHint().starts_with("aoecircle.tga.1003.imagemipchain"))
+            AZ_Printf("assetdbg", "e %s", m_assetData.GetHint().c_str());
 #endif
             // Gruber patch end // AE -- FIXME track asset blocking requests
         }
