@@ -168,10 +168,10 @@ namespace AZ::Data
             AZ_Assert(AssetManager::IsReady(), "Asset Manager shutdown didn't clean up pending asset loads properly.");
             if (!AssetManager::IsReady())
             {
-                if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                /*if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "Not ready %s", asset.GetHint().c_str());
-                }
+                }*/
                 return;
             }
 
@@ -181,19 +181,19 @@ namespace AZ::Data
 
             if (shouldCancel)
             {
-                if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                /*if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "Cancel %s", asset.GetHint().c_str());
-                }
+                }*/
                 BlockingAssetLoadBus::Event(m_asset.GetId(), &BlockingAssetLoadBus::Events::OnLoadCanceled, m_asset.GetId());
                 AssetManagerBus::Broadcast(&AssetManagerBus::Events::OnAssetCanceled, m_asset.GetId());
             }
             else
             {
-                if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                /*if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "Do it %s", asset.GetHint().c_str());
-                }
+                }*/
 
                 AZ_PROFILE_SCOPE(AzCore, "AZ::Data::LoadAssetJob::Process: %s",
                     asset.GetHint().c_str());
@@ -220,20 +220,20 @@ namespace AZ::Data
 
             if (m_signalLoaded && loadSucceeded)
             {
-                if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                /*if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "Event %s", asset.GetHint().c_str());
-                }
+                }*/
 
                 // This asset has preload dependencies, we need to evaluate whether they're all ready before calling PostLoad
                 AssetLoadBus::Event(asset.GetId(), &AssetLoadBus::Events::OnAssetDataLoaded, asset);
             }
             else
             {
-                if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                /*if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "Postload %s", asset.GetHint().c_str());
-                }
+                }*/
 
                 // As long as we don't need to signal preload dependencies, just finish the load whether or not it was successful.
                 m_owner->PostLoad(asset, loadSucceeded, m_isReload, m_assetHandler);
@@ -1922,7 +1922,7 @@ namespace AZ::Data
                 {
                     if (loadingAsset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                     {
-                        AZ_Printf("assetdbg", "not queued %s", loadingAsset.GetHint().c_str());
+                        //AZ_Printf("assetdbg", "not queued %s", loadingAsset.GetHint().c_str());
                         //loadJob->bDebug = true;
                         loadJob->pDebugJob = loadJob;
                     }
