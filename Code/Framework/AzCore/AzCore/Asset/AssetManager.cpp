@@ -159,7 +159,7 @@ namespace AZ::Data
         {
             Asset<AssetData> asset = m_asset.GetStrongReference();
 
-            if (asset.GetHint().ends_with(".1003.imagemipchain"))
+            if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
             {
                 AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());
             }
@@ -168,7 +168,7 @@ namespace AZ::Data
             AZ_Assert(AssetManager::IsReady(), "Asset Manager shutdown didn't clean up pending asset loads properly.");
             if (!AssetManager::IsReady())
             {
-                if (asset.GetHint().ends_with(".1003.imagemipchain"))
+                if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "nr %s", asset.GetHint().c_str());
                 }
@@ -181,7 +181,7 @@ namespace AZ::Data
 
             if (shouldCancel)
             {
-                if (asset.GetHint().ends_with(".1003.imagemipchain"))
+                if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "cl %s", asset.GetHint().c_str());
                 }
@@ -190,7 +190,7 @@ namespace AZ::Data
             }
             else
             {
-                if (asset.GetHint().ends_with(".1003.imagemipchain"))
+                if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "pr %s", asset.GetHint().c_str());
                     //printf("pr %s\n", asset.GetHint().c_str());
@@ -250,7 +250,7 @@ namespace AZ::Data
                     AssetHandler::LoadResult result =
                         m_assetHandler->LoadAssetDataFromStream(asset, m_dataStream, m_loadParams.m_assetLoadFilterCB);
 
-                    if (asset.GetHint().ends_with(".1003.imagemipchain"))
+                    if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                     {
                         AZ_Printf("assetdbg", "lfs %s, %d", asset.GetHint().c_str(), int(result));
                         //printf("lfs %s, %d\n", asset.GetHint().c_str(), int(result));
@@ -329,7 +329,7 @@ namespace AZ::Data
             AZ_Assert(!m_loadJob, "Trying to process multiple load jobs for the same asset with the same blocking handler.");
             if (!m_loadJob)
             {
-                if (m_assetData.GetHint().ends_with(".1003.imagemipchain"))
+                if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "j %s", m_assetData.GetHint().c_str());
                     //printf("j %s\n", m_assetData.GetHint().c_str());
@@ -344,7 +344,7 @@ namespace AZ::Data
 
         void OnLoadComplete() override
         {
-            if (m_assetData.GetHint().ends_with(".1003.imagemipchain"))
+            if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
             {
                 AZ_Printf("assetdbg", "lc %s", m_assetData.GetHint().c_str());
                 //printf("lc %s\n", m_assetData.GetHint().c_str());
@@ -1847,7 +1847,7 @@ namespace AZ::Data
 
             if (loadingAsset)
             {
-                if (loadingAsset.GetHint().ends_with(".1003.imagemipchain"))
+                if (loadingAsset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "assetDataStreamCallback %s", loadingAsset.GetHint().c_str());
                 }
@@ -2444,7 +2444,7 @@ namespace AZ::Data
 
         if (assetHandler)
         {
-            if (asset.GetHint().ends_with(".1003.imagemipchain"))
+            if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
             {
                 AZ_Printf("assetdbg", "ia %s", asset.GetHint().c_str());
                 //printf("ia %s\n", asset.GetHint().c_str());
