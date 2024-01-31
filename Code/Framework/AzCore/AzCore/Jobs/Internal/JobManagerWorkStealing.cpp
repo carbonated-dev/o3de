@@ -167,11 +167,11 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
     }
     else
     {
-        /*if (job->bDebug)
+        if (job->pDebugJob == job)
         {
-            //AZ_Printf("assetdbg", "Job %p else, IsAsync %d", job, IsAsynchronous());
+            AZ_Printf("assetdbg", "Job %p else, IsAsync %d", job, IsAsynchronous());
             //printf("assetdbg Job %p else, IsAsync %d\n", job, IsAsynchronous());
-        }*/
+        }
 
         // current thread is not a worker thread, insert into the global queue based on the job's priority
         if (IsAsynchronous())

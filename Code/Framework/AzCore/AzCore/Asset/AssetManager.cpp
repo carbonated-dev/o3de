@@ -1910,11 +1910,12 @@ namespace AZ::Data
 // Gruber patch end // AE -- FIXME delay for motion assets, they are blocking, but a request might be not ready yet
                 if (!jobQueued)
                 {
-                    /*if (loadingAsset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                    if (loadingAsset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                     {
-                        //AZ_Printf("assetdbg", "not queued %s", loadingAsset.GetHint().c_str());
-                        loadJob->bDebug = true;
-                    }*/
+                        AZ_Printf("assetdbg", "not queued %s", loadingAsset.GetHint().c_str());
+                        //loadJob->bDebug = true;
+                        loadJob->pDebugJob = loadJob;
+                    }
                     loadJob->Start();
                 }
             }
