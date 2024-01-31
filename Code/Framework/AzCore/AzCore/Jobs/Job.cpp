@@ -254,7 +254,8 @@ namespace AZ
         unsigned int count = countAndFlags & FLAG_DEPENDENTCOUNT_MASK;
         if (bDebug)
         {
-            printf("assetdbg Job %p count=%u, countAndFlags=%x\n", this, count, countAndFlags);
+            AZ_Printf("assetdbg", "Job %p count=%u, countAndFlags=%x", this, count, countAndFlags);
+            //printf("assetdbg Job %p count=%u, countAndFlags=%x\n", this, count, countAndFlags);
         }
         if (count == 1)
         {
@@ -266,7 +267,8 @@ namespace AZ
     #endif
                 if (bDebug)
                 {
-                    printf("assetdbg Job %p add pending\n", this);
+                    AZ_Printf("assetdbg", "Job %p add pending", this);
+                    //printf("assetdbg Job %p add pending\n", this);
                 }
                 m_context->GetJobManager().AddPendingJob(this);
             }
