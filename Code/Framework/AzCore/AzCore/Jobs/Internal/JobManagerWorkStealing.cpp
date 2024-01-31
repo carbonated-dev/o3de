@@ -169,7 +169,7 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
     {
         if (job->pDebugJob == job)
         {
-            AZ_Printf("assetdbg", "Job %p else, IsAsync %d", job, IsAsynchronous());
+            AZ_Printf("assetdbg", "Job %p else, IsAsync %d, priority=%d", job, IsAsynchronous(), int(job->GetPriority()));
             //printf("assetdbg Job %p else, IsAsync %d\n", job, IsAsynchronous());
         }
 
@@ -181,7 +181,13 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
                                                                                        m_globalJobQueue.end(),
                                                                                        job->GetPriority(),
                                                                                        CompareJobPriorities);
+
+            auto diff = locationToinsert - m_globalJobQueue.begin();
             m_globalJobQueue.insert(locationToinsert, job);
+            if (job->pDebugJob == job)
+            {
+                AZ_Printf("assetdbg", "Job %p inserted to %lld", job, diff);
+            }
 
             //checking/changing global queue empty state or worker availability must be done atomically while holding the global queue lock
             ActivateWorker();
