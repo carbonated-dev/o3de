@@ -193,7 +193,6 @@ namespace AZ::Data
                 if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "pr %s", asset.GetHint().c_str());
-                    //printf("pr %s\n", asset.GetHint().c_str());
                 }
 
                 AZ_PROFILE_SCOPE(AzCore, "AZ::Data::LoadAssetJob::Process: %s",
@@ -253,7 +252,6 @@ namespace AZ::Data
                     if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                     {
                         AZ_Printf("assetdbg", "lfs %s, %d", asset.GetHint().c_str(), int(result));
-                        //printf("lfs %s, %d\n", asset.GetHint().c_str(), int(result));
                     }
 
                     loadedSuccessfully = (result == AssetHandler::LoadResult::LoadComplete);
@@ -332,7 +330,6 @@ namespace AZ::Data
                 if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 {
                     AZ_Printf("assetdbg", "j %s", m_assetData.GetHint().c_str());
-                    //printf("j %s\n", m_assetData.GetHint().c_str());
                 }
                 m_loadJob = loadJob;
                 m_waitEvent.release();
@@ -347,7 +344,6 @@ namespace AZ::Data
             if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
             {
                 AZ_Printf("assetdbg", "lc %s", m_assetData.GetHint().c_str());
-                //printf("lc %s\n", m_assetData.GetHint().c_str());
             }
             Finish();
         }
@@ -374,10 +370,6 @@ namespace AZ::Data
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
             AZ_Printf("assetdbg", "b %s,%d", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
-            if (m_assetData.GetHint().ends_with(".1003.imagemipchain"))
-            {
-                //printf("b %s,%d\n", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
-            }
 #endif
             // Gruber patch end // AE -- FIXME track asset blocking requests
 
@@ -423,10 +415,6 @@ namespace AZ::Data
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
             AZ_Printf("assetdbg", "e %s", m_assetData.GetHint().c_str());
-            if (m_assetData.GetHint().ends_with(".1003.imagemipchain"))
-            {
-                //printf("e %s\n", m_assetData.GetHint().c_str());
-            }
 #endif
             // Gruber patch end // AE -- FIXME track asset blocking requests
         }
@@ -1903,7 +1891,6 @@ namespace AZ::Data
                             if (blockingRequest->second->QueueAssetLoadJob(loadJob))
                             {
                                 AZ_Printf("assetdbg", "fixed %s", loadingAsset.GetHint().c_str());
-                                //printf("fixed %s\n", loadingAsset.GetHint().c_str());
                                 jobQueued = true;
                                 break;
                             }
@@ -1913,7 +1900,6 @@ namespace AZ::Data
                     if (!jobQueued)
                     {
                         AZ_Printf("assetdbg", "not fixed %s", loadingAsset.GetHint().c_str());
-                        //printf("not fixed %s\n", loadingAsset.GetHint().c_str());
                     }
                 }
 #endif
@@ -2447,7 +2433,6 @@ namespace AZ::Data
             if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
             {
                 AZ_Printf("assetdbg", "ia %s", asset.GetHint().c_str());
-                //printf("ia %s\n", asset.GetHint().c_str());
             }
             // Queue the result for dispatch to main thread.
             assetHandler->InitAsset(asset, loadSucceeded, isReload);
