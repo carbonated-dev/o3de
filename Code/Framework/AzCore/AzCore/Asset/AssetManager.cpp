@@ -370,7 +370,7 @@ namespace AZ::Data
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
             AZ_Printf("assetdbg", "b %s,%d", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
-            if (m_assetData.GetHint().starts_with("aoecircle.tga.1003.imagemipchain"))
+            if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 printf("assetdbg b %s,%d\n", m_assetData.GetHint().c_str(), m_shouldDispatchEvents);
 #endif
             // Gruber patch end // AE -- FIXME track asset blocking requests
@@ -417,7 +417,7 @@ namespace AZ::Data
             // Gruber patch begin // AE -- FIXME track asset blocking requests
 #if defined(CARBONATED)
             AZ_Printf("assetdbg", "e %s", m_assetData.GetHint().c_str());
-            if (m_assetData.GetHint().starts_with("aoecircle.tga.1003.imagemipchain"))
+            if (m_assetData.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
                 printf("assetdbg e %s\n", m_assetData.GetHint().c_str());
 #endif
             // Gruber patch end // AE -- FIXME track asset blocking requests
