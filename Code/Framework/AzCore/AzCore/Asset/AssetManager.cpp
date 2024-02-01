@@ -159,11 +159,11 @@ namespace AZ::Data
         {
             Asset<AssetData> asset = m_asset.GetStrongReference();
 
-            if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+            //if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
             {
-                AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());
                 if (this->pDebugJob == this)
                 {
+                    AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());
                     this->pDebugJob = nullptr;
                 }
             }
