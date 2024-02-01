@@ -165,7 +165,7 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
                                                                                        CompareJobPriorities);
             m_globalJobQueue.insert(locationToinsert, job);
 
-            if (job->pDebugJob == job) AZ_Printf("assetdbg", "Job inserted");
+            if (job->pDebugJob == job) job->bInsert = true;
 
             //checking/changing global queue empty state or worker availability must be done atomically while holding the global queue lock
             ActivateWorker();
@@ -399,7 +399,8 @@ void JobManagerWorkStealing::ProcessJobsInternal(ThreadInfo* info, Job* suspende
 #ifdef JOBMANAGER_ENABLE_STATS
                     ++info->m_globalJobs;
 #endif
-                    //if (job && job->pDebugJob == job) AZ_Printf("assetdbg", "Job pop");
+                    if (job && job->pDebugJob == job) job->bPop = true;
+
                 }
             }
         }

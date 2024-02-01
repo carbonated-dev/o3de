@@ -15,6 +15,9 @@
 namespace AZ
 {
     Job* Job::pDebugJob = nullptr;
+    bool Job::bInsert = false;
+    bool Job::bPop = false;
+    bool Job::bProcess = false;
 
     Job::Job(bool isAutoDelete, AZ::JobContext* context, bool isCompletion, AZ::s8 priority)
     {

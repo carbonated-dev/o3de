@@ -177,6 +177,9 @@ namespace AZ
 #endif // AZ_DEBUG_JOB_STATE
 
        static Job* pDebugJob;
+       static bool bInsert;
+       static bool bPop;
+       static bool bProcess;
 
     protected:
 
