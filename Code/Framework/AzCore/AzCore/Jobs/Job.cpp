@@ -254,11 +254,11 @@ namespace AZ
         unsigned int countAndFlags = m_dependentCountAndFlags.fetch_sub(1, AZStd::memory_order_acq_rel);
     #endif
         unsigned int count = countAndFlags & FLAG_DEPENDENTCOUNT_MASK;
-        if (pDebugJob == this)
+        /*if (pDebugJob == this)
         {
             AZ_Printf("assetdbg", "Job count=%u, countAndFlags=%x", count, countAndFlags);
             //printf("assetdbg Job %p count=%u, countAndFlags=%x\n", this, count, countAndFlags);
-        }
+        }*/
         if (count == 1)
         {
             if (!(countAndFlags & FLAG_CHILD_JOBS))
