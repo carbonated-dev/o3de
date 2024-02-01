@@ -20,10 +20,10 @@ void JobManagerBase::Process(Job* job)
     job->SetState(Job::STATE_PROCESSING);
 #endif
 
-    if (job->pDebugJob == job)
+    /*if (job->pDebugJob == job)
     {
         AZ_Printf("assetdbg", "Job %p JobManagerBase::Process, cancelled=%d, delete=%d", job, job->IsCancelled(), job->IsAutoDelete());
-    }
+    }*/
 
     Job* dependent = job->GetDependent();
     bool isDelete = job->IsAutoDelete();
