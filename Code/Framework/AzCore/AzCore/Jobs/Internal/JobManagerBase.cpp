@@ -29,8 +29,8 @@ void JobManagerBase::Process(Job* job)
     if (!job->IsCancelled())
     {
         AZ_PROFILE_SCOPE(AzCore, "AZ::JobManagerBase::Process Job");
+        if (bDebug) AZ_Printf("assetdbg", "Job process");
         job->Process();
-        if (bDebug) AZ_Printf("assetdbg", "Job processed");
     }
     else
     {
