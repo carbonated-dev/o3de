@@ -440,7 +440,7 @@ void JobManagerWorkStealing::ProcessJobsInternal(ThreadInfo* info, Job* suspende
         }
 
 
-        if (job->pDebugJob == job)
+        if (job != nullptr && job->pDebugJob == job)
         {
             AZ_Printf("assetdbg", "Job %p pop", job);
         }
