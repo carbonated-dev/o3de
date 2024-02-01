@@ -12,7 +12,6 @@
 
 #include <Atom/Feature/Common/Assets/ShaderResourceGroups/SkyBox/SceneSrg.azsli>
 #include <Atom/Feature/Common/Assets/ShaderResourceGroups/CoreLights/SceneSrg.azsli>
-#include <Atom/Feature/Common/Assets/ShaderResourceGroups/Fog/SceneSrg.azsli>
 #include <Atom/Feature/Common/Assets/ShaderResourceGroups/PostProcessing/SceneSrg.azsli>
 
 partial ShaderResourceGroup SceneSrg
