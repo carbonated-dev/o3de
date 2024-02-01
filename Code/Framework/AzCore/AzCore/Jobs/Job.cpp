@@ -14,6 +14,8 @@
 
 namespace AZ
 {
+    Job* Job::pDebugJob = nullptr;
+
     Job::Job(bool isAutoDelete, AZ::JobContext* context, bool isCompletion, AZ::s8 priority)
     {
         if (context)
