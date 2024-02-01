@@ -165,6 +165,8 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
                                                                                        CompareJobPriorities);
             m_globalJobQueue.insert(locationToinsert, job);
 
+            if (job->pDebugJob == job) AZ_Printf("assetdbg", "Job inserted");
+
             //checking/changing global queue empty state or worker availability must be done atomically while holding the global queue lock
             ActivateWorker();
         }

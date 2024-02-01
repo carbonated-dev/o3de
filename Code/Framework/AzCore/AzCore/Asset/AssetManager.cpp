@@ -159,6 +159,13 @@ namespace AZ::Data
         {
             Asset<AssetData> asset = m_asset.GetStrongReference();
 
+
+            if (this->pDebugJob == this)
+            {
+                AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());
+                this->pDebugJob = nullptr;
+            }
+
             // Verify that we didn't somehow get here after the Asset Manager has finished shutting down.
             AZ_Assert(AssetManager::IsReady(), "Asset Manager shutdown didn't clean up pending asset loads properly.");
             if (!AssetManager::IsReady())
@@ -1870,6 +1877,11 @@ namespace AZ::Data
 // Gruber patch end // AE -- FIXME delay for motion assets, they are blocking, but a request might be not ready yet
                 if (!jobQueued)
                 {
+                    if (loadingAsset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
+                    {
+                        loadJob->pDebugJob = loadJob;
+                    }
+
                     loadJob->Start();
                 }
             }
