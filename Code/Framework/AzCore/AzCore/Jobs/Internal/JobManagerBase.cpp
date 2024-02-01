@@ -22,7 +22,7 @@ void JobManagerBase::Process(Job* job)
 
     if (job->pDebugJob == job)
     {
-        AZ_Printf("assetdbg", "Job %p JobManagerBase::Process, cancelled=%d, delete=%d", job, job->IsCancelled(), job->IsAutoDelete());
+        AZ_Printf("assetdbg", "Job cancelled=%d, delete=%d", job->IsCancelled(), job->IsAutoDelete());
     }
 
     Job* dependent = job->GetDependent();

@@ -256,7 +256,7 @@ namespace AZ
         unsigned int count = countAndFlags & FLAG_DEPENDENTCOUNT_MASK;
         if (pDebugJob == this)
         {
-            AZ_Printf("assetdbg", "Job %p count=%u, countAndFlags=%x", this, count, countAndFlags);
+            AZ_Printf("assetdbg", "Job count=%u, countAndFlags=%x", count, countAndFlags);
             //printf("assetdbg Job %p count=%u, countAndFlags=%x\n", this, count, countAndFlags);
         }
         if (count == 1)
@@ -267,11 +267,11 @@ namespace AZ
                 AZ_Assert(m_state == STATE_STARTED, "Job has not been started but the dependent count is zero, must be a dependency error");
                 SetState(STATE_PENDING);
     #endif
-                if (pDebugJob == this)
+                /*if (pDebugJob == this)
                 {
-                    AZ_Printf("assetdbg", "Job %p add pending", this);
+                    AZ_Printf("assetdbg", "Job add pending");
                     //printf("assetdbg Job %p add pending\n", this);
-                }
+                }*/
                 m_context->GetJobManager().AddPendingJob(this);
             }
         }

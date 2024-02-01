@@ -162,6 +162,10 @@ namespace AZ::Data
             if (asset.GetHint().ends_with("aoecircle.tga.1003.imagemipchain"))
             {
                 AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());
+                if (this->pDebugJob == this)
+                {
+                    this->pDebugJob = nullptr;
+                }
             }
 
             // Verify that we didn't somehow get here after the Asset Manager has finished shutting down.

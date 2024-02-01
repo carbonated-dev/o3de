@@ -169,7 +169,7 @@ void JobManagerWorkStealing::AddPendingJob(Job* job)
     {
         if (job->pDebugJob == job)
         {
-            AZ_Printf("assetdbg", "Job %p else, IsAsync %d", job, IsAsynchronous());
+            AZ_Printf("assetdbg", "Job else, IsAsync %d", IsAsynchronous());
             //printf("assetdbg Job %p else, IsAsync %d\n", job, IsAsynchronous());
         }
 
@@ -441,7 +441,7 @@ void JobManagerWorkStealing::ProcessJobsInternal(ThreadInfo* info, Job* suspende
 
         /*if (job != nullptr && job->pDebugJob == job)
         {
-            AZ_Printf("assetdbg", "Job %p pop", job);
+            AZ_Printf("assetdbg", "Job pop");
         }*/
 
         if (!job && pendingJobs)
