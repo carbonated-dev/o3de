@@ -159,7 +159,6 @@ namespace AZ::Data
         {
             Asset<AssetData> asset = m_asset.GetStrongReference();
 
-
             if (this->pDebugJob == this)
             {
                 AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());

@@ -399,7 +399,11 @@ void JobManagerWorkStealing::ProcessJobsInternal(ThreadInfo* info, Job* suspende
 #ifdef JOBMANAGER_ENABLE_STATS
                     ++info->m_globalJobs;
 #endif
-                    if (job && job->pDebugJob == job) job->bPop = true;
+                    if (job && job->pDebugJob == job)
+                    {
+                        job->bPop = true;
+                        AZ_Printf("assetdbg", "Job pop");
+                    }
 
                 }
             }
