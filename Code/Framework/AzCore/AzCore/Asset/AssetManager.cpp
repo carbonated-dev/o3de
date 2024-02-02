@@ -163,7 +163,7 @@ namespace AZ::Data
 
             if (this->pDebugJob == this)
             {
-                //AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());
+                AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());
                 //printf("assetdbg Process %s", asset.GetHint().c_str());
                 this->pDebugJob = nullptr;
 
