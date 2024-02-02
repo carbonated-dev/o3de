@@ -34,7 +34,7 @@ void JobManagerBase::Process(Job* job)
         if (bDebug)
         {
             AZ_Printf("assetdbg", "Job %d %d %d", job->bInsert, job->bPop, job->bProcess);
-            printf("assetdbg Job %d %d %d", job->bInsert, job->bPop, job->bProcess);
+            printf("assetdbg Job %d %d %d\n", job->bInsert, job->bPop, job->bProcess);
         }
     }
     else
@@ -42,7 +42,7 @@ void JobManagerBase::Process(Job* job)
         if (bDebug)
         {
             AZ_Printf("assetdbg", "Job cancelled");
-            printf("assetdbg", "Job cancelled");
+            printf("assetdbg Job cancelled\n");
         }
     }
 
