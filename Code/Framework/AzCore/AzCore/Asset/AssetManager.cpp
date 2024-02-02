@@ -195,8 +195,6 @@ namespace AZ::Data
 
                 if (m_owner->ValidateAndRegisterAssetLoading(asset))
                 {
-                    if (bDebug) AZ_Printf("assetdbg", "Call LoadAndSignal %s", asset.GetHint().c_str());
-
                     LoadAndSignal(asset);
                 }
             }
