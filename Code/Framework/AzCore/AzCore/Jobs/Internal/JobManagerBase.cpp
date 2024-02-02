@@ -31,11 +31,11 @@ void JobManagerBase::Process(Job* job)
         AZ_PROFILE_SCOPE(AzCore, "AZ::JobManagerBase::Process Job");
         if (bDebug) job->bProcess = true;
         job->Process();
-        if (bDebug)
+        /*if (bDebug)
         {
             AZ_Printf("assetdbg", "Job %d %d %d", job->bInsert, job->bPop, job->bProcess);
             //printf("assetdbg Job %d %d %d\n", job->bInsert, job->bPop, job->bProcess);
-        }
+        }*/
     }
     else
     {
