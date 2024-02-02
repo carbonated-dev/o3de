@@ -174,14 +174,7 @@
                                 "Attachment": "InputOutput"
                             }
                         }
-                    ],
-                    "PassData": {
-                        "$type": "FullscreenTrianglePassData",
-                        "ShaderAsset": {
-                            "FilePath": "Shaders/ScreenSpace/DeferredFog.shader"
-                        },
-                        "BindViewSrg": true
-                    }
+                    ]
                 },
                 {
                     "Name": "SilhouettePass",
