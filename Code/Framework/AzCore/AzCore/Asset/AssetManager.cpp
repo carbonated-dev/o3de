@@ -159,15 +159,15 @@ namespace AZ::Data
         {
             Asset<AssetData> asset = m_asset.GetStrongReference();
 
-            bool bDebug = false;
+            //bool bDebug = false;
 
             if (this->pDebugJob == this)
             {
-                AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());
+                //AZ_Printf("assetdbg", "Process %s", asset.GetHint().c_str());
                 //printf("assetdbg Process %s", asset.GetHint().c_str());
                 this->pDebugJob = nullptr;
 
-                bDebug = true;
+                //bDebug = true;
             }
 
             // Verify that we didn't somehow get here after the Asset Manager has finished shutting down.
@@ -183,7 +183,7 @@ namespace AZ::Data
 
             if (shouldCancel)
             {
-                if (bDebug) AZ_Printf("assetdbg", "Should cancel %s", asset.GetHint().c_str());
+                //if (bDebug) AZ_Printf("assetdbg", "Should cancel %s", asset.GetHint().c_str());
 
                 BlockingAssetLoadBus::Event(m_asset.GetId(), &BlockingAssetLoadBus::Events::OnLoadCanceled, m_asset.GetId());
                 AssetManagerBus::Broadcast(&AssetManagerBus::Events::OnAssetCanceled, m_asset.GetId());
