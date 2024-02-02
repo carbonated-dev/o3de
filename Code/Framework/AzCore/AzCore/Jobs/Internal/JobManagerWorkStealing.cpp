@@ -402,7 +402,7 @@ void JobManagerWorkStealing::ProcessJobsInternal(ThreadInfo* info, Job* suspende
                     if (job && job->pDebugJob == job)
                     {
                         job->bPop = true;
-                        AZ_Printf("assetdbg", "Job pop");
+                        //AZ_Printf("assetdbg", "Job pop");
                     }
 
                 }
