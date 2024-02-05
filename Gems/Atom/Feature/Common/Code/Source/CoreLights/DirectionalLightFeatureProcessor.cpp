@@ -33,6 +33,8 @@ namespace AZ
     namespace Render
     {
         AZ_CVAR(bool, r_excludeItemsInSmallerShadowCascades, true, nullptr, ConsoleFunctorFlags::Null, "Set to true to exclude drawing items to a directional shadow cascade that are already covered by a smaller cascade.");
+        AZ_CVAR(int, r_directionalShadowFilteringMethod, -1, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Starting window width in pixels.");
+        AZ_CVAR(int, r_directionalShadowFilteringSampleCountMode, -1, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Starting window width in pixels.");
 
         // --- Camera Configuration ---
 
@@ -207,12 +209,21 @@ namespace AZ
             {
                 SetFullscreenPassSettings();
 
-                const uint32_t shadowFilterMethod = m_shadowData.at(nullptr).GetData(m_shadowingLightHandle.GetIndex()).m_shadowFilterMethod;
+                uint32_t shadowFilterMethod = m_shadowData.at(nullptr).GetData(m_shadowingLightHandle.GetIndex()).m_shadowFilterMethod;
+                if(r_directionalShadowFilteringMethod >= 0)
+                {
+                    shadowFilterMethod = r_directionalShadowFilteringMethod;
+                }
                 RPI::ShaderSystemInterface::Get()->SetGlobalShaderOption(m_directionalShadowFilteringMethodName, AZ::RPI::ShaderOptionValue{shadowFilterMethod});
 
-                uint32_t shadowFilteringSampleCount = m_shadowData.at(nullptr).GetData(m_shadowingLightHandle.GetIndex()).m_filteringSampleCountMode;
+                uint32_t shadowFilteringSampleCountMode = m_shadowData.at(nullptr).GetData(m_shadowingLightHandle.GetIndex()).m_filteringSampleCountMode;
+                if(r_directionalShadowFilteringSampleCountMode >= 0)
+                {
+                    shadowFilteringSampleCountMode = r_directionalShadowFilteringSampleCountMode;
+                }
+                
                 RPI::ShaderSystemInterface::Get()->SetGlobalShaderOption(
-                    m_directionalShadowFilteringSamplecountName, AZ::RPI::ShaderOptionValue{ shadowFilteringSampleCount });
+                    m_directionalShadowFilteringSamplecountName, AZ::RPI::ShaderOptionValue{ shadowFilteringSampleCountMode });
                 
                 RPI::ShaderSystemInterface::Get()->SetGlobalShaderOption(m_directionalShadowReceiverPlaneBiasEnableName, AZ::RPI::ShaderOptionValue{ m_shadowProperties.GetData(m_shadowingLightHandle.GetIndex()).m_isReceiverPlaneBiasEnabled });
 
