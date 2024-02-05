@@ -33,8 +33,9 @@ namespace AZ
     namespace Render
     {
         AZ_CVAR(bool, r_excludeItemsInSmallerShadowCascades, true, nullptr, ConsoleFunctorFlags::Null, "Set to true to exclude drawing items to a directional shadow cascade that are already covered by a smaller cascade.");
-        AZ_CVAR(int, r_directionalShadowFilteringMethod, -1, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Starting window width in pixels.");
-        AZ_CVAR(int, r_directionalShadowFilteringSampleCountMode, -1, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Starting window width in pixels.");
+        
+        AZ_CVAR(int, r_directionalShadowFilteringMethod, -1, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Cvar to override directional shadow filtering mode. -1 = default settings from Editor, 0 = None, 1 = Pcf, 2 = Esm, 3 = EsmPcf.");
+        AZ_CVAR(int, r_directionalShadowFilteringSampleCountMode, -1, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Cvar to override directional shadow sample count mode. -1 = default settings from Editor, 0 = PcfTap4, 1 = PcfTap9, 2 = PcfTap16");
 
         // --- Camera Configuration ---
 
