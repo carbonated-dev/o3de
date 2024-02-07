@@ -25,6 +25,7 @@ namespace AZ
 
     namespace Render
     {
+        static const uint8_t MaxGoboTextureCount = 8;
 
         struct SimpleSpotLightData
         {
@@ -36,10 +37,9 @@ namespace AZ
             float m_cosOuterConeAngle = 0.0f; // Cosine of the outer cone angle
 
             uint16_t m_shadowIndex = std::numeric_limits<uint16_t>::max(); // index for ProjectedShadowData. A value of 0xFFFF indicates an illegal index.
-
+            uint32_t m_goboTextureIndex = MaxGoboTextureCount; // index for m_goboTextures.
             float m_affectsGIFactor = 1.0f;
             bool m_affectsGI = true;
-            float m_padding0 = 0.0f;
         };
 
         class SimpleSpotLightFeatureProcessor final
@@ -79,6 +79,7 @@ namespace AZ
             void SetFilteringSampleCount(LightHandle handle, uint16_t count) override;
             void SetEsmExponent(LightHandle handle, float esmExponent) override;
             void SetUseCachedShadows(LightHandle handle, bool useCachedShadows) override;
+            void SetGoboTexture(LightHandle handle, AZ::Data::Instance<AZ::RPI::Image> goboTexture) override;
 
             const Data::Instance<RPI::Buffer>  GetLightBuffer() const;
             uint32_t GetLightCount()const;
@@ -104,11 +105,13 @@ namespace AZ
             // Cull the lights for a view using the CPU.
             void CullLights(const RPI::ViewPtr& view);
 
-            MultiIndexedDataVector<SimpleSpotLightData, MeshCommon::BoundsVariant> m_lightData;
+            MultiIndexedDataVector<SimpleSpotLightData, MeshCommon::BoundsVariant, AZ::Data::Instance<AZ::RPI::Image>> m_lightData;
             GpuBufferHandler m_lightBufferHandler;
             RHI::Handle<uint32_t> m_lightMeshFlag;
             RHI::Handle<uint32_t> m_shadowMeshFlag;
             bool m_deviceBufferNeedsUpdate = false;
+            RHI::ShaderInputNameIndex m_goboTexturesIndex = "m_bogoTextures";
+            AZStd::vector<AZ::Data::Instance<AZ::RPI::Image>> m_goboTextures;
 
             ProjectedShadowFeatureProcessor* m_shadowFeatureProcessor = nullptr;
 

@@ -141,6 +141,31 @@ namespace AZ
 
             if (m_deviceBufferNeedsUpdate)
             {
+                // collect all gobo textures and assign index for each spot light
+                AZStd::unordered_map<AZ::Data::Instance<AZ::RPI::Image>, int> gobos;
+                int32_t currentIdx = 0;
+                m_lightData.ForEach<2>(
+                    [&gobos, &currentIdx, this](const AZ::Data::Instance<AZ::RPI::Image>& image)
+                    {
+                        if (gobos.find(image) == gobos.end())
+                        {
+                            gobos[image] = aznumeric_cast<int>(gobos.size());
+                        }
+                        m_lightData.GetData<0>(currentIdx).m_goboTextureIndex = gobos[image];
+                        return true;
+                    });
+
+                m_goboTextures.clear();
+                currentIdx = 0;
+                for (auto& item : gobos)
+                {
+                    if (currentIdx >= MaxGoboTextureCount)
+                    {
+                        break;
+                    }
+                    m_goboTextures.push_back(item.first);
+                }
+
                 m_lightBufferHandler.UpdateBuffer(m_lightData.GetDataVector<0>());
                 m_deviceBufferNeedsUpdate = false;
             }
@@ -177,9 +202,11 @@ namespace AZ
         {
             AZ_PROFILE_SCOPE(RPI, "SimpleSpotLightFeatureProcessor: Render");
             m_visibleSpotLightsBufferUsedCount = 0;
+
             for (const RPI::ViewPtr& view : packet.m_views)
             {
                 m_lightBufferHandler.UpdateSrg(view->GetShaderResourceGroup().get());
+                view->GetShaderResourceGroup()->SetImageArray(m_goboTexturesIndex, AZStd::span(m_goboTextures.begin(), m_goboTextures.end()));
                 CullLights(view);
             }
         }
@@ -261,6 +288,12 @@ namespace AZ
             AZ_Assert(handle.IsValid(), "Invalid LightHandle passed to SimpleSpotLightFeatureProcessor::SetAffectsGIFactor().");
 
             m_lightData.GetData<0>(handle.GetIndex()).m_affectsGIFactor = affectsGIFactor;
+            m_deviceBufferNeedsUpdate = true;
+        }
+
+        void SimpleSpotLightFeatureProcessor::SetGoboTexture(LightHandle handle, AZ::Data::Instance<AZ::RPI::Image> goboTexture)
+        {
+            m_lightData.GetData<2>(handle.GetIndex()) = goboTexture;
             m_deviceBufferNeedsUpdate = true;
         }
 

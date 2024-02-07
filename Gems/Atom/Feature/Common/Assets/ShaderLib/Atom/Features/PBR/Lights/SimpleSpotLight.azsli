@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <Atom/Features/Bindless.azsli>
 #include <Atom/Features/PBR/Lights/LightTypesCommon.azsli>
 
 #if ENABLE_SHADOWS
@@ -58,6 +59,12 @@ void ApplySimpleSpotLight(ViewSrg::SimpleSpotLight light, Surface surface, inout
                 surface.vertexNormal);
         }
 #endif
+
+        // apply gobo texture
+        if (light.m_goboTexIndex < ViewSrg::MaxGoboTextureCount)
+        {
+            lightIntensity *= ViewSrg::m_bogoTextures[light.m_goboTexIndex].Sample(PassSrg::LinearSampler, uv).r;
+        }
 
         if (dotWithDirection < cosInnerConeAngle) // in penumbra
         {   

@@ -185,4 +185,13 @@ namespace AZ::Render
                 GetLightHandle(), cachingMode == AreaLightComponentConfig::ShadowCachingMode::UpdateOnChange);
         }
     }
+
+    void SimpleSpotLightDelegate::SetGoboTexture(AZ::Data::Instance<AZ::RPI::Image> goboTexture)
+    {
+        if (GetLightHandle().IsValid())
+        {
+            GetFeatureProcessor()->SetGoboTexture(GetLightHandle(), goboTexture);
+        }
+    }
+
 } // namespace AZ::Render

@@ -135,6 +135,9 @@ namespace AZ
             
             //! Returns true if exponential shadow maps are disabled.
             bool IsEsmDisabled() const;
+
+            //! Returns true if the light type supports gobo texture
+            bool SupportsGobo() const;
         };
     }
 }

@@ -200,5 +200,10 @@ namespace AZ
             return ShadowsDisabled() ||
                 !(m_shadowFilterMethod == ShadowFilterMethod::Esm || m_shadowFilterMethod == ShadowFilterMethod::EsmPcf);
         }
+
+        bool AreaLightComponentConfig::SupportsGobo() const
+        {
+            return m_lightType == LightType::SimpleSpot;
+        }
     }
 }
