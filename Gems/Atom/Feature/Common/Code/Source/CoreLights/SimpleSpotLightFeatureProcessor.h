@@ -29,12 +29,13 @@ namespace AZ
 
         struct SimpleSpotLightData
         {
+            AZStd::array<float, 16> m_viewProjectionMatrix; // Matrix to transform from world space to the spot light's lighting frustum. 
             AZStd::array<float, 3> m_position = { { 0.0f, 0.0f, 0.0f } };
             float m_invAttenuationRadiusSquared = 0.0f; // Inverse of the distance at which this light no longer has an effect, squared. Also used for falloff calculations.
             AZStd::array<float, 3> m_direction = { { 0.0f, 0.0f, 0.0f } };
-            float m_cosInnerConeAngle = 0.0f; // Cosine of the inner cone angle
+            float m_cosInnerConeAngle = 0.707f; // Cosine of the inner cone angle
             AZStd::array<float, 3> m_rgbIntensity = { { 0.0f, 0.0f, 0.0f } };
-            float m_cosOuterConeAngle = 0.0f; // Cosine of the outer cone angle
+            float m_cosOuterConeAngle = 0.707f; // Cosine of the outer cone angle
 
             uint16_t m_shadowIndex = std::numeric_limits<uint16_t>::max(); // index for ProjectedShadowData. A value of 0xFFFF indicates an illegal index.
             uint32_t m_goboTextureIndex = MaxGoboTextureCount; // index for m_goboTextures.
@@ -65,8 +66,7 @@ namespace AZ
             bool ReleaseLight(LightHandle& handle) override;
             LightHandle CloneLight(LightHandle handle) override;
             void SetRgbIntensity(LightHandle handle, const PhotometricColor<PhotometricUnitType>& lightColor) override;
-            void SetPosition(LightHandle handle, const AZ::Vector3& lightPosition) override;
-            void SetDirection(LightHandle handle, const AZ::Vector3& lightDirection) override;
+            void SetTransform(LightHandle handle, const AZ::Transform& transform) override;
             void SetConeAngles(LightHandle handle, float innerRadians, float outerRadians) override;
             void SetAttenuationRadius(LightHandle handle, float attenuationRadius) override;
             void SetAffectsGI(LightHandle handle, bool affectsGI) override;
@@ -98,6 +98,8 @@ namespace AZ
             void UpdateBounds(LightHandle handle);
             void UpdateShadow(LightHandle handle);
 
+            void UpdateViewProjectionMatrix(LightHandle handle);
+
             // Convenience function for forwarding requests to the ProjectedShadowFeatureProcessor
             template<typename Functor, typename ParamType>
             void SetShadowSetting(LightHandle handle, Functor&&, ParamType&& param);
@@ -105,13 +107,23 @@ namespace AZ
             // Cull the lights for a view using the CPU.
             void CullLights(const RPI::ViewPtr& view);
 
-            MultiIndexedDataVector<SimpleSpotLightData, MeshCommon::BoundsVariant, AZ::Data::Instance<AZ::RPI::Image>> m_lightData;
+            // Extra light data which are not used directly by the gpu shader
+            struct ExtraData
+            {
+                MeshCommon::BoundsVariant m_boundsVariant;
+                AZ::Data::Instance<AZ::RPI::Image> m_gobo;
+                Transform m_transform;
+            };
+
+            MultiIndexedDataVector<SimpleSpotLightData, ExtraData> m_lightData;
             GpuBufferHandler m_lightBufferHandler;
             RHI::Handle<uint32_t> m_lightMeshFlag;
             RHI::Handle<uint32_t> m_shadowMeshFlag;
             bool m_deviceBufferNeedsUpdate = false;
-            RHI::ShaderInputNameIndex m_goboTexturesIndex = "m_bogoTextures";
+
+            RHI::ShaderInputNameIndex m_goboTexturesIndex = "m_goboTextures";
             AZStd::vector<AZ::Data::Instance<AZ::RPI::Image>> m_goboTextures;
+            bool m_goboArrayChanged = false;
 
             ProjectedShadowFeatureProcessor* m_shadowFeatureProcessor = nullptr;
 

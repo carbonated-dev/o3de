@@ -12,6 +12,7 @@
 #include <AzCore/Math/Color.h>
 #include <AzCore/Serialization/EditContext.h>
 #include <Atom/Feature/CoreLights/PhotometricValue.h>
+#include <Atom/RPI.Reflect/Image/StreamingImageAsset.h>
 #include <AtomLyIntegration/CommonFeatures/CoreLights/CoreLightsConstants.h>
 
 namespace AZ
@@ -55,6 +56,7 @@ namespace AZ
             bool m_lightEmitsBothDirections = false;
             bool m_useFastApproximation = false;
             AZ::Crc32 m_shapeType;
+            AZ::Data::Asset<AZ::RPI::StreamingImageAsset> m_goboImageAsset;
 
             bool m_enableShutters = false;
             LightType m_lightType = LightType::Unknown;

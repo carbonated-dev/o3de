@@ -54,6 +54,7 @@ partial ShaderResourceGroup ViewSrg
 
     struct SimpleSpotLight
     {
+        float4x4 m_viewProjectionMatrix;    // Light's view projection matrix. Used for calculate uv for gobo 
         float3 m_position;
         float m_invAttenuationRadiusSquared; // For a radius at which this light no longer has an effect, 1 / radius^2.
         float3 m_direction;
@@ -73,7 +74,7 @@ partial ShaderResourceGroup ViewSrg
     uint m_visibleSimpleSpotLightCount;
     
     static const uint MaxGoboTextureCount = 8;
-    Texture2d<float> m_goboTextures[MaxGoboTextureCount];
+    Texture2D<float> m_goboTextures[MaxGoboTextureCount];
 
     // Point lights (sphere lights)
 
