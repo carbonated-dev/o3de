@@ -147,19 +147,19 @@ namespace AZ
                 if (m_goboArrayChanged)
                 {
                     // collect all gobo textures and assign index for each spot light
-                    AZStd::unordered_map<AZ::Data::Instance<AZ::RPI::Image>, int> gobos;
+                    AZStd::unordered_map<AZ::Data::Instance<AZ::RPI::Image>, int> gobosTextures;
 
                     for (int32_t idx = 0; idx < m_lightData.GetDataCount(); idx++)
                     {
                         auto& lightData = m_lightData.GetData<0>(idx);
-                        auto image = m_lightData.GetData<1>(idx).m_gobo;
+                        auto image = m_lightData.GetData<1>(idx).m_goboTexture;
                         if (image)
                         {
-                            if (gobos.find(image) == gobos.end())
+                            if (gobosTextures.find(image) == gobosTextures.end())
                             {
-                                gobos[image] = aznumeric_cast<int>(gobos.size());
+                                gobosTextures[image] = aznumeric_cast<int>(gobosTextures.size());
                             }
-                            lightData.m_goboTextureIndex = gobos[image];
+                            lightData.m_goboTextureIndex = gobosTextures[image];
                         }
                         else
                         {
@@ -170,7 +170,7 @@ namespace AZ
                     m_goboTextures.clear();
                     int32_t currentIdx = 0;
                     // add gobo textures to the vector. Limit the max gobo texture count.
-                    for (auto& item : gobos)
+                    for (auto& item : gobosTextures)
                     {
                         if (currentIdx >= MaxGoboTextureCount)
                         {
@@ -318,7 +318,7 @@ namespace AZ
 
         void SimpleSpotLightFeatureProcessor::SetGoboTexture(LightHandle handle, AZ::Data::Instance<AZ::RPI::Image> goboTexture)
         {
-            m_lightData.GetData<1>(handle.GetIndex()).m_gobo = goboTexture;
+            m_lightData.GetData<1>(handle.GetIndex()).m_goboTexture = goboTexture;
             m_deviceBufferNeedsUpdate = true;
             m_goboArrayChanged = true;
         }

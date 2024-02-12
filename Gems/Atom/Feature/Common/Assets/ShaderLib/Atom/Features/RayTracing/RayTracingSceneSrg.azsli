@@ -51,7 +51,7 @@ ShaderResourceGroup RayTracingSceneSrg : SRG_RayTracingScene
     // simple spot lights
     struct SimpleSpotLight
     {
-        float4x4 m_viewProjectionMatrix;    // Light's view projection matrix. Used for calculate uv for gobo 
+        float4x4 m_viewProjectionMatrix;    // Light's view projection matrix. Used to calculate uv for gobo 
         float3 m_position;
         float m_invAttenuationRadiusSquared; // For a radius at which this light no longer has an effect, 1 / radius^2.
         float3 m_direction;

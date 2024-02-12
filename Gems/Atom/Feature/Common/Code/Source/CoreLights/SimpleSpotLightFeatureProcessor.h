@@ -25,7 +25,7 @@ namespace AZ
 
     namespace Render
     {
-        static const uint8_t MaxGoboTextureCount = 8;
+        static const uint8_t MaxGoboTextureCount = 5;
 
         struct SimpleSpotLightData
         {
@@ -107,11 +107,11 @@ namespace AZ
             // Cull the lights for a view using the CPU.
             void CullLights(const RPI::ViewPtr& view);
 
-            // Extra light data which are not used directly by the gpu shader
+            // Extra light data which is not used directly by the gpu shader
             struct ExtraData
             {
                 MeshCommon::BoundsVariant m_boundsVariant;
-                AZ::Data::Instance<AZ::RPI::Image> m_gobo;
+                AZ::Data::Instance<AZ::RPI::Image> m_goboTexture;
                 Transform m_transform;
             };
 
@@ -119,6 +119,7 @@ namespace AZ
             GpuBufferHandler m_lightBufferHandler;
             RHI::Handle<uint32_t> m_lightMeshFlag;
             RHI::Handle<uint32_t> m_shadowMeshFlag;
+            RHI::Handle<uint32_t> m_goboTextureFlag;
             bool m_deviceBufferNeedsUpdate = false;
 
             RHI::ShaderInputNameIndex m_goboTexturesIndex = "m_goboTextures";
