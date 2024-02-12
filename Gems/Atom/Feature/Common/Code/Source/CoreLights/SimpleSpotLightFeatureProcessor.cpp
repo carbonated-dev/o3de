@@ -174,6 +174,7 @@ namespace AZ
                     {
                         if (currentIdx >= MaxGoboTextureCount)
                         {
+                            AZ_WarningOnce("SimpleSpotLight", false, "There are more than %d (MaxGoboTextureCount) gobo textures used in the level.", MaxGoboTextureCount);
                             break;
                         }
                         m_goboTextures.push_back(item.first);
@@ -373,7 +374,7 @@ namespace AZ
             float halfFov = acosf(lightData.m_cosOuterConeAngle);
             float attenuationRadius = LightCommon::GetRadiusFromInvRadiusSquared(lightData.m_invAttenuationRadiusSquared);
             attenuationRadius = AZStd::max(0.02f, attenuationRadius);
-            MakePerspectiveFovMatrixRH(viewToClipMatrix, halfFov * 2, 1.0f, 0.01f, attenuationRadius, false);
+            MakePerspectiveFovMatrixRH(viewToClipMatrix, halfFov * 2.0f, 1.0f, 0.01f, attenuationRadius, false);
 
             auto& extraData = m_lightData.GetData<1>(handle.GetIndex());
             AZ::Matrix4x4 worldMatrix = AZ::Matrix4x4::CreateFromTransform(extraData.m_transform).GetInverseFast();
