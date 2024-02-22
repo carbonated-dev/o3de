@@ -2018,7 +2018,6 @@ namespace AZ
                     drawPacket.SetStencilRef(stencilRef);
                     drawPacket.SetSortKey(m_sortKey);
                     drawPacket.SetEnableDraw(meshMotionDrawListTag, m_flags.m_isDrawMotion);
-                    drawPacket.Update(*m_scene, false);
 
                     if (!r_meshInstancingEnabled)
                     {
@@ -2027,7 +2026,7 @@ namespace AZ
                     else
                     {
                         MeshInstanceGroupData& instanceGroupData = meshInstanceManager[instanceGroupInsertResult.m_handle];
-                        instanceGroupData.m_drawPacket = drawPacket;
+                        instanceGroupData.m_drawPacket = AZStd::move(drawPacket);
                         instanceGroupData.m_isDrawMotion = m_flags.m_isDrawMotion;
 
                         // We're going to need an interval for the root constant data that we update every frame for each draw item, so cache that here
