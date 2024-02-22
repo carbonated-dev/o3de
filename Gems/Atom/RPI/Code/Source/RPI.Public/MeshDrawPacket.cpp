@@ -182,7 +182,7 @@ namespace AZ
 
         bool MeshDrawPacket::Update(const Scene& parentScene, bool forceUpdate /*= false*/)
         {
-            // Setup the Shader variant handler when first update this MeshDrawPacket.
+            // Setup the Shader variant handler when update this MeshDrawPacket the first time .
             // This is because the MeshDrawPacket data can be copied or moved right after it's created.
             // The m_shaderVariantHandler won't be copied correctly due to the capture of 'this' pointer.
             // Instead of override all the copy and move operators, this might be a better solution.
