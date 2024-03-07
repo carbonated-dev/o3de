@@ -9,6 +9,12 @@
 
 #include "EditorDefs.h"
 
+// Gruber patch begin
+#if defined(_MSC_VER)
+#pragma warning(disable : 4100)
+#endif
+// Gruber patch end
+
 #ifdef WIN32
 AZ_PUSH_DISABLE_WARNING(4458, "-Wunknown-warning-option")
 #include <gdiplus.h>
@@ -84,6 +90,9 @@ AZ_POP_DISABLE_WARNING
 
 // CryCommon
 #include <CryCommon/ILevelSystem.h>
+#include <CryCommon/ISystem.h>
+#include <CryCommon/IGame.h>
+#include <CryCommon/IGameFramework.h>
 
 // Editor
 #include "Settings.h"
@@ -2321,6 +2330,62 @@ int CCryEditApp::IdleProcessing(bool bBackgroundUpdate)
 
     return res;
 }
+
+#if defined(CARBONATED)
+bool CCryEditApp::SetAIPause(bool paused)
+{
+    gEnv->pGame->GetIGameFramework()->SetAIPaused(paused);
+    return gEnv->pGame->GetIGameFramework()->IsAIPaused();
+}
+
+bool CCryEditApp::SetAICover(bool show)
+{
+    gEnv->pGame->GetIGameFramework()->SetAICover(show);
+    return gEnv->pGame->GetIGameFramework()->IsAICoverShown();
+}
+
+int CCryEditApp::SetCoverElev(int elev)
+{
+    gEnv->pGame->GetIGameFramework()->SetCoverElev(elev);
+    return gEnv->pGame->GetIGameFramework()->GetCoverElev();
+}
+
+int CCryEditApp::SetTimeScale(int inverseScale)
+{
+    gEnv->pGame->GetIGameFramework()->SetTimeScale(inverseScale);
+    return gEnv->pGame->GetIGameFramework()->GetTimeScale();
+}
+
+int CCryEditApp::SetAIImap(int imap)
+{
+    gEnv->pGame->GetIGameFramework()->SetAIImap(imap);
+    return gEnv->pGame->GetIGameFramework()->GetAIImap();
+}
+
+int CCryEditApp::SetAIImapSquad(int squad)
+{
+    gEnv->pGame->GetIGameFramework()->SetAIImapSquad(squad);
+    return gEnv->pGame->GetIGameFramework()->GetAIIMapSquad();
+}
+
+int CCryEditApp::SetAIDebugSquad(int squad)
+{
+    gEnv->pGame->GetIGameFramework()->SetAiSquadDebug(squad);
+    return gEnv->pGame->GetIGameFramework()->GetAiSquadDebug();
+}
+
+int CCryEditApp::SetAIDebugChar(int character)
+{
+    gEnv->pGame->GetIGameFramework()->SetAiCharDebug(character);
+    return gEnv->pGame->GetIGameFramework()->GetAiCharDebug();
+}
+
+int CCryEditApp::SetAIInputOverride(int team)
+{
+    gEnv->pGame->GetIGameFramework()->SetAiInputOverride(team);
+    return gEnv->pGame->GetIGameFramework()->GetAiInputOverride();
+}
+#endif
 
 void CCryEditApp::DisplayLevelLoadErrors()
 {

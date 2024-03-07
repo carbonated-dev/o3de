@@ -14,6 +14,7 @@ add_subdirectory(Plugins)
 
 if(CARBONATED_ENGINE_ADDONS)
 set(azcommonaddon_dependency Legacy::CryCommonAddon)
+set_property(GLOBAL APPEND PROPERTY LY_EDITOR_PLUGINS $<TARGET_FILE_NAME:Legacy::MadWorldEditorPlugin>)
 endif()
 
 ly_add_target(

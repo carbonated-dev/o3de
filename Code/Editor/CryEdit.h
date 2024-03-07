@@ -113,6 +113,18 @@ public:
     bool CreateLevel(bool& wasCreateLevelOperationCancelled);
     void LoadFile(QString fileName);
     void ForceNextIdleProcessing() { m_bForceProcessIdle = true; }
+#if defined(CARBONATED)
+    bool ToggleForceInactive() { m_bForcePause = !m_bForcePause; return m_bForcePause; }
+    bool SetAIPause(bool paused);
+    bool SetAICover(bool show);
+    int SetCoverElev(int elev);
+    int SetTimeScale(int inverseScale);
+    int SetAIImap(int imap);
+    int SetAIImapSquad(int squad);
+    int SetAIDebugSquad(int squad);
+    int SetAIDebugChar(int chararacter);
+    int SetAIInputOverride(int team);
+#endif
     void KeepEditorActive(bool bActive) { m_bKeepEditorActive = bActive; };
     bool IsInTestMode() const { return m_bTestMode; };
     bool IsInPreviewMode() const { return m_bPreviewMode; };
@@ -312,6 +324,9 @@ private:
     // If this flag is set, the next OnIdle() will update, even if the app is in the background, and then
     // this flag will be reset.
     bool m_bForceProcessIdle = false;
+#if defined(CARBONATED)
+    bool m_bForcePause = false;
+#endif
     // This is set while IdleProcessing is running to prevent re-entrancy
     bool m_idleProcessingRunning = false;
     // Keep the editor alive, even if no focus is set
