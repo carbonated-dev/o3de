@@ -17,8 +17,6 @@
 #include <AzCore/Console/Console.h>
 #include <Atom/RPI.Public/Shader/ShaderReloadDebugTracker.h>
 
-#pragma optimize("", off)
-
 namespace AZ
 {
     namespace RPI
@@ -532,4 +530,3 @@ namespace AZ
     } // namespace RPI
 } // namespace AZ
 
-#pragma optimize("", on)

@@ -17,7 +17,9 @@
 #include <AzCore/Math/Obb.h>
 #include <AzCore/std/containers/fixed_vector.h>
 
-#define DEBUG_MESH_SHADERVARIANTS
+// Enable this define to print the shader variants used by MeshDrawPacket every time the draw packet get rebuilt.
+// Note: the log can be extremely long if there are too many mesh instances (for example, >5K).  
+// #define DEBUG_MESH_SHADERVARIANTS
 
 namespace AZ
 {

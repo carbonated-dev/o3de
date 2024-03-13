@@ -46,8 +46,6 @@
 
 #include <algorithm>
 
-#pragma optimize("", off)
-
 namespace AZ
 {
     namespace Render
@@ -2926,5 +2924,3 @@ namespace AZ
     } // namespace Render
 } // namespace AZ
 
-
-#pragma optimize("", on)
