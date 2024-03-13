@@ -17,6 +17,7 @@
 #include <AzCore/Math/Obb.h>
 #include <AzCore/std/containers/fixed_vector.h>
 
+#define DEBUG_MESH_SHADERVARIANTS
 
 namespace AZ
 {
@@ -78,6 +79,8 @@ namespace AZ
             const ModelLod::Mesh& GetMesh() const;
             const ShaderList& GetActiveShaderList() const { return m_activeShaders; }
 
+            void DebugOutputShaderVariants();
+
         private:
             bool DoUpdate(const Scene& parentScene);
             void ForValidShaderOptionName(const Name& shaderOptionName, const AZStd::function<bool(const ShaderCollection::Item&, ShaderOptionIndex)>& callback);
@@ -135,6 +138,12 @@ namespace AZ
 
             //! A flag to indicate if the DrawPacket need to be rebuild when updating
             bool m_needUpdate = true;
+
+#ifdef DEBUG_MESH_SHADERVARIANTS
+            // For debug shader variants
+            // The list of shader variant asset names used by the DrawPackets
+            AZStd::vector<AZStd::string_view> m_shaderVariantNames;
+#endif
         };
         
         using MeshDrawPacketList = AZStd::vector<RPI::MeshDrawPacket>;

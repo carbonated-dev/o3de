@@ -8,10 +8,64 @@
 
 #include <Mesh/MeshInstanceGroupList.h>
 #include <AzCore/std/numeric.h>
+#include <Atom/Feature/Mesh/MeshFeatureProcessor.h> 
 #include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
 
 namespace AZ::Render
 {
+    bool MeshInstanceGroupData::UpdateDrawPacket(const RPI::Scene& parentScene, bool forceUpdate)
+    {
+        if (m_drawPacket.Update(parentScene, forceUpdate))
+        {
+            // Clear any cached draw packets, since they need to be re-created
+            m_perViewDrawPackets.clear();
+            for (auto modelDataInstance : m_associatedInstances)
+            {
+                modelDataInstance->HandleDrawPacketUpdate();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    bool MeshInstanceGroupData::UpdateShaderOptionFlags()
+    {
+        uint32_t newShaderOptionFlagMask = 0;
+        uint32_t newShaderOptionFlags = m_shaderOptionFlags;
+
+        if (m_associatedInstances.size() > 0)
+        {
+            newShaderOptionFlags = (*m_associatedInstances.begin())->GetCullable().m_shaderOptionFlags;
+        }
+
+        for (auto modelDataInstance : m_associatedInstances)
+        {
+            newShaderOptionFlagMask = ~(newShaderOptionFlags ^ modelDataInstance->GetCullable().m_shaderOptionFlags);
+            newShaderOptionFlags &= modelDataInstance->GetCullable().m_shaderOptionFlags;
+        }
+
+        if (newShaderOptionFlags != m_shaderOptionFlags || newShaderOptionFlagMask != m_shaderOptionFlagMask)
+        {
+            m_shaderOptionFlags = newShaderOptionFlags;
+            m_shaderOptionFlagMask = newShaderOptionFlagMask;
+            return true;
+        }
+        return false;
+    }
+
+    void MeshInstanceGroupData::AddAssociatedInstance(ModelDataInstance* instance)
+    {
+        AZStd::scoped_lock<AZStd::mutex> scopedLock(m_eventLock);
+        m_associatedInstances.insert(instance);
+
+    }
+
+    void MeshInstanceGroupData::RemoveAssociatedInstance(ModelDataInstance* instance)
+    {
+        AZStd::scoped_lock<AZStd::mutex> scopedLock(m_eventLock);
+        m_associatedInstances.erase(instance);
+    }
+
     MeshInstanceGroupList::InsertResult MeshInstanceGroupList::Add(const MeshInstanceGroupKey& key)
     {
         // It is not safe to have multiple threads Add and/or Remove at the same time

@@ -25,7 +25,7 @@ namespace AZ
     {
         AZ_CVAR(bool,
             r_enablePerMeshShaderOptionFlags,
-            false,
+            true,
             nullptr,
             AZ::ConsoleFunctorFlags::Null,
             "Enable allowing systems to set shader options on a per-mesh basis."
