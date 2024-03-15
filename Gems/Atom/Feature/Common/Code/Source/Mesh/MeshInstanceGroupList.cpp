@@ -30,7 +30,7 @@ namespace AZ::Render
 
     bool MeshInstanceGroupData::UpdateShaderOptionFlags()
     {
-        uint32_t newShaderOptionFlagMask = 0;
+        uint32_t newShaderOptionFlagMask = 0;   // defaults to 0 so no shader options are specified.
         uint32_t newShaderOptionFlags = m_shaderOptionFlags;
 
         if (m_associatedInstances.size() > 0)
@@ -40,10 +40,13 @@ namespace AZ::Render
 
         for (auto modelDataInstance : m_associatedInstances)
         {
+            // If the shader option flag of different intances are different, the mask for the flag is 0, which means the flag is unspecified.
             newShaderOptionFlagMask = ~(newShaderOptionFlags ^ modelDataInstance->GetCullable().m_shaderOptionFlags);
+            // if the option flag has same value, keep the value.
             newShaderOptionFlags &= modelDataInstance->GetCullable().m_shaderOptionFlags;
         }
 
+        // return ture if the shader option flags or mask changed. 
         if (newShaderOptionFlags != m_shaderOptionFlags || newShaderOptionFlagMask != m_shaderOptionFlagMask)
         {
             m_shaderOptionFlags = newShaderOptionFlags;
