@@ -66,7 +66,7 @@ namespace AZ::Render
         uint32_t m_shaderOptionFlagMask = 0;
 
         // Update mesh draw packet
-        // Return true the DrawPacket was rebuilt
+        // Return true if DrawPacket was rebuilt
         bool UpdateDrawPacket(const RPI::Scene& parentScene, bool forceUpdate);
 
         // Update shader option flags for the instance group
