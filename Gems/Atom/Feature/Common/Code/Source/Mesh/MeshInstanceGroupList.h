@@ -57,7 +57,7 @@ namespace AZ::Render
         bool m_isTransparent = false;
 
         // For per-mesh shader options
-        // If all the ModelDataInstances which use this group are using same shader option value, then we may apply the mesh shader options to the draw packet.
+        // If all the ModelDataInstances within this group are using the same shader option value, then we can apply the mesh shader options to the draw packet.
         // These are two variables which are used to indicate which shader option should be applied and which value is applied.
         // combined shader options from any ModelDataInstance which use this group
         uint32_t m_shaderOptionFlags = 0;
