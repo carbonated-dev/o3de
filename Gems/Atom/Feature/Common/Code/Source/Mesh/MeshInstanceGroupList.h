@@ -44,7 +44,7 @@ namespace AZ::Render
         // or store it with the data for each individual instance
         MeshInstanceGroupKey m_key;
 
-        // A list of ModelDataInstances which are referencing this instace group
+        // A list of ModelDataInstances which are referencing this instance group
         AZStd::set<ModelDataInstance*> m_associatedInstances;
 
         // Mutex for adding/removing associated ModelDataInstance
