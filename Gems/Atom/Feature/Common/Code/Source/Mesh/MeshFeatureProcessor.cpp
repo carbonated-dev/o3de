@@ -943,7 +943,7 @@ namespace AZ
                             instanceGroupDataIter->UpdateDrawPacket(*GetParentScene(), true);
 
                             // Note, we don't need to call CacheRootConstantInterval() here because the root constant layout won't change
-                            // when switch shader variants.
+                            // when we switch shader variants.
                         }
                     }
                 }
