@@ -925,7 +925,7 @@ namespace AZ
 
                         if (shaderOptionFlagsChanged)
                         {
-                            // Set shader optioins here
+                            // Set shader options here
                             m_flagRegistry->VisitTags(
                                 [&](AZ::Name shaderOption, FlagRegistry::TagType tag)
                                 {
