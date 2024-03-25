@@ -1353,7 +1353,7 @@ class AndroidProjectGenerator(object):
         root_gradle_env = {
             'ANDROID_GRADLE_PLUGIN_VERSION': str(self._gradle_plugin_version),
             'SDK_VER': self._android_platform_sdk_api_level,
-            'MIN_SDK_VER': self._android_platform_sdk_api_level,
+            'MIN_SDK_VER': 30, #self._android_platform_sdk_api_level,
             'NDK_VERSION': self._android_ndk.version,
             'SDK_BUILD_TOOL_VER': self._android_sdk_build_tool_version,
             'LY_ENGINE_ROOT': self._engine_root.as_posix()
