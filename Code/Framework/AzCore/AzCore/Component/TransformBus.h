@@ -231,15 +231,13 @@ namespace AZ
         //! @deprecated GetLocalScale is deprecated, and is left only to allow migration of legacy vector scale.
         //! Get the legacy vector scale value in local space.
         //! @return The scale value in local space.
-        virtual AZ::Vector3 GetLocalScale() { return AZ::Vector3(FLT_MAX); } // Gruber patch. Deprecated
-
-        // carbonated begin (mp-438-2): Methods called from o3de-gruber
+        virtual AZ::Vector3 GetLocalScale() { return AZ::Vector3(FLT_MAX); }
 
         /**
          * Set local scale of the transform.
          * @param scale The new scale to set along three local axes.
          */
-         virtual void SetLocalScale(const AZ::Vector3& /*scale*/) {}  // Gruber patch. Deprecated
+         virtual void SetLocalScale(const AZ::Vector3& /*scale*/) {}
 #endif // carbonated end
 
         //! Set the uniform scale value in local space.
