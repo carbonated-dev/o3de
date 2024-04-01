@@ -500,8 +500,25 @@ namespace AZ
             scratchBuffer.append(message.begin(), message.end());
             scratchBuffer.append("\n    Reason: ");
             result.AppendToString(scratchBuffer, path);
+#if defined(CARBONATED)
+            if (result.SpecialCase() == SpecialCaseType::IncorrectTransform)
+            {
+                scratchBuffer.append(", IncorrectTransform");
+            }
+#endif
             scratchBuffer.append(".");
+#if defined(CARBONATED)
+            if (result.GetProcessing() == AZ::JsonSerializationResult::Processing::Halted)
+            {
+                AZ_Error("JSON Serialization", false, "%s", scratchBuffer.c_str());
+            }
+            else
+            {
+                AZ_Warning("JSON Serialization", false, "%s", scratchBuffer.c_str());
+            }
+#else
             AZ_Warning("JSON Serialization", false, "%s", scratchBuffer.c_str());
+#endif
             
             scratchBuffer.clear();
         }
