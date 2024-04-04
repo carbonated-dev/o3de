@@ -19,7 +19,7 @@ namespace AZ::RHI
 {
     //! System component in charge of loading the RenderDoc library or
     //! connecting to it if it's already loaded. If RenderDoc is present and
-    //! available, it register to the GraphicsProfilerBus to provide GPU
+    //! available, it registers to the GraphicsProfilerBus to provide GPU
     //! capture functionality using RenderDoc.
     class RenderDocSystemComponent final
         : public AZ::Component

@@ -77,13 +77,13 @@ namespace AZ::RHI
         m_renderDocApi = nullptr;
     }
 
-    void RenderDocSystemComponent::StartCapture([[maybe_unused]] const AzFramework::NativeWindowHandle window)
+    void RenderDocSystemComponent::StartCapture(const AzFramework::NativeWindowHandle window)
     {
         AZ_Assert(m_renderDocApi, "Null RenderDoc API");
         m_renderDocApi->StartFrameCapture(nullptr, window); 
     }
 
-    bool RenderDocSystemComponent::EndCapture([[maybe_unused]] const AzFramework::NativeWindowHandle window)
+    bool RenderDocSystemComponent::EndCapture(const AzFramework::NativeWindowHandle window)
     {
         AZ_Assert(m_renderDocApi, "Null RenderDoc API");
         return m_renderDocApi->EndFrameCapture(nullptr, window) == 1;

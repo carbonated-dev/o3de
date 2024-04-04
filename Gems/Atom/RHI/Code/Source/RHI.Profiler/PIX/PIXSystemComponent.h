@@ -17,7 +17,7 @@ namespace AZ::RHI
 {
     //! System component in charge of loading the PIX library or
     //! connecting to it if it's already loaded. If PIX is present and
-    //! available, it register to the GraphicsProfilerBus to provide GPU
+    //! available, it registers to the GraphicsProfilerBus to provide GPU
     //! capture functionality using PIX.
     class PIXSystemComponent final
         : public AZ::Component
