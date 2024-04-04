@@ -11,8 +11,7 @@
 
 namespace AZ::RHI
 {
-    //! This module is in charge of creating the PIX system component
-    //! in charge of loading PIX and registering to the GraphicsProfilerBus.
+    //! This module is in charge of loading the PIX system component
     class PIXModule
         : public AZ::Module
     {

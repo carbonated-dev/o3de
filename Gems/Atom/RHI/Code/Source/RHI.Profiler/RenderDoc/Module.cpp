@@ -11,8 +11,7 @@
 
 namespace AZ::RHI
 {
-    //! This module is in charge of creating the RenderDoc system component
-    //! in charge of loading RenderDoc and registering to the GraphicsProfilerBus.
+    //! This module is in charge of loading the RenderDoc system component
     class RenderDocModule
         : public AZ::Module
     {
