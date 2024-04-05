@@ -1320,7 +1320,6 @@ namespace AssetProcessor
 
             //make new product entries from the job response output products
             ProductInfoList newProducts;
-            AZStd::vector<AZStd::vector<AZ::u32> > newLegacySubIDs;  // each product has a vector of legacy subids;
             for (const AssetBuilderSDK::JobProduct& product : processedAsset.m_response.m_outputProducts)
             {
                 AssetUtilities::ProductPath productPath(product.m_productFileName, processedAsset.m_entry.m_platformInfo.m_identifier);
@@ -1335,14 +1334,8 @@ namespace AssetProcessor
                 newProduct.m_hash = wrapper.ComputeHash();
                 newProduct.m_flags = static_cast<AZ::s64>(product.m_outputFlags);
 
-                // This is the legacy product guid, its only use is for backward compatibility as before the asset id's guid was created off of the relative product name.
-                // Right now when we query for an asset guid we first match on the source guid which is correct and secondarily match on the product guid. Eventually this will go away.
-                // Strip the <asset_platform> from the front of a relative product path
-                newProduct.m_legacyGuid = AZ::Uuid::CreateName(productPath.GetRelativePath().c_str());
-
                 //push back the new product into the new products list
                 newProducts.emplace_back(newProduct, &product);
-                newLegacySubIDs.push_back(product.m_legacySubIDs);
             }
 
             // To find the set of products that were either new, or updated, this code starts with the new products, and erases
@@ -1539,7 +1532,7 @@ namespace AssetProcessor
                     m_stateData->GetProductByJobIDSubId(pair.first.m_jobPK, pair.second->m_productSubID, productEntry);
                 }
 
-                WriteProductTableInfo(pair, newLegacySubIDs[productIdx], dependencySet, job.m_platform);
+                WriteProductTableInfo(pair, dependencySet, job.m_platform);
 
                 // Add the resolved path dependencies to the dependency set
                 for (const auto& resolvedPathDep : resolvedDependencies)
@@ -1589,7 +1582,6 @@ namespace AssetProcessor
 
                 // now we need notify everyone about the new products
                 AzToolsFramework::AssetDatabase::ProductDatabaseEntry& newProduct = pair.first;
-                AZStd::vector<AZ::u32>& subIds = newLegacySubIDs[productIdx];
 
                 // product name will be in the form "platform/relativeProductPath"
                 QString productName = QString::fromUtf8(newProduct.m_productName.c_str());
@@ -1603,7 +1595,6 @@ namespace AssetProcessor
 
                 AssetNotificationMessage message(relativeProductPath, AssetNotificationMessage::AssetChanged, newProduct.m_assetType, processedAsset.m_entry.m_platformInfo.m_identifier.c_str());
                 AZ::Data::AssetId assetId(source.m_sourceGuid, newProduct.m_subID);
-                AZ::Data::AssetId legacyAssetId(newProduct.m_legacyGuid, 0);
 
                 message.m_data = relativeProductPath;
                 message.m_sizeBytes = QFileInfo(fullProductPath).size();
@@ -1614,41 +1605,6 @@ namespace AssetProcessor
                 for (const auto& entry : dependencySet)
                 {
                     message.m_dependencies.emplace_back(AZ::Data::AssetId(entry.m_dependencySourceGuid, entry.m_dependencySubID), entry.m_dependencyFlags);
-                }
-
-                if (legacyAssetId != assetId)
-                {
-                    message.m_legacyAssetIds.push_back(legacyAssetId);
-                }
-
-                const SourceAssetReference& sourceAsset = processedAsset.m_entry.m_sourceAssetReference;
-                AZStd::unordered_set<AZ::Data::AssetId> legacySourceAssetIds; // Keep track of the legacy *asset* Ids to avoid duplicates
-                auto legacySourceUuidsOutcome = AssetUtilities::GetLegacySourceUuids(sourceAsset);
-
-                if (legacySourceUuidsOutcome)
-                {
-                    auto legacySourceUuids = legacySourceUuidsOutcome.GetValue();
-                    legacySourceAssetIds.reserve(legacySourceUuids.size());
-
-                    for (const auto& legacyUuid : legacySourceUuids)
-                    {
-                        AZ::Data::AssetId legacySourceAssetId(legacyUuid, newProduct.m_subID);
-
-                        if (legacySourceAssetId != assetId)
-                        {
-                            legacySourceAssetIds.emplace(legacySourceAssetId);
-                            message.m_legacyAssetIds.push_back(AZStd::move(legacySourceAssetId));
-                        }
-                    }
-                }
-
-                for (AZ::u32 newLegacySubId : subIds)
-                {
-                    AZ::Data::AssetId createdSubID(source.m_sourceGuid, newLegacySubId);
-                    if ((createdSubID != legacyAssetId) && !legacySourceAssetIds.contains(createdSubID) && (createdSubID != assetId))
-                    {
-                        message.m_legacyAssetIds.push_back(createdSubID);
-                    }
                 }
 
                 Q_EMIT AssetMessage(message);
@@ -1724,7 +1680,7 @@ namespace AssetProcessor
         m_stateData->SetSource(source);
     }
 
-    void AssetProcessorManager::WriteProductTableInfo(AZStd::pair<AzToolsFramework::AssetDatabase::ProductDatabaseEntry, const AssetBuilderSDK::JobProduct*>& pair, AZStd::vector<AZ::u32>& subIds, AZStd::unordered_set<AzToolsFramework::AssetDatabase::ProductDependencyDatabaseEntry>& dependencyContainer, const AZStd::string& platform)
+    void AssetProcessorManager::WriteProductTableInfo(AZStd::pair<AzToolsFramework::AssetDatabase::ProductDatabaseEntry, const AssetBuilderSDK::JobProduct*>& pair, AZStd::unordered_set<AzToolsFramework::AssetDatabase::ProductDependencyDatabaseEntry>& dependencyContainer, const AZStd::string& platform)
     {
         AzToolsFramework::AssetDatabase::ProductDatabaseEntry& newProduct = pair.first;
         const AssetBuilderSDK::JobProduct* jobProduct = pair.second;
@@ -1735,13 +1691,6 @@ namespace AssetProcessor
         }
         else
         {
-            m_stateData->RemoveLegacySubIDsByProductID(newProduct.m_productID);
-            for (AZ::u32 subId : subIds)
-            {
-                AzToolsFramework::AssetDatabase::LegacySubIDsEntry entryToCreate(newProduct.m_productID, subId);
-                m_stateData->CreateOrUpdateLegacySubID(entryToCreate);
-            }
-
             // Remove all previous dependencies
             if (!m_stateData->RemoveProductDependencyByProductId(newProduct.m_productID))
             {
@@ -2057,7 +2006,6 @@ namespace AssetProcessor
                 if(wrapper.HasCacheProduct())
                 {
                     AZ::Data::AssetId assetId(source.m_sourceGuid, product.m_subID);
-                    AZ::Data::AssetId legacyAssetId(product.m_legacyGuid, 0);
 
                     AssetNotificationMessage message(productPath.GetRelativePath(), AssetNotificationMessage::AssetRemoved, product.m_assetType, AZ::OSString(platform.data(), platform.size()));
                     message.m_assetId = assetId;

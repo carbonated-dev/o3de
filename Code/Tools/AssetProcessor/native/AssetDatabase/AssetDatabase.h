@@ -186,11 +186,6 @@ namespace AssetProcessor
             AzToolsFramework::AssetDatabase::SourceFileDependencyEntry::TypeOfDependency typeOfDependency,
             AzToolsFramework::AssetDatabase::SourceFileDependencyEntryContainer& container);
 
-        // --------------------- Legacy SUBID table -------------------
-        bool CreateOrUpdateLegacySubID(AzToolsFramework::AssetDatabase::LegacySubIDsEntry& entry);  // create or overwrite operation.
-        bool RemoveLegacySubID(AZ::s64 legacySubIDsEntryID);
-        bool RemoveLegacySubIDsByProductID(AZ::s64 productID);
-
         //ProductDependencies
         bool GetProductDependencies(AzToolsFramework::AssetDatabase::ProductDependencyDatabaseEntryContainer& container);
         bool GetProductDependencyByProductDependencyID(AZ::s64 productDependencyID, AzToolsFramework::AssetDatabase::ProductDependencyDatabaseEntry& productDependencyEntry);

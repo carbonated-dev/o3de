@@ -610,12 +610,6 @@ namespace AssetProcessor
         response.m_outputProducts.push_back(AssetBuilderSDK::JobProduct(AbsProductPathToRelative(androidouts[0]), AZ::Uuid::CreateNull(), 1));
         response.m_outputProducts.push_back(AssetBuilderSDK::JobProduct(AbsProductPathToRelative(androidouts[1]), AZ::Uuid::CreateNull(), 2));
 
-        // make sure legacy SubIds get stored in the DB and in asset response messages.
-        // also make sure they don't get filed for the wrong asset.
-        response.m_outputProducts[0].m_legacySubIDs.push_back(1234);
-        response.m_outputProducts[0].m_legacySubIDs.push_back(5678);
-        response.m_outputProducts[1].m_legacySubIDs.push_back(2222);
-
         QMetaObject::invokeMethod(m_assetProcessorManager.get(), "AssetProcessed", Qt::QueuedConnection, Q_ARG(JobEntry, m_processResults[0].m_jobEntry), Q_ARG(AssetBuilderSDK::ProcessJobResponse, response));
 
         // let events bubble through:
@@ -637,20 +631,6 @@ namespace AssetProcessor
         EXPECT_NE(m_assetMessages[1].m_sizeBytes, 0);
         EXPECT_TRUE(m_assetMessages[0].m_assetId.IsValid());
         EXPECT_TRUE(m_assetMessages[1].m_assetId.IsValid());
-        EXPECT_TRUE(!m_assetMessages[0].m_legacyAssetIds.empty());
-        EXPECT_TRUE(!m_assetMessages[1].m_legacyAssetIds.empty());
-        EXPECT_TRUE(m_assetMessages[0].m_legacyAssetIds[0].IsValid());
-        EXPECT_TRUE(m_assetMessages[1].m_legacyAssetIds[0].IsValid());
-        EXPECT_NE(m_assetMessages[0].m_legacyAssetIds[0], m_assetMessages[0].m_assetId);
-        EXPECT_NE(m_assetMessages[1].m_legacyAssetIds[0], m_assetMessages[1].m_assetId);
-
-        EXPECT_EQ(m_assetMessages[0].m_legacyAssetIds.size(), 3);
-        EXPECT_EQ(m_assetMessages[1].m_legacyAssetIds.size(), 2);
-
-        EXPECT_EQ(m_assetMessages[0].m_legacyAssetIds[1].m_subId, 1234);
-        EXPECT_EQ(m_assetMessages[0].m_legacyAssetIds[2].m_subId, 5678);
-        EXPECT_EQ(m_assetMessages[1].m_legacyAssetIds[1].m_subId, 2222);
-
         EXPECT_EQ(AssetUtilities::NormalizeFilePath(m_changedInputResults[0].first), AssetUtilities::NormalizeFilePath(absolutePath));
 
         // ----------------------- test job info requests, when some assets are done.
@@ -1579,10 +1559,7 @@ namespace AssetProcessor
         // we should have got only one success:
         EXPECT_EQ(m_changedInputResults.size(), 4);
         EXPECT_EQ(m_assetMessages.size(), 4);
-        for (auto element : m_assetMessages)
-        {
-            EXPECT_EQ(element.m_legacyAssetIds.size(), expectedLegacyAssetIdCount);
-        }
+
 
         // ------------- setup complete, now do the test...
         // now feed it a file that has been overridden by a more important later file

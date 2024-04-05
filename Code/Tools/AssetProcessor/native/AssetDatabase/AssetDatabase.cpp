@@ -430,15 +430,14 @@ namespace AssetProcessor
 
         static const char* INSERT_PRODUCT = "AssetProcessor::InsertProduct";
         static const char* INSERT_PRODUCT_STATEMENT =
-            "INSERT INTO Products (JobPK, SubID, ProductName, AssetType, LegacyGuid, Hash, Flags) "
-            "VALUES (:jobid, :subid, :productname, :assettype, :legacyguid, :hash, :flags);";
+            "INSERT INTO Products (JobPK, SubID, ProductName, AssetType, Hash, Flags) "
+            "VALUES (:jobid, :subid, :productname, :assettype, :hash, :flags);";
 
         static const auto s_InsertProductQuery = MakeSqlQuery(INSERT_PRODUCT, INSERT_PRODUCT_STATEMENT, LOG_NAME,
             SqlParam<AZ::s64>(":jobid"),
             SqlParam<AZ::u32>(":subid"),
             SqlParam<const char*>(":productname"),
             SqlParam<AZ::Uuid>(":assettype"),
-            SqlParam<AZ::Uuid>(":legacyguid"),
             SqlParam<AZ::u64>(":hash"),
             SqlParam<AZ::u64>(":flags"));
 
@@ -449,7 +448,6 @@ namespace AssetProcessor
             "SubID = :subid, "
             "ProductName = :productname, "
             "AssetType = :assettype, "
-            "LegacyGuid = :legacyguid, "
             "Hash = :hash, "
             "Flags = :flags "
             "WHERE ProductID = :productid;";
@@ -459,7 +457,6 @@ namespace AssetProcessor
             SqlParam<AZ::u32>(":subid"),
             SqlParam<const char*>(":productname"),
             SqlParam<AZ::Uuid>(":assettype"),
-            SqlParam<AZ::Uuid>(":legacyguid"),
             SqlParam<AZ::u64>(":flags"),
             SqlParam<AZ::s64>(":productid"),
             SqlParam<AZ::u64>(":hash"));
@@ -2501,7 +2498,7 @@ namespace AssetProcessor
             if (wasAlreadyInDatabase)
             {
                 // it was already in the database, so use the "UPDATE" version
-                if (!s_UpdateProductQuery.Bind(*m_databaseConnection, autoFinalizer, entry.m_jobPK, entry.m_subID, entry.m_productName.c_str(), entry.m_assetType, entry.m_legacyGuid, entry.m_flags.to_ullong(), entry.m_productID, entry.m_hash))
+                if (!s_UpdateProductQuery.Bind(*m_databaseConnection, autoFinalizer, entry.m_jobPK, entry.m_subID, entry.m_productName.c_str(), entry.m_assetType, entry.m_flags.to_ullong(), entry.m_productID, entry.m_hash))
                 {
                     return false;
                 }
@@ -2509,7 +2506,7 @@ namespace AssetProcessor
             else
             {
                 // it wasn't in the database, so use the "INSERT" version
-                if (!s_InsertProductQuery.Bind(*m_databaseConnection, autoFinalizer, entry.m_jobPK, entry.m_subID, entry.m_productName.c_str(), entry.m_assetType, entry.m_legacyGuid, entry.m_hash, entry.m_flags.to_ullong()))
+                if (!s_InsertProductQuery.Bind(*m_databaseConnection, autoFinalizer, entry.m_jobPK, entry.m_subID, entry.m_productName.c_str(), entry.m_assetType, entry.m_hash, entry.m_flags.to_ullong()))
                 {
                     return false;
                 }
@@ -2835,72 +2832,6 @@ namespace AssetProcessor
             return false; // stop after the first result
         });
         return found;
-    }
-
-    bool AssetDatabaseConnection::CreateOrUpdateLegacySubID(AzToolsFramework::AssetDatabase::LegacySubIDsEntry& entry)
-    {
-        ScopedTransaction transaction(m_databaseConnection);
-
-        bool creatingNew = entry.m_subIDsEntryID == InvalidEntryId;
-
-        if (creatingNew)
-        {
-            if (!s_InsertNewLegacysubidQuery.BindAndStep(*m_databaseConnection, entry.m_productPK, entry.m_subID))
-            {
-                return false;
-            }
-        }
-        else if (!s_OverwriteExistingLegacysubidQuery.BindAndStep(*m_databaseConnection, entry.m_productPK, entry.m_subID, entry.m_subIDsEntryID))
-        {
-            return false;
-        }
-
-
-        if (creatingNew)
-        {
-            AZ::s64 rowID = m_databaseConnection->GetLastRowID();
-            entry.m_subIDsEntryID = rowID;
-        }
-        else
-        {
-            if (m_databaseConnection->GetNumAffectedRows() == 0)
-            {
-                // you specified an invalid key.
-                AZ_Warning(LOG_NAME, false, "Failed to CreateOrUpdateLegacySubID in the database - invalid key specified.");
-                return false;
-            }
-        }
-
-        transaction.Commit();
-        return true;
-    }
-
-    bool AssetDatabaseConnection::RemoveLegacySubID(AZ::s64 legacySubIDsEntryID)
-    {
-        ScopedTransaction transaction(m_databaseConnection);
-
-        if (!s_DeleteLegacysubidsByPrimaryKeyQuery.BindAndStep(*m_databaseConnection, legacySubIDsEntryID))
-        {
-            return false;
-        }
-
-        transaction.Commit();
-
-        return true;
-    }
-
-    bool AssetDatabaseConnection::RemoveLegacySubIDsByProductID(AZ::s64 productID)
-    {
-        ScopedTransaction transaction(m_databaseConnection);
-
-        if (!s_DeleteLegacysubidsByProductidQuery.BindAndStep(*m_databaseConnection, productID))
-        {
-            return false;
-        }
-
-        transaction.Commit();
-
-        return true;
     }
 
     // ProductDependencies

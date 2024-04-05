@@ -1427,12 +1427,11 @@ namespace AzToolsFramework
         //////////////////////////////////////////////////////////////////////////
         //ProductDatabaseEntry
         ProductDatabaseEntry::ProductDatabaseEntry(AZ::s64 productID, AZ::s64 jobPK, AZ::u32 subID, const char* productName,
-            AZ::Data::AssetType assetType, AZ::Uuid legacyGuid, AZ::u64 hash, AZStd::bitset<64> flags)
+            AZ::Data::AssetType assetType, AZ::u64 hash, AZStd::bitset<64> flags)
             : m_productID(productID)
             , m_jobPK(jobPK)
             , m_subID(subID)
             , m_assetType(assetType)
-            , m_legacyGuid(legacyGuid)
             , m_hash(hash)
             , m_flags(flags)
         {
@@ -1443,11 +1442,10 @@ namespace AzToolsFramework
         }
 
         ProductDatabaseEntry::ProductDatabaseEntry(AZ::s64 jobPK, AZ::u32 subID, const char* productName,
-            AZ::Data::AssetType assetType, AZ::Uuid legacyGuid, AZ::u64 hash, AZStd::bitset<64> flags)
+            AZ::Data::AssetType assetType, AZ::u64 hash, AZStd::bitset<64> flags)
             : m_jobPK(jobPK)
             , m_subID(subID)
             , m_assetType(assetType)
-            , m_legacyGuid(legacyGuid)
             , m_hash(hash)
             , m_flags(flags)
         {
@@ -1490,7 +1488,6 @@ namespace AzToolsFramework
                 SQLite::MakeColumn("ProductName", m_productName),
                 SQLite::MakeColumn("SubID", m_subID),
                 SQLite::MakeColumn("AssetType", m_assetType),
-                SQLite::MakeColumn("LegacyGuid", m_legacyGuid),
                 SQLite::MakeColumn("Hash", m_hash),
                 SQLite::MakeColumn("Flags", m_flags)
             );
@@ -2380,11 +2377,11 @@ namespace AzToolsFramework
             return s_queryLegacysubidsbyproductid.BindAndQuery(*m_databaseConnection, handler, &GetLegacySubIDsResult, productId);
         }
 
-        bool AssetDatabaseConnection::QueryCombined(combinedHandler handler, AZ::Uuid builderGuid, const char* jobKey, const char* platform, AssetSystem::JobStatus status, bool includeLegacySubIDs)
+        bool AssetDatabaseConnection::QueryCombined(combinedHandler handler, AZ::Uuid builderGuid, const char* jobKey, const char* platform, AssetSystem::JobStatus status)
         {
-            auto callback = [this, builderGuid, jobKey, status, includeLegacySubIDs](const char* callName, SQLite::Statement* statement, AssetDatabaseConnection::combinedHandler handler)
+            auto callback = [this, builderGuid, jobKey, status](const char* callName, SQLite::Statement* statement, AssetDatabaseConnection::combinedHandler handler)
             {
-                return this->GetCombinedResult(callName, statement, handler, builderGuid, jobKey, status, includeLegacySubIDs);
+                return this->GetCombinedResult(callName, statement, handler, builderGuid, jobKey, status);
             };
 
             if (platform && strlen(platform))
@@ -2941,7 +2938,7 @@ namespace AzToolsFramework
                 && (status != AssetSystem::JobStatus::Any ? savedJobStatus == status : true);
         }
 
-        bool AssetDatabaseConnection::GetCombinedResult(const char* callName, Statement* statement, AssetDatabaseConnection::combinedHandler handler, AZ::Uuid builderGuid, const char* jobKey, AssetSystem::JobStatus status, bool includeLegacySubIDs)
+        bool AssetDatabaseConnection::GetCombinedResult(const char* callName, Statement* statement, AssetDatabaseConnection::combinedHandler handler, AZ::Uuid builderGuid, const char* jobKey, AssetSystem::JobStatus status)
         {
             AZ_UNUSED(callName); // AZ_Error may be compiled out entirely in release builds.
             Statement::SqlStatus result = statement->Step();
@@ -2959,16 +2956,6 @@ namespace AzToolsFramework
 
                 if (ResultMatchesJobCriteria(jobKey, builderGuid, status, combined.m_jobKey, combined.m_builderGuid, combined.m_status))
                 {
-                    if (includeLegacySubIDs)
-                    {
-                        QueryLegacySubIdsByProductID(combined.m_productID, [&combined](LegacySubIDsEntry& entry)
-                        {
-                            combined.m_legacySubIDs.emplace_back(AZStd::move(entry));
-                            return true;
-                        }
-                        );
-                    }
-
                     if (handler(combined))
                     {
                         result = statement->Step();
@@ -2983,7 +2970,6 @@ namespace AzToolsFramework
                     result = statement->Step();
                 }
                 validResult = true;
-                combined.m_legacySubIDs.clear();
             }
 
             if (result == Statement::SqlError)

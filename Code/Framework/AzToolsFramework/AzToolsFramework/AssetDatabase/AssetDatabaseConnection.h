@@ -242,9 +242,9 @@ namespace AzToolsFramework
         public:
             ProductDatabaseEntry() = default;
             ProductDatabaseEntry(AZ::s64 productID, AZ::s64 jobPK,  AZ::u32 subID, const char* productName,
-                AZ::Data::AssetType assetType, AZ::Uuid legacyGuid = AZ::Uuid::CreateNull(), AZ::u64 hash = 0, AZStd::bitset<64> flags = 0);
+                AZ::Data::AssetType assetType, AZ::u64 hash = 0, AZStd::bitset<64> flags = 0);
             ProductDatabaseEntry(AZ::s64 jobPK, AZ::u32 subID, const char* productName,
-                AZ::Data::AssetType assetType, AZ::Uuid legacyGuid = AZ::Uuid::CreateNull(), AZ::u64 hash = 0, AZStd::bitset<64> flags = 0);
+                AZ::Data::AssetType assetType, AZ::u64 hash = 0, AZStd::bitset<64> flags = 0);
             AZ_DEFAULT_COPY_MOVE(ProductDatabaseEntry);
 
             // Literal, all-fields equality operator.
@@ -265,7 +265,6 @@ namespace AzToolsFramework
             AZ::u32 m_subID = 0;
             AZStd::string m_productName;
             AZ::Data::AssetType m_assetType = AZ::Data::AssetType::CreateNull();
-            AZ::Uuid m_legacyGuid = AZ::Uuid::CreateNull();//used only for backward compatibility with old product guid, is generated based on product name
             AZ::u64 m_hash = 0;
             AZStd::bitset<64> m_flags = 0;
         };
@@ -380,7 +379,6 @@ namespace AzToolsFramework
         public:
             // allow it to default move operators and etc.
             bool operator==(const CombinedDatabaseEntry& other) = delete; // its meaningless to compare these
-            LegacySubIDsEntryContainer m_legacySubIDs;
 
             auto GetColumns();
         };
@@ -606,7 +604,7 @@ namespace AzToolsFramework
             bool QueryLegacySubIdsByProductID(AZ::s64 productId, legacySubIDsHandler handler);
 
             //combined scan folder/source/job/product
-            bool QueryCombined(combinedHandler handler, AZ::Uuid builderGuid = AZ::Uuid::CreateNull(), const char* jobKey = nullptr, const char* platform = nullptr, AssetSystem::JobStatus status = AssetSystem::JobStatus::Any, bool includeLegacySubIDs = false);
+            bool QueryCombined(combinedHandler handler, AZ::Uuid builderGuid = AZ::Uuid::CreateNull(), const char* jobKey = nullptr, const char* platform = nullptr, AssetSystem::JobStatus status = AssetSystem::JobStatus::Any);
             bool QueryCombinedBySourceID(AZ::s64 sourceID, combinedHandler handler, AZ::Uuid builderGuid = AZ::Uuid::CreateNull(), const char* jobKey = nullptr, const char* platform = nullptr, AssetSystem::JobStatus status = AssetSystem::JobStatus::Any);
             bool QueryCombinedByJobID(AZ::s64 jobID, combinedHandler handler, AZ::Uuid builderGuid = AZ::Uuid::CreateNull(), const char* jobKey = nullptr, const char* platform = nullptr, AssetSystem::JobStatus status = AssetSystem::JobStatus::Any);
             bool QueryCombinedByProductID(AZ::s64 productID, combinedHandler handler, AZ::Uuid builderGuid = AZ::Uuid::CreateNull(), const char* jobKey = nullptr, const char* platform = nullptr, AssetSystem::JobStatus status = AssetSystem::JobStatus::Any);
@@ -709,7 +707,7 @@ namespace AzToolsFramework
 
             //boiler plate
             auto GetCombinedResultAsLambda(); // helper to wrap up GetCombinedResult in a lambda, since GetCombinedResult is a member function
-            bool GetCombinedResult(const char* callName, SQLite::Statement* statement, AssetDatabaseConnection::combinedHandler handler, AZ::Uuid builderGuid = AZ::Uuid::CreateNull(), const char* jobKey = nullptr, AssetSystem::JobStatus status = AssetSystem::JobStatus::Any, bool includeLegacyAssetIDs = false);
+            bool GetCombinedResult(const char* callName, SQLite::Statement* statement, AssetDatabaseConnection::combinedHandler handler, AZ::Uuid builderGuid = AZ::Uuid::CreateNull(), const char* jobKey = nullptr, AssetSystem::JobStatus status = AssetSystem::JobStatus::Any);
 
             // cache what tables have been validated.  it is assumed that AP is the only app with read-write access to the table, and only
             // one AP can be running on a branch at any given time.  Therefore once the table is validated, there is no reason to continue validating it

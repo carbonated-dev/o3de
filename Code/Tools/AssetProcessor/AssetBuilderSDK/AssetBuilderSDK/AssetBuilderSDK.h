@@ -670,14 +670,6 @@ namespace AssetBuilderSDK
         AZ::Data::AssetType m_productAssetType = AZ::Data::AssetType::CreateNull(); // the type of asset this is
         AZ::u32 m_productSubID; ///< a stable product identifier - see note below.
 
-        /// LegacySUBIds are other names for the same product for legacy compatibility.
-        /// if you ever referred to this product by a different sub-id previously but have decided to change your numbering scheme
-        /// You should emit the prior sub ids into this array.  If we ever go looking for an asset and we fail to find it under a
-        /// canonical product SubID, the system will attempt to look it up in the list of "previously known as..." legacy subIds in case
-        /// the source data it is reading is old.  This allows you to change your subID scheme at any time as long as you include
-        /// the old scheme in the legacySubIDs list.
-        AZStd::vector<AZ::u32> m_legacySubIDs;
-
         // SUB ID context: A Stable sub id means a few things. Products (game ready assets) are identified in the engine by AZ::Data::AssetId, which is a combination of source guid which is random and this product sub id. AssetType is currently NOT USED to differentiate assets by the system. So if two or more products of the same source are for the same platform they can not generate the same sub id!!! If they did this would be a COLLISION!!! which would not allow the rngine to access one or more of the products!!! Not using asset type in the differentiation may change in the future, but it is the way it is done for now.
         // SUB ID RULES:
         // 1. The builder alone is responsible for determining asset type and sub id.

@@ -2341,57 +2341,6 @@ namespace UnitTests
         ASSERT_THAT(matches, testing::ElementsAreArray(searchPaths));
     }
 
-    TEST_F(AssetDatabaseTest, QueryCombined_Succeeds)
-    {
-        // This test specifically checks that the legacy subIds returned by QueryCombined are correctly matched to only the one product that they're associated with
-        using namespace AzToolsFramework::AssetDatabase;
-
-        CreateCoverageTestData();
-
-        auto subIds = { 123, 134, 155, 166, 177 };
-        AZStd::vector<LegacySubIDsEntry> createdLegacySubIds;
-
-        for(int subId : subIds)
-        {
-            LegacySubIDsEntry subIdEntry;
-            subIdEntry.m_productPK = m_data->m_product1.m_productID;
-            subIdEntry.m_subID = subId;
-
-            ASSERT_TRUE(m_data->m_connection.CreateOrUpdateLegacySubID(subIdEntry));
-
-            createdLegacySubIds.push_back(subIdEntry);
-        }
-
-        AZStd::vector<CombinedDatabaseEntry> results;
-
-        auto databaseQueryCallback = [&](AzToolsFramework::AssetDatabase::CombinedDatabaseEntry& combined) -> bool
-        {
-            results.push_back(combined);
-
-            return true;
-        };
-
-        ASSERT_TRUE(m_data->m_connection.QueryCombined(databaseQueryCallback, AZ::Uuid::CreateNull(), nullptr, nullptr, AzToolsFramework::AssetSystem::JobStatus::Any, /*includeLegacyIds*/ true));
-
-        bool foundProductWithLegacyIds = false;
-
-        for(const auto& combined : results)
-        {
-            if (combined.m_productID == m_data->m_product1.m_productID)
-            {
-                foundProductWithLegacyIds = true;
-
-                ASSERT_THAT(combined.m_legacySubIDs, testing::UnorderedElementsAreArray(createdLegacySubIds));
-            }
-            else
-            {
-                ASSERT_EQ(combined.m_legacySubIDs.size(), 0);
-            }
-        }
-
-        ASSERT_TRUE(foundProductWithLegacyIds);
-    }
-
     TEST_F(AssetDatabaseTest, InsertFile_Existing_ReturnsExisting)
     {
         CreateCoverageTestData();

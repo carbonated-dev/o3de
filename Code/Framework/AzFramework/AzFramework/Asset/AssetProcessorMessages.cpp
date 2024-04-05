@@ -1591,7 +1591,6 @@ namespace AzFramework
                     ->Field("size", &AssetNotificationMessage::m_sizeBytes)
                     ->Field("assetId", &AssetNotificationMessage::m_assetId)
                     ->Field("assetType", &AssetNotificationMessage::m_assetType)
-                    ->Field("legacyAssetIds", &AssetNotificationMessage::m_legacyAssetIds)
                     ->Field("dependencies", &AssetNotificationMessage::m_dependencies)
                     ->Field("platform", &AssetNotificationMessage::m_platform);
             }
