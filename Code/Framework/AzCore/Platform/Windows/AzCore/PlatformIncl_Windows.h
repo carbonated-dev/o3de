@@ -60,6 +60,10 @@
 #include <WinSock2.h>
 #include <windows.h>
 
+#ifdef _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
+#endif
+
 // Undef common function names that Windows.h defines
 #if defined(SetJob)
     #undef SetJob

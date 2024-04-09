@@ -483,11 +483,14 @@ FontFamilyPtr AZ::AtomFont::LoadFontFamily(const char* fontFamilyName)
                 // Only continue if all fonts were created successfully
                 if (normal && bold && italic && boldItalic)
                 {
+                    fontFamily.reset(new FontFamily());
+                    /*
                     fontFamily.reset(new FontFamily(),
                         [this](FontFamily* fontFamily)
                     {
                         ReleaseFontFamily(fontFamily);
                     });
+                    */
 
                     // Map the font family name both by path and by name defined
                     // within the Font Family XML itself. This allows font 
@@ -529,11 +532,14 @@ FontFamilyPtr AZ::AtomFont::LoadFontFamily(const char* fontFamilyName)
         {
             // Create a font family from a single font by assigning all the
             // font family stylings to the same font
+            fontFamily.reset(new FontFamily());
+            /*
             fontFamily.reset(new FontFamily(),
                 [this](FontFamily* fontFamily)
             {
                 ReleaseFontFamily(fontFamily);
             });
+            */
 
             // Use filepath as familyName so font loading/unloading doesn't break with duplicate file names
             fontFamily->familyName = fontFamilyName;

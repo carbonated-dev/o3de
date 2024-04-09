@@ -420,7 +420,7 @@ namespace AZStd
         AZ_FORCE_INLINE size_type max_size() const  { return AZStd::allocator_traits<allocator_type>::max_size(m_allocator) / sizeof(node_type); }
         AZ_FORCE_INLINE bool empty() const          { return m_size == 0; }
         AZ_FORCE_INLINE bool full() const           { return size_type(m_end - m_buff) == m_size; }
-        AZ_FORCE_INLINE size_type free() const      { return size_type(m_end - m_buff) - m_size; }
+        AZ_FORCE_INLINE size_type get_free() const      { return size_type(m_end - m_buff) - m_size; }
         AZ_FORCE_INLINE size_type capacity() const  { return m_end - m_buff; }
 
         inline void resize(size_type new_size, const_reference value = value_type())
@@ -1058,7 +1058,7 @@ namespace AZStd
 
         inline void insert_n(const iterator& pos, size_type size, iterator first)
         {
-            size_type construct = free();
+            size_type construct = get_free();
             if (construct > size)
             {
                 construct = size;
@@ -1101,7 +1101,7 @@ namespace AZStd
 
         inline void insert_n(const iterator& pos, size_type size, const_reference value)
         {
-            size_type construct = free();
+            size_type construct = get_free();
             if (construct > size)
             {
                 construct = size;

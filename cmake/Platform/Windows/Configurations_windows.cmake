@@ -18,6 +18,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             _WIN64
             WIN64
             NOMINMAX
+            _CRTDBG_MAP_ALLOC
         LINK
             /MACHINE:X64
     )

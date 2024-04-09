@@ -317,7 +317,7 @@ namespace AZ
             page* get_free_page();
             const page* get_free_page() const;
             void* alloc(page* p);
-            void free(page* p, void* ptr);
+            void AZ_Free(page* p, void* ptr);
             void unlink(page* p);
         };
 
@@ -657,7 +657,7 @@ namespace AZ
         // realloc the memory block using DEFAULT_ALIGNMENT
         // ptr == NULL acts as alloc
         // size == 0 acts as free
-        void* realloc(void* ptr, size_t size)
+        void* AZ_Realloc(void* ptr, size_t size)
         {
             if (ptr == nullptr)
             {
@@ -723,7 +723,7 @@ namespace AZ
         // ptr == NULL acts as alloc
         // size == 0 acts as free
         // alignment <= DEFAULT_ALIGNMENT acts as realloc
-        void* realloc(void* ptr, size_t size, size_t alignment)
+        void* AZ_Realloc(void* ptr, size_t size, size_t alignment)
         {
             HPPA_ASSERT((alignment & (alignment - 1)) == 0);
             if (alignment <= DEFAULT_ALIGNMENT)
@@ -876,7 +876,7 @@ namespace AZ
         }
 
         // free the memory block
-        inline void free(void* ptr)
+        inline void AZ_Free(void* ptr)
         {
             if (ptr == nullptr)
             {
@@ -892,7 +892,7 @@ namespace AZ
         }
 
         // free the memory block supplying the original size with DEFAULT_ALIGNMENT
-        inline void free(void* ptr, size_t origSize)
+        inline void AZ_Free(void* ptr, size_t origSize)
         {
             if (ptr == nullptr)
             {
@@ -910,7 +910,7 @@ namespace AZ
         }
 
         // free the memory block supplying the original size and alignment
-        inline void free(void* ptr, size_t origSize, size_t oldAlignment)
+        inline void AZ_Free(void* ptr, size_t origSize, size_t oldAlignment)
         {
             if (ptr == nullptr)
             {
@@ -1149,7 +1149,7 @@ namespace AZ
     }
 
     template<bool DebugAllocatorEnable>
-    void HphaSchemaBase<DebugAllocatorEnable>::HpAllocator::bucket::free(page* p, void* ptr)
+    void HphaSchemaBase<DebugAllocatorEnable>::HpAllocator::bucket::AZ_Free(page* p, void* ptr)
     {
         // add the element back to the free list
         free_link* free = p->mFreeList;
@@ -1314,7 +1314,7 @@ namespace AZ
 #endif
 #endif
         mTotalAllocatedSizeBuckets -= p->elem_size();
-        mBuckets[bi].free(p, ptr);
+        mBuckets[bi].AZ_Free(p, ptr);
     }
 
     template<bool DebugAllocatorEnable>
@@ -1333,7 +1333,7 @@ namespace AZ
 #endif
 #endif
         mTotalAllocatedSizeBuckets -= p->elem_size();
-        mBuckets[bi].free(p, ptr);
+        mBuckets[bi].AZ_Free(p, ptr);
     }
 
     template<bool DebugAllocatorEnable>
@@ -2118,22 +2118,22 @@ namespace AZ
         }
         else if (alignment == 0)
         {
-            free(ptr, byteSize);
+            AZ_Free(ptr, byteSize);
         }
         else
         {
-            free(ptr, byteSize, alignment);
+            AZ_Free(ptr, byteSize, alignment);
         }
     }
 
     template<bool DebugAllocatorEnable>
     typename HphaSchemaBase<DebugAllocatorEnable>::HpAllocator::pointer HphaSchemaBase<DebugAllocatorEnable>::HpAllocator::reallocate(pointer ptr, size_type newSize, align_type alignment)
     {
-        pointer address = realloc(ptr, newSize, static_cast<size_t>(alignment));
+        pointer address = AZ_Realloc(ptr, newSize, static_cast<size_t>(alignment));
         if (address == nullptr && newSize > 0)
         {
             purge();
-            address = realloc(ptr, newSize, static_cast<size_t>(alignment));
+            address = AZ_Realloc(ptr, newSize, static_cast<size_t>(alignment));
         }
         return address;
     }
@@ -2494,11 +2494,11 @@ namespace AZ
     auto HphaSchemaBase<DebugAllocator>::reallocate(pointer ptr, size_type newSize, size_type newAlignment)
         -> pointer
     {
-        pointer address = m_allocator->realloc(ptr, newSize, newAlignment);
+        pointer address = m_allocator->AZ_Realloc(ptr, newSize, newAlignment);
         if (address == nullptr && newSize > 0)
         {
             GarbageCollect();
-            address = m_allocator->realloc(ptr, newSize, newAlignment);
+            address = m_allocator->AZ_Realloc(ptr, newSize, newAlignment);
         }
         return address;
     }
@@ -2516,15 +2516,15 @@ namespace AZ
         }
         if (size == 0)
         {
-            m_allocator->free(ptr);
+            m_allocator->AZ_Free(ptr);
         }
         else if (alignment == 0)
         {
-            m_allocator->free(ptr, size);
+            m_allocator->AZ_Free(ptr, size);
         }
         else
         {
-            m_allocator->free(ptr, size, alignment);
+            m_allocator->AZ_Free(ptr, size, alignment);
         }
     }
 
