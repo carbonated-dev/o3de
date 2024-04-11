@@ -25,7 +25,7 @@ namespace AZ
             VkSystemAllocator();
             ~VkSystemAllocator();
 
-            VkAllocationCallbacks m_allocationCallbacks;
+            VkAllocationCallbacks m_allocationCallbacks{};
         };
     }
 }
