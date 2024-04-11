@@ -46,9 +46,10 @@ namespace AZ
             // Because of this we deactivate callbacks when using Renderdoc.
             if (!RHI::GraphicsProfilerBus::HasHandlers())
             {
-                m_allocationCallbacks.pfnFree = RHI_vkFreeFunction;
-                m_allocationCallbacks.pfnReallocation = RHI_vkReallocationFunction;
-                m_allocationCallbacks.pfnAllocation = RHI_vkAllocationFunction;
+                m_allocationCallbacks = AZStd::make_unique<VkAllocationCallbacks>();
+                m_allocationCallbacks->pfnFree = RHI_vkFreeFunction;
+                m_allocationCallbacks->pfnReallocation = RHI_vkReallocationFunction;
+                m_allocationCallbacks->pfnAllocation = RHI_vkAllocationFunction;
             }
         }
 
@@ -59,7 +60,7 @@ namespace AZ
         VkAllocationCallbacks* VkSystemAllocator::Get()
         {
             static VkSystemAllocator allocator;
-            return &allocator.m_allocationCallbacks;
+            return allocator.m_allocationCallbacks.get();
         }
     }
 }

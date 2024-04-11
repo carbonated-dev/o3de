@@ -159,7 +159,7 @@ namespace AZ
             m_instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_descriptor.m_requiredExtensions.size());
             m_instanceCreateInfo.ppEnabledExtensionNames = m_descriptor.m_requiredExtensions.data();
 
-            VkResult result = GetContext().CreateInstance(&m_instanceCreateInfo, VkSystemAllocator::Get(), &m_instance);
+            VkResult result = GetContext().CreateInstance( &m_instanceCreateInfo, VkSystemAllocator::Get(), &m_instance);
 
             if (validation != RHI::ValidationMode::Disabled &&
                 (result == VK_ERROR_LAYER_NOT_PRESENT || result == VK_ERROR_EXTENSION_NOT_PRESENT))
