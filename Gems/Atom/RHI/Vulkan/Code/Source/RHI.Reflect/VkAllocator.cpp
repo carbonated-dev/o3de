@@ -50,6 +50,8 @@ namespace AZ
                 m_allocationCallbacks->pfnFree = RHI_vkFreeFunction;
                 m_allocationCallbacks->pfnReallocation = RHI_vkReallocationFunction;
                 m_allocationCallbacks->pfnAllocation = RHI_vkAllocationFunction;
+                m_allocationCallbacks->pfnInternalAllocation = nullptr;
+                m_allocationCallbacks->pfnInternalFree = nullptr;
             }
         }
 
