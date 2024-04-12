@@ -488,7 +488,10 @@ FontFamilyPtr AZ::AtomFont::LoadFontFamily(const char* fontFamilyName)
                     fontFamily.reset(new FontFamily(),
                         [this](FontFamily* fontFamily)
                     {
-                        ReleaseFontFamily(fontFamily);
+                        if (AZ::Interface<AzFramework::FontQueryInterface>::Get())
+                        {
+                            ReleaseFontFamily(fontFamily);
+                        }
                     });
                     */
 
@@ -537,7 +540,10 @@ FontFamilyPtr AZ::AtomFont::LoadFontFamily(const char* fontFamilyName)
             fontFamily.reset(new FontFamily(),
                 [this](FontFamily* fontFamily)
             {
-                ReleaseFontFamily(fontFamily);
+                if (AZ::Interface<AzFramework::FontQueryInterface>::Get())
+                {
+                    ReleaseFontFamily(fontFamily);
+                }
             });
             */
 
