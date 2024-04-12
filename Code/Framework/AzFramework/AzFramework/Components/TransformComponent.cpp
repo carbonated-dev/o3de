@@ -1953,12 +1953,6 @@ namespace AzFramework
         return m_localTM.GetRotation();
     }
 
-    AZ::Vector3 TransformComponent::GetLocalScale()
-    {
-        AZ_WarningOnce("TransformComponent", false, "GetLocalScale is deprecated, please use GetLocalUniformScale instead");
-        return AZ::Vector3(m_localTM.GetUniformScale());
-    }
-
     void TransformComponent::SetLocalUniformScale(float scale)
     {
         AZ::Transform newLocalTM = m_localTM;
@@ -2320,8 +2314,6 @@ namespace AzFramework
                 ->Event("GetLocalRotationQuaternion", &AZ::TransformBus::Events::GetLocalRotationQuaternion)
                     ->Attribute("Rotation", AZ::Edit::Attributes::PropertyRotation)
                 ->VirtualProperty("Rotation", "GetLocalRotationQuaternion", "SetLocalRotationQuaternion")
-                ->Event("GetLocalScale", &AZ::TransformBus::Events::GetLocalScale)
-                    ->Attribute("Scale", AZ::Edit::Attributes::PropertyScale)
                 ->Event("SetLocalUniformScale", &AZ::TransformBus::Events::SetLocalUniformScale)
                 ->Event("GetLocalUniformScale", &AZ::TransformBus::Events::GetLocalUniformScale)
                 ->VirtualProperty("Uniform Scale", "GetLocalUniformScale", "SetLocalUniformScale")
