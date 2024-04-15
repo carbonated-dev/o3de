@@ -77,6 +77,21 @@ namespace LuaBuilder
                                     , azrtti_typeid<AZ::ScriptAsset>());
                                 asset.SetAutoLoadBehavior(AZ::Data::AssetLoadBehavior::PreLoad);
                                 assets.push_back(asset);
+
+                                AZStd::vector<AZ::Data::AssetInfo> producedAssetInfoList;
+                                const bool hasProduced = assetSystem->GetAssetsProducedBySourceUUID(assetInfo.m_assetId.m_guid, producedAssetInfoList);
+                                if (hasProduced)
+                                {
+                                    for (const auto& producedAssetInfo : producedAssetInfoList) // one source asset can generate some produced assets 
+                                    {
+                                        AZ::Data::Asset<AZ::ScriptAsset> producedAsset(AZ::Data::AssetId
+                                            ( producedAssetInfo.m_assetId.m_guid
+                                            , producedAssetInfo.m_assetId.m_subId)
+                                            , producedAssetInfo.m_assetType);
+                                        producedAsset.SetAutoLoadBehavior(AZ::Data::AssetLoadBehavior::PreLoad);
+                                        assets.push_back(producedAsset);
+                                    }
+                                }
                             }
                             else
                             {
