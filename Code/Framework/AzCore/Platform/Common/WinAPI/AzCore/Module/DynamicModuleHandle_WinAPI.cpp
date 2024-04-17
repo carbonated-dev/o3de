@@ -87,7 +87,7 @@ namespace AZ
             Unload();
         }
 
-        LoadStatus LoadModule() override
+        LoadStatus LoadModule(bool noLoad) override
         {
             if (IsLoaded())
             {
@@ -103,7 +103,10 @@ namespace AZ
             {
                 // If module already open, return false, it was not loaded.
                 alreadyLoaded = NULL != GetModuleHandleW(fileNameW);
-                m_handle = LoadLibraryW(fileNameW);
+                if (alreadyLoaded || !noLoad)
+                {
+                    m_handle = LoadLibraryW(fileNameW);
+                }
             }
             else
             {
