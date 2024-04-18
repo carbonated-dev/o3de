@@ -51,6 +51,7 @@ namespace AZ
             ITrace& operator=(ITrace&&) = default;
 
             static ITrace& Instance();
+            static bool HasInstance();
 
             virtual void Init() {}
             virtual void Destroy() {}
@@ -250,7 +251,7 @@ namespace AZ
         "String used in place of boolean expression for AZ_Assert.",                                                    \
         "Did you mean AZ_Assert(false, \"%s\", "#expression"); ?",                                                      \
         "Did you mean AZ_Assert(false, "#expression", "#__VA_ARGS__"); ?");                                             \
-        AZ::Debug::Trace::Instance().Assert(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE, __VA_ARGS__);                    \
+        if (AZ::Debug::Trace::HasInstance()) { AZ::Debug::Trace::Instance().Assert(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE, __VA_ARGS__); }                   \
     }                                                                                                                   \
     AZ_POP_DISABLE_WARNING
 
@@ -262,7 +263,7 @@ namespace AZ
             "String used in place of boolean expression for AZ_Error.",                                                    \
             "Did you mean AZ_Error("#window", false, \"%s\", "#expression"); ?",                                           \
             "Did you mean AZ_Error("#window", false, "#expression", "#__VA_ARGS__"); ?");                                  \
-        AZ::Debug::Trace::Instance().Error(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE, window, __VA_ARGS__);                \
+        if (AZ::Debug::Trace::HasInstance()) { AZ::Debug::Trace::Instance().Error(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE, window, __VA_ARGS__); }               \
     }                                                                                                                      \
     AZ_POP_DISABLE_WARNING
 
@@ -284,7 +285,7 @@ namespace AZ
         if (!AZ_CONCAT_VAR_NAME(azErrorDisplayed, __LINE__))                                                                \
         {                                                                                                                   \
             AZ_CONCAT_VAR_NAME(azErrorDisplayed, __LINE__) = true;                                                          \
-            AZ::Debug::Trace::Instance().Error(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE, window, __VA_ARGS__);             \
+            if (AZ::Debug::Trace::HasInstance()) { AZ::Debug::Trace::Instance().Error(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE, window, __VA_ARGS__); }            \
         }                                                                                                                   \
     }                                                                                                                       \
     AZ_POP_DISABLE_WARNING
@@ -297,7 +298,7 @@ namespace AZ
             "String used in place of boolean expression for AZ_Warning.",                                                   \
             "Did you mean AZ_Warning("#window", false, \"%s\", "#expression"); ?",                                          \
             "Did you mean AZ_Warning("#window", false, "#expression", "#__VA_ARGS__"); ?");                                 \
-        AZ::Debug::Trace::Instance().Warning(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE, window, __VA_ARGS__);               \
+        if (AZ::Debug::Trace::HasInstance()) { AZ::Debug::Trace::Instance().Warning(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE, window, __VA_ARGS__); }              \
     }                                                                                                                       \
     AZ_POP_DISABLE_WARNING
 
@@ -316,20 +317,20 @@ namespace AZ
         static bool AZ_CONCAT_VAR_NAME(azWarningDisplayed, __LINE__) = false;                                                   \
         if (!AZ_CONCAT_VAR_NAME(azWarningDisplayed, __LINE__))                                                                  \
         {                                                                                                                       \
-            AZ::Debug::Trace::Instance().Warning(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE, window, __VA_ARGS__);               \
+            if (AZ::Debug::Trace::HasInstance()) { AZ::Debug::Trace::Instance().Warning(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE, window, __VA_ARGS__); }              \
             AZ_CONCAT_VAR_NAME(azWarningDisplayed, __LINE__) = true;                                                            \
         }                                                                                                                       \
     }                                                                                                                           \
     AZ_POP_DISABLE_WARNING
 
     #define AZ_Info(window, ...)                                                                                   \
-    if(AZ::Debug::Trace::Instance().IsTraceLoggingEnabledForLevel(AZ::Debug::LogLevel::Info))                      \
+    if(AZ::Debug::Trace::HasInstance() && AZ::Debug::Trace::Instance().IsTraceLoggingEnabledForLevel(AZ::Debug::LogLevel::Info))                      \
     {                                                                                                              \
         AZ::Debug::Trace::Instance().Printf(window, __VA_ARGS__);                                                  \
     }
 
     #define AZ_Trace(window, ...)                                                                                  \
-    if(AZ::Debug::Trace::Instance().IsTraceLoggingEnabledForLevel(AZ::Debug::LogLevel::Trace))                     \
+    if (AZ::Debug::Trace::HasInstance() && AZ::Debug::Trace::Instance().IsTraceLoggingEnabledForLevel(AZ::Debug::LogLevel::Trace))                     \
     {                                                                                                              \
         AZ::Debug::Trace::Instance().Printf(window, __VA_ARGS__);                                                  \
     }
@@ -351,7 +352,7 @@ namespace AZ
     // O3DE_DEPRECATION_NOTICE(GHI-xxxx) - Use AZ_Trace
     // Use of AZ_TracePrintf and AZ_TracePrintfOnce are deprecated
     #define AZ_TracePrintf(window, ...)                                                                            \
-    if(AZ::Debug::Trace::Instance().IsTraceLoggingEnabledForLevel(AZ::Debug::LogLevel::Info))                      \
+    if (AZ::Debug::Trace::HasInstance() && AZ::Debug::Trace::Instance().IsTraceLoggingEnabledForLevel(AZ::Debug::LogLevel::Info))                      \
     {                                                                                                              \
         AZ::Debug::Trace::Instance().Printf(window, __VA_ARGS__);                                                  \
     }

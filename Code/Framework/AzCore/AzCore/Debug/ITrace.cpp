@@ -21,12 +21,19 @@ namespace AZ::Debug
         s_tracer = nullptr;
     }
 
-    ITrace& ITrace::Instance()
+    bool ITrace::HasInstance()
     {
-        if (!s_tracer)
+        const bool hasTracer = s_tracer != nullptr;
+        if (!hasTracer)
         {
             static ITrace defaultTracer;
         }
+        return hasTracer;
+    }
+
+    ITrace& ITrace::Instance()
+    {
+        HasInstance();
         return *s_tracer;
     }
 } // namespace AZ::Debug
