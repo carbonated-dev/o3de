@@ -78,7 +78,9 @@ namespace AWSNativeSDKInit
             return Aws::MakeShared<AWSLogSystemInterface>("AWS", logLevel);
         };
 
-        m_awsSDKOptions.memoryManagementOptions.memoryManager = &m_memoryManager;
+        // Custom allocator cause crashes on app exit
+        //m_awsSDKOptions.memoryManagementOptions.memoryManager = &m_memoryManager;
+        m_awsSDKOptions.memoryManagementOptions.memoryManager = nullptr;
         Platform::CustomizeSDKOptions(m_awsSDKOptions);
         Aws::InitAPI(m_awsSDKOptions);
 
