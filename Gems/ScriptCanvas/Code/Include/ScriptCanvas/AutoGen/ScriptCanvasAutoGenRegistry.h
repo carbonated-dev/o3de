@@ -48,7 +48,8 @@ namespace ScriptCanvas
         virtual AZStd::vector<AZ::ComponentDescriptor*> GetComponentDescriptors() { return {}; }
         void ReleaseDescriptors();
     protected:
-        AZStd::vector<AZ::ComponentDescriptor*> m_cachedDescriptors;
+        // std vector should be used to avoid crashes on exit when the custom allocator may be already deleted
+        std::vector<AZ::ComponentDescriptor*> m_cachedDescriptors;
     };
 
     //! AutoGenRegistryManager

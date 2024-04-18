@@ -205,7 +205,8 @@ namespace ScriptCanvas
         if (auto it = m_registries.find(registryName);
             it != m_registries.end())
         {
-            it->second->ReleaseDescriptors();
+            // Causes crashes on exit since the allocator has been deleted.
+            ///it->second->ReleaseDescriptors();
             m_registries.erase(it);
         }
     }

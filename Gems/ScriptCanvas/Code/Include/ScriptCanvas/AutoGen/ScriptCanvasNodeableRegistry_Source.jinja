@@ -94,6 +94,11 @@ namespace ScriptCanvas
 {% endfor %}
             };
         }
-        return m_cachedDescriptors;
+        AZStd::vector<AZ::ComponentDescriptor*> azCachedDescriptors;
+        for (AZ::ComponentDescriptor* descriptor : m_cachedDescriptors)
+        {
+            azCachedDescriptors.push_back(descriptor);
+        }
+        return azCachedDescriptors;
     }
 }
