@@ -19,7 +19,10 @@ namespace AZStd
 
     void allocator::deallocate(pointer ptr, size_type byteSize, size_type alignment)
     {
-        AZ::AllocatorInstance<AZ::SystemAllocator>::Get().deallocate(ptr, byteSize, alignment);
+        if (AZ::AllocatorInstance<AZ::SystemAllocator>::HasAllocator())
+        {
+            AZ::AllocatorInstance<AZ::SystemAllocator>::Get().deallocate(ptr, byteSize, alignment);
+        }
     }
 
     allocator::pointer allocator::reallocate(pointer ptr, size_type newSize, align_type newAlignment)
