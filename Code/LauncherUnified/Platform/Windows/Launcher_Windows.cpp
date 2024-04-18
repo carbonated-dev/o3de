@@ -10,6 +10,30 @@
 #include <AzCore/Math/Vector2.h>
 #include <AzCore/Memory/SystemAllocator.h>
 
+#if defined(_CRTDBG_MAP_ALLOC)
+#include <crtdbg.h>
+
+#pragma warning(push)
+#pragma warning(disable : 4074)
+
+struct SDebugHolder
+{
+    SDebugHolder()
+    {
+    }
+    ~SDebugHolder()
+    {
+        _CrtDumpMemoryLeaks();
+    }
+};
+
+#pragma init_seg(compiler)
+SDebugHolder dh;
+
+#pragma warning(pop) 
+
+#endif
+
 #if O3DE_HEADLESS_SERVER
 int main(int argc, char* argv[])
 {
@@ -21,6 +45,10 @@ int APIENTRY WinMain([[maybe_unused]] HINSTANCE hInstance, [[maybe_unused]] HINS
     int argCount = __argc;
     char** argValues = __argv;
 #endif // O3DE_HEADLESS_SERVER
+
+    #if defined(_CRTDBG_MAP_ALLOC)
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    #endif
 
     const AZ::Debug::Trace tracer;
     InitRootDir();
