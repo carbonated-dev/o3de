@@ -13,7 +13,7 @@
 #include <AzCore/std/ranges/transform_view.h>
 #include <AzCore/std/string/conversions.h>
 #include <AzCore/IO/SystemFile.h> // for max path
-
+#pragma optimize("",off)
 namespace AssetRegistryInternal
 {
     // normalize the path.
@@ -77,7 +77,7 @@ namespace AzFramework
                 ->Field("flags", &AZ::Data::ProductDependency::m_flags);
 
             serializeContext->Class<AssetRegistry>()
-                ->Version(6)
+                ->Version(8)
                 ->Field("m_assetIdToInfo", &AssetRegistry::m_assetIdToInfo)
                 ->Field("m_assetPathToIdMap", &AssetRegistry::m_assetPathToId)
                 ->Field("m_assetDependencies", &AssetRegistry::m_assetDependencies);
@@ -202,3 +202,4 @@ namespace AzFramework
     }
 
 } // namespace AzFramework
+#pragma optimize("", on)

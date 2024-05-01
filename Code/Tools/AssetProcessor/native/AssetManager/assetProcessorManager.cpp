@@ -1605,7 +1605,6 @@ namespace AssetProcessor
                 for (const auto& entry : dependencySet)
                 {
                     message.m_dependencies.emplace_back(AZ::Data::AssetId(entry.m_dependencySourceGuid, entry.m_dependencySubID), entry.m_dependencyFlags);
-                }
 
                 Q_EMIT AssetMessage(message);
 

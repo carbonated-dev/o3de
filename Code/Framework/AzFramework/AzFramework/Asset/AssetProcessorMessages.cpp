@@ -1585,7 +1585,7 @@ namespace AzFramework
             if (serialize)
             {
                 serialize->Class<AssetNotificationMessage, BaseAssetProcessorMessage>()
-                    ->Version(6)
+                    ->Version(7)
                     ->Field("StringData", &AssetNotificationMessage::m_data)
                     ->Field("NotificationType", &AssetNotificationMessage::m_type)
                     ->Field("size", &AssetNotificationMessage::m_sizeBytes)

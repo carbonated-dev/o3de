@@ -1445,10 +1445,8 @@ namespace AssetProcessor
 #if defined(AZ_PLATFORM_LINUX)
         // Linux is case-sensitive, so 'basefile.txt' will stay the same case as the other subfolder versions
         constexpr const char* subfolder3BaseFilePath = "subfolder3/basefile.txt";
-        constexpr int expectedLegacyAssetIdCount = 1;
 #else
         constexpr const char* subfolder3BaseFilePath = "subfolder3/BaseFile.txt";
-        constexpr int expectedLegacyAssetIdCount = 2;
 #endif
 
         MockApplicationManager mockAppManager;

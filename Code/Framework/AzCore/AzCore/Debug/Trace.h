@@ -25,6 +25,9 @@ namespace AZ
 {
     namespace Debug
     {
+        // The NoWindow constant contains a special case string that can skip outputting the
+        // "<window-name> :" portion of a trace message of the form "<window-name>: <message>"
+        inline constexpr const char* NoWindow = "";
         namespace Platform
         {
             void OutputToDebugger(AZStd::basic_string_view<char, AZStd::char_traits<char>> window, AZStd::basic_string_view<char, AZStd::char_traits<char>> message);
@@ -121,6 +124,11 @@ namespace AZ
             {
                 fprintf(stdout, "%s: %s\n", window, message);
             }
+            virtual void OutputToRawAndDebugger(const char* window, const char* message)
+            {
+                RawOutput(window, message);
+            }
+
             virtual void PrintCallstack(const char* /*window*/, unsigned int /*suppressCount*/ = 0, void* /*nativeContext*/ = nullptr) {}
 
         private:
@@ -147,6 +155,10 @@ namespace AZ
             * or to force a Trace message bus handler to do special processing by using a known, consistent char*
             */
             static const char* GetDefaultSystemWindow();
+
+            //! Returns a Window string that indicates that the window
+            //! parameter and the separating ":" not be part of the output
+            static constexpr const char* GetNoWindow() { return NoWindow; }
             bool IsDebuggerPresent() override;
             static bool AttachDebugger();
             static bool WaitForDebugger(float timeoutSeconds = -1.f);
@@ -169,6 +181,10 @@ namespace AZ
             void Printf(const char* window, const char* format, ...) override;
 
             void Output(const char* window, const char* message) override;
+
+#if defined(CARBONATED) 
+            void OutputToRawAndDebugger(const char* window, const char* message) override;
+#endif
 
             /// Called by output to handle the actual output, does not interact with ebus or allow interception
             void RawOutput(const char* window, const char* message) override;
