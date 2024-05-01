@@ -461,9 +461,9 @@ namespace AZ::Debug
         }
 
         using namespace DebugInternal;
-        if (!window)
+        if (window == nullptr)
         {
-            window = g_dbgSystemWnd;
+            window = NoWindow;
         }
 
         char message[g_maxMessageLength];
@@ -548,9 +548,9 @@ namespace AZ::Debug
     void
     Trace::Printf(const char* window, const char* format, ...)
     {
-        if (!window)
+        if (window == nullptr)
         {
-            window = g_dbgSystemWnd;
+            window = NoWindow;
         }
 
         char message[g_maxMessageLength];
@@ -576,9 +576,9 @@ namespace AZ::Debug
     //=========================================================================
     void Trace::Output(const char* window, const char* message)
     {
-        if (!window)
+        if (window == nullptr)
         {
-            window = g_dbgSystemWnd;
+            window = NoWindow;
         }
 
 #if defined(CARBONATED)
@@ -600,9 +600,17 @@ namespace AZ::Debug
             }
         }
 
-#if defined(CARBONATED)
+        OutputToRawAndDebugger(window, message);
+    }
+
+    void Trace::OutputToRawAndDebugger(const char* window, const char* message)
+    {
+        if (window == nullptr)
+        {
+            window = NoWindow;
+        }
+
         Platform::OutputToDebugger(window, message);
-#endif
         RawOutput(window, message);
     }
 
@@ -612,8 +620,7 @@ namespace AZ::Debug
         {
             window = g_dbgSystemWnd;
         }
-
-
+        
         // printf on Windows platforms seem to have a buffer length limit of 4096 characters
         // Therefore fwrite is used directly to write the window and message to stdout or stderr
         AZStd::string_view windowView{ window };
@@ -625,8 +632,11 @@ namespace AZ::Debug
         FILE* stdoutStream = stdout;
         if (FILE* rawOutputStream = s_fileStream ? *s_fileStream : stdoutStream; rawOutputStream != nullptr)
         {
-            fwrite(windowView.data(), 1, windowView.size(), rawOutputStream);
-            fwrite(windowMessageSeparator.data(), 1, windowMessageSeparator.size(), rawOutputStream);
+            if (!windowView.empty())
+            {
+                fwrite(windowView.data(), 1, windowView.size(), rawOutputStream);
+                fwrite(windowMessageSeparator.data(), 1, windowMessageSeparator.size(), rawOutputStream);
+            }
             fwrite(messageView.data(), 1, messageView.size(), rawOutputStream);
         }
     }
