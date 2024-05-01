@@ -1103,7 +1103,7 @@ namespace AssetBuilderSDK
         if (AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
         {
             serializeContext->Class<JobProduct>()
-                ->Version(7)
+                ->Version(8)
                 ->Field("Product File Name", &JobProduct::m_productFileName)
                 ->Field("Product Asset Type", &JobProduct::m_productAssetType)
                 ->Field("Product Sub Id", &JobProduct::m_productSubID)
