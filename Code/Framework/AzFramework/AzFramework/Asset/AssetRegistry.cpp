@@ -13,7 +13,7 @@
 #include <AzCore/std/ranges/transform_view.h>
 #include <AzCore/std/string/conversions.h>
 #include <AzCore/IO/SystemFile.h> // for max path
-#pragma optimize("",off)
+
 namespace AssetRegistryInternal
 {
     // normalize the path.
@@ -202,4 +202,3 @@ namespace AzFramework
     }
 
 } // namespace AzFramework
-#pragma optimize("", on)
