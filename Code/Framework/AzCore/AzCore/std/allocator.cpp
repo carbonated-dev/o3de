@@ -19,10 +19,14 @@ namespace AZStd
 
     void allocator::deallocate(pointer ptr, size_type byteSize, size_type alignment)
     {
-        if (AZ::AllocatorInstance<AZ::SystemAllocator>::HasAllocator())
+#if defined(CARBONATED)
+        if (!AZ::AllocatorInstance<AZ::SystemAllocator>::HasAllocator())
         {
-            AZ::AllocatorInstance<AZ::SystemAllocator>::Get().deallocate(ptr, byteSize, alignment);
+            // Avoid the crash on app exit when deallocate is invoked after the allocator object deleted.
+            return;
         }
+#endif
+        AZ::AllocatorInstance<AZ::SystemAllocator>::Get().deallocate(ptr, byteSize, alignment);
     }
 
     allocator::pointer allocator::reallocate(pointer ptr, size_type newSize, align_type newAlignment)

@@ -18,6 +18,7 @@
 #include <AzCore/std/sort.h> 
 #include <AzFramework/Helpers/EntityHelpers.h> // Helper methods to evaluate Entities moved here
 #include <AzFramework/StringFunc/StringFunc.h>
+#include <AzCore/Memory/MemoryMarker.h>
 #endif
 // Gruber patch end // VMED
 #include <AzFramework/Components/TransformComponent.h>
@@ -536,7 +537,7 @@ namespace AzFramework
             AZ::EntityId newEntityId = (iter != customEntityIdMapper.end()) ? iter->second : AZ::Entity::MakeId();
             if (iter != customEntityIdMapper.end())
             {
-#if defined(CARBONATED_LOG)
+#if defined(CARBONATED_ENGINE_LOG)
                 AZ_Printf(
                     "SpawnableEntitiesManager",
                     "  Remapping at creation from static %s to runtime %s from the map",
@@ -546,7 +547,7 @@ namespace AzFramework
             }
             else
             {
-#if defined(CARBONATED_LOG)
+#if defined(CARBONATED_ENGINE_LOG)
                 AZ_Printf(
                     "SpawnableEntitiesManager",
                     "  Remapping at creation from static %s to runtime %s random",
@@ -568,7 +569,7 @@ namespace AzFramework
             // This entity has already been spawned at least once before, so we need to generate a new id for it and
             // preserve the new id to fix up any future entity references to this entity.
             idMap[entityId] = AZ::Entity::MakeId();
-#if defined(CARBONATED_LOG)
+#if defined(CARBONATED_ENGINE_LOG)
             AZ_Printf(
                 "SpawnableEntitiesManager",
                 "RefreshEntityIdMapping. entityId %s. Create Random. %s",
@@ -581,7 +582,7 @@ namespace AzFramework
             // This entity hasn't been spawned yet, so use the first id we've already generated for this entity and mark
             // it as spawned so we know not to reuse this id next time.
             previouslySpawned.emplace(entityId);
-#if defined(CARBONATED_LOG)
+#if defined(CARBONATED_ENGINE_LOG)
             AZ_Printf("SpawnableEntitiesManager", "RefreshEntityIdMapping. entityId %s. Keep the same", entityId.ToString().c_str());
 #endif
         }
@@ -604,7 +605,7 @@ namespace AzFramework
                 AZ::u64 iCrc64 = ((crc64 << 10) / 1000000) * 1000000; // we have approx 0% probability to collide an existing entity id
                                                                       // with the ids group in interval [seedEntityId, seedEntityId+NumOfEntities]
                 seedEntityId = AZ::EntityId(iCrc64);
-#if defined(CARBONATED_LOG)
+#if defined(CARBONATED_ENGINE_LOG)
                 AZ_Printf("SpawnableEntitiesManager", "Level FileName=%s. seedEntityId=%llu", fileName.c_str(), seedEntityId);
 #endif
             }
@@ -614,7 +615,7 @@ namespace AzFramework
                     "SpawnableEntitiesManager", false, "Can't define the name of the level in %s", ticket.m_spawnable.GetHint().c_str());
             }
         }
-#if defined(CARBONATED_LOG)
+#if defined(CARBONATED_ENGINE_LOG)
         AZ_Printf(
             "SpawnableEntitiesManager",
             "ProcessRequest. ticket.m_spawnable.GetHint().c_str()=%s, GetId()=%s",
@@ -728,6 +729,7 @@ namespace AzFramework
                 AZStd::shared_ptr<SpawnableInstanceDescriptor> spawnableInfo;
                 if (ticket.m_spawnable->IsDynamic())
                 {
+                    MEMORY_ALLOCATION_MARKER_NAME("SpawnTicket");
                     spawnableInfo = AZStd::make_shared<SpawnableInstanceDescriptor>(ticket.m_spawnable.GetId(), ticket.m_ticketId);
                     spawnableInfo->SetEntityIdMap(ticket.m_entityIdReferenceMap);
                     spawnableInfo->SetInstantiatedEntities(ticket.m_spawnedEntities);
