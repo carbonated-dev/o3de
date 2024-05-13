@@ -27,7 +27,7 @@ real3 TonemapAcesFitted(const real3 inputColor)
 }
 
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
-real3 TonemapAcesFilmic(real3 color)
+real3 TonemapAcesFilmic(const real3 inputColor)
 {
     // Apply filmic curve. 
     real a = 2.51f;
@@ -35,7 +35,7 @@ real3 TonemapAcesFilmic(real3 color)
     real c = 2.43f;
     real d = 0.59f;
     real e = 0.14f;
-    return saturate((color * (a * color + b)) / (color * (c * color + d)+ e));
+    return saturate((inputColor * (a * inputColor + b)) / (inputColor * (c * inputColor + d)+ e));
 }
 
 // Applies the filmic curve from John Hable
