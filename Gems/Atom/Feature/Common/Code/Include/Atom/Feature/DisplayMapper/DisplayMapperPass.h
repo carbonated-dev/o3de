@@ -83,10 +83,16 @@ namespace AZ
             void BuildGradingLutTemplate();
             void CreateGradingAndAcesPasses();
 
-            void GetDisplayMapperConfiguration();
+            void UpdateDisplayMapperConfiguration();
             void ClearChildren();
 
+            bool UsesLdrGradingLutPass() const;
+            bool UsesOutputTransformPass() const;
+
             DisplayMapperConfigurationDescriptor m_displayMapperConfigurationDescriptor;
+            DisplayMapperConfigurationDescriptor m_defaultDisplayMapperConfigurationDescriptor;
+            bool m_mergeLdrGradingLut = false;
+            RPI::AssetReference m_outputTransformOverrideShader;
             bool m_needToRebuildChildren = false;
 
             const RPI::PassAttachmentBinding* m_pipelineOutput = nullptr;

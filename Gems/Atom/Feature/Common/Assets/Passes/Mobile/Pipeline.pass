@@ -211,6 +211,37 @@
                     ]
                 },
                 {
+                    "Name": "DisplayMapperPass",
+                    "TemplateName": "DisplayMapperTemplate",
+                    "Enabled": true,
+                    "Connections": [
+                        {
+                            "LocalSlot": "Input",
+                            "AttachmentRef": {
+                                "Pass": "MobileTransparentPass",
+                                "Attachment": "InputOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "PipelineOutput",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "PipelineOutput"
+                            }
+                        }
+                    ],
+                    "PassData": {
+                        "$type": "DisplayMapperPassData",
+                        "MergeLdrGradingLut": true,
+                        "DisplayMapperConfig": {
+                            "OperationType": "AcesFitted"
+                        },
+                         "OutputTransformShaderOverride": {
+                            "FilePath": "Shaders/PostProcessing/OutputTransformMobile.shader"
+                        }
+                    }
+                },
+                {
                     "Name": "AuxGeomPass",
                     "TemplateName": "AuxGeomPassTemplate",
                     "Enabled": true,
@@ -218,8 +249,8 @@
                         {
                             "LocalSlot": "ColorInputOutput",
                             "AttachmentRef": {
-                                "Pass": "MobileTransparentPass",
-                                "Attachment": "InputOutput"
+                                "Pass": "DisplayMapperPass",
+                                "Attachment": "Output"
                             }
                         },
                         {
