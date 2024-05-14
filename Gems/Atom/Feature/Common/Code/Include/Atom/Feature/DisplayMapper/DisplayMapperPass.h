@@ -86,7 +86,9 @@ namespace AZ
             void UpdateDisplayMapperConfiguration();
             void ClearChildren();
 
+            // Return true if it needs a separate ldr color grading pass
             bool UsesLdrGradingLutPass() const;
+            // Return true if it needs an output transform pass (for doing certain tonemapping and gamma correction)
             bool UsesOutputTransformPass() const;
 
             DisplayMapperConfigurationDescriptor m_displayMapperConfigurationDescriptor;

@@ -19,6 +19,7 @@
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
     Texture2D<float4> m_framebuffer;
+    Texture3D<float4> m_lut;
     Sampler LinearSampler
     {
         MinFilter = Linear;
@@ -33,8 +34,6 @@ ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
     float2 m_cinemaLimits;
 
     // LDR color grading
-    Texture3D<float4> m_lut;
-    
     int m_shaperType;
     float m_shaperBias;
     float m_shaperScale;
@@ -91,6 +90,7 @@ PSOutput MainPS(VSOutput IN)
             break;
     } 
 
+    // Aplying transfer function to go from linear srgb to gamma srgb 
     switch (o_transferFunctionType)
     {
         case TransferFunctionType::Gamma22:

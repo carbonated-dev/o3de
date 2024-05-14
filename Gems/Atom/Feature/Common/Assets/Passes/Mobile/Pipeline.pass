@@ -207,20 +207,6 @@
                                 "Pass": "ForwardPass",
                                 "Attachment": "DepthStencilOutput"
                             }
-                        }
-                    ]
-                },
-                {
-                    "Name": "DisplayMapperPass",
-                    "TemplateName": "DisplayMapperTemplate",
-                    "Enabled": true,
-                    "Connections": [
-                        {
-                            "LocalSlot": "Input",
-                            "AttachmentRef": {
-                                "Pass": "MobileTransparentPass",
-                                "Attachment": "InputOutput"
-                            }
                         },
                         {
                             "LocalSlot": "PipelineOutput",
@@ -229,18 +215,8 @@
                                 "Attachment": "PipelineOutput"
                             }
                         }
-                    ],
-                    "PassData": {
-                        "$type": "DisplayMapperPassData",
-                        "MergeLdrGradingLut": true,
-                        "DisplayMapperConfig": {
-                            "OperationType": "AcesFitted"
-                        },
-                         "OutputTransformShaderOverride": {
-                            "FilePath": "Shaders/PostProcessing/OutputTransformMobile.shader"
-                        }
-                    }
-                },
+                    ]
+                },               
                 {
                     "Name": "AuxGeomPass",
                     "TemplateName": "AuxGeomPassTemplate",
@@ -249,7 +225,7 @@
                         {
                             "LocalSlot": "ColorInputOutput",
                             "AttachmentRef": {
-                                "Pass": "DisplayMapperPass",
+                                "Pass": "MobilePostProcessPass",
                                 "Attachment": "Output"
                             }
                         },

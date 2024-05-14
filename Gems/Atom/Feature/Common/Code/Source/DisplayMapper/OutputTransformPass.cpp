@@ -163,20 +163,18 @@ namespace AZ
 
             // Caching all pipeline state for each shader variation for performance reason.
             auto shaderOption = m_shader->CreateShaderOptionGroup();
-            for (uint32_t i = 0; i < toneMapperVariationTypes.size(); ++i)
+            for (uint32_t tonemapperIndex = 0; tonemapperIndex < toneMapperVariationTypes.size(); ++tonemapperIndex)
             {
-                for (uint32_t ii = 0; ii < transferFunctionVariationTypes.size(); ++ii)
+                for (uint32_t transferFunctionIndex = 0; transferFunctionIndex < transferFunctionVariationTypes.size(); ++transferFunctionIndex)
                 {
-                    for (uint32_t iii = 0; iii < doLdrGradingTypes.size(); ++iii)
+                    for (uint32_t colorGradingIndex = 0; colorGradingIndex < doLdrGradingTypes.size(); ++colorGradingIndex)
                     {
                         shaderOption.SetValue(
-                            m_toneMapperShaderVariantOptionName,
-                            toneMapperVariationTypes[i]);
+                            m_toneMapperShaderVariantOptionName, toneMapperVariationTypes[tonemapperIndex]);
                         shaderOption.SetValue(
-                            m_transferFunctionShaderVariantOptionName,
-                            transferFunctionVariationTypes[ii]);
+                            m_transferFunctionShaderVariantOptionName, transferFunctionVariationTypes[transferFunctionIndex]);
                         shaderOption.SetValue(
-                            m_ldrGradingLutShaderVariantOptionName, doLdrGradingTypes[iii]);
+                            m_ldrGradingLutShaderVariantOptionName, doLdrGradingTypes[colorGradingIndex]);
 
                         PreloadShaderVariant(m_shader, shaderOption, GetRenderAttachmentConfiguration(), GetMultisampleState());
                     }
