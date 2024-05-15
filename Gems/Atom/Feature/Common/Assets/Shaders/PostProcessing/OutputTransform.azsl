@@ -64,11 +64,11 @@ PSOutput MainPS(VSOutput IN)
     PSOutput OUT;
 
     // Fetch the pixel color from the input texture
-    real3 color = PassSrg::m_framebuffer.Sample(PassSrg::LinearSampler, IN.m_texCoord).rgb;
+    float3 color = PassSrg::m_framebuffer.Sample(PassSrg::LinearSampler, IN.m_texCoord).rgb;
 
 #if MERGE_MANUAL_EXPOSURE
     // Apply manual exposure compensation
-    color = ApplyManualExposure(color, real(ViewSrg::GetExposureValueCompensation()));
+    color = ApplyManualExposure(color, float(ViewSrg::GetExposureValueCompensation()));
 #endif
 
     // Applying tone mapper.
