@@ -3169,7 +3169,14 @@ namespace AssetProcessor
             {
                 // report these metrics only once per session.
                 m_reportedAnalysisMetrics = true;
-                AZ_TracePrintf(ConsoleChannel, "Builder optimization: %i / %i files required full analysis, %i sources found but not processed by anyone\n", m_numSourcesNeedingFullAnalysis, m_numTotalSourcesFound, m_numSourcesNotHandledByAnyBuilder);
+                AZ_TracePrintf(
+                    ConsoleChannel,
+                    "Builder optimization: %i / %i files required full analysis, %i sources found but not processed by anyone. %i override "
+                    "collisions.\n",
+                    m_numSourcesNeedingFullAnalysis,
+                    m_numTotalSourcesFound,
+                    m_numSourcesNotHandledByAnyBuilder,
+                    m_numOverrides);
             }
 
             m_dependencyCache = {};
@@ -3347,7 +3354,17 @@ namespace AssetProcessor
         m_AssetProcessorIsBusy = true;
         m_activeFiles.push_back(newEntry);
         m_alreadyActiveFiles.insert(normalizedFullFile);
-        Q_EMIT NumRemainingJobsChanged(m_activeFiles.size() + m_filesToExamine.size() + m_numOfJobsToAnalyze);
+
+        QLocale locale(QLocale::English, QLocale::UnitedStates); // Locale for formatting (US English uses commas)
+        QString extraInfo = QString("Assessing %1 of %2: %3 assets with modified builders, %4 unregistered/new, %5 outdated timestamps, %6 with modified dependencies.")
+                                .arg(locale.toString(m_totalAssetsAssessedForProcessing))
+                                .arg(locale.toString(m_totalAssetsToAssess))
+                                .arg(locale.toString(m_assetsNeedingProcessing_BuildersChanged))
+                                .arg(locale.toString(m_assetsNeedingProcessing_NewFile))
+                                .arg(locale.toString(m_assetsNeedingProcessing_TimeStampChanged))
+                                .arg(locale.toString(m_assetsNeedingProcessing_DependenciesChanged));
+
+        Q_EMIT NumRemainingJobsChanged(m_activeFiles.size() + m_filesToExamine.size() + m_numOfJobsToAnalyze, extraInfo);
 
         if (!m_alreadyScheduledUpdate)
         {
@@ -3495,9 +3512,12 @@ namespace AssetProcessor
         [[maybe_unused]] int processedFileCount = 0;
 
         AssetProcessor::StatsCapture::BeginCaptureStat("InitialFileAssessment");
+        m_totalAssetsToAssess = filePaths.size();
+        m_totalAssetsAssessedForProcessing = 0;
 
         for (const AssetFileInfo& fileInfo : filePaths)
         {
+            ++m_totalAssetsAssessedForProcessing;
             if (m_allowModtimeSkippingFeature)
             {
                 AZ::u64 fileHash = 0;
@@ -3523,8 +3543,8 @@ namespace AssetProcessor
                 }
             }
 
-            processedFileCount++;
             AssessFileInternal(fileInfo.m_filePath, false, true);
+            processedFileCount++;
         }
 
         if (m_allowModtimeSkippingFeature)
@@ -3579,6 +3599,7 @@ namespace AssetProcessor
         // We can only do this if the builders haven't changed however, as they can register to watch files that were previously not processed
         if (m_buildersAddedOrRemoved)
         {
+            ++m_assetsNeedingProcessing_BuildersChanged;
             return false;
         }
 
@@ -3587,6 +3608,7 @@ namespace AssetProcessor
         if (fileItr == m_fileModTimes.end())
         {
             // File has not been processed before
+            ++m_assetsNeedingProcessing_NewFile;
             return false;
         }
 
@@ -3599,6 +3621,7 @@ namespace AssetProcessor
         {
             // Don't bother with any further checks (particularly hashing), this file hasn't been seen before
             // There should never be a case where we have recorded a hash but not a modtime
+            ++m_assetsNeedingProcessing_NewFile;
             return false;
         }
 
@@ -3606,8 +3629,10 @@ namespace AssetProcessor
 
         if (databaseModTime != thisModTime)
         {
+            ++m_assetsNeedingProcessing_TimeStampChanged;
+
             // File timestamp has changed since last time
-            // Check if the contents have changed or if its just a timestamp mismatch
+            // Check if the contents have changed or if it's just a timestamp mismatch
 
             auto hashItr = m_fileHashes.find(fileInfo.m_filePath.toUtf8().constData());
 
@@ -3656,6 +3681,7 @@ namespace AssetProcessor
                 if(dependencyFingerprint != currentFingerprint)
                 {
                     // Dependencies have changed
+                    ++m_assetsNeedingProcessing_DependenciesChanged;
                     return false;
                 }
                 // Success - we can skip this file, nothing has changed!
@@ -3663,7 +3689,7 @@ namespace AssetProcessor
                 // Remove it from the list of to-be-processed files, otherwise the AP will assume the file was deleted
                 // Note that this means any files that *were* deleted are already handled by CheckMissingFiles
                 m_sourceFilesInDatabase.erase(sourceFileItr);
-
+                //++skipped_DependenciesUnchanged;
                 return true;
             }
         }
@@ -3672,7 +3698,7 @@ namespace AssetProcessor
             // File is a non-tracked file, aka a file that no builder cares about.
             // The fact that it has a matching modtime means we've already seen this file and attempted to process it
             // If it were a new, unprocessed source file, there would be no modtime stored
-
+            //++skipped_Untrackedfile;
             return true;
         }
 
@@ -4660,6 +4686,13 @@ namespace AssetProcessor
                         false, // Wildcard dependencies never come from an AssetId
                         "");
                     newDependencies.push_back(AZStd::move(newDependencyEntry));
+                }
+                else
+                {
+                    ++m_numOverrides;
+
+                    // report these metrics only once per session.
+                    AZ_TracePrintf(ConsoleChannel, "Override collision #%i: %s.\n", m_numOverrides, thisEntry.toUtf8().constData());
                 }
             }
 

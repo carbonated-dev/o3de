@@ -255,7 +255,7 @@ namespace AssetProcessor
         void PrepareForFileMove(AZ::IO::PathView oldPath, AZ::IO::PathView newPath) override;
 
     Q_SIGNALS:
-        void NumRemainingJobsChanged(int newNumJobs);
+        void NumRemainingJobsChanged(int newNumJobs, QString extraInfo = "");
 
         void AssetToProcess(JobDetails jobDetails);
 
@@ -528,6 +528,20 @@ namespace AssetProcessor
         typedef QHash<QString, FileEntry> FileExamineContainer;
         FileExamineContainer m_filesToExamine; // order does not actually matter in this (yet)
 
+        int m_totalAssetsToAssess = 0;
+        int m_totalAssetsAssessedForProcessing = 0;
+        int m_assetsNeedingProcessing_BuildersChanged = 0;
+        long long m_assetsAssessed_MillisecondsSpentChecking_Builders;
+
+        int m_assetsNeedingProcessing_NewFile = 0;
+
+        int m_assetsNeedingProcessing_TimeStampChanged = 0;
+        long long m_assetsAssessed_MillisecondsSpentChecking_TimeStamps;
+
+        int m_assetsNeedingProcessing_DependenciesChanged = 0;
+        long long m_assetsAssessed_MillisecondsSpentChecking_Dependencies;
+
+
         // Set of files which are metadata-enabled but don't have a metadata file.
         // These files will be delayed for processing for a short time to wait for a metadata file to show up.
         AZStd::unordered_map<AZ::IO::Path, QDateTime> m_delayProcessMetadataFiles;
@@ -672,6 +686,7 @@ namespace AssetProcessor
         int m_numSourcesNeedingFullAnalysis = 0;
         int m_numSourcesNotHandledByAnyBuilder = 0;
         bool m_reportedAnalysisMetrics = false;
+        int m_numOverrides = 0;
 
         // cache these so we don't have to check them each time during analysis:
         QSet<QString> m_metaFilesWhichActuallyExistOnDisk;
