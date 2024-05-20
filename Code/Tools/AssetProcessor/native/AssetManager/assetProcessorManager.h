@@ -528,18 +528,13 @@ namespace AssetProcessor
         typedef QHash<QString, FileEntry> FileExamineContainer;
         FileExamineContainer m_filesToExamine; // order does not actually matter in this (yet)
 
-        int m_totalAssetsToAssess = 0;
-        int m_totalAssetsAssessedForProcessing = 0;
+        QString AnalysisExtraInfo() const;
+        int m_totalScannerFilesToAssess = 0;
+        int m_scannerFilesAssessed = 0;
         int m_assetsNeedingProcessing_BuildersChanged = 0;
-        long long m_assetsAssessed_MillisecondsSpentChecking_Builders;
-
         int m_assetsNeedingProcessing_NewFile = 0;
-
         int m_assetsNeedingProcessing_TimeStampChanged = 0;
-        long long m_assetsAssessed_MillisecondsSpentChecking_TimeStamps;
-
         int m_assetsNeedingProcessing_DependenciesChanged = 0;
-        long long m_assetsAssessed_MillisecondsSpentChecking_Dependencies;
 
 
         // Set of files which are metadata-enabled but don't have a metadata file.
