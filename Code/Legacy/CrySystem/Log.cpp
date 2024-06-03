@@ -138,7 +138,7 @@ namespace
 
 #if defined(CARBONATED)
         const auto now = AZStd::chrono::system_clock::now();
-        const auto milliseconds = AZStd::chrono::duration_cast<AZStd::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+        const int milliseconds = static_cast<int>((AZStd::chrono::duration_cast<AZStd::chrono::milliseconds>(now.time_since_epoch()) % 1000).count());
 
 #ifdef AZ_COMPILER_MSVC
         const auto timeStamp = AZStd::chrono::system_clock::to_time_t(now);
@@ -147,7 +147,7 @@ namespace
         std::ostringstream oss;
         oss << std::put_time(&localTime, "%H:%M:%S");
 
-        sprintf_s(sTime.data(), sTime.capacity(), "<%s.%03lld> ", oss.str().c_str(), milliseconds.count());
+        sprintf_s(sTime.data(), sTime.capacity(), "<%s.%03d> ", oss.str().c_str(), milliseconds);
 #else
         time_t ltime;
         time(&ltime);
@@ -155,7 +155,7 @@ namespace
         char hms[64];
         strftime(std::data(hms), std::size(hms), "%H:%M:%S", today);
                 
-        sprintf_s(sTime.data(), sTime.capacity(), "<%s.%03lld> ", hms, milliseconds.count());
+        sprintf_s(sTime.data(), sTime.capacity(), "<%s.%03d> ", hms, milliseconds);
 #endif
 
         // Fix up the internal size member of the fixed string
