@@ -264,6 +264,16 @@ namespace AzFramework
             newInfo.m_assetType = typeToRegister;
             newInfo.m_sizeBytes = fileSize;
             AZ::Data::AssetId generatedID = GenerateAssetIdTEMP(newInfo.m_relativePath.c_str());
+
+            AZStd::string extension;
+            AzFramework::StringFunc::Path::GetExtension(path, extension, false);
+            // We may have a preprocessed streaming image without a raw texture, and thus no need to append streamingImageExtension
+            // and then consumers expect
+            //    streamingImageAssetId.m_subId = AZ::RPI::StreamingImageAsset::GetImageAssetSubId()
+            if (extension.compare("streamingimage") == 0)
+            {
+                generatedID.m_subId = 1000; // sort of a hack, see comment above, class StreamingImageAsset unknown here
+            }   
             newInfo.m_assetId = generatedID;
 
             {

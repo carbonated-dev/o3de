@@ -637,6 +637,11 @@ CSprite* CSprite::LoadSprite(const AZStd::string& pathname)
         return nullptr;
     }
 
+    if (IsImageProductPath(pathname)) // We may have a preprocessed streaming image without a raw texture
+    {
+         texturePath = AZStd::string::format("%s.%s", texturePath.c_str(), streamingImageExtension);
+    }
+
     // test if the sprite is already loaded, if so return loaded sprite
     auto result = s_loadedSprites->find(spritePath.c_str());
     CSprite* loadedSprite = (result == s_loadedSprites->end()) ? nullptr : result->second;
@@ -751,7 +756,7 @@ bool CSprite::DoesSpriteTextureAssetExist(const AZStd::string& pathname)
 
     // Check if the texture asset exists
     const AZStd::string cacheRelativePath = AZStd::string::format("%s.%s", pathname.c_str(), streamingImageExtension);
-    bool textureExists = CheckIfFileExists(/* sourceRelativePath = */ pathname, cacheRelativePath);
+    bool textureExists = CheckIfFileExists(spritePath, cacheRelativePath);
 
     return textureExists;
 }
@@ -819,7 +824,12 @@ AZStd::string CSprite::GetImageSourcePathFromProductPath(const AZStd::string& pr
 bool CSprite::LoadImage(const AZStd::string& nameTex, AZ::Data::Instance<AZ::RPI::Image>& image)
 {
     AZStd::string sourceRelativePath(nameTex);
-    AZStd::string cacheRelativePath = AZStd::string::format("%s.%s", sourceRelativePath.c_str(), streamingImageExtension);
+    AZStd::string cacheRelativePath(nameTex);
+    // We may have a preprocessed streaming image without a raw texture, and thus no need to append streamingImageExtension
+    if (!IsImageProductPath(cacheRelativePath))
+    {
+        cacheRelativePath = AZStd::string::format("%s.%s", sourceRelativePath.c_str(), streamingImageExtension);
+    }
     bool textureExists = CheckIfFileExists(sourceRelativePath, cacheRelativePath);
 
     if (!textureExists)
