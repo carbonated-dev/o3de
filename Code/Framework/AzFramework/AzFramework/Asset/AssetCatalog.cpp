@@ -267,12 +267,12 @@ namespace AzFramework
 
             AZStd::string extension;
             AzFramework::StringFunc::Path::GetExtension(path, extension, false);
-            // We may have a preprocessed streaming image without a raw texture, and thus no need to append streamingImageExtension
-            // and then consumers expect
+            // We may have a preprocessed streaming image without a raw texture, it has "streamingImage" extension
+            // and then consumers (e.g. CSprite) expect
             //    streamingImageAssetId.m_subId = AZ::RPI::StreamingImageAsset::GetImageAssetSubId()
             if (extension.compare("streamingimage") == 0)
             {
-                generatedID.m_subId = 1000; // sort of a hack, see comment above, class StreamingImageAsset unknown here
+                generatedID.m_subId = 1000; // hack, see comment above, class StreamingImageAsset unknown here
             }   
             newInfo.m_assetId = generatedID;
 
