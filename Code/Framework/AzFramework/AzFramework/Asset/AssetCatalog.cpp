@@ -264,7 +264,7 @@ namespace AzFramework
             newInfo.m_assetType = typeToRegister;
             newInfo.m_sizeBytes = fileSize;
             AZ::Data::AssetId generatedID = GenerateAssetIdTEMP(newInfo.m_relativePath.c_str());
-
+#if defined(CARBONATED)
             // Request to register an asset may have path to a preprocessed streaming image without a raw texture,
             // which has ".streamingImage" extension, and then consumers (e.g. CSprite class) expect
             //    streamingImageAssetId.m_subId = AZ::RPI::StreamingImageAsset::GetImageAssetSubId()
@@ -274,7 +274,7 @@ namespace AzFramework
             {
                 generatedID.m_subId = 1000; // hardcoded, class StreamingImageAsset not available here
             }   
-
+#endif // defined(CARBONATED)
             newInfo.m_assetId = generatedID;
 
             {
