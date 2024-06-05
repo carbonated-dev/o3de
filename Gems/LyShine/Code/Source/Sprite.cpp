@@ -826,13 +826,15 @@ AZStd::string CSprite::GetImageSourcePathFromProductPath(const AZStd::string& pr
 bool CSprite::LoadImage(const AZStd::string& nameTex, AZ::Data::Instance<AZ::RPI::Image>& image)
 {
     AZStd::string sourceRelativePath(nameTex);
-    AZStd::string cacheRelativePath(nameTex);
 #if defined(CARBONATED)
     // We may have a preprocessed streaming image without a raw texture, and thus no need to append streamingImageExtension
+    AZStd::string cacheRelativePath(nameTex);
     if (!IsImageProductPath(cacheRelativePath))
     {
         cacheRelativePath = AZStd::string::format("%s.%s", sourceRelativePath.c_str(), streamingImageExtension);
     }
+#else
+    AZStd::string cacheRelativePath = AZStd::string::format("%s.%s", sourceRelativePath.c_str(), streamingImageExtension);
 #endif // defined(CARBONATED)
     bool textureExists = CheckIfFileExists(sourceRelativePath, cacheRelativePath);
 
