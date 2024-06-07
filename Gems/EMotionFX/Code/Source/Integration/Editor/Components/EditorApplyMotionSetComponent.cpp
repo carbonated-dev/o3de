@@ -271,6 +271,16 @@ namespace EMotionFX
                                 {
                                     m_derivedMotionSetAsset.Reload();
                                 }
+                                else if (m_derivedMotionSetAsset.IsReady())
+                                {
+                                    if (m_derivedMotionSetAsset.GetData() &&
+                                        m_motionSetAssetMap[m_derivedMotionSetGender] != m_derivedMotionSetAsset)
+                                    {
+                                        // Storing the loaded motion sets derived from the primary one
+                                        m_motionSetAssetMap[m_derivedMotionSetGender] = m_derivedMotionSetAsset;
+                                        m_motionSetAssetNames.push_back(m_derivedMotionSetName);
+                                    }
+                                }
                             }
                             else
                             {
