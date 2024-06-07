@@ -267,19 +267,9 @@ namespace EMotionFX
                             if (m_derivedMotionSetAsset.Create(derivedAssetId, false))
                             {
                                 // Manually try to queue a load, if unsucessful, means asset was already loaded when connecting to the bus 
-                                if (!m_derivedMotionSetAsset.QueueLoad())
+                                if (!m_derivedMotionSetAsset.QueueLoad() || m_derivedMotionSetAsset.IsReady())
                                 {
                                     m_derivedMotionSetAsset.Reload();
-                                }
-                                else if (m_derivedMotionSetAsset.IsReady())
-                                {
-                                    if (m_derivedMotionSetAsset.GetData() &&
-                                        m_motionSetAssetMap[m_derivedMotionSetGender] != m_derivedMotionSetAsset)
-                                    {
-                                        // Storing the loaded motion sets derived from the primary one
-                                        m_motionSetAssetMap[m_derivedMotionSetGender] = m_derivedMotionSetAsset;
-                                        m_motionSetAssetNames.push_back(m_derivedMotionSetName);
-                                    }
                                 }
                             }
                             else
