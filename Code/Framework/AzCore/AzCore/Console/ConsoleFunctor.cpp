@@ -172,4 +172,14 @@ namespace AZ
     {
         return GetValueResult::NotImplemented;
     }
+
+#if !defined(_RELEASE) && defined(CARBONATED)
+    void ConsoleFunctorBase::PerformCommand(CVarFixedString inString)
+    {
+        if (m_console)
+        {
+            m_console->PerformCommand(AZStd::string::format("%s %s", m_name, inString.c_str()).c_str());
+        }
+    }
+#endif
 }

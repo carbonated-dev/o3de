@@ -91,6 +91,12 @@ namespace AZ
         template <typename RETURN_TYPE>
         GetValueResult GetValue(RETURN_TYPE& outResult) const;
 
+#if !defined(_RELEASE) && defined(CARBONATED)
+        //! //! Invokes a console command.
+        //! @param inString the command input
+        void PerformCommand(CVarFixedString inString);
+#endif
+
         //! Used internally to link cvars and functors from various modules to the console as they are loaded.
         static ConsoleFunctorBase*& GetDeferredHead();
 
