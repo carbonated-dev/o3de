@@ -39,7 +39,10 @@ namespace AZ
         // effects not being triggered because AzCore believes the value wouldn't change.
 
 #if !defined(_RELEASE) && defined(CARBONATED)
-        this->m_functor.PerformCommand(ConsoleTypeHelpers::ToString(rhs));
+        if (!this->m_functor.PerformCommand(ConsoleTypeHelpers::ToString(rhs)))
+        {
+            this->m_value = rhs;
+        }
 #else
         this->m_value = rhs;
 #endif

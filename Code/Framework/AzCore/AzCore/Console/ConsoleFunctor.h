@@ -94,7 +94,8 @@ namespace AZ
 #if !defined(_RELEASE) && defined(CARBONATED)
         //! //! Invokes a console command.
         //! @param inString the command input
-        void PerformCommand(CVarFixedString inString);
+        //! @return boolean true if the PerformCommand succeeded, false otherwise
+        bool PerformCommand(CVarFixedString inString);
 #endif
 
         //! Used internally to link cvars and functors from various modules to the console as they are loaded.
