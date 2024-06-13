@@ -43,26 +43,23 @@ namespace AZ
                 }
                 
                 UIWindow* foundWindow = nil;
-#if defined(__IPHONE_13_0) || defined(__TVOS_13_0)
-                if(@available(iOS 13.0, tvOS 13.0, *))
+                NSArray* windows = [[UIApplication sharedApplication] windows];
+                for (UIWindow* window in windows)
                 {
-                    NSArray* windows = [[UIApplication sharedApplication] windows];
-                    for (UIWindow* window in windows)
+                    if (window.isKeyWindow)
                     {
-                        if (window.isKeyWindow)
-                        {
-                            foundWindow = window;
-                            break;
-                        }
+                        foundWindow = window;
+                        break;
                     }
                 }
-#else
-                foundWindow = [[UIApplication sharedApplication] keyWindow];
-#endif
-                UIViewController* rootViewController = foundWindow ? foundWindow.rootViewController : nullptr;
+                UIViewController* rootViewController = foundWindow ? foundWindow.rootViewController : nil;
                 if (rootViewController)
                 {
                     [rootViewController presentViewController:alert animated:YES completion:nil];
+                }
+                else
+                {
+                    userSelection = "BlockingDialog Error";
                 }
             };
 
