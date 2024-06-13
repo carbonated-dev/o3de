@@ -38,7 +38,7 @@ namespace AZ
         // in the operator= function body. Doing the assignment outside the value change check avoids those side
         // effects not being triggered because AzCore believes the value wouldn't change.
 
-#if !defined(_RELEASE) && defined(CARBONATED)
+#if defined(CARBONATED)
         if (!this->m_functor.PerformCommand(ConsoleTypeHelpers::ToString(rhs)))
         {
             this->m_value = rhs;

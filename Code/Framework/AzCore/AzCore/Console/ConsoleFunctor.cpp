@@ -173,7 +173,7 @@ namespace AZ
         return GetValueResult::NotImplemented;
     }
 
-#if !defined(_RELEASE) && defined(CARBONATED)
+#if defined(CARBONATED)
     bool ConsoleFunctorBase::PerformCommand(CVarFixedString inString)
     {
         auto console = m_console;

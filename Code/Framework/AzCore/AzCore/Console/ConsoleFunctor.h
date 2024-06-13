@@ -91,8 +91,8 @@ namespace AZ
         template <typename RETURN_TYPE>
         GetValueResult GetValue(RETURN_TYPE& outResult) const;
 
-#if !defined(_RELEASE) && defined(CARBONATED)
-        //! //! Invokes a console command.
+#if defined(CARBONATED)
+        //! Invokes a console command.
         //! @param inString the command input
         //! @return boolean true if the PerformCommand succeeded, false otherwise
         bool PerformCommand(CVarFixedString inString);
