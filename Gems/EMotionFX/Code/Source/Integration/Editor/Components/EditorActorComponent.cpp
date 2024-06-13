@@ -267,6 +267,23 @@ namespace EMotionFX
             }
             return false;
         }
+
+#if defined(CARBONATED)
+        //////////////////////////////////////////////////////////////////////////
+        void EditorActorComponent::SetForceJointUpdate(bool force)
+        {
+            m_forceUpdateJointsOOV = force;
+            if (force && m_actorInstance)
+            {
+                m_actorInstance->SetIsVisible(true);
+            }
+        }
+        bool EditorActorComponent::GetForceJointUpdate()
+        {
+            return m_forceUpdateJointsOOV;
+        }
+#endif
+
         size_t EditorActorComponent::GetNumJoints() const
         {
             const Actor* actor = m_actorAsset->GetActor();

@@ -30,14 +30,27 @@ namespace Gestures
     ////////////////////////////////////////////////////////////////////////////////////////////////
     const InputChannelId InputDeviceGestures::Gesture::DoublePress("gesture_double_press");
     const InputChannelId InputDeviceGestures::Gesture::Drag("gesture_drag");
+#if defined(CARBONATED)
+    // Add the DragRight gesture
+    const InputChannelId InputDeviceGestures::Gesture::DragRight("gesture_drag_right");
+#endif
     const InputChannelId InputDeviceGestures::Gesture::Hold("gesture_hold");
     const InputChannelId InputDeviceGestures::Gesture::Pinch("gesture_pinch");
     const InputChannelId InputDeviceGestures::Gesture::Rotate("gesture_rotate");
     const InputChannelId InputDeviceGestures::Gesture::Swipe("gesture_swipe");
+#if defined(CARBONATED)
+    // Add the DragRight gesture
+    const AZStd::array<InputChannelId, 7> InputDeviceGestures::Gesture::All =
+#else
     const AZStd::array<InputChannelId, 6> InputDeviceGestures::Gesture::All =
+#endif
     {{
         DoublePress,
         Drag,
+#if defined(CARBONATED)
+        // Add the DragRight gesture
+        DragRight,
+#endif
         Hold,
         Pinch,
         Rotate,

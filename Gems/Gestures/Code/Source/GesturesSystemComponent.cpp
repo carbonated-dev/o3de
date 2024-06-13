@@ -47,6 +47,10 @@ namespace Gestures
                 ->Version(0)
                 ->Field("DoublePressConfig", &GesturesSystemComponent::m_doublePressConfig)
                 ->Field("DragConfig", &GesturesSystemComponent::m_dragConfig)
+#if defined(CARBONATED)
+                 // Add the DragRight gesture
+                ->Field("DragRightConfig", &GesturesSystemComponent::m_dragRightConfig)
+#endif
                 ->Field("HoldConfig", &GesturesSystemComponent::m_holdConfig)
                 ->Field("PinchConfig", &GesturesSystemComponent::m_pinchConfig)
                 ->Field("RotateConfig", &GesturesSystemComponent::m_rotateConfig)
@@ -63,6 +67,11 @@ namespace Gestures
                         "Double Press", "The config used to create the default double press gesture input channel.")
                     ->DataElement(0, &GesturesSystemComponent::m_dragConfig,
                         "Drag", "The config used to create the default drag gesture input channel.")
+#if defined(CARBONATED)
+                     // Add the DragRight gesture
+                    ->DataElement(0, &GesturesSystemComponent::m_dragRightConfig,
+                        "DragRight", "The config used to create the right drag gesture input channel.")
+#endif
                     ->DataElement(0, &GesturesSystemComponent::m_holdConfig,
                         "Hold", "The config used to create the default hold gesture input channel.")
                     ->DataElement(0, &GesturesSystemComponent::m_pinchConfig,
@@ -111,6 +120,11 @@ namespace Gestures
         InputDeviceGestures::ConfigsByNameMap configsByName;
         configsByName[InputDeviceGestures::Gesture::DoublePress.GetName()] = &m_doublePressConfig;
         configsByName[InputDeviceGestures::Gesture::Drag.GetName()] = &m_dragConfig;
+#if defined(CARBONATED)
+        // Add the DragRight gesture
+        m_dragRightConfig.pointerIndex = 1;
+        configsByName[InputDeviceGestures::Gesture::DragRight.GetName()] = &m_dragRightConfig;
+#endif
         configsByName[InputDeviceGestures::Gesture::Hold.GetName()] = &m_holdConfig;
         configsByName[InputDeviceGestures::Gesture::Pinch.GetName()] = &m_pinchConfig;
         configsByName[InputDeviceGestures::Gesture::Rotate.GetName()] = &m_rotateConfig;

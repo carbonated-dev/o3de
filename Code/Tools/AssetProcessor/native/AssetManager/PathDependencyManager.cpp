@@ -511,9 +511,15 @@ namespace AssetProcessor
 
             bool isExcludedDependency = dependencyPathSearch.starts_with(ExcludedDependenciesSymbol);
             dependencyPathSearch = isExcludedDependency ? dependencyPathSearch.substr(1) : dependencyPathSearch;
+
             // The database uses % for wildcards, both path based searching uses *, so keep a copy of the path with the * wildcard for later
             // use.
+#if defined(CARBONATED)
+            AZStd::string pathWildcardSearchPath("*/" + dependencyPathSearch); 
+#else
             AZStd::string pathWildcardSearchPath(dependencyPathSearch);
+#endif
+
             bool isExactDependency = !AzFramework::StringFunc::Replace(dependencyPathSearch, '*', '%');
 
             if (cleanedupDependency.m_dependencyType == AssetBuilderSDK::ProductPathDependencyType::ProductFile)
@@ -564,14 +570,20 @@ namespace AssetProcessor
                             // This check here makes sure that the filter for 1 matches 2.
                             if (!isExactDependency)
                             {
+#if defined(CARBONATED)
+                                if (!AZStd::wildcard_match(pathWildcardSearchPath.c_str(), productDatabaseEntry.m_productName.c_str()))
+                                {                                    
+                                    continue;
+                                }
+#else
                                 AZ::IO::PathView searchPath(productDatabaseEntry.m_productName);
-
                                 if (!searchPath.Match(pathWildcardSearchPath))
                                 {
                                     continue;
                                 }
+#endif
                             }
-
+                            
                             AZStd::vector<AssetBuilderSDK::ProductDependency>& productDependencyList = isExcludedDependency ? excludedDeps : resolvedDeps;
                             productDependencyList.emplace_back(AZ::Data::AssetId(sourceDatabaseEntry.m_sourceGuid, productDatabaseEntry.m_subID), productDependencyFlags);
                         }

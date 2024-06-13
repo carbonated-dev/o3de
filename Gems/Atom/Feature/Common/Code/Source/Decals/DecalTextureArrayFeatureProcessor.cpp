@@ -510,36 +510,10 @@ namespace AZ
         {
             AZ_PROFILE_SCOPE(AzRender, "DecalTextureArrayFeatureProcessor: OnAssetReady");
             const Data::AssetId& assetId = asset->GetId();
-            
-            RPI::MaterialAsset* materialAsset = asset.GetAs<AZ::RPI::MaterialAsset>();
-            const bool validDecalMaterial = materialAsset && DecalTextureArray::IsValidDecalMaterial(*materialAsset);
-            if (validDecalMaterial)
-            {
-                const auto& decalsThatUseThisMaterial = m_materialLoadTracker.GetHandlesByAsset(asset.GetId());
-                const auto& decalLocation = AddMaterialToTextureArrays(materialAsset);
-
-                if (decalLocation)
-                {
-                    for (const auto& decal : decalsThatUseThisMaterial)
-                    {
-                        m_materialToTextureArrayLookupTable[assetId].m_useCount++;
-                        SetDecalTextureLocation(decal, *decalLocation);
-                    }
-                    m_materialToTextureArrayLookupTable[assetId].m_location = *decalLocation;
-                }
-            }
-            else
-            {
-                AZ_Warning("DecalTextureArrayFeatureProcessor", false, "DecalTextureArray::IsValidDecalMaterial() failed, unable to add this material to the decal");
-            }
-
+            const auto decalsThatUseThisMaterial = m_materialLoadTracker.GetHandlesByAsset(assetId);
             m_materialLoadTracker.RemoveAllHandlesWithAsset(assetId);
+            SetMaterialToDecals(asset.GetAs<AZ::RPI::MaterialAsset>(), decalsThatUseThisMaterial);
             AZ::Data::AssetBus::MultiHandler::BusDisconnect(assetId);
-
-            if (!m_materialLoadTracker.AreAnyLoadsInFlight())
-            {
-                PackTexureArrays();
-            }
         }
 
         void DecalTextureArrayFeatureProcessor::SetDecalTextureLocation(const DecalHandle& handle, const DecalLocation location)
@@ -629,8 +603,12 @@ namespace AZ
             AZStd::vector<uint32_t> sortedDecals(dataVector.size());
             // Initialize with all the decals indices
             std::iota(sortedDecals.begin(), sortedDecals.end(), 0);
+#if !defined(CARBONATED)
             // Only sort if we are going to limit the number of visible decals
             if (numVisibleDecals < dataVector.size())
+#else
+            // Sort always due to the render pipeline can have its own limit for visible decals. And that limit can be much less than numVisibleDecals.
+#endif
             {
                 AZ::Vector3 viewPos = view->GetViewToWorldMatrix().GetTranslation();
                 AZStd::sort(
@@ -702,7 +680,7 @@ namespace AZ
             }
             else if (materialAsset.IsReady())
             {
-                OnAssetReady(materialAsset);
+                SetMaterialToDecals(materialAsset.GetAs<AZ::RPI::MaterialAsset>(), { handle });
             }
             else if (materialAsset.IsError())
             {
@@ -714,6 +692,43 @@ namespace AZ
             }
         }
 
+        void DecalTextureArrayFeatureProcessor::SetMaterialToDecals(
+            RPI::MaterialAsset* materialAsset, const AZStd::vector<DecalHandle>& decalsThatUseThisMaterial)
+        {
+            if (!materialAsset)
+            {
+                return;
+            }
+
+            const Data::AssetId& assetId = materialAsset->GetId();
+            const bool validDecalMaterial = materialAsset && DecalTextureArray::IsValidDecalMaterial(*materialAsset);
+            if (validDecalMaterial)
+            {
+                const auto& decalLocation = AddMaterialToTextureArrays(materialAsset);
+                if (decalLocation)
+                {
+                    for (const auto& decal : decalsThatUseThisMaterial)
+                    {
+                        m_materialToTextureArrayLookupTable[assetId].m_useCount++;
+                        SetDecalTextureLocation(decal, *decalLocation);
+                    }
+                    m_materialToTextureArrayLookupTable[assetId].m_location = *decalLocation;
+                }
+            }
+            else
+            {
+                AZ_Warning(
+                    "DecalTextureArrayFeatureProcessor",
+                    false,
+                    "DecalTextureArray::IsValidDecalMaterial() failed, unable to add this material to the decal");
+            }
+
+            if (!m_materialLoadTracker.AreAnyLoadsInFlight())
+            {
+                PackTexureArrays();
+            }
+        }
+        
         void DecalTextureArrayFeatureProcessor::UpdateBounds(const DecalHandle handle)
         {
             const DecalData& data = m_decalData.GetData<0>(handle.GetIndex());

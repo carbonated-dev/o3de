@@ -135,23 +135,28 @@ namespace
     auto GetHourMinuteSeconds() -> TimeStringType
     {
         TimeStringType sTime;
-#ifdef AZ_COMPILER_MSVC
 
-// carbonated begin (akostin/LogWithMS): Log date with milliseconds
 #if defined(CARBONATED)
         const auto now = AZStd::chrono::system_clock::now();
-        const auto milliseconds = AZStd::chrono::duration_cast<AZStd::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+        const int milliseconds = static_cast<int>((AZStd::chrono::duration_cast<AZStd::chrono::milliseconds>(now.time_since_epoch()) % 1000).count());
 
+#ifdef AZ_COMPILER_MSVC
         const auto timeStamp = AZStd::chrono::system_clock::to_time_t(now);
         std::tm localTime;
-
         localtime_s(&localTime, &timeStamp);
-
         std::ostringstream oss;
-
         oss << std::put_time(&localTime, "%H:%M:%S");
 
-        sprintf_s(sTime.data(), sTime.capacity(), "<%s.%03lld> ", oss.str().c_str(), milliseconds.count());
+        sprintf_s(sTime.data(), sTime.capacity(), "<%s.%03d> ", oss.str().c_str(), milliseconds);
+#else
+        time_t ltime;
+        time(&ltime);
+        const auto today = localtime(&ltime);
+        char hms[64];
+        strftime(std::data(hms), std::size(hms), "%H:%M:%S", today);
+                
+        sprintf_s(sTime.data(), sTime.capacity(), "<%s.%03d> ", hms, milliseconds);
+#endif
 
         // Fix up the internal size member of the fixed string
         // Using the traits_type::length function to calculate the strlen of the c-string returned by sprintf_s
@@ -159,20 +164,18 @@ namespace
 #else
         time_t ltime;
         time(&ltime);
+#ifdef AZ_COMPILER_MSVC
         struct tm today;
         localtime_s(&today, &ltime);
         strftime(sTime.data(), sTime.capacity(), "<%H:%M:%S> ", &today);
         // Fix up the internal size member of the fixed string
         // Using the traits_type::length function to calculate the strlen of the c-string returned by strftime
         sTime.resize_no_construct(TimeStringType::traits_type::length(sTime.data()));
-#endif
-// carbonated end
 #else
-        time_t ltime;
-        time(&ltime);
         auto today = localtime(&ltime);
         strftime(sTime.data(), sTime.capacity(), "<%H:%M:%S> ", today);
         sTime.resize_no_construct(TimeStringType::traits_type::length(sTime.data()));
+#endif
 #endif
         return sTime;
     };
@@ -1387,18 +1390,18 @@ void CLog::LogStringToFile(AZStd::string_view message, ELogType logType, bool ap
         }
     }
 
-    // do not OutputDebugString in release.
+    // do not output in release.
 #if !defined(_RELEASE)
     if (queueState == MessageQueueState::NotQueued)
     {
         if (!timeStr.empty())
         {
-            AZ::Debug::Platform::OutputToDebugger({}, timeStr);
+            AZ::Debug::Trace::Instance().OutputToRawAndDebugger(nullptr, timeStr.data());
         }
-        AZ::Debug::Platform::OutputToDebugger({}, message);
+        AZ::Debug::Trace::Instance().OutputToRawAndDebugger(nullptr, message.data());
         if (!message.ends_with('\n'))
         {
-            AZ::Debug::Platform::OutputToDebugger({}, "\n");
+           AZ::Debug::Trace::Instance().OutputToRawAndDebugger(nullptr, "\n");
         }
     }
 

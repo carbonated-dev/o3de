@@ -90,7 +90,7 @@ namespace AZ::Debug
     AZ_CVAR_SCOPED(int, bg_traceLogLevel, static_cast<int>(LogLevel::Info), &TraceLevelChanged, ConsoleFunctorFlags::Null, "Enable trace message logging in release mode.  0=disabled, 1=errors, 2=warnings, 3=info, 4=debug, 5=trace.");
     AZ_CVAR_SCOPED(bool, bg_alwaysShowCallstack, false, &AlwaysShowCallstackChanged, ConsoleFunctorFlags::Null, "Force stack trace output without allowing ebus interception.");
 #if defined(CARBONATED)
-    AZ_CVAR_SCOPED(int, bg_assertDialogReady, 0, nullptr, ConsoleFunctorFlags::Null, "Show assertion popup dialog: 0=disabled, 1=enabled.");
+    AZ_CVAR(int, bg_assertDialogReady, 0, nullptr, ConsoleFunctorFlags::Null, "Show assertion popup dialog: 0=disabled, 1=enabled.");
 #endif
     // Allow redirection of trace raw output writes to stdout, stderr or to /dev/null
     static constexpr const char* fileStreamIdentifier = "raw_c_stream";
@@ -390,9 +390,15 @@ namespace AZ::Debug
             }
 
             bool assertsAutoBreak = false;
+#if defined(CARBONATED)
+            int assertDialogReady = 0;
+#endif
             if (auto* console = Interface<IConsole>::Get())
             {
                 console->GetCvarValue("bg_assertsAutoBreak", assertsAutoBreak);
+#if defined(CARBONATED)
+                console->GetCvarValue("bg_assertDialogReady", assertDialogReady);
+#endif
             }
             if (assertsAutoBreak && IsDebuggerPresent())
             {
@@ -404,7 +410,7 @@ namespace AZ::Debug
             //display native UI dialogs at verbosity level 2 or higher
             else if (currentLevel >= assertLevel_nativeUI
 #if defined(CARBONATED)
-                && bg_assertDialogReady != 0
+                && assertDialogReady != 0
 #endif
                 )
             {
@@ -455,9 +461,9 @@ namespace AZ::Debug
         }
 
         using namespace DebugInternal;
-        if (!window)
+        if (window == nullptr)
         {
-            window = g_dbgSystemWnd;
+            window = NoWindow;
         }
 
         char message[g_maxMessageLength];
@@ -542,9 +548,9 @@ namespace AZ::Debug
     void
     Trace::Printf(const char* window, const char* format, ...)
     {
-        if (!window)
+        if (window == nullptr)
         {
-            window = g_dbgSystemWnd;
+            window = NoWindow;
         }
 
         char message[g_maxMessageLength];
@@ -570,12 +576,16 @@ namespace AZ::Debug
     //=========================================================================
     void Trace::Output(const char* window, const char* message)
     {
-        if (!window)
+        if (window == nullptr)
         {
-            window = g_dbgSystemWnd;
+            window = NoWindow;
         }
 
-        //Platform::OutputToDebugger(window, message); // carbonated (akostin/mp-402-2): Avoid duplicating logs in the debugger console
+#if defined(CARBONATED)
+        // Remove to avoid duplicating logs in debugger console
+#else
+        Platform::OutputToDebugger(window, message);
+#endif
 
         if (!DebugInternal::g_suppressEBusCalls)
         {
@@ -590,7 +600,17 @@ namespace AZ::Debug
             }
         }
 
-        Platform::OutputToDebugger(window, message); // carbonated (akostin/mp-402-2): Avoid duplicating logs in the debugger console
+        OutputToRawAndDebugger(window, message);
+    }
+
+    void Trace::OutputToRawAndDebugger(const char* window, const char* message)
+    {
+        if (window == nullptr)
+        {
+            window = NoWindow;
+        }
+
+        Platform::OutputToDebugger(window, message);
         RawOutput(window, message);
     }
 
@@ -600,8 +620,7 @@ namespace AZ::Debug
         {
             window = g_dbgSystemWnd;
         }
-
-
+        
         // printf on Windows platforms seem to have a buffer length limit of 4096 characters
         // Therefore fwrite is used directly to write the window and message to stdout or stderr
         AZStd::string_view windowView{ window };
@@ -613,8 +632,11 @@ namespace AZ::Debug
         FILE* stdoutStream = stdout;
         if (FILE* rawOutputStream = s_fileStream ? *s_fileStream : stdoutStream; rawOutputStream != nullptr)
         {
-            fwrite(windowView.data(), 1, windowView.size(), rawOutputStream);
-            fwrite(windowMessageSeparator.data(), 1, windowMessageSeparator.size(), rawOutputStream);
+            if (!windowView.empty())
+            {
+                fwrite(windowView.data(), 1, windowView.size(), rawOutputStream);
+                fwrite(windowMessageSeparator.data(), 1, windowMessageSeparator.size(), rawOutputStream);
+            }
             fwrite(messageView.data(), 1, messageView.size(), rawOutputStream);
         }
     }

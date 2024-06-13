@@ -433,7 +433,6 @@ namespace AZ
                     outputId.m_itemIndex = RHI::Handle<uint32_t>{optionIndex.GetIndex()};
 
                     m_wipMaterialProperty.m_outputConnections.push_back(outputId);
-
                     shaderItem.m_ownedShaderOptionIndices.insert(optionIndex);
                 }
 

@@ -215,7 +215,7 @@ namespace AZ
 
         SetState(State::Active);
 
-#if defined(CARBONATED_LOG)
+#if defined(CARBONATED_ENGINE_LOG)
         AZ_Printf("Entity", "Activate. %s, %s, m_components.size=%u", GetId().ToString().c_str(), GetName().c_str(), m_components.size());
 #endif
         EntityBus::Event(m_id, &EntityBus::Events::OnEntityActivated, m_id);
@@ -242,7 +242,7 @@ namespace AZ
         AZ_Assert(m_state == State::Active, "Component should be in Active state to be Deactivated!");
         SetState(State::Deactivating);
 
-#if defined(CARBONATED_LOG)
+#if defined(CARBONATED_ENGINE_LOG)
         AZ_Printf("Entity", "Deactivate. %s, %s, m_components.size=%u", GetId().ToString().c_str(), GetName().c_str(), m_components.size());
 #endif
 
@@ -682,9 +682,17 @@ namespace AZ
 
     void Entity::OnNameChanged() const
     {
-        EntityBus::Event(GetId(), &EntityBus::Events::OnEntityNameChanged, m_name);
-        EntitySystemBus::Broadcast(&EntitySystemBus::Events::OnEntityNameChanged, GetId(), m_name);
+        // we only emit on these busses if the entity is active.  This prevents OnEntityNameChanged happening on inactive entities
+        // when for example, another thread is constructing a prefab.  It also prevents spam of these functions from situations where
+        // inactive entities are being constructed or modified in place, such as in undo/redo or scene compilation.
+        // In general, only active entities should have any bearing on the actual scene, such as showing up in the Scene Outliner.
+        if (m_state == State::Active)
+        {
+            EntityBus::Event(GetId(), &EntityBus::Events::OnEntityNameChanged, m_name);
+            EntitySystemBus::Broadcast(&EntitySystemBus::Events::OnEntityNameChanged, GetId(), m_name);
+        }
     }
+
 
     bool Entity::CanAddRemoveComponents() const
     {

@@ -1243,6 +1243,9 @@ void CCryEditApp::CompileCriticalAssets() const
                 assetCatalogRequests->LoadCatalog(assetCatalogPath.c_str());
             }
         };
+
+        CCryEditApp::OutputStartupMessage(QString("Loading Asset Catalog..."));
+
         AZ::Data::AssetCatalogRequestBus::Broadcast(AZStd::move(LoadCatalog));
 
         // Only signal the event *after* the asset catalog has been loaded.
@@ -1627,6 +1630,8 @@ bool CCryEditApp::InitInstance()
     // It will be launched if not running
     ConnectToAssetProcessor();
 
+    CCryEditApp::OutputStartupMessage(QString("Initializing Game System..."));
+
     auto initGameSystemOutcome = InitGameSystem(mainWindowWrapperHwnd);
     if (!initGameSystemOutcome.IsSuccess())
     {
@@ -1663,6 +1668,8 @@ bool CCryEditApp::InitInstance()
 
     // Meant to be called before MainWindow::Initialize
     InitPlugins();
+
+    CCryEditApp::OutputStartupMessage(QString("Initializing Main Window..."));
 
     mainWindow->Initialize();
 
@@ -1716,6 +1723,8 @@ bool CCryEditApp::InitInstance()
         m_pEditor->InitFinished();
     }
 
+    CCryEditApp::OutputStartupMessage(QString("Activating Python..."));
+
     // Make sure Python is started before we attempt to restore the Editor layout, since the user
     // might have custom view panes in the saved layout that will need to be registered.
     auto editorPythonEventsInterface = AZ::Interface<AzToolsFramework::EditorPythonEventsInterface>::Get();
@@ -1723,6 +1732,8 @@ bool CCryEditApp::InitInstance()
     {
         editorPythonEventsInterface->StartPython();
     }
+
+    CCryEditApp::OutputStartupMessage(QString("")); // add a blank line so that python is not blamed for anything that happens here
 
     if (!GetIEditor()->IsInMatEditMode() && !GetIEditor()->IsInConsolewMode())
     {
@@ -2913,11 +2924,18 @@ CCryEditApp::ECreateLevelResult CCryEditApp::CreateLevel(const QString& levelNam
         m_pDocManager->OnFileNew();
     }
 
+#if defined(CARBONATED)
+    if (auto console = AZ::Interface<AZ::IConsole>::Get(); console != nullptr)
+    {
+        console->PerformCommand(AZStd::string::format("sv_map %s", levelName.toUtf8().data()).c_str());
+    }
+#else
     ICVar* sv_map = gEnv->pConsole->GetCVar("sv_map");
     if (sv_map)
     {
         sv_map->Set(levelName.toUtf8().data());
     }
+#endif
 
 
     GetIEditor()->GetDocument()->InitEmptyLevel(128, 1);
