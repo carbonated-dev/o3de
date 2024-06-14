@@ -176,15 +176,10 @@ namespace AZ
 #if defined(CARBONATED)
     bool ConsoleFunctorBase::PerformCommand(CVarFixedString inString)
     {
-        auto console = m_console;
-        if (!console)
-        {
-            console = AZ::Interface<IConsole>::Get();
-        }
+        auto console = m_console ? m_console : AZ::Interface<IConsole>::Get();
         if (console)
         {
-            auto res =
-                m_console->PerformCommand(AZStd::string::format("%s %s", m_name, inString.c_str()).c_str(), ConsoleSilentMode::Silent);
+            auto res = console->PerformCommand(AZStd::string::format("%s %s", m_name, inString.c_str()).c_str(), ConsoleSilentMode::Silent);
             return res.IsSuccess();
         }
         return false;
