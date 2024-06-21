@@ -60,8 +60,8 @@ namespace AZ
             // These messages go to the file.
             NSLog(@"BlockingDialog failed to display at %@", dateString);
             
-            NSLog(@"BlockingDialog title is %@", nsTitle);
-            NSLog(@"BlockingDialog message is %@\n", nsMessage);
+            NSLog(@"Title: %@", nsTitle);
+            NSLog(@"Message: %@\n", nsMessage);
             
             NSLog(@"App terminated");
             
@@ -132,7 +132,7 @@ namespace AZ
                 });
                 
                 // Wait till the user responds to the message box.
-                static constexpr int WaitMainThreadMs = 10000;
+                static constexpr int WaitMainThreadMs = 3000;
                 while (dispatch_semaphore_wait(blockSem, DISPATCH_TIME_NOW))
                 {
                     [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:1]];
