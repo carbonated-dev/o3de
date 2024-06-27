@@ -26,6 +26,10 @@
 #include <AzCore/std/containers/fixed_vector.h>
 #include <AzCore/std/containers/unordered_map.h>
 
+#if defined(CARBONATED)
+#include <Atom/RHI/DeviceAddon.h>
+#endif
+
 namespace AZ::RHI
 {
     //! The Device is a context for managing GPU state and memory on a physical device. The user creates
@@ -163,6 +167,14 @@ namespace AZ::RHI
         //! Builds an implementation specific XR device descriptor based on this graphics device.
         virtual Ptr<XRDeviceDescriptor> BuildXRDescriptor() const { return nullptr; }
 
+#if defined(CARBONATED)
+        unsigned int GetFrameCounter() const { return m_frameCounter; }
+        double GetGPUFrameTime();          // returns sum of non-overlapping intervals
+        double GetGPUSumFrameTime();  // returns total sum
+
+        void RegisterCommandBuffer(const void* buffer);
+        void CommandBufferCompleted(const void* buffer, double begin, double end);
+#endif
     protected:
 
         DeviceFeatures m_features;
@@ -240,6 +252,14 @@ namespace AZ::RHI
 
         // Cache the name of the last executing scope name. Used within AZ_FORCE_CPU_GPU_INSYNC
         AZStd::string m_lastExecutingScope;
-
+        
+#if defined(CARBONATED)
+        unsigned int m_frameCounter = 0;
+        AZStd::mutex m_FrameTimeLock;
+        AZStd::array<FrameCommands, 4> m_frameCommands;
+        int m_frameCommandIndex = -1;
+        double m_FrameGPUTime = 0.0;
+        double m_FrameGPUSumTime = 0.0;
+#endif
     };
 }
