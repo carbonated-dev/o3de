@@ -198,6 +198,10 @@ namespace AZ
         {
             if(isCommitNeeded)
             {
+#if defined(CARBONATED)
+                RHI::Device* pDevice = RHI::RHISystemInterface::Get()->GetDevice();
+                pDevice->MarkCommandBufferCommit(static_cast<const void*>(m_mtlCommandBuffer));
+#endif
                 [m_mtlCommandBuffer commit];
 #if defined (AZ_FORCE_CPU_GPU_INSYNC)
                 // Wait for the gpu to finish executing the work related to the command buffer

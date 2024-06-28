@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
 // CARBONATED specific classes to track GPU data, used in Device.h
 #pragma once
 
@@ -11,23 +19,10 @@ namespace AZ::RHI
         
         TimeInterval() {}
         TimeInterval(double begin, double end) : m_begin(begin), m_end(end) {}
-        /*
-        bool operator <(const TimeInterval& t)
-        {
-            return m_end < t.m_begin;
-        }
-        bool operator >(const TimeInterval& t)
-        {
-            return m_begin > t.m_end;
-        }
-        */
+        
         bool IsOverlap(const TimeInterval& t)
         {
-            if (m_begin >= t.m_begin)
-            {
-                return m_begin <= t.m_end;
-            }
-            return t.m_begin <= m_end;
+            return (m_begin >= t.m_begin) ?  m_begin <= t.m_end : t.m_begin <= m_end;
         }
         
         void Merge(const TimeInterval& t)
@@ -46,12 +41,25 @@ namespace AZ::RHI
 
     struct FrameCommands
     {
+        struct CommandBuffer
+        {
+            const void* m_buffer;
+            double m_commitTime;
+            
+            CommandBuffer() : m_buffer(nullptr), m_commitTime(0.0) {}
+            CommandBuffer(const void* buffer) : m_buffer(buffer), m_commitTime(0.0) {}
+        };
+        
         unsigned int m_frameNumber;
         double m_sumTime;
-        AZStd::vector<const void*> m_commands;
+        double m_waitTime;
+        AZStd::vector<CommandBuffer> m_commands;
         AZStd::vector<TimeInterval> m_intervals;
         
-        FrameCommands() : m_frameNumber(0), m_sumTime(0.0)
+        FrameCommands() :
+            m_frameNumber(0),
+            m_sumTime(0.0),
+            m_waitTime(0.0)
         {
             m_commands.reserve(6);
             m_intervals.reserve(4);
@@ -59,11 +67,27 @@ namespace AZ::RHI
         
         void RegisterCommandBuffer(const void* commandBuffer)
         {
-            m_commands.push_back(commandBuffer);
+            CommandBuffer cb(commandBuffer);
+            m_commands.push_back(cb);
         }
-        void RegisterInterval(double begin, double end)
+        void RegisterInterval(double commit, double begin, double end)
         {
             m_sumTime += end - begin;
+            if (commit < 0.00001)
+            {
+                AZ_Error("GPUtime", false, "zero commit time %f", commit);
+            }
+            else
+            {
+                if (begin < commit)
+                {
+                    AZ_Error("GPUtime", false, "bad commit time %f, begin %f", commit, begin);
+                }
+                else
+                {
+                    m_waitTime += begin - commit;
+                }
+            }
             bool consumed = false;
             for (auto it = m_intervals.begin(); it != m_intervals.end(); it++)
             {
@@ -118,14 +142,14 @@ namespace AZ::RHI
                 if (it->m_begin >= it->m_end)
                 {
                     LogIntervals();
-                    AZ_Error("GPUtime", false, "bad interval %f %f", it->m_begin, it->m_end);
+                    AZ_Error("GPUtime", false, "Bad interval %f %f", it->m_begin, it->m_end);
                 }
                 if (itNext != m_intervals.end())
                 {
                     if (it->m_end > itNext->m_begin)
                     {
                         LogIntervals();
-                        AZ_Error("GPUtime", false, "unordered intervals %f..%f  %f..%f", it->m_begin, it->m_end, itNext->m_begin, itNext->m_end);
+                        AZ_Error("GPUtime", false, "Unordered intervals %f..%f  %f..%f", it->m_begin, it->m_end, itNext->m_begin, itNext->m_end);
                     }
                 }
             }
@@ -135,6 +159,7 @@ namespace AZ::RHI
         {
             m_frameNumber = frameNumber;
             m_sumTime = 0.0;
+            m_waitTime = 0.0;
             m_commands.clear();
             m_intervals.clear();
         }
