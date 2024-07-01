@@ -173,6 +173,7 @@ namespace AZ::RHI
         double GetGPUSumFrameTime();  // returns total sum
         double GetGPUWaitFrameTime();  // returns wait time before start processing buffers
         double GetGPUWaitAvgFrameTime();  // returns per-buffer averag wait time before start processing buffer
+        double GetGPUEndMaxFrameTime();  // returns max commit to done bufer time
 
         void RegisterCommandBuffer(const void* buffer);
         void MarkCommandBufferCommit(const void* buffer);
@@ -265,6 +266,7 @@ namespace AZ::RHI
         double m_FrameGPUSumTime = 0.0;
         double m_FrameGPUWaitTime = 0.0;
         double m_FrameGPUWaitAvgTime = 0.0;
+        double m_FrameGPUEndMaxTime = 0.0;
 #endif
     };
 }

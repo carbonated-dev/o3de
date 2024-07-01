@@ -53,6 +53,7 @@ namespace AZ::RHI
         unsigned int m_frameNumber;
         double m_sumTime;
         double m_waitTime;
+        double m_endMaxTime;
         unsigned int m_numBuffers;
         AZStd::vector<CommandBuffer> m_commands;
         AZStd::vector<TimeInterval> m_intervals;
@@ -61,6 +62,7 @@ namespace AZ::RHI
             m_frameNumber(0),
             m_sumTime(0.0),
             m_waitTime(0.0),
+            m_endMaxTime(0.0),
             m_numBuffers(0)
         {
             m_commands.reserve(6);
@@ -89,6 +91,12 @@ namespace AZ::RHI
                 {
                     m_waitTime += begin - commit;
                     m_numBuffers++;
+                    
+                    const double overall = end - commit;
+                    if (overall > m_endMaxTime)
+                    {
+                        m_endMaxTime = overall;
+                    }
                 }
             }
             bool consumed = false;
@@ -163,6 +171,7 @@ namespace AZ::RHI
             m_frameNumber = frameNumber;
             m_sumTime = 0.0;
             m_waitTime = 0.0;
+            m_endMaxTime = 0.0;
             m_numBuffers = 0;
             m_commands.clear();
             m_intervals.clear();
