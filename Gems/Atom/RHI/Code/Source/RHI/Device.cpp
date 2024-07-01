@@ -142,6 +142,7 @@ namespace AZ::RHI
                     m_FrameGPUTime = fc.CalculateTime();
                     m_FrameGPUSumTime = fc.m_sumTime;
                     m_FrameGPUWaitTime = fc.m_waitTime;
+                    m_FrameGPUWaitAvgTime = fc.m_waitTime / fc.m_numBuffers;
                     /*{
                         const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
                         AZ_Info("GPUtime", "Get GPU data at %f on frame CHANGE for frame %u as %f / %f", t, fc.m_frameNumber, m_FrameGPUTime, m_FrameGPUSumTime);
@@ -240,6 +241,7 @@ namespace AZ::RHI
                                 m_FrameGPUTime = fc.CalculateTime();
                                 m_FrameGPUSumTime = fc.m_sumTime;
                                 m_FrameGPUWaitTime = fc.m_waitTime;
+                                m_FrameGPUWaitAvgTime = fc.m_waitTime / fc.m_numBuffers;
                                 /*{
                                     const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
                                     AZ_Info("GPUtime", "Get GPU data at %f for frame %u as %f / %f", t, fc.m_frameNumber, m_FrameGPUTime, m_FrameGPUSumTime);
@@ -289,6 +291,13 @@ namespace AZ::RHI
         m_FrameTimeLock.unlock();
         return result;
     }
+double Device::GetGPUWaitAvgFrameTime()
+{
+    m_FrameTimeLock.lock();
+    const double result = m_FrameGPUWaitAvgTime;
+    m_FrameTimeLock.unlock();
+    return result;
+}
 #endif
 
     ResultCode Device::EndFrame()

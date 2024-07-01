@@ -172,6 +172,7 @@ namespace AZ::RHI
         double GetGPUFrameTime();         // returns sum of non-overlapping intervals
         double GetGPUSumFrameTime();  // returns total sum
         double GetGPUWaitFrameTime();  // returns wait time before start processing buffers
+        double GetGPUWaitAvgFrameTime();  // returns per-buffer averag wait time before start processing buffer
 
         void RegisterCommandBuffer(const void* buffer);
         void MarkCommandBufferCommit(const void* buffer);
@@ -263,6 +264,7 @@ namespace AZ::RHI
         double m_FrameGPUTime = 0.0;
         double m_FrameGPUSumTime = 0.0;
         double m_FrameGPUWaitTime = 0.0;
+        double m_FrameGPUWaitAvgTime = 0.0;
 #endif
     };
 }

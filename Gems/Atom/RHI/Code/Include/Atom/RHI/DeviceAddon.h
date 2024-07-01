@@ -53,13 +53,15 @@ namespace AZ::RHI
         unsigned int m_frameNumber;
         double m_sumTime;
         double m_waitTime;
+        unsigned int m_numBuffers;
         AZStd::vector<CommandBuffer> m_commands;
         AZStd::vector<TimeInterval> m_intervals;
         
         FrameCommands() :
             m_frameNumber(0),
             m_sumTime(0.0),
-            m_waitTime(0.0)
+            m_waitTime(0.0),
+            m_numBuffers(0)
         {
             m_commands.reserve(6);
             m_intervals.reserve(4);
@@ -86,6 +88,7 @@ namespace AZ::RHI
                 else
                 {
                     m_waitTime += begin - commit;
+                    m_numBuffers++;
                 }
             }
             bool consumed = false;
@@ -160,6 +163,7 @@ namespace AZ::RHI
             m_frameNumber = frameNumber;
             m_sumTime = 0.0;
             m_waitTime = 0.0;
+            m_numBuffers = 0;
             m_commands.clear();
             m_intervals.clear();
         }
