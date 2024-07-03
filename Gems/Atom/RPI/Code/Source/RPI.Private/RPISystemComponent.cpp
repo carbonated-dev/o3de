@@ -203,6 +203,17 @@ namespace AZ
                 AZ::Debug::ScopeDuration performanceScopeDuration(m_performanceCollector.get(), PerformanceSpecGraphicsRenderTime);
                 m_rpiSystem.RenderTick();
             }
+            
+            
+            // assert check hack
+            static size_t frameNumber = 0;
+            frameNumber++;
+            if (frameNumber % 1000 == 0)
+            {
+                AZStd::string thisFile = AZStd::string::format("%s (%lu)", __FILE__, frameNumber);
+                AZ::Debug::Trace::Instance().Assert(thisFile.c_str(), __LINE__, AZ_FUNCTION_SIGNATURE, "TEST ASSERT OnTick %llu", frameNumber);
+            }
+            // end
         }
         
         void RPISystemComponent::OnDeviceRemoved([[maybe_unused]] RHI::Device* device)
