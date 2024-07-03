@@ -349,6 +349,13 @@ namespace AZ::Data
                         AssetManager::Instance().DispatchEvents();
 // Gruber patch begin // AE -- update log while waiting for assets
 #if defined(CARBONATED)
+#if 1
+                        static int qqq = 0;
+                        if (qqq++ == 10)
+                        {
+                            AZ_Assert(false, "TEST START UP ASSERT");
+                        }
+#endif
                         // if we are here then it is the main thread, let deliver the log messages
                         AZ::LogNotification::LogNotificatorBus::Broadcast(&AZ::LogNotification::LogNotificatorBus::Events::Update);
 #endif
