@@ -2725,20 +2725,28 @@ namespace AZ
                 }
                 else
                 {
-                    const PostCullingInstanceDataList& postCullingInstanceDataList = m_postCullingInstanceDataByLod[lodIndex + m_lodBias];
-                    for (const ModelDataInstance::PostCullingInstanceData& postCullingData : postCullingInstanceDataList)
+                    const size_t index = lodIndex + m_lodBias;
+                    if (index < m_postCullingInstanceDataByLod.size())
                     {
-                        // If mesh instancing is enabled, get the draw packet from the MeshInstanceManager
-                        const RHI::DrawPacket* rhiDrawPacket = postCullingData.m_instanceGroupHandle->m_drawPacket.GetRHIDrawPacket();
-
-                        if (rhiDrawPacket)
+                        const PostCullingInstanceDataList& postCullingInstanceDataList = m_postCullingInstanceDataByLod[index];
+                        for (const ModelDataInstance::PostCullingInstanceData& postCullingData : postCullingInstanceDataList)
                         {
-                            // OR-together all the drawListMasks (so we know which views to cull against)
-                            cullData.m_drawListMask |= rhiDrawPacket->GetDrawListMask();
+                            // If mesh instancing is enabled, get the draw packet from the MeshInstanceManager
+                            const RHI::DrawPacket* rhiDrawPacket = postCullingData.m_instanceGroupHandle->m_drawPacket.GetRHIDrawPacket();
+                            
+                            if (rhiDrawPacket)
+                            {
+                                // OR-together all the drawListMasks (so we know which views to cull against)
+                                cullData.m_drawListMask |= rhiDrawPacket->GetDrawListMask();
+                            }
+                            
+                            // Set the user data for the cullable lod to reference the intance group handles for the lod
+                            lod.m_visibleObjectUserData = static_cast<void*>(&m_postCullingInstanceDataByLod[lodIndex + m_lodBias]);
                         }
-
-                        // Set the user data for the cullable lod to reference the intance group handles for the lod
-                        lod.m_visibleObjectUserData = static_cast<void*>(&m_postCullingInstanceDataByLod[lodIndex + m_lodBias]);
+                    }
+                    else
+                    {
+                        AZ_Error("BuildCullable", false, "m_postCullingInstanceDataByLod %llu", index);
                     }
                 }
             }
