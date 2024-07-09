@@ -731,6 +731,13 @@ namespace Profiler
         }
     }
 
+#if defined (CARBONATED)
+    void ImGuiCpuProfiler::AddExternalTimingEntries(const ProfilerExternalTimingData& externalTimingData)
+    {
+        m_externalTimingData = externalTimingData;
+    }
+#endif
+
     void ImGuiCpuProfiler::CollectFrameData()
     {
         // We maintain separate datastores for the visualizer and the statistical view because they require different
@@ -759,7 +766,30 @@ namespace Profiler
 
             // Now focus on just the data for the current thread
             AZStd::vector<TimeRegion> newVisualizerData;
+#if !defined(CARBONATED)
             newVisualizerData.reserve(singleThreadRegionMap.size()); // Avoids reallocation in the normal case when each region only has one invocation
+#else
+            newVisualizerData.reserve(singleThreadRegionMap.size() + m_externalTimingData.m_timingEntries.size()); // Avoids reallocation in the normal case when each region only has one invocation
+
+            for (const auto& entry : m_externalTimingData.m_timingEntries)
+            {
+                const char* const regionName = entry.m_regionName;
+                TimeRegion region(TimeRegion::GroupRegionName(regionName, entry.m_groupName.c_str()), 0, entry.m_startTick, entry.m_endTick);
+                newVisualizerData.push_back(region);
+
+                // Also update the statistical view's data
+                const AZStd::string& groupName = region.m_groupRegionName.m_groupName;
+
+                if (!m_groupRegionMap[groupName].contains(regionName))
+                {
+                    m_groupRegionMap[groupName][regionName].m_groupName = groupName;
+                    m_groupRegionMap[groupName][regionName].m_regionName = regionName;
+                    m_tableData.push_back(&m_groupRegionMap[groupName][regionName]);
+                }
+
+                m_groupRegionMap[groupName][regionName].RecordRegion(region, threadIdHashed);
+            }
+#endif
             for (const auto& [regionName, regionVec] : singleThreadRegionMap)
             {
                 for (const TimeRegion& region : regionVec)
