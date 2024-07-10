@@ -104,7 +104,7 @@ namespace Profiler
         //! Draws the overall CPU profiling window, defaults to the statistical view
         void Draw(bool& keepDrawing);
 #if defined (CARBONATED)
-        void AddExternalTimingEntries(const ProfilerExternalTimingData& externalTimingData);
+        void AddExternalTimingData(const ProfilerExternalTimingData& externalTimingData);
 #endif
 
     private:
@@ -240,7 +240,7 @@ namespace Profiler
         AZStd::vector<CpuTimingEntry> m_cpuTimingStatisticsWhenPause;
 
 #if defined (CARBONATED)
-        ProfilerExternalTimingData m_externalTimingData;
+        AZStd::vector <ProfilerExternalTimingData> m_externalTimingData;
 #endif
 
         AZ::IO::FixedMaxPath m_lastCapturedFilePath;

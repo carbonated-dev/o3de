@@ -107,7 +107,7 @@ namespace Profiler
 
     void ProfilerImGuiSystemComponent::AddExternalProfilerTimingData(const ProfilerExternalTimingData& externalTimingData)
     {
-        m_imguiCpuProfiler.AddExternalTimingEntries(externalTimingData);
+        m_imguiCpuProfiler.AddExternalTimingData(externalTimingData);
     }
 
     void ProfilerImGuiSystemComponent::OnImGuiUpdate()

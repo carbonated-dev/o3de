@@ -15,14 +15,10 @@ namespace Profiler
 #if defined (CARBONATED)
     struct ProfilerExternalTimingData
     {
-        struct TimingEntry
-        {
-            const char* m_regionName; // it should be a pointer to the const static string
-            AZStd::string m_groupName;
-            uint64_t m_startTick = 0;
-            uint64_t m_endTick = 0;
-        };
-        AZStd::vector<TimingEntry> m_timingEntries;
+        const char* m_regionName; // it should be a pointer to the const static string
+        AZStd::string m_groupName;
+        uint64_t m_startTick = 0;
+        uint64_t m_endTick = 0;
     };
 #endif
 

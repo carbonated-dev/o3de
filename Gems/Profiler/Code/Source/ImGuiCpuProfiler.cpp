@@ -732,9 +732,9 @@ namespace Profiler
     }
 
 #if defined (CARBONATED)
-    void ImGuiCpuProfiler::AddExternalTimingEntries(const ProfilerExternalTimingData& externalTimingData)
+    void ImGuiCpuProfiler::AddExternalTimingData(const ProfilerExternalTimingData& externalTimingData)
     {
-        m_externalTimingData = externalTimingData;
+        m_externalTimingData.push_back(externalTimingData);
     }
 #endif
 
@@ -769,9 +769,9 @@ namespace Profiler
 #if !defined(CARBONATED)
             newVisualizerData.reserve(singleThreadRegionMap.size()); // Avoids reallocation in the normal case when each region only has one invocation
 #else
-            newVisualizerData.reserve(singleThreadRegionMap.size() + m_externalTimingData.m_timingEntries.size()); // Avoids reallocation in the normal case when each region only has one invocation
+            newVisualizerData.reserve(singleThreadRegionMap.size() + m_externalTimingData.size()); // Avoids reallocation in the normal case when each region only has one invocation
 
-            for (const auto& entry : m_externalTimingData.m_timingEntries)
+            for (const auto& entry : m_externalTimingData)
             {
                 const char* const regionName = entry.m_regionName;
                 TimeRegion region(TimeRegion::GroupRegionName(regionName, entry.m_groupName.c_str()), 0, entry.m_startTick, entry.m_endTick);
@@ -789,6 +789,8 @@ namespace Profiler
 
                 m_groupRegionMap[groupName][regionName].RecordRegion(region, threadIdHashed);
             }
+
+            m_externalTimingData.clear();
 #endif
             for (const auto& [regionName, regionVec] : singleThreadRegionMap)
             {
