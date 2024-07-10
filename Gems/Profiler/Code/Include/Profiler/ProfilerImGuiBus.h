@@ -17,12 +17,13 @@ namespace Profiler
     {
         struct TimingEntry
         {
-            const char* m_groupName; // it should be a pointer to the const static string
+            const char* m_groupName = nullptr; // it should be a pointer to the const static string
             AZStd::string m_regionName;
             uint64_t m_startTick = 0;
             uint64_t m_endTick = 0;
         };
         AZStd::vector<TimingEntry> m_timingEntries;
+        size_t m_threadIdHashed = 0;
     };
 #endif
 

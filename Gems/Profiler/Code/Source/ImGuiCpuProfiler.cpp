@@ -810,50 +810,52 @@ namespace Profiler
         }
 
 #if defined(CARBONATED)
-        // Now focus on just the data for the current thread
-        AZStd::vector<TimeRegion> externalVisualizerData;
-        externalVisualizerData.reserve(m_externalTimingData.m_timingEntries.size()); // Avoids reallocation in the normal case when each region only has one invocation
-        const size_t threadIdHashed = 0;
-
-        for (const auto& entry : m_externalTimingData.m_timingEntries)
+        if (m_externalTimingData.m_timingEntries.size() > 0)
         {
-            const char* const groupName = entry.m_groupName;
-            const AZStd::string& regionName = entry.m_regionName;
+            AZStd::vector<TimeRegion> externalVisualizerData;
+            externalVisualizerData.reserve(m_externalTimingData.m_timingEntries.size());
+            const size_t threadIdHashed = m_externalTimingData.m_threadIdHashed;
 
-            TimeRegion region(TimeRegion::GroupRegionName(groupName, regionName.c_str()), 0, entry.m_startTick, entry.m_endTick);
-            externalVisualizerData.push_back(region);
-
-            // Also update the statistical view's data
-
-            if (!m_groupRegionMap[groupName].contains(regionName))
+            for (const auto& entry : m_externalTimingData.m_timingEntries)
             {
-                m_groupRegionMap[groupName][regionName].m_groupName = groupName;
-                m_groupRegionMap[groupName][regionName].m_regionName = regionName;
-                m_tableData.push_back(&m_groupRegionMap[groupName][regionName]);
+                const char* const groupName = entry.m_groupName;
+                const AZStd::string& regionName = entry.m_regionName;
+
+                TimeRegion region(TimeRegion::GroupRegionName(groupName, regionName.c_str()), 0, entry.m_startTick, entry.m_endTick);
+                externalVisualizerData.push_back(region);
+
+                // Also update the statistical view's data
+
+                if (!m_groupRegionMap[groupName].contains(regionName))
+                {
+                    m_groupRegionMap[groupName][regionName].m_groupName = groupName;
+                    m_groupRegionMap[groupName][regionName].m_regionName = regionName;
+                    m_tableData.push_back(&m_groupRegionMap[groupName][regionName]);
+                }
+
+                m_groupRegionMap[groupName][regionName].RecordRegion(region, threadIdHashed);
             }
 
-            m_groupRegionMap[groupName][regionName].RecordRegion(region, threadIdHashed);
+            // Sorting by start tick allows us to speed up some other processes (ex. finding the first block to draw)
+            // since we can binary search by start tick.
+            AZStd::sort(
+                externalVisualizerData.begin(), externalVisualizerData.end(),
+                [](const TimeRegion& lhs, const TimeRegion& rhs)
+                {
+                    return lhs.m_startTick < rhs.m_startTick;
+                });
+
+            // Use the latest frame's data as the new bounds of the viewport
+            viewportStartTick = AZStd::min(externalVisualizerData.front().m_startTick, viewportStartTick);
+            viewportEndTick = AZStd::max(externalVisualizerData.back().m_endTick, viewportEndTick);
+
+            m_savedRegionCount += externalVisualizerData.size();
+
+            // Move onto the end of the current thread's saved data, sorted order maintained
+            AZStd::vector<TimeRegion>& savedDataVec = m_savedData[threadIdHashed];
+            savedDataVec.insert(
+                savedDataVec.end(), AZStd::make_move_iterator(externalVisualizerData.begin()), AZStd::make_move_iterator(externalVisualizerData.end()));
         }
-
-        // Sorting by start tick allows us to speed up some other processes (ex. finding the first block to draw)
-        // since we can binary search by start tick.
-        AZStd::sort(
-            externalVisualizerData.begin(), externalVisualizerData.end(),
-            [](const TimeRegion& lhs, const TimeRegion& rhs)
-            {
-                return lhs.m_startTick < rhs.m_startTick;
-            });
-
-        // Use the latest frame's data as the new bounds of the viewport
-        viewportStartTick = AZStd::min(externalVisualizerData.front().m_startTick, viewportStartTick);
-        viewportEndTick = AZStd::max(externalVisualizerData.back().m_endTick, viewportEndTick);
-
-        m_savedRegionCount += externalVisualizerData.size();
-
-        // Move onto the end of the current thread's saved data, sorted order maintained
-        AZStd::vector<TimeRegion>& savedDataVec = m_savedData[threadIdHashed];
-        savedDataVec.insert(
-            savedDataVec.end(), AZStd::make_move_iterator(externalVisualizerData.begin()), AZStd::make_move_iterator(externalVisualizerData.end()));
 #endif
 
         // only update the viewport bounds at the specified frequency
