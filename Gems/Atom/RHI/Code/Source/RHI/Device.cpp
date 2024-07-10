@@ -313,6 +313,10 @@ namespace AZ::RHI
         m_FrameTimeLock.unlock();
         return result;
     }
+    const AZStd::array<FrameCommands, 4>& Device::GetFrameComands()
+    {
+        return m_frameCommands;
+    }
 #endif
 
     ResultCode Device::EndFrame()

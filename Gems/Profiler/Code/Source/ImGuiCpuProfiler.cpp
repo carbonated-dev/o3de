@@ -773,12 +773,13 @@ namespace Profiler
 
             for (const auto& entry : m_externalTimingData.m_timingEntries)
             {
-                const char* const regionName = entry.m_regionName;
-                TimeRegion region(TimeRegion::GroupRegionName(regionName, entry.m_groupName.c_str()), 0, entry.m_startTick, entry.m_endTick);
+                const char* const groupName = entry.m_groupName;
+                const AZStd::string& regionName = entry.m_regionName;
+
+                TimeRegion region(TimeRegion::GroupRegionName(groupName, regionName.c_str()), 0, entry.m_startTick, entry.m_endTick);
                 newVisualizerData.push_back(region);
 
                 // Also update the statistical view's data
-                const AZStd::string& groupName = region.m_groupRegionName.m_groupName;
 
                 if (!m_groupRegionMap[groupName].contains(regionName))
                 {

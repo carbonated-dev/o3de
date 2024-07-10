@@ -17,8 +17,8 @@ namespace Profiler
     {
         struct TimingEntry
         {
-            const char* m_regionName; // it should be a pointer to the const static string
-            AZStd::string m_groupName;
+            const char* m_groupName; // it should be a pointer to the const static string
+            AZStd::string m_regionName;
             uint64_t m_startTick = 0;
             uint64_t m_endTick = 0;
         };
