@@ -105,6 +105,11 @@ namespace Profiler
         m_imguiCpuProfiler.Draw(keepDrawing);
     }
 
+    void ProfilerImGuiSystemComponent::AddExternalProfilerTimingData(const ProfilerExternalTimingData& externalTimingData)
+    {
+        m_imguiCpuProfiler.AddExternalTimingEntries(externalTimingData);
+    }
+
     void ProfilerImGuiSystemComponent::OnImGuiUpdate()
     {
         if (m_showCpuProfiler)
