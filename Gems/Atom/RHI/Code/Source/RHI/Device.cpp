@@ -197,12 +197,7 @@ namespace AZ::RHI
                     {
                         found = true;
 
-#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
-                        fc.m_commands[ib].m_commitTime = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
-#else
-                        const auto current_time = std::chrono::system_clock::now();
-                        fc.m_commands[ib].m_commitTime = std::chrono::duration<double>(current_time.time_since_epoch()).count();
-#endif
+                        fc.m_commands[ib].m_commitTime = TimeInterval::GetTimeSec();
                         break;
                     }
                 }
