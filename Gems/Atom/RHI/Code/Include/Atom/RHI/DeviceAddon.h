@@ -202,4 +202,13 @@ namespace AZ::RHI
         }
     };
 
+    struct FrameCommandMetrics
+    {
+        struct FrameInterval
+        {
+            double m_begin;
+            double m_end;
+        };
+        AZStd::vector<FrameInterval> m_intervals;
+    };
 }

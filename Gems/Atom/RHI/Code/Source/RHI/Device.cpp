@@ -343,7 +343,25 @@ namespace AZ::RHI
         m_FrameTimeLock.unlock();
         return result;
     }
-
+    bool Device::GetFrameCommandMetrics(const int frameIndex, FrameCommandMetrics& frameCommandMetrics)
+    {
+        if (frameIndex < 0 || frameIndex >= 4)
+        {
+            return false;
+        }
+        m_FrameTimeLock.lock();
+        const FrameCommands& frameCommand = m_frameCommands[frameIndex];
+        frameCommandMetrics.m_intervals.clear();
+        for (int iv = 0; iv < frameCommand.m_intervals.size(); iv++)
+        {
+            FrameCommandMetrics::FrameInterval interval;
+            interval.m_begin = frameCommand.m_intervals[iv].m_begin;
+            interval.m_end = frameCommand.m_intervals[iv].m_end;
+            frameCommandMetrics.m_intervals.push_back(interval);
+        }
+        m_FrameTimeLock.unlock();
+        return true;
+    }
     void Device::EnableGatheringStats()
     {
         m_statsEnabled = true;  // assume all the variables are reset in the constructor or via DisableGatheringStats
