@@ -345,19 +345,26 @@ namespace AZ::RHI
     }
     bool Device::GetFrameCommandMetrics(const int frameIndex, FrameCommandMetrics& frameCommandMetrics)
     {
+        frameCommandMetrics.Init();
         if (frameIndex < 0 || frameIndex >= 4)
         {
             return false;
         }
         m_FrameTimeLock.lock();
         const FrameCommands& frameCommand = m_frameCommands[frameIndex];
-        frameCommandMetrics.m_intervals.clear();
         for (int iv = 0; iv < frameCommand.m_intervals.size(); iv++)
         {
             FrameCommandMetrics::FrameInterval interval;
             interval.m_begin = frameCommand.m_intervals[iv].m_begin;
             interval.m_end = frameCommand.m_intervals[iv].m_end;
             frameCommandMetrics.m_intervals.push_back(interval);
+        }
+        for (int iv = 0; iv < frameCommand.m_rawIntervals.size(); iv++)
+        {
+            FrameCommandMetrics::FrameInterval rawInterval;
+            rawInterval.m_begin = frameCommand.m_rawIntervals[iv].m_begin;
+            rawInterval.m_end = frameCommand.m_rawIntervals[iv].m_end;
+            frameCommandMetrics.m_rawIntervals.push_back(rawInterval);
         }
         m_FrameTimeLock.unlock();
         return true;

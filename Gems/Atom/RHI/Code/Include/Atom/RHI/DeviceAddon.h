@@ -71,7 +71,8 @@ namespace AZ::RHI
         unsigned int m_numBuffers;
         AZStd::vector<CommandBuffer> m_commands;
         AZStd::vector<TimeInterval> m_intervals;
-        
+        AZStd::vector<TimeInterval> m_rawIntervals;
+
         FrameCommands() :
             m_frameNumber(0),
             m_sumTime(0.0),
@@ -81,6 +82,7 @@ namespace AZ::RHI
         {
             m_commands.reserve(6);
             m_intervals.reserve(4);
+            m_rawIntervals.reserve(6);
         }
         
         void RegisterCommandBuffer(const void* commandBuffer)
@@ -148,6 +150,7 @@ namespace AZ::RHI
             {
                 m_intervals.push_back(TimeInterval(begin, end));
             }
+            m_rawIntervals.push_back(TimeInterval(begin, end));
             
             ValidateIntervals();
         }
@@ -189,6 +192,7 @@ namespace AZ::RHI
             m_numBuffers = 0;
             m_commands.clear();
             m_intervals.clear();
+            m_rawIntervals.clear();
         }
         
         double CalculateTime()
@@ -210,5 +214,11 @@ namespace AZ::RHI
             double m_end;
         };
         AZStd::vector<FrameInterval> m_intervals;
+        AZStd::vector<FrameInterval> m_rawIntervals;
+        void Init()
+        {
+            m_intervals.clear();
+            m_rawIntervals.clear();
+        }
     };
 }
