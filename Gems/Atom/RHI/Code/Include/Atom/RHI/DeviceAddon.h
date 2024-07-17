@@ -9,6 +9,10 @@
 // CARBONATED specific classes to track GPU data, used in Device.h
 #pragma once
 
+#if !(defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC))
+#include <AzCore/std/chrono/chrono.h>
+#endif
+
 namespace AZ::RHI
 {
 
@@ -36,6 +40,16 @@ namespace AZ::RHI
             {
                 m_end = t.m_end;
             }
+        }
+        
+        AZ_FORCE_INLINE static double GetTimeSec()
+        {
+#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
+            return double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
+#else
+            const auto current_time = AZStd::chrono::system_clock::now();
+            return AZStd::chrono::duration<double>(current_time.time_since_epoch()).count();
+#endif
         }
     };
 
