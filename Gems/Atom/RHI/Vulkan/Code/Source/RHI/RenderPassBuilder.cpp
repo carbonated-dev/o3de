@@ -279,9 +279,9 @@ namespace AZ
                 {
                     auto layout = GetImageAttachmentLayout(*scopeAttachment);
                     auto finalLayout = GetFinalLayout(scope, *scopeAttachment);
-                        auto scopeAttachmentId2 = scopeAttachment->GetDescriptor().m_attachmentId;
-                        auto findIter = m_attachmentsMap.find(scopeAttachmentId2);
-                        AZ_Assert(findIter != m_attachmentsMap.end(), "Could not find input attachment %s", scopeAttachmentId2.GetCStr());
+                    auto scopeAttachmentId2 = scopeAttachment->GetDescriptor().m_attachmentId;
+                    auto findIter = m_attachmentsMap.find(scopeAttachmentId2);
+                    AZ_Assert(findIter != m_attachmentsMap.end(), "Could not find input attachment %s", scopeAttachmentId2.GetCStr());
                     const uint32_t attachmentIndex = findIter->second;
                     subpassDescriptor.m_subpassInputAttachments[subpassDescriptor.m_subpassInputCount++] =
                         RenderPass::SubpassAttachment{ attachmentIndex , layout, ConvertImageAspectFlags(attachmentImageView->GetDescriptor().m_aspectFlags) };
@@ -328,7 +328,7 @@ namespace AZ
                 default:
                     AZ_Assert(false, "ScopeAttachmentUsage %d is invalid.", attachment.m_usage);
                 }
-            }            
+            }
 
             // Add the subpass dependencies from the buffer attachments.
             for (size_t index = 0; index < scope.GetBufferAttachments().size(); ++index)
@@ -337,6 +337,7 @@ namespace AZ
                 const BufferView* bufferView = static_cast<const BufferView*>(scopeAttachment->GetBufferView());
                 AddResourceDependency(subpassIndex, scope, bufferView);
             }
+
         }
 
         RHI::ResultCode RenderPassBuilder::End(RenderPassContext& builtContext)
@@ -354,6 +355,8 @@ namespace AZ
                     }
                 }
             }      
+
+            m_renderpassDesc.MergeSubpassDependencies();
 
             builtContext.m_renderPass = m_device.AcquireRenderPass(m_renderpassDesc);
             if (!builtContext.m_renderPass)

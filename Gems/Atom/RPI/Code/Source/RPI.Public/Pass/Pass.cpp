@@ -840,6 +840,69 @@ namespace AZ
             }
         }
 
+        void Pass::DeclareAttachmentsToFrameGraph(RHI::FrameGraphInterface frameGraph, PassSlotType slotType) const
+        {
+            for (size_t slotIndex = 0; slotIndex < m_attachmentBindings.size(); ++slotIndex)
+            {
+                const auto& attachmentBinding = m_attachmentBindings[slotIndex];
+                if(slotType == PassSlotType::Uninitialized || slotType == attachmentBinding.m_slotType)
+                {
+                    if (attachmentBinding.GetAttachment() != nullptr &&
+                        frameGraph.GetAttachmentDatabase().IsAttachmentValid(attachmentBinding.GetAttachment()->GetAttachmentId()))
+                    {
+                        switch (attachmentBinding.m_unifiedScopeDesc.GetType())
+                        {
+                        case RHI::AttachmentType::Image:
+                            {
+                                AZ::RHI::ImageScopeAttachmentDescriptor imageScopeAttachmentDescriptor =
+                                    attachmentBinding.m_unifiedScopeDesc.GetAsImage();
+                                if (attachmentBinding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::SubpassInput)
+                                {
+                                    AZ_Assert(
+                                        m_flags.m_mergeChildrenAsSubpasses,
+                                        "SubpassInputs are only allowed in RenderPasses that are mergeable as subpass.");
+                                    frameGraph.UseSubpassInputAttachment(
+                                        imageScopeAttachmentDescriptor, attachmentBinding.m_scopeAttachmentStage);
+                                }
+                                else if (attachmentBinding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::Resolve)
+                                {
+                                    // A Resolve attachment must be declared immediately after the RenderTarget it is supposed to resolve.
+                                    // This particular requirement was already validated during BuildSubpassLayout().
+                                    const auto& renderTargetBinding = m_attachmentBindings[slotIndex - 1];
+                                    RHI::ResolveScopeAttachmentDescriptor resolveDescriptor;
+                                    resolveDescriptor.m_attachmentId = attachmentBinding.GetAttachment()->GetAttachmentId();
+                                    resolveDescriptor.m_loadStoreAction = attachmentBinding.m_unifiedScopeDesc.m_loadStoreAction;
+                                    resolveDescriptor.m_resolveAttachmentId = renderTargetBinding.GetAttachment()->GetAttachmentId();
+                                    frameGraph.UseResolveAttachment(resolveDescriptor);
+                                }
+                                else
+                                {
+                                    frameGraph.UseAttachment(
+                                        imageScopeAttachmentDescriptor,
+                                        attachmentBinding.GetAttachmentAccess(),
+                                        attachmentBinding.m_scopeAttachmentUsage,
+                                        attachmentBinding.m_scopeAttachmentStage);
+                                }
+                                break;
+                            }
+                        case RHI::AttachmentType::Buffer:
+                            {
+                                frameGraph.UseAttachment(
+                                    attachmentBinding.m_unifiedScopeDesc.GetAsBuffer(),
+                                    attachmentBinding.GetAttachmentAccess(),
+                                    attachmentBinding.m_scopeAttachmentUsage,
+                                    attachmentBinding.m_scopeAttachmentStage);
+                                break;
+                            }
+                        default:
+                            AZ_Assert(false, "Error, trying to bind an attachment that is neither an image nor a buffer!");
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         void Pass::SetupInputsFromTemplate()
         {
             if (m_template)

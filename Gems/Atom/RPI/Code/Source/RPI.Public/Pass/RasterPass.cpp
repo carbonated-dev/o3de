@@ -242,7 +242,9 @@ namespace AZ
 
         void RasterPass::SetupFrameGraphDependencies(RHI::FrameGraphInterface frameGraph)
         {
-            RenderPass::SetupFrameGraphDependencies(frameGraph);
+            DeclareAttachmentsToFrameGraph(frameGraph);
+            DeclarePassDependenciesToFrameGraph(frameGraph);
+            AddScopeQueryToFrameGraph(frameGraph);
             frameGraph.SetEstimatedItemCount(static_cast<uint32_t>(m_drawListView.size()));
         }
 
@@ -285,6 +287,5 @@ namespace AZ
                 SubmitDrawItems(context, context.GetSubmitRange().m_startIndex, context.GetSubmitRange().m_endIndex, 0);
             }
         }
-
     }   // namespace RPI
 }   // namespace AZ
