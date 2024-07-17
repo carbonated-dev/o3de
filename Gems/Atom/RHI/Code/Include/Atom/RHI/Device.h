@@ -174,7 +174,7 @@ namespace AZ::RHI
         double GetGPUWaitFrameTime();  // returns wait time before start processing buffers
         double GetGPUWaitAvgFrameTime();  // returns per-buffer averag wait time before start processing buffer
         double GetGPUEndMaxFrameTime();  // returns max commit to done bufer time
-        bool GetFrameCommandMetrics(const int frameIndex, FrameCommandMetrics& frameCommandMetrics);
+        bool GetFrameCommandMetrics(FrameCommandMetrics& frameCommandMetrics);
 
         void RegisterCommandBuffer(const void* buffer);
         void MarkCommandBufferCommit(const void* buffer);

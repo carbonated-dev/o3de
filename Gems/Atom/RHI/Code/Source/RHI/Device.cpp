@@ -343,8 +343,9 @@ namespace AZ::RHI
         m_FrameTimeLock.unlock();
         return result;
     }
-    bool Device::GetFrameCommandMetrics(const int frameIndex, FrameCommandMetrics& frameCommandMetrics)
+    bool Device::GetFrameCommandMetrics(FrameCommandMetrics& frameCommandMetrics)
     {
+        const int frameIndex = m_frameCommandIndex;
         frameCommandMetrics.Init();
         if (frameIndex < 0 || frameIndex >= 4)
         {
