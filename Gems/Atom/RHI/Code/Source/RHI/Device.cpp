@@ -168,6 +168,11 @@ namespace AZ::RHI
 #if defined(CARBONATED)
     void Device::RegisterCommandBuffer(const void* buffer)
     {
+        if (!m_statsEnabled)
+        {
+            return;
+        }
+
         m_FrameTimeLock.lock();
         
         if (m_frameCommandIndex >= 0)  // if frames started
@@ -183,6 +188,11 @@ namespace AZ::RHI
 
     void Device::MarkCommandBufferCommit(const void* buffer)
     {
+        if (!m_statsEnabled)
+        {
+            return;
+        }
+
         m_FrameTimeLock.lock();
         
         if (m_frameCommandIndex >= 0)  // if frames started
@@ -197,12 +207,7 @@ namespace AZ::RHI
                     {
                         found = true;
 
-#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
-                        fc.m_commands[ib].m_commitTime = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
-#else
-                        const auto current_time = std::chrono::system_clock::now();
-                        fc.m_commands[ib].m_commitTime = std::chrono::duration<double>(current_time.time_since_epoch()).count();
-#endif
+                        fc.m_commands[ib].m_commitTime = TimeInterval::GetTimeSec();
                         break;
                     }
                 }
@@ -222,6 +227,11 @@ namespace AZ::RHI
 
     void Device::CommandBufferCompleted(const void* buffer, double begin, double end)
     {
+        if (!m_statsEnabled)
+        {
+            return;
+        }
+
         m_FrameTimeLock.lock();
         
         if (m_frameCommandIndex >= 0)  // if frames started
@@ -280,6 +290,10 @@ namespace AZ::RHI
 
     double Device::GetGPUFrameTime()
     {
+        if (!m_statsEnabled)
+        {
+            return 0.0;
+        }
         m_FrameTimeLock.lock();
         const double result = m_FrameGPUTime;
         m_FrameTimeLock.unlock();
@@ -287,6 +301,10 @@ namespace AZ::RHI
     }
     double Device::GetGPUSumFrameTime()
     {
+        if (!m_statsEnabled)
+        {
+            return 0.0;
+        }
         m_FrameTimeLock.lock();
         const double result = m_FrameGPUSumTime;
         m_FrameTimeLock.unlock();
@@ -294,6 +312,10 @@ namespace AZ::RHI
     }
     double Device::GetGPUWaitFrameTime()
     {
+        if (!m_statsEnabled)
+        {
+            return 0.0;
+        }
         m_FrameTimeLock.lock();
         const double result = m_FrameGPUWaitTime;
         m_FrameTimeLock.unlock();
@@ -301,6 +323,10 @@ namespace AZ::RHI
     }
     double Device::GetGPUWaitAvgFrameTime()
     {
+        if (!m_statsEnabled)
+        {
+            return 0.0;
+        }
         m_FrameTimeLock.lock();
         const double result = m_FrameGPUWaitAvgTime;
         m_FrameTimeLock.unlock();
@@ -308,14 +334,54 @@ namespace AZ::RHI
     }
     double Device::GetGPUEndMaxFrameTime()
     {
+        if (!m_statsEnabled)
+        {
+            return 0.0;
+        }
         m_FrameTimeLock.lock();
         const double result = m_FrameGPUEndMaxTime;
         m_FrameTimeLock.unlock();
         return result;
     }
-    const AZStd::array<FrameCommands, 4>& Device::GetFrameComands()
+    bool Device::GetFrameCommandMetrics(const int frameIndex, FrameCommandMetrics& frameCommandMetrics)
     {
-        return m_frameCommands;
+        if (frameIndex < 0 || frameIndex >= 4)
+        {
+            return false;
+        }
+        m_FrameTimeLock.lock();
+        const FrameCommands& frameCommand = m_frameCommands[frameIndex];
+        frameCommandMetrics.m_intervals.clear();
+        for (int iv = 0; iv < frameCommand.m_intervals.size(); iv++)
+        {
+            FrameCommandMetrics::FrameInterval interval;
+            interval.m_begin = frameCommand.m_intervals[iv].m_begin;
+            interval.m_end = frameCommand.m_intervals[iv].m_end;
+            frameCommandMetrics.m_intervals.push_back(interval);
+        }
+        m_FrameTimeLock.unlock();
+        return true;
+    }
+    void Device::EnableGatheringStats()
+    {
+        m_statsEnabled = true;  // assume all the variables are reset in the constructor or via DisableGatheringStats
+    }
+    void Device::DisableGatheringStats()
+    {
+        if (!m_statsEnabled)
+        {
+            return;
+        }
+        m_statsEnabled = false;
+        
+        // reset all the variables
+        m_frameCounter = 0;
+        m_frameCommandIndex = -1;
+        m_FrameGPUTime = 0.0;
+        m_FrameGPUSumTime = 0.0;
+        m_FrameGPUWaitTime = 0.0;
+        m_FrameGPUWaitAvgTime = 0.0;
+        m_FrameGPUEndMaxTime = 0.0;
     }
 #endif
 
