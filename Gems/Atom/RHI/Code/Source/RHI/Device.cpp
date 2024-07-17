@@ -168,6 +168,11 @@ namespace AZ::RHI
 #if defined(CARBONATED)
     void Device::RegisterCommandBuffer(const void* buffer)
     {
+        if (!m_statsEnabled)
+        {
+            return;
+        }
+
         m_FrameTimeLock.lock();
         
         if (m_frameCommandIndex >= 0)  // if frames started
@@ -183,6 +188,11 @@ namespace AZ::RHI
 
     void Device::MarkCommandBufferCommit(const void* buffer)
     {
+        if (!m_statsEnabled)
+        {
+            return;
+        }
+
         m_FrameTimeLock.lock();
         
         if (m_frameCommandIndex >= 0)  // if frames started
@@ -217,6 +227,11 @@ namespace AZ::RHI
 
     void Device::CommandBufferCompleted(const void* buffer, double begin, double end)
     {
+        if (!m_statsEnabled)
+        {
+            return;
+        }
+
         m_FrameTimeLock.lock();
         
         if (m_frameCommandIndex >= 0)  // if frames started
@@ -275,6 +290,10 @@ namespace AZ::RHI
 
     double Device::GetGPUFrameTime()
     {
+        if (!m_statsEnabled)
+        {
+            return 0.0;
+        }
         m_FrameTimeLock.lock();
         const double result = m_FrameGPUTime;
         m_FrameTimeLock.unlock();
@@ -282,6 +301,10 @@ namespace AZ::RHI
     }
     double Device::GetGPUSumFrameTime()
     {
+        if (!m_statsEnabled)
+        {
+            return 0.0;
+        }
         m_FrameTimeLock.lock();
         const double result = m_FrameGPUSumTime;
         m_FrameTimeLock.unlock();
@@ -289,6 +312,10 @@ namespace AZ::RHI
     }
     double Device::GetGPUWaitFrameTime()
     {
+        if (!m_statsEnabled)
+        {
+            return 0.0;
+        }
         m_FrameTimeLock.lock();
         const double result = m_FrameGPUWaitTime;
         m_FrameTimeLock.unlock();
@@ -296,6 +323,10 @@ namespace AZ::RHI
     }
     double Device::GetGPUWaitAvgFrameTime()
     {
+        if (!m_statsEnabled)
+        {
+            return 0.0;
+        }
         m_FrameTimeLock.lock();
         const double result = m_FrameGPUWaitAvgTime;
         m_FrameTimeLock.unlock();
@@ -303,10 +334,36 @@ namespace AZ::RHI
     }
     double Device::GetGPUEndMaxFrameTime()
     {
+        if (!m_statsEnabled)
+        {
+            return 0.0;
+        }
         m_FrameTimeLock.lock();
         const double result = m_FrameGPUEndMaxTime;
         m_FrameTimeLock.unlock();
         return result;
+    }
+
+    void Device::EnableGatheringStats()
+    {
+        m_statsEnabled = true;  // assume all the variables are reset in the constructor or via DisableGatheringStats
+    }
+    void Device::DisableGatheringStats()
+    {
+        if (!m_statsEnabled)
+        {
+            return;
+        }
+        m_statsEnabled = false;
+        
+        // reset all the variables
+        m_frameCounter = 0;
+        m_frameCommandIndex = -1;
+        m_FrameGPUTime = 0.0;
+        m_FrameGPUSumTime = 0.0;
+        m_FrameGPUWaitTime = 0.0;
+        m_FrameGPUWaitAvgTime = 0.0;
+        m_FrameGPUEndMaxTime = 0.0;
     }
 #endif
 
