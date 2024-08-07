@@ -344,14 +344,11 @@ ImDrawData* ImGui::ImGuiManager::GetImguiDrawData()
     else if (!io.WantTextInput && hasTextEntryStarted)
     {
 #if defined(CARBONATED)
-        if (io.AffectGlobalTextInput || m_textEntryOwned)
+        if (m_textEntryOwned)
         {
             AzFramework::InputTextEntryRequestBus::Broadcast(&AzFramework::InputTextEntryRequests::TextEntryStop);
-            if (m_textEntryOwned)
-            {
-                io.KeysDown[GetAzKeyIndex(InputDeviceKeyboard::Key::EditEnter)] = false;
-                m_textEntryOwned = false;
-            }
+            io.KeysDown[GetAzKeyIndex(InputDeviceKeyboard::Key::EditEnter)] = false;
+            m_textEntryOwned = false;
         }
 #else
         AzFramework::InputTextEntryRequestBus::Broadcast(&AzFramework::InputTextEntryRequests::TextEntryStop);
