@@ -336,12 +336,27 @@ ImDrawData* ImGui::ImGuiManager::GetImguiDrawData()
     if (io.WantTextInput && !hasTextEntryStarted)
     {
         AzFramework::InputTextEntryRequests::VirtualKeyboardOptions options;
+#if defined(CARBONATED)
+        m_textEntryOwned = true;
+#endif
         AzFramework::InputTextEntryRequestBus::Broadcast(&AzFramework::InputTextEntryRequests::TextEntryStart, options);
     }
     else if (!io.WantTextInput && hasTextEntryStarted)
     {
+#if defined(CARBONATED)
+        if (io.AffectGlobalTextInput || m_textEntryOwned)
+        {
+            AzFramework::InputTextEntryRequestBus::Broadcast(&AzFramework::InputTextEntryRequests::TextEntryStop);
+            if (m_textEntryOwned)
+            {
+                io.KeysDown[GetAzKeyIndex(InputDeviceKeyboard::Key::EditEnter)] = false;
+                m_textEntryOwned = false;
+            }
+        }
+#else
         AzFramework::InputTextEntryRequestBus::Broadcast(&AzFramework::InputTextEntryRequests::TextEntryStop);
         io.KeysDown[GetAzKeyIndex(InputDeviceKeyboard::Key::EditEnter)] = false;
+#endif
     }
 
     // Start New Frame
