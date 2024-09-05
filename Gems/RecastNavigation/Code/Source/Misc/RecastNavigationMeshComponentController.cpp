@@ -141,6 +141,99 @@ namespace RecastNavigation
         return false;
     }
 
+#if defined(CARBONATED)
+    bool RecastNavigationMeshComponentController::PartialUpdateNavigationMeshBlockUntilCompleted(const AZStd::vector<AZ::Aabb>& changedGeometry)
+    {
+        bool notInProgress = false;
+        if (!m_updateInProgress.compare_exchange_strong(notInProgress, true))
+        {
+            return false;
+        }
+
+        AZStd::vector<AZStd::shared_ptr<TileGeometry>> tiles;
+
+        // Blocking call.
+        RecastNavigationProviderRequestBus::EventResult(
+            tiles,
+            m_entityComponentIdPair.GetEntityId(),
+            &RecastNavigationProviderRequests::CollectPartialGeometry,
+            m_configuration.m_tileSize,
+            aznumeric_cast<float>(m_configuration.m_borderSize) * m_configuration.m_cellSize,
+            changedGeometry);
+
+        RecastNavigationMeshNotificationBus::Event(
+            m_entityComponentIdPair.GetEntityId(),
+            &RecastNavigationMeshNotificationBus::Events::OnNavigationMeshBeganRecalculating,
+            m_entityComponentIdPair.GetEntityId());
+
+        {
+            for (AZStd::shared_ptr<TileGeometry>& tile : tiles)
+            {
+                {
+                    NavMeshQuery::LockGuard lock(*m_navObject);
+                    // If a tile at the location already exists, remove it before updating the data.
+                    if (const dtTileRef tileRef = lock.GetNavMesh()->getTileRefAt(tile->m_tileX, tile->m_tileY, 0))
+                    {
+                        lock.GetNavMesh()->removeTile(tileRef, nullptr, nullptr);
+                    }
+                }
+
+                if (tile->IsEmpty())
+                {
+                    continue;
+                }
+
+                // Given geometry create Recast tile structure.
+                NavigationTileData navigationTileData = CreateNavigationTile(tile.get(), m_configuration, m_context.get());
+
+                // A tile might have no geometry at all if no objects were found there.
+                if (navigationTileData.IsValid())
+                {
+                    AttachNavigationTileToMesh(navigationTileData);
+                }
+            }
+        }
+
+        RecastNavigationMeshNotificationBus::Event(
+            m_entityComponentIdPair.GetEntityId(),
+            &RecastNavigationMeshNotifications::OnNavigationMeshUpdated,
+            m_entityComponentIdPair.GetEntityId());
+        m_updateInProgress = false;
+        return true;
+    }
+
+    bool RecastNavigationMeshComponentController::PartialUpdateNavigationMeshAsync(const AZStd::vector<AZ::Aabb>& changedGeometry)
+    {
+        bool notInProgress = false;
+        if (m_updateInProgress.compare_exchange_strong(notInProgress, true))
+        {
+            AZ_PROFILE_SCOPE(Navigation, "Navigation: UpdateNavigationMeshAsync");
+
+            bool operationScheduled = false;
+            RecastNavigationProviderRequestBus::EventResult(
+                operationScheduled,
+                m_entityComponentIdPair.GetEntityId(),
+                &RecastNavigationProviderRequests::CollectPartialGeometryAsync,
+                m_configuration.m_tileSize,
+                aznumeric_cast<float>(m_configuration.m_borderSize) * m_configuration.m_cellSize,
+                changedGeometry,
+                [this](AZStd::shared_ptr<TileGeometry> tile)
+                {
+                    OnTileProcessedEvent(tile);
+                });
+
+            if (!operationScheduled)
+            {
+                m_updateInProgress = false;
+                return false;
+            }
+            return true;
+        }
+
+        return false;
+    }
+#endif
+
     AZStd::shared_ptr<NavMeshQuery> RecastNavigationMeshComponentController::GetNavigationObject()
     {
         return m_navObject;

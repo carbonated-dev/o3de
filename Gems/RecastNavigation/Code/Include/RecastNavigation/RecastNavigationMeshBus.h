@@ -29,6 +29,17 @@ namespace RecastNavigation
         //! @returns false if another update operation is already in progress
         virtual bool UpdateNavigationMeshAsync() = 0;
 
+#if defined(CARBONATED)
+        //! Re-calculates the navigation mesh for selective tiles based on the AABB provided. Blocking call.
+        //! @returns false if another update operation is already in progress
+        virtual bool PartialUpdateNavigationMeshBlockUntilCompleted(const AZStd::vector<AZ::Aabb>& changedGeometry) = 0;
+
+        //! Re-calculates the navigation mesh within the defined world area. Notifies when completed using
+        //! @RecastNavigationMeshNotificationBus.
+        //! @returns false if another update operation is already in progress
+        virtual bool PartialUpdateNavigationMeshAsync(const AZStd::vector<AZ::Aabb>& changedGeometry) = 0;
+#endif
+
         //! @returns the underlying navigation objects with the associated synchronization object.
         virtual AZStd::shared_ptr<NavMeshQuery> GetNavigationObject() = 0;
     };

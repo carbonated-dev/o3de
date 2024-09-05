@@ -72,6 +72,10 @@ namespace RecastNavigation
         //! @{
         bool UpdateNavigationMeshBlockUntilCompleted() override;
         bool UpdateNavigationMeshAsync() override;
+#if defined(CARBONATED)
+        bool PartialUpdateNavigationMeshBlockUntilCompleted(const AZStd::vector<AZ::Aabb>& changedGeometry) override;
+        bool PartialUpdateNavigationMeshAsync(const AZStd::vector<AZ::Aabb>& changedGeometry) override;
+#endif
         AZStd::shared_ptr<NavMeshQuery> GetNavigationObject() override;
         //! @}
 
