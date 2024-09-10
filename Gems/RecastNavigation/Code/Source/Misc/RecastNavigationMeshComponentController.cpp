@@ -232,6 +232,31 @@ namespace RecastNavigation
 
         return false;
     }
+
+    bool RecastNavigationMeshComponentController::TestPointOnNavMesh(
+        const AZ::Vector3& point, const AZ::Vector3& tolerance, AZ::Vector3& nearestPoint)
+    {
+        AZ_PROFILE_SCOPE(Navigation, "Navigation: TestPointOnNavMesh");
+
+        NavMeshQuery::LockGuard lock(*m_navObject);
+
+        RecastVector3 pointRecast = RecastVector3::CreateFromVector3SwapYZ(point);
+        RecastVector3 nearestPointRecast;
+        const float halfExtents[3] = { tolerance.GetX(), tolerance.GetZ(), tolerance.GetY() }; // Swap Z/Y for Recast.
+        dtPolyRef nearestPolygon = 0;
+        const dtQueryFilter filter;
+
+        // Find nearest points on the navigation mesh given the positions provided.
+        // We are allowing some flexibility where looking for a point just a bit outside of the navigation mesh would still work.
+        const dtStatus result =
+            lock.GetNavQuery()->findNearestPoly(pointRecast.GetData(), halfExtents, &filter, &nearestPolygon, nearestPointRecast.GetData());
+        if (dtStatusFailed(result) || nearestPolygon == 0)
+        {
+            return false;
+        }
+        nearestPoint = nearestPointRecast.AsVector3WithZup();
+        return true;
+    }
 #endif
 
     AZStd::shared_ptr<NavMeshQuery> RecastNavigationMeshComponentController::GetNavigationObject()

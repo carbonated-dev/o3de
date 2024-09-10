@@ -21,6 +21,10 @@ namespace RecastNavigation
         : public AZ::ComponentBus
     {
     public:
+#if defined(CARBONATED)
+        using MutexType = AZStd::recursive_mutex;
+#endif
+
         //! Re-calculates the navigation mesh within the defined world area. Blocking call.
         //! @returns false if another update operation is already in progress
         virtual bool UpdateNavigationMeshBlockUntilCompleted() = 0;
@@ -42,6 +46,13 @@ namespace RecastNavigation
 
         //! @returns the underlying navigation objects with the associated synchronization object.
         virtual AZStd::shared_ptr<NavMeshQuery> GetNavigationObject() = 0;
+
+#if defined(CARBONATED)
+        //! Finds the nearest point on the navigation mesh given the position provided.
+        //! We are allowing some flexibility where looking for a point just a bit outside of the navigation mesh would still work.
+        //! @returns true if the point is on mesh within the given tolerance.
+        virtual bool TestPointOnNavMesh(const AZ::Vector3& point, const AZ::Vector3& tolerance, AZ::Vector3& nearestPoint) = 0;
+#endif
     };
 
     //! Request EBus for a navigation mesh component.
