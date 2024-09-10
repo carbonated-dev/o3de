@@ -123,9 +123,15 @@ namespace RecastNavigation
         int detailedPathCount = 0;
 
         // Then the detailed path. This gives us actual specific waypoints along the path over the polygons found earlier.
+#if defined(CARBONATED)
+        result = lock.GetNavQuery()->findStraightPath(startRecast.GetData(), endRecast.GetData(), path.data(), pathLength,
+            detailedPath[0].GetData(), detailedPathFlags.data(), detailedPolyPathRefs.data(),
+            &detailedPathCount, MaxPathLength, 0);  // zero flag, no need to add extra points
+#else
         result = lock.GetNavQuery()->findStraightPath(startRecast.GetData(), endRecast.GetData(), path.data(), pathLength,
             detailedPath[0].GetData(), detailedPathFlags.data(), detailedPolyPathRefs.data(),
             &detailedPathCount, MaxPathLength, DT_STRAIGHTPATH_ALL_CROSSINGS);
+#endif
         if (dtStatusFailed(result))
         {
             return {};
