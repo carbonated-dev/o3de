@@ -261,6 +261,15 @@ namespace RecastNavigation
             return false;
         }
         nearestPoint = nearestPointRecast.AsVector3WithZup();
+
+        const auto nearestPointRecastRaw = nearestPointRecast.GetData();
+        const auto pointRecastRaw = pointRecast.GetData();
+        if ((fabs(nearestPointRecastRaw[0] - pointRecastRaw[0]) > halfExtents[0]) ||
+            (fabs(nearestPointRecastRaw[1] - pointRecastRaw[1]) > halfExtents[1]) ||
+            (fabs(nearestPointRecastRaw[2] - pointRecastRaw[2]) > halfExtents[2]))
+        {
+            return false;
+        }
         return true;
     }
 #endif
