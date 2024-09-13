@@ -41,6 +41,7 @@ namespace AZ
             : RenderPass(descriptor)
             , m_passDescriptor(descriptor)
         {
+            m_flags.m_canBecomeASubpass = false;
             RHI::Ptr<RHI::Device> device = RHI::RHISystemInterface::Get()->GetDevice();
             if (device->GetFeatures().m_rayTracing == false)
             {

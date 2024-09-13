@@ -56,12 +56,13 @@ namespace AZ::RHI
         m_isInitialized = true;
     }
 
-    void Scope::Activate(const FrameGraph* frameGraph, uint32_t index, const GraphGroupId& groupId)
+    void Scope::Activate(const FrameGraph* frameGraph, uint32_t index, const GraphGroupId& groupId, ActivationFlags activationFlags)
     {
         AZ_Assert(m_isActive == false, "Scope was previously active.");
         m_index = decltype(m_index)(index);
         m_frameGraph = frameGraph;
         m_graphGroupId = groupId;
+        m_activationFlags = activationFlags;
         ActivateInternal();
         m_isActive = true;
     }
@@ -94,6 +95,7 @@ namespace AZ::RHI
         m_fencesToWaitFor.clear();
         m_resourcePoolResolves.clear();
         m_queryPools.clear();
+        m_activationFlags = ActivationFlags::None;
     }
 
     void Scope::Shutdown()
@@ -129,7 +131,9 @@ namespace AZ::RHI
     void Scope::ActivateInternal() {}
     void Scope::CompileInternal([[maybe_unused]] Device& device) {}
     void Scope::DeactivateInternal() {}
-    void Scope::ShutdownInternal() {}
+    void Scope::ShutdownInternal()
+    {
+    }
 
     const ScopeId& Scope::GetId() const
     {
@@ -260,6 +264,11 @@ namespace AZ::RHI
     void Scope::AddFenceToSignal(Ptr<Fence> fence)
     {
         m_fencesToSignal.push_back(fence);
+    }
+
+    Scope::ActivationFlags Scope::GetActivationFlags() const
+    {
+        return m_activationFlags;
     }
 
     Scope* Scope::FindMoreCapableCrossQueueProducer()

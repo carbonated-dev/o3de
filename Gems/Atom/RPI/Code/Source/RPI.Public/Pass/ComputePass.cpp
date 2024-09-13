@@ -44,6 +44,7 @@ namespace AZ
             : RenderPass(descriptor)
             , m_passDescriptor(descriptor)
         {
+            m_flags.m_canBecomeASubpass = false;
             const ComputePassData* passData = PassUtils::GetPassData<ComputePassData>(m_passDescriptor);
             if (passData == nullptr)
             {

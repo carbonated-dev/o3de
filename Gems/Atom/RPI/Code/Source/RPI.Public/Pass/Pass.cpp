@@ -115,8 +115,11 @@ namespace AZ
 
         void Pass::SetEnabled(bool enabled)
         {
-            m_flags.m_enabled = enabled;
-            OnHierarchyChange();
+            if (enabled != m_flags.m_enabled)
+            {
+                m_flags.m_enabled = enabled;
+                OnHierarchyChange();
+            }
         }
 
         // --- Error Logging ---
@@ -165,6 +168,7 @@ namespace AZ
                 {
                     QueueForBuildAndInitialization();
                 }
+                OnDescendantChange(PassDescendantChangeFlags::Hierarchy);
             }
             AZ_RPI_BREAK_ON_TARGET_PASS;
         }
@@ -178,6 +182,14 @@ namespace AZ
             m_state = PassState::Orphaned;
         }
 
+        void Pass::OnDescendantChange(PassDescendantChangeFlags flags)
+        {
+            if (m_parent)
+            {
+                m_parent->OnDescendantChange(flags);
+            }
+        }
+
         void Pass::OnOrphan()
         {
             AZ_RPI_BREAK_ON_TARGET_PASS;
@@ -186,6 +198,7 @@ namespace AZ
                 m_pipeline->RemovePipelineGlobalConnectionsFromPass(this);
             }
 
+            OnDescendantChange(PassDescendantChangeFlags::Hierarchy);
             m_parent = nullptr;
             m_flags.m_partOfHierarchy = false;
             m_treeDepth = 0;
@@ -858,9 +871,6 @@ namespace AZ
                                     attachmentBinding.m_unifiedScopeDesc.GetAsImage();
                                 if (attachmentBinding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::SubpassInput)
                                 {
-                                    AZ_Assert(
-                                        m_flags.m_mergeChildrenAsSubpasses,
-                                        "SubpassInputs are only allowed in RenderPasses that are mergeable as subpass.");
                                     frameGraph.UseSubpassInputAttachment(
                                         imageScopeAttachmentDescriptor, attachmentBinding.m_scopeAttachmentStage);
                                 }
@@ -1297,9 +1307,8 @@ namespace AZ
             UpdateOwnedAttachments();
             UpdateAttachmentUsageIndices();
 
-
-            m_state = PassState::Built;
-            m_queueState = PassQueueState::NoQueue;
+            OnDescendantChange(PassDescendantChangeFlags::Build);
+            OnBuildFinished();
 
             // If this pass's Build() wasn't called from the Pass System, then it was called by it's parent pass
             // In which case we don't need to queue for initialization because the parent will already be queued
@@ -1344,6 +1353,32 @@ namespace AZ
             OnInitializationFinishedInternal();
 
             m_state = PassState::Idle;
+        }
+
+        void Pass::OnBuildFinished()
+        {
+            bool subpassInputSupported = false;
+            if (auto* renderPipeline = GetRenderPipeline())
+            {
+                subpassInputSupported = renderPipeline->SubpassMergingSupported();
+            }
+
+            if (!subpassInputSupported)
+            {
+                ReplaceSubpassInputs();
+            }
+
+            OnBuildFinishedInternal();
+
+            m_flags.m_hasSubpassInput = AZStd::any_of(
+                m_attachmentBindings.begin(),
+                m_attachmentBindings.end(),
+                [](const auto& element)
+                {
+                    return element.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::SubpassInput;
+                });
+            m_state = PassState::Built;
+            m_queueState = PassQueueState::NoQueue;
         }
 
         void Pass::Validate(PassValidationResults& validationResults)
@@ -1394,7 +1429,13 @@ namespace AZ
         {
             AZ_RPI_BREAK_ON_TARGET_PASS;
 
-            bool earlyOut = !IsEnabled();
+            bool isEnabled = IsEnabled();
+            bool earlyOut = !isEnabled;
+            // Since IsEnabled can be virtual, we update m_flags.m_enabled with the proper value.
+            if (isEnabled != m_flags.m_enabled)
+            {
+                SetEnabled(isEnabled);
+            }
 
             // Skip if this pass is the root of the pipeline and the pipeline is set to not render
             if (m_flags.m_isPipelineRoot)
@@ -1676,6 +1717,24 @@ namespace AZ
                 AZ_Error("Pass", false, "UpdateImportedAttachmentImage failed because it is unable to create an attachment image.");
             }
             return false;
+        }
+
+        AZ::Name Pass::GetSuperVariantName() const
+        {
+            return AZ::Name(m_flags.m_hasSubpassInput ? RPI::SubpassInputSupervariantName : "");
+        }
+
+        void Pass::ReplaceSubpassInputs()
+        {
+            for (size_t slotIndex = 0; slotIndex < m_attachmentBindings.size(); ++slotIndex)
+            {
+                PassAttachmentBinding& binding = m_attachmentBindings[slotIndex];
+                if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::SubpassInput)
+                {
+                    binding.m_scopeAttachmentUsage = RHI::ScopeAttachmentUsage::Shader;
+                }
+            }
+            m_flags.m_hasSubpassInput = false;
         }
 
         void Pass::PrintIndent(AZStd::string& stringOutput, uint32_t indent) const

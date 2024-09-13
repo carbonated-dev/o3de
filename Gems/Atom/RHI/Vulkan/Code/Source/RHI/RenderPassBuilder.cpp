@@ -70,6 +70,7 @@ namespace AZ
                 framebufferInfo.m_initialLayout = GetInitialLayout(scope, *scopeAttachment);
                 framebufferInfo.m_finalLayout = GetFinalLayout(scope, *scopeAttachment);
                 framebufferInfo.m_clearValue = bindingDescriptor.m_loadStoreAction.m_clearValue;
+                framebufferInfo.m_lastSubpassUsage = subpassLayoutBuilder->GetSubpassIndex();
 
                 switch (scopeAttachment->GetUsage())
                 {
@@ -86,7 +87,7 @@ namespace AZ
                     {
                         m_multisampleState = scopeAttachment->GetFrameAttachment().GetImageDescriptor().m_multisampleState;
                         auto findIter = m_framebufferAttachments.find(scopeAttachmentId);
-                        if (findIter != m_framebufferAttachments.end())
+                        if (findIter != m_framebufferAttachments.end() && findIter->second.m_lastSubpassUsage == framebufferInfo.m_lastSubpassUsage)
                         {
                             FramebufferInfo& currentFramebufferInfo = findIter->second;
                             const ImageView* depthImageView = currentFramebufferInfo.m_imageView;
@@ -138,7 +139,10 @@ namespace AZ
                     }
                 case RHI::ScopeAttachmentUsage::SubpassInput:
                     subpassLayoutBuilder->SubpassInputAttachment(
-                        scopeAttachmentId, attachmentImageView->GetAspectFlags(), subpassAttachmentLayout);
+                        scopeAttachmentId,
+                        attachmentImageView->GetAspectFlags(),
+                        bindingDescriptor.m_loadStoreAction,
+                        subpassAttachmentLayout);
                     break;
                 case RHI::ScopeAttachmentUsage::ShadingRate:
                     subpassLayoutBuilder->ShadingRateAttachment(imageViewFormat, scopeAttachmentId, subpassAttachmentLayout);
@@ -164,6 +168,7 @@ namespace AZ
                 auto insertResult = m_framebufferAttachments.insert(AZStd::make_pair(scopeAttachmentId, framebufferInfo));
                 // Update the final layout for the attachment
                 insertResult.first->second.m_finalLayout = framebufferInfo.m_finalLayout;
+                insertResult.first->second.m_lastSubpassUsage = framebufferInfo.m_lastSubpassUsage;
             }
         }
 
