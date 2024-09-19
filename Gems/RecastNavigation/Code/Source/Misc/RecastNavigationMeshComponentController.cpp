@@ -238,12 +238,11 @@ namespace RecastNavigation
     {
         AZ_PROFILE_SCOPE(Navigation, "Navigation: TestPointOnNavMesh");
 
-#if defined(CARBONATED)
         if (!m_navObject)
         {
             return false;  // sometimes the editor keep calling it while ESC pressed and the app exits the game mode
         }
-#endif
+
         NavMeshQuery::LockGuard lock(*m_navObject);
 
         RecastVector3 pointRecast = RecastVector3::CreateFromVector3SwapYZ(point);
