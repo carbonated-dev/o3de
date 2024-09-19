@@ -14,6 +14,10 @@
 #include <RecastNavigation/NavMeshQuery.h>
 #include <RecastNavigation/RecastSmartPointer.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Math/Aabb.h>
+#endif
+
 namespace RecastNavigation
 {
     //! The interface for request API of @RecastNavigationMeshRequestBus.
