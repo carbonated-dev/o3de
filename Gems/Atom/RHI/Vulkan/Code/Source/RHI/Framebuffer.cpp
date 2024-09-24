@@ -112,9 +112,8 @@ namespace AZ
 
         AZStd::optional<uint32_t> Framebuffer::FindImageViewIndex(RHI::ImageScopeAttachment& scopeAttachment) const
         {
-            auto deviceIndex = m_attachments.front()->GetDevice().GetDeviceIndex();
             const ImageView* imageView =
-                static_cast<const ImageView*>(scopeAttachment.GetImageView()->GetDeviceImageView(deviceIndex).get());
+                static_cast<const ImageView*>(scopeAttachment.GetImageView());
             for (uint32_t i = 0; i < m_attachments.size(); ++i)
             {
                 if (imageView == m_attachments[i])

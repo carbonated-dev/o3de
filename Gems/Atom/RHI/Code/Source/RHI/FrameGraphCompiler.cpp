@@ -473,22 +473,19 @@ namespace AZ::RHI
     {
         for (T* transientResource : frameAttachments)
         {
-            for (int deviceIndex{ 0 }; deviceIndex < RHISystemInterface::Get()->GetDeviceCount(); ++deviceIndex)
+            Scope* lastScope = transientResource->GetLastScope();
+            if (!lastScope)
             {
-                Scope* lastScope = transientResource->GetLastScope(deviceIndex);
-                if (!lastScope)
-                {
-                    continue;
-                }
-
-                for (uint32_t scopeIndex = lastScope->GetIndex() + 1;
-                     scopeIndex < scopes.size() && lastScope->GetFrameGraphGroupId() == scopes[scopeIndex]->GetFrameGraphGroupId();
-                     ++scopeIndex)
-                {
-                    lastScope = scopes[scopeIndex];
-                }
-                transientResource->m_scopeInfos[deviceIndex].m_lastScope = lastScope;
+                continue;
             }
+
+            for (uint32_t scopeIndex = lastScope->GetIndex() + 1;
+                    scopeIndex < scopes.size() && lastScope->GetFrameGraphGroupId() == scopes[scopeIndex]->GetFrameGraphGroupId();
+                    ++scopeIndex)
+            {
+                lastScope = scopes[scopeIndex];
+            }
+            transientResource->m_lastScope = lastScope;
         }
     }
 
@@ -512,30 +509,27 @@ namespace AZ::RHI
     {
         for (T* transientResource : frameAttachments)
         {
-            for (int deviceIndex{ 0 }; deviceIndex < RHISystemInterface::Get()->GetDeviceCount(); ++deviceIndex)
+            auto* firstScopeAttachment = transientResource->GetFirstScopeAttachment();
+            if (firstScopeAttachment)
             {
-                auto* firstScopeAttachment = transientResource->GetFirstScopeAttachment(deviceIndex);
-                if (firstScopeAttachment)
+                // No need to load if it's the first usage of the frame.
+                auto& loadStoreAction = firstScopeAttachment->m_descriptor.m_loadStoreAction;
+                if (loadStoreAction.m_loadAction != AttachmentLoadAction::Clear)
                 {
-                    // No need to load if it's the first usage of the frame.
-                    auto& loadStoreAction = firstScopeAttachment->m_descriptor.m_loadStoreAction;
-                    if (loadStoreAction.m_loadAction != AttachmentLoadAction::Clear)
-                    {
-                        loadStoreAction.m_loadAction = AttachmentLoadAction::DontCare;
-                    }
-                    if (loadStoreAction.m_loadActionStencil != AttachmentLoadAction::Clear)
-                    {
-                        loadStoreAction.m_loadActionStencil = AttachmentLoadAction::DontCare;
-                    }
+                    loadStoreAction.m_loadAction = AttachmentLoadAction::DontCare;
                 }
+                if (loadStoreAction.m_loadActionStencil != AttachmentLoadAction::Clear)
+                {
+                    loadStoreAction.m_loadActionStencil = AttachmentLoadAction::DontCare;
+                }
+            }
 
-                auto* lastScopeAttachment = transientResource->GetLastScopeAttachment(deviceIndex);
-                if (lastScopeAttachment)
-                {
-                    // No need to store if it's the last scope using the transient attachment.
-                    lastScopeAttachment->m_descriptor.m_loadStoreAction.m_storeAction = AttachmentStoreAction::DontCare;
-                    lastScopeAttachment->m_descriptor.m_loadStoreAction.m_storeActionStencil = AttachmentStoreAction::DontCare;
-                }
+            auto* lastScopeAttachment = transientResource->GetLastScopeAttachment();
+            if (lastScopeAttachment)
+            {
+                // No need to store if it's the last scope using the transient attachment.
+                lastScopeAttachment->m_descriptor.m_loadStoreAction.m_storeAction = AttachmentStoreAction::DontCare;
+                lastScopeAttachment->m_descriptor.m_loadStoreAction.m_storeActionStencil = AttachmentStoreAction::DontCare;
             }
         }
     }

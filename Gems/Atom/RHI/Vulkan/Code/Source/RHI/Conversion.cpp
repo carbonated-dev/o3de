@@ -125,8 +125,7 @@ namespace AZ
             if (scopeAttachment.GetUsage() == RHI::ScopeAttachmentUsage::ShadingRate)
             {
                 const RHI::ImageView* imageView = static_cast<const RHI::ImageView*>(scopeAttachment.GetResourceView());
-                const int deviceIndex = scopeAttachment.GetScope().GetDeviceIndex();
-                const Image& image = static_cast<const Image&>(*imageView->GetImage()->GetDeviceImage(deviceIndex));
+                const Image& image = static_cast<const Image&>(imageView->GetImage());
                 shadingRateAttachmentUsageFlags = image.GetUsageFlags();
             }
             return GetResourcePipelineStateFlags(
@@ -315,8 +314,7 @@ namespace AZ
             if (scopeAttachment.GetUsage() == RHI::ScopeAttachmentUsage::ShadingRate)
             {
                 const RHI::ImageView* imageView = static_cast<const RHI::ImageView*>(scopeAttachment.GetResourceView());
-                const int deviceIndex = scopeAttachment.GetScope().GetDeviceIndex();
-                const Image& image = static_cast<const Image&>(*imageView->GetImage()->GetDeviceImage(deviceIndex));
+                const Image& image = static_cast<const Image&>(imageView->GetImage());
                 shadingRateAttachmentUsageFlags = image.GetUsageFlags();
             }
             return GetResourceAccessFlags(scopeAttachment.GetAccess(), scopeAttachment.GetUsage(), shadingRateAttachmentUsageFlags);

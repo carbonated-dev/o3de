@@ -16,6 +16,7 @@ namespace AZ
     namespace RHI
     {
         class RenderAttachmentLayoutBuilder;
+        struct RenderAttachmentConfiguration;
     }
     namespace RPI
     {

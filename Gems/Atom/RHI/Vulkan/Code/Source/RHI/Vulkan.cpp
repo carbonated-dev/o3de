@@ -190,44 +190,6 @@ namespace AZ
                 static_cast<const ImageView&>(rhs).GetVkImageSubresourceRange());
         }
 
-        bool ResourceViewContains(const RHI::DeviceImageView& lhs, const RHI::DeviceImageView& rhs)
-        {
-            auto const& lhsImageView = static_cast<const ImageView&>(lhs);
-            auto const& rhsImageView = static_cast<const ImageView&>(rhs);
-            if (static_cast<const Image&>(lhsImageView.GetImage()).GetNativeImage() !=
-                static_cast<const Image&>(rhsImageView.GetImage()).GetNativeImage())
-            {
-                return false;
-            }
-
-            const auto& lhsRange = lhsImageView.GetImageSubresourceRange();
-            const auto& rhsRange = rhsImageView.GetImageSubresourceRange();
-            if (!(
-                lhsRange.m_arraySliceMin <= rhsRange.m_arraySliceMin &&
-                lhsRange.m_arraySliceMax >= rhsRange.m_arraySliceMax &&
-                lhsRange.m_mipSliceMin <= rhsRange.m_mipSliceMin &&
-                lhsRange.m_mipSliceMax >= rhsRange.m_mipSliceMax
-                ))
-            {
-                return false;
-            }
-
-            for (uint32_t i = static_cast<uint32_t>(RHI::ImageAspect::Color); i < static_cast<uint32_t>(RHI::ImageAspect::Count); ++i)
-            {
-                RHI::ImageAspectFlags flag = static_cast<RHI::ImageAspectFlags>(AZ_BIT(i));
-                if (!RHI::CheckBitsAll(rhsImageView.GetAspectFlags(), flag))
-                {
-                    continue;
-                }
-
-                if (!RHI::CheckBitsAll(lhsImageView.GetAspectFlags(), flag))
-                {
-                    return false;
-                }                
-            }
-            return true;
-        }
-
         bool SubresourceRangeOverlaps(const VkImageSubresourceRange& lhs, const VkImageSubresourceRange& rhs)
         {
             return

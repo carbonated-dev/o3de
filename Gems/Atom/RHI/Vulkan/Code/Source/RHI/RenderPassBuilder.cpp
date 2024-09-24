@@ -57,7 +57,7 @@ namespace AZ
             {
                 const RHI::ImageScopeAttachmentDescriptor& bindingDescriptor = scopeAttachment->GetDescriptor();
                 const ImageView* attachmentImageView =
-                    static_cast<const ImageView*>(scopeAttachment->GetImageView().get());
+                    static_cast<const ImageView*>(scopeAttachment->GetImageView());
                 RHI::Format imageViewFormat = attachmentImageView->GetFormat();
                 auto scopeAttachmentId = scopeAttachment->GetDescriptor().m_attachmentId;
 
@@ -114,7 +114,7 @@ namespace AZ
                                     scope.GetId().GetCStr());
                                 RHI::ImageViewDescriptor descriptor = depthImageView->GetDescriptor();
                                 descriptor.m_aspectFlags |= scopeAttachment->GetImageView()->GetDescriptor().m_aspectFlags;
-                                auto fullDepthStencil = scope.GetDepthStencilFullView();
+                                auto fullDepthStencil = static_cast<const ImageView*>(scope.GetDepthStencilFullView());
                                 // Check if we need to create a new depth stencil image view or we can reuse the one saved in the scope
                                 if (!fullDepthStencil || &fullDepthStencil->GetImage() != &depthImageView->GetImage() ||
                                     fullDepthStencil->GetDescriptor() != descriptor)

@@ -309,40 +309,6 @@ namespace AZ
             EndScopeQuery(context);
         }
 
-        void RenderPass::DeclareAttachmentsToFrameGraph(RHI::FrameGraphInterface frameGraph) const
-        {
-            for (const PassAttachmentBinding& attachmentBinding : m_attachmentBindings)
-            {
-                if (attachmentBinding.GetAttachment() != nullptr &&
-                    frameGraph.GetAttachmentDatabase().IsAttachmentValid(attachmentBinding.GetAttachment()->GetAttachmentId()))
-                {
-                    switch (attachmentBinding.m_unifiedScopeDesc.GetType())
-                    {
-                    case RHI::AttachmentType::Image:
-                    {
-                        frameGraph.UseAttachment(
-                            attachmentBinding.m_unifiedScopeDesc.GetAsImage(),
-                            attachmentBinding.GetAttachmentAccess(),
-                            attachmentBinding.m_scopeAttachmentUsage,
-                            attachmentBinding.m_scopeAttachmentStage);
-                        break;
-                    }
-                    case RHI::AttachmentType::Buffer:
-                    {
-                        frameGraph.UseAttachment(
-                            attachmentBinding.m_unifiedScopeDesc.GetAsBuffer(),
-                            attachmentBinding.GetAttachmentAccess(),
-                            attachmentBinding.m_scopeAttachmentUsage,
-                            attachmentBinding.m_scopeAttachmentStage);
-                        break;
-                    }
-                    default:
-                        AZ_Assert(false, "Error, trying to bind an attachment that is neither an image nor a buffer!");
-                        break;
-                    }
-                }
-            }
-        }
 
         void RenderPass::DeclarePassDependenciesToFrameGraph(RHI::FrameGraphInterface frameGraph) const
         {

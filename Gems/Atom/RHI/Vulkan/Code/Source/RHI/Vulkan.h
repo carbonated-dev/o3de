@@ -161,9 +161,6 @@ namespace AZ
 
         bool ResourceViewOverlaps(const RHI::ImageView& lhs, const RHI::ImageView& rhs);
 
-        /// Returns true if the lhs device completely contains the rhs resource. 
-        bool ResourceViewContains(const RHI::DeviceImageView& lhs, const RHI::DeviceImageView& rhs);
-
         bool SubresourceRangeOverlaps(const VkImageSubresourceRange& lhs, const VkImageSubresourceRange& rhs);
 
         bool SubresourceRangeOverlaps(const RHI::BufferSubresourceRange& lhs, const RHI::BufferSubresourceRange& rhs);

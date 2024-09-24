@@ -347,9 +347,17 @@ namespace AZ
                         request.m_descriptor.m_size.m_width * request.m_descriptor.m_size.m_height *
                             RHI::GetFormatSize(request.m_descriptor.m_format),
                         0);
+
+                    RHI::ImageSubresourceRange subresourceRange;
+                    subresourceRange.m_mipSliceMin = 0;
+                    subresourceRange.m_mipSliceMax = 0;
+                    subresourceRange.m_arraySliceMin = 0;
+                    subresourceRange.m_arraySliceMax = 0;
+                    subresourceRange.m_aspectFlags = RHI::ImageAspectFlags::All;
+
                     RHI::ImageUpdateRequest updateRequest;
                     updateRequest.m_image = request.m_image;
-                    updateRequest.m_image->GetSubresourceLayout(updateRequest.m_sourceSubresourceLayout);
+                    updateRequest.m_image->GetSubresourceLayouts(subresourceRange, &updateRequest.m_sourceSubresourceLayout, nullptr);
                     updateRequest.m_sourceData = initData.data();
                     m_renderData->m_imagePool->UpdateImageContents(updateRequest);
                 };
