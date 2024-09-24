@@ -9,6 +9,7 @@
 
 #include <AzCore/EBus/EBus.h>
 #include <AzCore/Interface/Interface.h>
+#include <AzCore/std/string/string.h>
 
 namespace Profiler
 {
