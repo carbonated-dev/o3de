@@ -63,7 +63,7 @@
                 {
                     "Name": "MobilePostProcessPass",
                     "TemplateName": "MobilePostProcessParentTemplate",
-                    "Enabled": false,
+                    "Enabled": true,
                     "Connections": [
                         {
                             "LocalSlot": "LightingInput",
