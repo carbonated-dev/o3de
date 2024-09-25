@@ -32,7 +32,7 @@ namespace AZ::Metal
         id<MTLTexture> stencilAttachmentTexture = m_renderPassDescriptor.stencilAttachment.texture;
         for (RHI::ImageScopeAttachment* scopeAttachment : scope->GetImageAttachments())
         {
-            const ImageView* imageView = static_cast<const ImageView*>(scopeAttachment->GetImageView()->GetDeviceImageView(scope->GetDeviceIndex()).get());
+            const ImageView* imageView = static_cast<const ImageView*>(scopeAttachment->GetImageView());
             const RHI::ImageScopeAttachmentDescriptor& bindingDescriptor = scopeAttachment->GetDescriptor();
             id<MTLTexture> imageViewMtlTexture = imageView->GetMemoryView().GetGpuAddress<id<MTLTexture>>();
             const RHI::AttachmentId attachmentId = bindingDescriptor.m_attachmentId;

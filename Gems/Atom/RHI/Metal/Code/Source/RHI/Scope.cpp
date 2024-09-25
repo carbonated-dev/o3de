@@ -8,6 +8,7 @@
 
 #include <Atom/RHI/ImageScopeAttachment.h>
 #include <Atom/RHI/ResolveScopeAttachment.h>
+#include <Atom/RHI/SwapChain.h>
 #include <RHI/CommandList.h>
 #include <RHI/Conversions.h>
 #include <RHI/Device.h>
@@ -47,30 +48,9 @@ namespace AZ
             m_residentHeaps.clear();
 
         }
-
-        void Scope::ApplyMSAACustomPositions(const ImageView* imageView)
-        {
-            const Image& image = imageView->GetImage();
-            const RHI::ImageDescriptor& imageDescriptor = image.GetDescriptor();
-            
-            m_scopeMultisampleState = imageDescriptor.m_multisampleState;
-            if(m_scopeMultisampleState.m_customPositionsCount > 0)
-            {
-                NSUInteger numSampleLocations = m_scopeMultisampleState.m_samples;
-                AZStd::vector<MTLSamplePosition> mtlCustomSampleLocations;
-                AZStd::transform( m_scopeMultisampleState.m_customPositions.begin(),
-                                 m_scopeMultisampleState.m_customPositions.begin() + numSampleLocations,
-                                 AZStd::back_inserter(mtlCustomSampleLocations), [&](const auto& item)
-                {
-                    return ConvertSampleLocation(item);
-                });
-                [m_renderPassDescriptor setSamplePositions:mtlCustomSampleLocations.data() count:numSampleLocations];
-            }
-        }
     
-        void Scope::CompileInternal()
+        void Scope::CompileInternal(RHI::Device& device)
         {
-            RHI::Device& device = GetDevice();
             Device& mtlDevice = static_cast<Device&>(device);
             for (RHI::ResourcePoolResolver* resolvePolicyBase : GetResourcePoolResolves())
             {
@@ -99,7 +79,6 @@ namespace AZ
                 scopeAttachment = scopeAttachment->GetPrevious();
             }
 
-                const ImageView* imageView = static_cast<const ImageView*>(scopeAttachment->GetImageView()->GetDeviceImageView(GetDeviceIndex()).get());
             if (!scopeAttachment || scopeAttachment->GetScope().GetFrameGraphGroupId() != GetFrameGraphGroupId())
             {
                 return true;
@@ -145,7 +124,7 @@ namespace AZ
                                 // We can't use load clear action, so we have to do manual clearing.
                                 if (imageAttachment->GetUsage() == RHI::ScopeAttachmentUsage::RenderTarget)
                                 {
-                                    const ImageView* imageView = static_cast<const ImageView*>(imageAttachment->GetImageView()->GetDeviceImageView(GetDeviceIndex()).get());
+                                    const ImageView* imageView = static_cast<const ImageView*>(imageAttachment->GetImageView());
                                     id<MTLTexture> imageViewMtlTexture = imageView->GetMemoryView().GetGpuAddress<id<MTLTexture>>();
                                     
                                     ClearAttachments::ClearData& data = clearAttachmentData.emplace_back();
@@ -177,12 +156,10 @@ namespace AZ
                             }
                         }
                     }
-                const RHI::DeviceSwapChain* swapChain = (azrtti_cast<const RHI::SwapChainFrameAttachment*>(&m_swapChainAttachment->GetFrameAttachment()))->GetSwapChain()->GetDeviceSwapChain(GetDeviceIndex()).get();
-                SwapChain* metalSwapChain = static_cast<SwapChain*>(const_cast<RHI::DeviceSwapChain*>(swapChain));
                     
                     if (!clearAttachmentData.empty())
                     {
-                        static_cast<Device&>(GetDevice()).ClearRenderAttachments(commandList, m_renderPassContext.m_renderPassDescriptor, clearAttachmentData);
+                        commandList.GetDevice()->ClearRenderAttachments(commandList, m_renderPassContext.m_renderPassDescriptor, clearAttachmentData);
                     }
                 }
             }

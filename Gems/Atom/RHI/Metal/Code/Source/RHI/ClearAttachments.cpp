@@ -10,7 +10,7 @@
 #include <RHI/BufferPool.h>
 #include <RHI/Buffer.h>
 #include <RHI/Device.h>
-#include <Atom/RHI/DeviceStreamBufferView.h>
+#include <Atom/RHI/StreamBufferView.h>
 #include <Atom/RHI.Reflect/Metal/PipelineLayoutDescriptor.h>
 #include <Atom/RHI.Reflect/Metal/ShaderStageFunction.h>
 #include <Atom/RHI.Reflect/ConstantsLayout.h>
@@ -25,8 +25,7 @@ using namespace metal;
 struct PushConstants
 {
     float4 m_color[8];
-    float m_depth;
-    float3 m_padding;
+    float4 m_depth;
 };
 struct VSOutput
 {
@@ -38,7 +37,7 @@ vertex VSOutput VSMain(
 {
     const float2 vertices[3] = { float2(-1,1), float2(-1, -3), float2(3, 1) };
     VSOutput out = {};
-    out.m_position = float4(vertices[vertexID], pushConstants.m_depth, 1);
+    out.m_position = float4(vertices[vertexID], pushConstants.m_depth.x, 1);
     return out;
 }
 struct PSOut
@@ -119,13 +118,6 @@ namespace AZ::Metal
             constantDescriptor.m_name = "Depth";
             constantDescriptor.m_constantByteOffset = offsetof(PushConstants, m_depth);
             constantDescriptor.m_constantByteCount = sizeof(PushConstants::m_depth);
-            constantLayout->AddShaderInput(constantDescriptor);
-        }
-        {
-            RHI::ShaderInputConstantDescriptor constantDescriptor;
-            constantDescriptor.m_name = "Pad";
-            constantDescriptor.m_constantByteOffset = offsetof(PushConstants, m_padding);
-            constantDescriptor.m_constantByteCount = sizeof(PushConstants::m_padding);
             constantLayout->AddShaderInput(constantDescriptor);
         }
         constantLayout->Finalize();
@@ -215,7 +207,7 @@ namespace AZ::Metal
                     // Enable depth write so we can write the clear value
                     RHI::DepthState& depthState = renderStates.m_depthStencilState.m_depth;
                     depthState.m_enable = 1;
-                    pushConstants.m_depth = clearData.m_clearValue.m_depthStencil.m_depth;
+                    pushConstants.m_depth[0] = clearData.m_clearValue.m_depthStencil.m_depth;
                 }
                 
                 if (RHI::CheckBitsAll(clearData.m_imageAspects, RHI::ImageAspectFlags::Stencil))
@@ -253,8 +245,8 @@ namespace AZ::Metal
             if (!pipelineState)
             {
                 // Need to compile a new PipelineState
-                RHI::Ptr<RHI::PipelineState> pipelineStatePtr = aznew RHI::PipelineState;
-                RHI::ResultCode result = pipelineStatePtr->Init(static_cast<RHI::MultiDevice::DeviceMask>((1 << GetDevice().GetDeviceIndex())), pipelineDescriptor);
+                RHI::Ptr<RHI::PipelineState> pipelineStatePtr = PipelineState::Create();
+                RHI::ResultCode result = pipelineStatePtr->Init(GetDevice(), pipelineDescriptor);
                 if(result != RHI::ResultCode::Success)
                 {
                     AZ_Assert(false, "Failed to build PipelineState for ClearAttachments");
@@ -269,9 +261,9 @@ namespace AZ::Metal
         RHI::DrawLinear drawlinear = RHI::DrawLinear();
         drawlinear.m_vertexCount = 3;
 
-        RHI::DeviceDrawItem drawItem;
+        RHI::DrawItem drawItem;
         drawItem.m_arguments = drawlinear;
-        drawItem.m_pipelineState = pipelineState->GetDevicePipelineState(GetDevice().GetDeviceIndex()).get();
+        drawItem.m_pipelineState = pipelineState;
         drawItem.m_rootConstants = reinterpret_cast<uint8_t*>(&pushConstants);
         drawItem.m_rootConstantSize = sizeof(pushConstants);
         drawItem.m_stencilRef = stencilRef;

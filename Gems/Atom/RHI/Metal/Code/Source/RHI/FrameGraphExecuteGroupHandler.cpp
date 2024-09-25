@@ -97,11 +97,10 @@ namespace AZ
             {
                 // Metal requires you to request for swapchain drawable as late as possible in the frame. Hence we call for the drawable
                 // here and attach it directly to the colorAttachment.
-                uint32_t deviceIndex = static_cast<FrameGraphExecuteGroup*>(m_executeGroups.front())->GetScopes().front()->GetDeviceIndex();
-                const RHI::DeviceSwapChain* swapChain = context.m_swapChainAttachment->GetSwapChain()->GetDeviceSwapChain(deviceIndex).get();
-                SwapChain* metalSwapChain = static_cast<SwapChain*>(const_cast<RHI::DeviceSwapChain*>(swapChain));
+                const RHI::SwapChain* swapChain = context.m_swapChainAttachment->GetSwapChain();
+                SwapChain* metalSwapChain = static_cast<SwapChain*>(const_cast<RHI::SwapChain*>(swapChain));
                 bool needsImageView = false;
-                for(auto* scopeAttachment = context.m_swapChainAttachment->GetFirstScopeAttachment(deviceIndex);
+                for(auto* scopeAttachment = context.m_swapChainAttachment->GetFirstScopeAttachment();
                     scopeAttachment != nullptr;
                     scopeAttachment = scopeAttachment->GetNext())
                 {

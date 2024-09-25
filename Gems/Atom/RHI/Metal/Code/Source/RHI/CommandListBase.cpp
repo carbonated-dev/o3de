@@ -343,5 +343,10 @@ namespace AZ
             [renderEncoder setVisibilityResultMode:visibilityResultMode
                                         offset:queryOffset];
         }
+    
+        Device* CommandListBase::GetDevice()
+        {
+            return m_device;
+        }
     }
 }
