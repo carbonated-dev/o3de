@@ -414,7 +414,7 @@ namespace AZ::RHI
     bool RHISystem::CanMergeSubpasses() const
     {
         const auto devicePtr = GetDevice();
-        return devicePtr && (devicePtr->GetFeatures().m_renderTargetSubpassInputSupport != AZ::RHI::SubpassInputSupportType::NotSupported);
+        return devicePtr && (devicePtr->GetFeatures().m_subpassInputSupport != AZ::RHI::SubpassInputSupportType::None );
     }
 
     /////////////////////////////////////////////////////////////////////////////

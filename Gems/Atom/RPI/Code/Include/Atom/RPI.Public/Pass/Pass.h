@@ -425,7 +425,8 @@ namespace AZ
             AZ::Name GetSuperVariantName() const;
 
             // Replaces all SubpassInput attachment for Shader attachments.
-            void ReplaceSubpassInputs();
+            // @param supportedTypes The subpass input supported types by the device
+            void ReplaceSubpassInputs(RHI::SubpassInputSupportType supportedTypes);
 
             // --- Protected Members ---
 
