@@ -257,7 +257,6 @@ namespace RecastNavigation
             lock.GetNavQuery()->findNearestPoly(pointRecast.GetData(), halfExtents, &filter, &nearestPolygon, nearestPointRecast.GetData());
         if (dtStatusFailed(result) || nearestPolygon == 0)
         {
-            //AZ_Info("rrr", "    no poly (failed %d, %f,%f,%f)", dtStatusFailed(result), tolerance.GetX(), tolerance.GetY(), tolerance.GetZ());
             return false;
         }
         nearestPoint = nearestPointRecast.AsVector3WithZup();
@@ -268,10 +267,14 @@ namespace RecastNavigation
             (fabs(nearestPointRecastRaw[1] - pointRecastRaw[1]) > halfExtents[1]) ||
             (fabs(nearestPointRecastRaw[2] - pointRecastRaw[2]) > halfExtents[2]))
         {
-            //AZ_Info("rrr", "    too far");
             return false;
         }
         return true;
+    }
+
+    float RecastNavigationMeshComponentController::GetNavMeshHeightMaxError() const
+    {
+        return m_configuration.m_cellHeight * m_configuration.m_detailSampleMaxError * 2.0f;  // apparently it can be larger than ch * dsme, so I added * 2.0f
     }
 #endif
 

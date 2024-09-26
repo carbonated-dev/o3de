@@ -40,6 +40,7 @@ namespace RecastNavigation
 #if defined(CARBONATED)
                 ->Event("PartialUpdateNavigationMesh", &RecastNavigationMeshRequests::PartialUpdateNavigationMeshBlockUntilCompleted)
                 ->Event("PartialUpdateNavigationMeshAsync", &RecastNavigationMeshRequests::PartialUpdateNavigationMeshAsync)
+                ->Event("GetNavMeshHeightMaxError", &RecastNavigationMeshRequests::GetNavMeshHeightMaxError)
 #endif
                 ->Event("UpdateNavigationMesh", &RecastNavigationMeshRequests::UpdateNavigationMeshBlockUntilCompleted)
                 ->Event("UpdateNavigationMeshAsync", &RecastNavigationMeshRequests::UpdateNavigationMeshAsync);

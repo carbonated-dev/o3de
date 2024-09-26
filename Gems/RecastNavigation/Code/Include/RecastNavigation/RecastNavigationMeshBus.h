@@ -46,6 +46,9 @@ namespace RecastNavigation
         //! @RecastNavigationMeshNotificationBus.
         //! @returns false if another update operation is already in progress
         virtual bool PartialUpdateNavigationMeshAsync(const AZStd::vector<AZ::Aabb>& changedGeometry) = 0;
+
+        //! Returns maximal possible mesh height error (vertical mesh-to-surface distance)
+        virtual float GetNavMeshHeightMaxError() const = 0;
 #endif
 
         //! @returns the underlying navigation objects with the associated synchronization object.

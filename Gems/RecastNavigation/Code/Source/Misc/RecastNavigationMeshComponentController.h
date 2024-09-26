@@ -76,6 +76,7 @@ namespace RecastNavigation
         bool PartialUpdateNavigationMeshBlockUntilCompleted(const AZStd::vector<AZ::Aabb>& changedGeometry) override;
         bool PartialUpdateNavigationMeshAsync(const AZStd::vector<AZ::Aabb>& changedGeometry) override;
         bool TestPointOnNavMesh(const AZ::Vector3& point, const AZ::Vector3& tolerance, AZ::Vector3& nearestPoint) override;
+        float GetNavMeshHeightMaxError() const override;
 #endif
         AZStd::shared_ptr<NavMeshQuery> GetNavigationObject() override;
         //! @}
