@@ -233,7 +233,10 @@ public class LumberyardActivity extends NativeActivity
 
         ProcessImmersiveModeSetting();
 
-        APKHandler.SetAssetManager(getAssets(), this, true);
+        // CARBONATED begin
+        // Don't copy *.pak assets from apk to sd
+        APKHandler.SetAssetManager(getAssets(), this, false);
+        // CARBONATED end
 
         AndroidDeviceManager.context = this;
 
