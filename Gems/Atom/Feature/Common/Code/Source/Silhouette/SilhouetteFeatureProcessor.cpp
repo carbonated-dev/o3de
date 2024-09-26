@@ -19,11 +19,32 @@
 #include <AzFramework/Scene/SceneSystemInterface.h>
 #include <Silhouette/SilhouetteFeatureProcessor.h>
 
+void OnSilhouetteActiveChanged(const bool& activate)
+{
+    AZ::SystemTickBus::QueueFunction(
+        [activate]()
+        {
+            AzFramework::EntityContextId entityContextId;
+            AzFramework::GameEntityContextRequestBus::BroadcastResult(
+                entityContextId, &AzFramework::GameEntityContextRequestBus::Events::GetGameEntityContextId);
+
+            if (auto scene = AZ::RPI::Scene::GetSceneForEntityContextId(entityContextId); scene != nullptr)
+            {
+                // avoid unnecessary enable/disable to avoid warning log spam
+                auto featureProcessor = scene->GetFeatureProcessor<AZ::Render::SilhouetteFeatureProcessor>();
+                if (featureProcessor)
+                {
+                    featureProcessor->SetPassesEnabled(activate);
+                }
+            }
+        });
+}
+
 AZ_CVAR(
     bool,
     r_silhouette,
     false,
-    nullptr,
+    &OnSilhouetteActiveChanged,
     AZ::ConsoleFunctorFlags::Null,
     "Controls if the silhouette rendering feature is active.  0 : Inactive,  1 : Active (default)");
 
@@ -60,11 +81,6 @@ namespace AZ::Render
             m_compositePass->SetEnabled(enabled);
             m_rasterPass->SetEnabled(enabled);
         }
-    }
-
-    void SilhouetteFeatureProcessor::OnRenderEnd()
-    {
-        SetPassesEnabled(r_silhouette);
     }
 
     void SilhouetteFeatureProcessor::AddRenderPasses(RPI::RenderPipeline* renderPipeline)

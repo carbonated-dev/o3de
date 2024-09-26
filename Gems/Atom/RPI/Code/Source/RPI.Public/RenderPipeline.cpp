@@ -694,8 +694,6 @@ namespace AZ
         {
             AZ_PROFILE_SCOPE(RPI, "RenderPipeline: OnStartFrame");
 
-            UpdatePasses();
-
             for (auto& viewItr : m_pipelineViewsByTag)
             {
                 PipelineViews& pipelineViews = viewItr.second;

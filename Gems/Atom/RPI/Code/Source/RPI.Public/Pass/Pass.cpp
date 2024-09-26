@@ -1432,7 +1432,7 @@ namespace AZ
             AZ_RPI_BREAK_ON_TARGET_PASS;
 
             bool isEnabled = IsEnabled();
-            bool earlyOut = !isEnabled;
+            bool earlyOut = !isEnabled || m_state != PassState::Idle;
             // Since IsEnabled can be virtual and we need to detect HierarchyChange, we can't use the m_flags.m_enabled flag
             if (isEnabled != m_flags.m_lastFrameEnabled)
             {

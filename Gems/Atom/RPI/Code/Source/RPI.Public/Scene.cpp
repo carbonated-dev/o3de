@@ -493,6 +493,23 @@ namespace AZ
             m_prevSimulationTime = m_simulationTime;
             m_simulationTime = simulationTime;
 
+            // Need to update the passes before the simulate and render step, since
+            // draw packets are updated in those phases (see MeshFeatureProcessor) and they
+            // need the proper render attachment layout to build the pipeline state.
+            for (auto& pipeline : m_pipelines)
+            {
+                if (pipeline->NeedsRender())
+                {
+                    pipeline->UpdatePasses();
+                }
+            }
+
+            // the pipeline states might have changed during the UpdatePasses, rebuild the lookup
+            if (m_pipelineStatesLookupNeedsRebuild)
+            {
+                RebuildPipelineStatesLookup();
+            }
+
             // If previous simulation job wasn't done, wait for it to finish.
             if (m_taskGraphActive)
             {
@@ -745,12 +762,6 @@ namespace AZ
             }
 
             m_numActiveRenderPipelines = aznumeric_cast<uint16_t>(activePipelines.size());
-
-            // the pipeline states might have changed during the OnStartFrame, rebuild the lookup
-            if (m_pipelineStatesLookupNeedsRebuild)
-            {
-                RebuildPipelineStatesLookup();
-            }
 
             // Return if there is no active render pipeline
             if (activePipelines.empty())
