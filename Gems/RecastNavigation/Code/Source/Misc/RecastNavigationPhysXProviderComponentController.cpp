@@ -175,10 +175,6 @@ namespace RecastNavigation
         AZ::Vector3 dimension = volume.GetExtents();
         AZ::Transform pose = AZ::Transform::CreateFromQuaternionAndTranslation(AZ::Quaternion::CreateIdentity(), volume.GetCenter());
 
-        // aefimov??? unused
-        //Physics::BoxShapeConfiguration shapeConfiguration;
-        //shapeConfiguration.m_dimensions = dimension;
-
         AzPhysics::OverlapRequest request = AzPhysics::OverlapRequestHelpers::CreateBoxOverlapRequest(dimension, pose, nullptr);
         request.m_queryType = AzPhysics::SceneQuery::QueryType::Static; // only looking for static PhysX colliders
         request.m_collisionGroup = m_collisionGroup;

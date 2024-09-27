@@ -71,7 +71,7 @@ namespace RecastNavigation
             float borderSize,
             const AZ::Aabb& worldVolume);
 #if defined(CARBONATED)
-        // same as the above, but collect geometry that is affercted by the AABBs in changedGeometry
+        // same as the above, but collect geometry that is affected by the AABBs in changedGeometry
         AZStd::vector<AZStd::shared_ptr<TileGeometry>> CollectPartialGeometryImpl(
             float tileSize, float borderSize, const AZ::Aabb& worldVolume, const AZStd::vector<AZ::Aabb>& changedGeometry);
 #endif
@@ -97,7 +97,7 @@ namespace RecastNavigation
             const AZ::Aabb& worldVolume,
             AZStd::function<void(AZStd::shared_ptr<TileGeometry>)> tileCallback);
 #if defined(CARBONATED)
-        // same as the above, but collect geometry that is affercted by the AABBs in changedGeometry
+        // same as the above, but collect geometry that is affected by the AABBs in changedGeometry
         bool CollectPartialGeometryAsyncImpl(
             float tileSize,
             float borderSize,
