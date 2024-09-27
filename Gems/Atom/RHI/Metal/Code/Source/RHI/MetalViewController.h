@@ -17,7 +17,6 @@
 @interface RHIMetalViewController : NativeViewControllerType {}
 - (BOOL)prefersStatusBarHidden;
 #if defined(CARBONATED) && defined(AZ_PLATFORM_IOS)
-- (BOOL)prefersHomeIndicatorAutoHidden;
 - (UIRectEdge)preferredScreenEdgesDeferringSystemGestures;
 #endif
 - (void)windowWillClose:(NSNotification *)notification;
