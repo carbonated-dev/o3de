@@ -18,6 +18,18 @@
     return TRUE;
 }
 
+#if defined(CARBONATED) && defined(AZ_PLATFORM_IOS)
+-(BOOL)prefersHomeIndicatorAutoHidden
+{
+    return FALSE;
+}
+
+- (UIRectEdge)preferredScreenEdgesDeferringSystemGestures
+{
+    return UIRectEdgeBottom;
+}
+#endif
+
 - (void)windowWillClose:(NSNotification *)notification
 {
     AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::ExitMainLoop);
