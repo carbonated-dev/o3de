@@ -105,7 +105,9 @@ namespace AWSNativeSDKInit
 #endif
             }
 
-#if !defined(CARBONATED)
+#if defined(CARBONATED)
+            // Removed - closed earlier
+#else
             fileBase->Close(fileHandle);
 #endif
             fileBase->Close(outFileHandle);
