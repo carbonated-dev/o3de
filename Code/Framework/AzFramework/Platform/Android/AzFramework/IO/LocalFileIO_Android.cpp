@@ -165,10 +165,11 @@ namespace AZ
             {
                 directoryPath /= pathSegment;
 #if defined(CARBONATED)
-                if (!Exists(directoryPath.c_str()))
+                const auto directoryPathCStr = directoryPath.c_str();
+                if (!Exists(directoryPathCStr))
                 {
-                    mkdir(directoryPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-                    if (!IsDirectory(directoryPath.c_str()))
+                    mkdir(directoryPathCStr, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+                    if (!IsDirectory(directoryPathCStr))
                     {
                         return ResultCode::Error;
                     }
