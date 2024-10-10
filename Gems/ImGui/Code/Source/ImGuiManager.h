@@ -91,6 +91,9 @@ namespace ImGui
 
         ImGuiContext* m_imguiContext = nullptr;
         DisplayState m_clientMenuBarState = DisplayState::Hidden;
+#if defined(CARBONATED)
+        bool m_restoreUiCursor {};
+#endif
         
 #if defined(CARBONATED)
         // True when the current on-screen keyboard is owned by ImGui.

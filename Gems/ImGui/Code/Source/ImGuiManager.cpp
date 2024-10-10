@@ -22,6 +22,9 @@
 #include <AzCore/Time/ITime.h>
 #include <AzFramework/Input/Buses/Requests/InputTextEntryRequestBus.h>
 #include <AzFramework/Input/Devices/Mouse/InputDeviceMouse.h>
+#if defined(CARBONATED)
+#include <LyShine/Bus/UiCursorBus.h>
+#endif
 #include <AzFramework/Input/Devices/Keyboard/InputDeviceKeyboard.h>
 #include <AzFramework/Input/Devices/Gamepad/InputDeviceGamepad.h>
 #include <AzFramework/Input/Devices/Touch/InputDeviceTouch.h>
@@ -687,6 +690,19 @@ void ImGuiManager::ToggleThroughImGuiVisibleState()
     {
         case DisplayState::Hidden:
             m_clientMenuBarState = DisplayState::Visible;
+
+#if defined(CARBONATED)
+            {
+                bool isCursorVisible = false;
+                UiCursorBus::BroadcastResult(isCursorVisible, &UiCursorInterface::IsUiCursorVisible);
+                m_restoreUiCursor = isCursorVisible;
+                while (isCursorVisible)
+                {
+                    UiCursorBus::Broadcast(&UiCursorBus::Events::DecrementVisibleCounter);
+                    UiCursorBus::BroadcastResult(isCursorVisible, &UiCursorInterface::IsUiCursorVisible);
+                }
+            }
+#endif
             
             if (gEnv->IsEditor() && !gEnv->IsEditorGameMode())
             {
@@ -724,6 +740,20 @@ void ImGuiManager::ToggleThroughImGuiVisibleState()
         default:
         case DisplayState::Visible:
             m_clientMenuBarState = DisplayState::Hidden;
+
+#if defined(CARBONATED)
+            if (m_restoreUiCursor)
+            {
+                m_restoreUiCursor = false;
+                bool isCursorVisible = false;
+                UiCursorBus::BroadcastResult(isCursorVisible, &UiCursorInterface::IsUiCursorVisible);                
+                while (!isCursorVisible)
+                {
+                    UiCursorBus::Broadcast(&UiCursorBus::Events::IncrementVisibleCounter);
+                    UiCursorBus::BroadcastResult(isCursorVisible, &UiCursorInterface::IsUiCursorVisible);
+                }
+            }
+#endif
 
             // Avoid hiding the cursor when in the Editor and not in game mode
             const bool inGame = !gEnv->IsEditor() || gEnv->IsEditorGameMode(); 
