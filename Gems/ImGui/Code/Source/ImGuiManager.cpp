@@ -692,16 +692,7 @@ void ImGuiManager::ToggleThroughImGuiVisibleState()
             m_clientMenuBarState = DisplayState::Visible;
 
 #if defined(CARBONATED)
-            {
-                bool isCursorVisible = false;
-                UiCursorBus::BroadcastResult(isCursorVisible, &UiCursorInterface::IsUiCursorVisible);
-                m_restoreUiCursor = isCursorVisible;
-                while (isCursorVisible)
-                {
-                    UiCursorBus::Broadcast(&UiCursorBus::Events::DecrementVisibleCounter);
-                    UiCursorBus::BroadcastResult(isCursorVisible, &UiCursorInterface::IsUiCursorVisible);
-                }
-            }
+            UiCursorBus::Broadcast(&UiCursorBus::Events::DecrementVisibleCounter);
 #endif
             
             if (gEnv->IsEditor() && !gEnv->IsEditorGameMode())
@@ -742,17 +733,7 @@ void ImGuiManager::ToggleThroughImGuiVisibleState()
             m_clientMenuBarState = DisplayState::Hidden;
 
 #if defined(CARBONATED)
-            if (m_restoreUiCursor)
-            {
-                m_restoreUiCursor = false;
-                bool isCursorVisible = false;
-                UiCursorBus::BroadcastResult(isCursorVisible, &UiCursorInterface::IsUiCursorVisible);                
-                while (!isCursorVisible)
-                {
-                    UiCursorBus::Broadcast(&UiCursorBus::Events::IncrementVisibleCounter);
-                    UiCursorBus::BroadcastResult(isCursorVisible, &UiCursorInterface::IsUiCursorVisible);
-                }
-            }
+            UiCursorBus::Broadcast(&UiCursorBus::Events::IncrementVisibleCounter);
 #endif
 
             // Avoid hiding the cursor when in the Editor and not in game mode
