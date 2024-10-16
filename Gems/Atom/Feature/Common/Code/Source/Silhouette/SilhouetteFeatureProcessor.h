@@ -47,8 +47,9 @@ namespace AZ::Render
         void AddRenderPasses(AZ::RPI::RenderPipeline* renderPipeline) override;
 
         //! RPI::SceneNotificationBus
-        void OnEndPrepareRender() override;
         void OnRenderPipelineChanged(AZ::RPI::RenderPipeline* pipeline, AZ::RPI::SceneNotification::RenderPipelineChangeType changeType) override;
+
+        bool NeedsCompositePass() const;
 
     private:
         void UpdatePasses(AZ::RPI::RenderPipeline* renderPipeline);

@@ -68,6 +68,7 @@ namespace AZ
             //! Check if an encoder is available and if not queue it for when the encoder is created.
             void SamplePassCounters(id<MTLCounterSampleBuffer> counterSampleBuffer, uint32_t sampleIndex);
 #endif
+            Device* GetDevice();
             
         protected:
             

@@ -19,11 +19,20 @@
 #include <Atom/RHI.Reflect/Bits.h>
 #include <Atom/RHI.Reflect/Limits.h>
 #include <Atom/RHI.Reflect/AttachmentEnums.h>
+#include <AzCore/Console/IConsole.h>
 #include <AzCore/StringFunc/StringFunc.h>
 
 #define VMA_IMPLEMENTATION
 
 #include <vma/vk_mem_alloc.h>
+AZ_CVAR(
+    uint32_t,
+    r_vkBarrierOptimizationFlags,
+    static_cast<uint32_t>(AZ::Vulkan::BarrierOptimizationFlags::All),
+    nullptr,
+    AZ::ConsoleFunctorFlags::DontReplicate,
+    "Optimize resource barriers mask: 0 = None, 1 = UseRenderpassLayout, 2 = RemoveReadAfterRead, 4 = UseGlobal, All = 7\
+     Useful when debugging to see all generated barriers.");
 
 namespace AZ
 {
@@ -202,10 +211,48 @@ namespace AZ
             case RHI::ScopeAttachmentUsage::DepthStencil:
             case RHI::ScopeAttachmentUsage::Resolve:
             case RHI::ScopeAttachmentUsage::SubpassInput:
+            case RHI::ScopeAttachmentUsage::ShadingRate:
                 return true;
             default:
                 return false;
             }
+        }
+
+        bool IsReadOnlyAccess(VkAccessFlags access)
+        {
+            return !RHI::CheckBitsAny(
+                access,
+                VkAccessFlags(VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                    VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_MEMORY_WRITE_BIT |
+                    VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT | VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT |
+                    VK_ACCESS_CONDITIONAL_RENDERING_READ_BIT_EXT | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR |
+                    VK_ACCESS_COMMAND_PREPROCESS_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV));
+        }
+
+        BarrierOptimizationFlags GetBarrierOptimizationFlags()
+        {
+            return static_cast<BarrierOptimizationFlags>(static_cast<uint32_t>(r_vkBarrierOptimizationFlags));
+        }
+
+        bool operator==(const VkMemoryBarrier& lhs, const VkMemoryBarrier& rhs)
+        {
+            return lhs.dstAccessMask == rhs.dstAccessMask && lhs.pNext == rhs.pNext && lhs.srcAccessMask == rhs.srcAccessMask;
+        }
+
+        bool operator==(const VkBufferMemoryBarrier& lhs, const VkBufferMemoryBarrier& rhs)
+        {
+            return lhs.buffer == rhs.buffer && lhs.dstAccessMask == rhs.dstAccessMask &&
+                lhs.dstQueueFamilyIndex == rhs.dstQueueFamilyIndex && lhs.offset == rhs.offset && lhs.pNext == rhs.pNext &&
+                lhs.size == rhs.size && lhs.srcAccessMask == rhs.srcAccessMask && lhs.srcQueueFamilyIndex == rhs.srcQueueFamilyIndex;
+        }
+
+        bool operator==(const VkImageMemoryBarrier& lhs, const VkImageMemoryBarrier& rhs)
+        {
+            return lhs.dstAccessMask == rhs.dstAccessMask && lhs.dstQueueFamilyIndex == rhs.dstQueueFamilyIndex && lhs.image == rhs.image &&
+                lhs.newLayout == rhs.newLayout && lhs.oldLayout == rhs.oldLayout && lhs.pNext == rhs.pNext &&
+                lhs.srcAccessMask == rhs.srcAccessMask && lhs.srcQueueFamilyIndex == rhs.srcQueueFamilyIndex &&
+                lhs.subresourceRange == rhs.subresourceRange;
         }
 
         bool operator==(const VkImageSubresourceRange& lhs, const VkImageSubresourceRange& rhs)

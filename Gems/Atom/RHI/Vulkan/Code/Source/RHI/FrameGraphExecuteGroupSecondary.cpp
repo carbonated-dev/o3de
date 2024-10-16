@@ -18,7 +18,7 @@ namespace AZ::Vulkan
 {
     void FrameGraphExecuteGroupSecondary::Init(
         Device& device,
-        const Scope& scope,
+        Scope& scope,
         uint32_t commandListCount,
         RHI::JobPolicy globalJobPolicy)
     {
@@ -67,15 +67,13 @@ namespace AZ::Vulkan
 
         CommandList::InheritanceInfo inheritanceInfo{ m_renderPassContext.m_framebuffer.get(), m_subpassIndex };
         commandList->BeginCommandBuffer(&inheritanceInfo);
-        commandList->BeginDebugLabel(commandList->GetName().GetCStr());
-        m_scope->Begin(*commandList);
+        m_scope->Begin(*commandList, context);
     }
 
     void FrameGraphExecuteGroupSecondary::EndContextInternal(RHI::FrameGraphExecuteContext& context, [[maybe_unused]] uint32_t contextIndex)
     {
         CommandList& commandList = static_cast<CommandList&>(*context.GetCommandList());
-        m_scope->End(commandList);
-        commandList.EndDebugLabel();
+        m_scope->End(commandList, context);
         commandList.EndCommandBuffer();
     }
 
@@ -88,6 +86,11 @@ namespace AZ::Vulkan
         return AZStd::span<const Scope* const>(&m_scope, 1);
     }
 
+    AZStd::span<Scope* const> FrameGraphExecuteGroupSecondary::GetScopes()
+    {
+        return AZStd::span<Scope* const>(&m_scope, 1);
+    }
+
     AZStd::span<const RHI::Ptr<CommandList>> FrameGraphExecuteGroupSecondary::GetCommandLists() const
     {
         return m_secondaryCommands;
@@ -97,5 +100,10 @@ namespace AZ::Vulkan
     {
         m_renderPassContext = renderPassContext;
         m_subpassIndex = subpassIndex;
+    }
+
+    const Scope* FrameGraphExecuteGroupSecondary::GetScope() const
+    {
+        return m_scope;
     }
 }

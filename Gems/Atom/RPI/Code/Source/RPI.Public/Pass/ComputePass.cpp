@@ -44,6 +44,7 @@ namespace AZ
             : RenderPass(descriptor)
             , m_passDescriptor(descriptor)
         {
+            m_flags.m_canBecomeASubpass = false;
             const ComputePassData* passData = PassUtils::GetPassData<ComputePassData>(m_passDescriptor);
             if (passData == nullptr)
             {
@@ -59,6 +60,8 @@ namespace AZ
             m_dispatchItem.m_arguments = dispatchArgs;
 
             LoadShader(supervariant);
+
+            m_defaultShaderAttachmentStage = RHI::ScopeAttachmentStage::ComputeShader;
         }
 
         void ComputePass::LoadShader(AZ::Name supervariant)

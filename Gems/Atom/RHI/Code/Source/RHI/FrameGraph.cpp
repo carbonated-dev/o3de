@@ -117,6 +117,181 @@ namespace AZ::RHI
         return ResultCode::Success;
     }
 
+    void FrameGraph::ValidateOverlappingAttachment(
+        AttachmentId attachmentId, ScopeAttachmentUsage usage, [[maybe_unused]] ScopeAttachmentAccess access, const ScopeAttachment& scopeAttachment) const
+    {
+        // Validation for access type
+        AZ_Assert(
+            !CheckBitsAll(access, ScopeAttachmentAccess::Write) &&
+            !CheckBitsAll(scopeAttachment.GetAccess(), ScopeAttachmentAccess::Write),
+            "When adding two overlapping attachments in a scope, neither should have write access,\
+            but a write access was detected when adding overlapping attachment %s.",
+            attachmentId.GetCStr());
+
+        // Validation for usage type
+        switch (usage)
+        {
+        case ScopeAttachmentUsage::RenderTarget:
+            {
+                switch (scopeAttachment.GetUsage())
+                {
+                case ScopeAttachmentUsage::RenderTarget:
+                    AZ_Assert(
+                        false,
+                        "Multiple usages of same type RenderTarget getting added for resource %s",
+                        attachmentId.GetCStr());
+                    break;
+                default:
+                    AZ_Assert(
+                        false,
+                        "ScopeAttachmentUsage::RenderTarget usage mixed with ScopeAttachmentUsage::%s for resource %s",
+                        ToString(usage, access),
+                        attachmentId.GetCStr());
+                    break;
+                }
+                break;
+            }
+        case ScopeAttachmentUsage::DepthStencil:
+            {
+                switch (scopeAttachment.GetUsage())
+                {
+                case ScopeAttachmentUsage::DepthStencil:
+                    AZ_Assert(
+                        false,
+                        "Multiple usages of same type DepthStencil getting added for resource %s",
+                        attachmentId.GetCStr());
+                    break;
+                case ScopeAttachmentUsage::RenderTarget:
+                case ScopeAttachmentUsage::Predication:
+                case ScopeAttachmentUsage::Resolve:
+                case ScopeAttachmentUsage::InputAssembly:
+                case ScopeAttachmentUsage::ShadingRate:
+                    AZ_Assert(
+                        false,
+                        "ScopeAttachmentUsage::DepthStencil usage mixed with ScopeAttachmentUsage::%s for resource %s",
+                        ToString(usage, access),
+                        attachmentId.GetCStr());
+                    break;
+                }
+                break;
+            }
+        case ScopeAttachmentUsage::Shader:
+            {
+                switch (scopeAttachment.GetUsage())
+                {
+                case ScopeAttachmentUsage::Resolve:
+                case ScopeAttachmentUsage::Predication:
+                case ScopeAttachmentUsage::InputAssembly:
+                    AZ_Assert(
+                        false,
+                        "ScopeAttachmentUsage::Shader usage mixed with ScopeAttachmentUsage::%s for resource %s",
+                        ToString(usage, access),
+                        attachmentId.GetCStr());
+                    break;
+                }
+                break;
+            }
+        case ScopeAttachmentUsage::Resolve:
+            {
+                switch (scopeAttachment.GetUsage())
+                {
+                case ScopeAttachmentUsage::Resolve:
+                    AZ_Assert(
+                        false,
+                        "Multiple usages of same type Resolve getting added for resource %s",
+                        attachmentId.GetCStr());
+                    break;
+                case ScopeAttachmentUsage::RenderTarget:
+                case ScopeAttachmentUsage::DepthStencil:
+                case ScopeAttachmentUsage::Shader:
+                case ScopeAttachmentUsage::Predication:
+                case ScopeAttachmentUsage::SubpassInput:
+                case ScopeAttachmentUsage::InputAssembly:
+                case ScopeAttachmentUsage::ShadingRate:
+                    AZ_Assert(
+                        false,
+                        "ScopeAttachmentUsage::Resolve usage mixed with ScopeAttachmentUsage::%s for resource %s",
+                        ToString(usage, access),
+                        attachmentId.GetCStr());
+                    break;
+                }
+                break;
+            }
+        case ScopeAttachmentUsage::Predication:
+            {
+                switch (scopeAttachment.GetUsage())
+                {
+                case ScopeAttachmentUsage::Predication:
+                    AZ_Assert(
+                        false,
+                        "Multiple usages of same type Predication getting added for resource %s",
+                        attachmentId.GetCStr());
+                    break;
+                case ScopeAttachmentUsage::RenderTarget:
+                case ScopeAttachmentUsage::DepthStencil:
+                case ScopeAttachmentUsage::Shader:
+                case ScopeAttachmentUsage::Resolve:
+                case ScopeAttachmentUsage::SubpassInput:
+                case ScopeAttachmentUsage::InputAssembly:
+                case ScopeAttachmentUsage::ShadingRate:
+                    AZ_Assert(
+                        false,
+                        "ScopeAttachmentUsage::Predication usage mixed with ScopeAttachmentUsage::%s for resource %s",
+                        ToString(usage, access),
+                        attachmentId.GetCStr());
+                    break;
+                }
+                break;
+            }
+        case ScopeAttachmentUsage::Indirect:
+            {
+                break;
+            }
+        case ScopeAttachmentUsage::SubpassInput:
+            {
+                switch (scopeAttachment.GetUsage())
+                {
+                case ScopeAttachmentUsage::Resolve:
+                case ScopeAttachmentUsage::Predication:
+                case ScopeAttachmentUsage::InputAssembly:
+                    AZ_Assert(
+                        false,
+                        "ScopeAttachmentUsage::SubpassInput usage mixed with ScopeAttachmentUsage::%s for resource %s",
+                        ToString(usage, access),
+                        attachmentId.GetCStr());
+                    break;
+                }
+                break;
+            }
+        case ScopeAttachmentUsage::InputAssembly:
+            {
+                AZ_Assert(
+                    false,
+                    "ScopeAttachmentUsage::InputAssembly usage mixed with ScopeAttachmentUsage::%s for resource %s",
+                    ToString(usage, access),
+                    attachmentId.GetCStr());
+                break;
+            }
+        case ScopeAttachmentUsage::ShadingRate:
+            {
+                switch (scopeAttachment.GetUsage())
+                {
+                case ScopeAttachmentUsage::Resolve:
+                case ScopeAttachmentUsage::Predication:
+                case ScopeAttachmentUsage::InputAssembly:
+                case ScopeAttachmentUsage::Indirect:
+                    AZ_Assert(
+                        false,
+                        "ScopeAttachmentUsage::ShadingRate usage mixed with ScopeAttachmentUsage::%s for resource %s",
+                        ToString(usage, access),
+                        attachmentId.GetCStr());
+                    break;
+                }
+                break;
+            }
+        }
+    }
+
     ResultCode FrameGraph::End()
     {
         AZ_PROFILE_SCOPE(RHI, "FrameGraph: End");
@@ -176,45 +351,40 @@ namespace AZ::RHI
     void FrameGraph::SetHardwareQueueClass(HardwareQueueClass hardwareQueueClass)
     {
         m_currentScope->m_hardwareQueueClass = hardwareQueueClass;
+    }
+
+    void FrameGraph::SetGroupId(const ScopeGroupId& groupId)
+    {
+        AZ_Assert(m_currentScope, "Current scope is null while setting the group id");
+        AZ_Assert(m_currentScope->m_graphNodeIndex.IsValid(), "Current scope doesn't have a valid node graph index");
+        m_graphNodes[m_currentScope->m_graphNodeIndex.GetIndex()].m_scopeGroupId = groupId;
     }            
 
     void FrameGraph::UseAttachmentInternal(
         ImageFrameAttachment& frameAttachment,
         ScopeAttachmentUsage usage,
         ScopeAttachmentAccess access,
+        ScopeAttachmentStage stage,
         const ImageScopeAttachmentDescriptor& descriptor)
     {
         AZ_Assert(usage != ScopeAttachmentUsage::Uninitialized, "ScopeAttachmentUsage is Uninitialized");
+        AZ_Assert(stage != ScopeAttachmentStage::Uninitialized, "ScopeAttachmentStage is Uninitialized");
 
-        //A scopeattachment can be used in multiple ways within the same scope. Hence, instead of adding duplicate scopeattachments
-        //for a scope we add multiple usage/access related data within the same scopeattachment.
-        for (ImageScopeAttachment* imageScopeInnerAttachment : m_currentScope->m_imageAttachments)
+        if (Validation::IsEnabled())
         {
-            if(imageScopeInnerAttachment->GetFrameAttachment().GetId() == frameAttachment.GetId())
-            {
-                //Check if it is the same sub resource as for an imagescopeattachments we may want to read and write into different mips
-                //and in that case we would want multiple scopeattachments. 
-                if(imageScopeInnerAttachment->GetDescriptor().m_imageViewDescriptor.IsSameSubResource(descriptor.m_imageViewDescriptor))
-                {
-                    AZ_Assert(imageScopeInnerAttachment->GetDescriptor().m_loadStoreAction == descriptor.m_loadStoreAction, "LoadStore actions for multiple usages need to match");
-                    imageScopeInnerAttachment->AddUsageAndAccess(usage, access);
-                    return;
-                }
-            }
+            ValidateAttachment(descriptor, usage, access);
         }
-            
+
         // TODO:[ATOM-1267] Replace with writer / reader dependencies.
-        GraphEdgeType edgeType = usage == ScopeAttachmentUsage::SubpassInput ? GraphEdgeType::SameGroup : GraphEdgeType::DifferentGroup;
         if (Scope* producer = frameAttachment.GetLastScope())
         {
-            InsertEdge(*producer, *m_currentScope, edgeType);
+            InsertEdge(*producer, *m_currentScope);
         }
 
         ImageScopeAttachment* scopeAttachment =
             m_attachmentDatabase.EmplaceScopeAttachment<ImageScopeAttachment>(
-                *m_currentScope, frameAttachment, usage, access, descriptor);
+            *m_currentScope, frameAttachment, usage, access, stage, descriptor);
 
-            
         m_currentScope->m_attachments.push_back(scopeAttachment);
         m_currentScope->m_imageAttachments.push_back(scopeAttachment);
         if (frameAttachment.GetLifetimeType() == AttachmentLifetimeType::Transient)
@@ -266,19 +436,15 @@ namespace AZ::RHI
         BufferFrameAttachment& frameAttachment,
         ScopeAttachmentUsage usage,
         ScopeAttachmentAccess access,
+        ScopeAttachmentStage stage,
         const BufferScopeAttachmentDescriptor& descriptor)
     {
         AZ_Assert(usage != ScopeAttachmentUsage::Uninitialized, "ScopeAttachmentUsage is Uninitialized");
+        AZ_Assert(stage != ScopeAttachmentStage::Uninitialized, "ScopeAttachmentStage is Uninitialized");
 
-        //A scopeattachment can be used in multiple ways within the same scope. Hence, instead of adding duplicate scopeattachments
-        //for a scope we add multiple usage/access related data within the same scopeattahcment.
-        for (BufferScopeAttachment* scopeInnerAttachment : m_currentScope->m_bufferAttachments)
+        if (Validation::IsEnabled())
         {
-            if (scopeInnerAttachment->GetFrameAttachment().GetId() == frameAttachment.GetId())
-            {
-                scopeInnerAttachment->AddUsageAndAccess(usage, access);
-                return;
-            }
+            ValidateAttachment(descriptor, usage, access);
         }
 
         // TODO:[ATOM-1267] Replace with writer / reader dependencies.
@@ -289,7 +455,7 @@ namespace AZ::RHI
 
         BufferScopeAttachment* scopeAttachment =
             m_attachmentDatabase.EmplaceScopeAttachment<BufferScopeAttachment>(
-                *m_currentScope, frameAttachment, usage, access, descriptor);
+            *m_currentScope, frameAttachment, usage, access, stage, descriptor);
 
         m_currentScope->m_attachments.push_back(scopeAttachment);
         m_currentScope->m_bufferAttachments.push_back(scopeAttachment);
@@ -299,14 +465,18 @@ namespace AZ::RHI
         }
     }
 
-    ResultCode FrameGraph::UseAttachment(const BufferScopeAttachmentDescriptor& descriptor, ScopeAttachmentAccess access, ScopeAttachmentUsage usage)
+    ResultCode FrameGraph::UseAttachment(
+        const BufferScopeAttachmentDescriptor& descriptor,
+        ScopeAttachmentAccess access,
+        ScopeAttachmentUsage usage,
+        ScopeAttachmentStage stage)
     {
         AZ_Assert(!descriptor.m_attachmentId.IsEmpty(), "Calling FrameGraph::UseAttachment with an empty attachment ID");
 
         BufferFrameAttachment* attachment = m_attachmentDatabase.FindAttachment<BufferFrameAttachment>(descriptor.m_attachmentId);
         if (attachment)
         {
-            UseAttachmentInternal(*attachment, usage, access, descriptor);
+            UseAttachmentInternal(*attachment, usage, access, stage, descriptor);
             return ResultCode::Success;
         }
 
@@ -314,14 +484,18 @@ namespace AZ::RHI
         return ResultCode::InvalidArgument;
     }
 
-    ResultCode FrameGraph::UseAttachment(const ImageScopeAttachmentDescriptor& descriptor, ScopeAttachmentAccess access, ScopeAttachmentUsage usage)
+    ResultCode FrameGraph::UseAttachment(
+        const ImageScopeAttachmentDescriptor& descriptor,
+        ScopeAttachmentAccess access,
+        ScopeAttachmentUsage usage,
+        ScopeAttachmentStage stage)
     {
         AZ_Assert(!descriptor.m_attachmentId.IsEmpty(), "Calling FrameGraph::UseAttachment with an empty attachment ID");
 
         ImageFrameAttachment* attachment = m_attachmentDatabase.FindAttachment<ImageFrameAttachment>(descriptor.m_attachmentId);
         if (attachment)
         {
-            UseAttachmentInternal(*attachment, usage, access, descriptor);
+            UseAttachmentInternal(*attachment, usage, access, stage, descriptor);
             return ResultCode::Success;
         }
 
@@ -329,11 +503,15 @@ namespace AZ::RHI
         return ResultCode::InvalidArgument;
     }
 
-    ResultCode FrameGraph::UseAttachments(AZStd::span<const ImageScopeAttachmentDescriptor> descriptors, ScopeAttachmentAccess access, ScopeAttachmentUsage usage)
+    ResultCode FrameGraph::UseAttachments(
+        AZStd::span<const ImageScopeAttachmentDescriptor> descriptors,
+        ScopeAttachmentAccess access,
+        ScopeAttachmentUsage usage,
+        ScopeAttachmentStage stage)
     {
         for (const ImageScopeAttachmentDescriptor& descriptor : descriptors)
         {
-            ResultCode resultCode = UseAttachment(descriptor, access, usage);
+            ResultCode resultCode = UseAttachment(descriptor, access, usage, stage);
             if (resultCode != ResultCode::Success)
             {
                 AZ_Error("FrameGraph", false, "Error loading image scope attachment array. Attachment that errored is '%s'", descriptor.m_attachmentId.GetCStr());
@@ -358,37 +536,42 @@ namespace AZ::RHI
 
     ResultCode FrameGraph::UseColorAttachments(AZStd::span<const ImageScopeAttachmentDescriptor> descriptors)
     {
-        return UseAttachments(descriptors, ScopeAttachmentAccess::Write, ScopeAttachmentUsage::RenderTarget);
+        return UseAttachments(
+            descriptors, ScopeAttachmentAccess::Write, ScopeAttachmentUsage::RenderTarget, ScopeAttachmentStage::ColorAttachmentOutput);
     }
 
-    ResultCode FrameGraph::UseDepthStencilAttachment(const ImageScopeAttachmentDescriptor& descriptor, ScopeAttachmentAccess access)
+    ResultCode FrameGraph::UseDepthStencilAttachment(
+        const ImageScopeAttachmentDescriptor& descriptor, ScopeAttachmentAccess access, ScopeAttachmentStage stage)
     {
-        return UseAttachment(descriptor, access, ScopeAttachmentUsage::DepthStencil);
+        return UseAttachment(descriptor, access, ScopeAttachmentUsage::DepthStencil, stage);
     }
 
-    ResultCode FrameGraph::UseSubpassInputAttachments(AZStd::span<const ImageScopeAttachmentDescriptor> descriptors)
+    ResultCode FrameGraph::UseSubpassInputAttachments(
+        AZStd::span<const ImageScopeAttachmentDescriptor> descriptors, ScopeAttachmentStage stage)
     {
-        return UseAttachments(descriptors, ScopeAttachmentAccess::Read, ScopeAttachmentUsage::SubpassInput);
+        return UseAttachments(descriptors, ScopeAttachmentAccess::Read, ScopeAttachmentUsage::SubpassInput, stage);
     }
 
-    ResultCode FrameGraph::UseShaderAttachment(const BufferScopeAttachmentDescriptor& descriptor, ScopeAttachmentAccess access)
+    ResultCode FrameGraph::UseShaderAttachment(
+        const BufferScopeAttachmentDescriptor& descriptor, ScopeAttachmentAccess access, ScopeAttachmentStage stage)
     {
-        return UseAttachment(descriptor, access, ScopeAttachmentUsage::Shader);
+        return UseAttachment(descriptor, access, ScopeAttachmentUsage::Shader, stage);
     }
 
-    ResultCode FrameGraph::UseShaderAttachment(const ImageScopeAttachmentDescriptor& descriptor, ScopeAttachmentAccess access)
+    ResultCode FrameGraph::UseShaderAttachment(
+        const ImageScopeAttachmentDescriptor& descriptor, ScopeAttachmentAccess access, ScopeAttachmentStage stage)
     {
-        return UseAttachment(descriptor, access, ScopeAttachmentUsage::Shader);
+        return UseAttachment(descriptor, access, ScopeAttachmentUsage::Shader, stage);
     }
 
     ResultCode FrameGraph::UseCopyAttachment(const BufferScopeAttachmentDescriptor& descriptor, ScopeAttachmentAccess access)
     {
-        return UseAttachment(descriptor, access, ScopeAttachmentUsage::Copy);
+        return UseAttachment(descriptor, access, ScopeAttachmentUsage::Copy, ScopeAttachmentStage::Copy);
     }
 
     ResultCode FrameGraph::UseCopyAttachment(const ImageScopeAttachmentDescriptor& descriptor, ScopeAttachmentAccess access)
     {
-        return UseAttachment(descriptor, access, ScopeAttachmentUsage::Copy);
+        return UseAttachment(descriptor, access, ScopeAttachmentUsage::Copy, ScopeAttachmentStage::Copy);
     }
 
     ResultCode FrameGraph::UseQueryPool(Ptr<QueryPool> queryPool, const RHI::Interval& interval, QueryPoolScopeAttachmentType type, ScopeAttachmentAccess access)
@@ -446,28 +629,32 @@ namespace AZ::RHI
         unblockedNodes.reserve(m_graphNodes.size());
 
         // Build a list with the edges for each producer node.
-        AZStd::vector<AZStd::list<uint32_t>> graphEdges(m_graphNodes.size());
+        AZStd::vector<AZStd::vector<uint32_t>> graphEdges(m_graphNodes.size());
         for (uint32_t edgeIndex = 0; edgeIndex < m_graphEdges.size(); ++edgeIndex)
         {
             const GraphEdge& edge = m_graphEdges[edgeIndex];
-            AZStd::list<uint32_t>& edgeList = graphEdges[edge.m_producerIndex];
-            // Push group edges at the front so they are processed before the single ones.
-            // We need this so nodes in the same group are together.
-            switch (edge.m_type)
-            {
-            case GraphEdgeType::DifferentGroup:
-                edgeList.push_back(edgeIndex);
-                break;
-            case GraphEdgeType::SameGroup:
-                edgeList.push_front(edgeIndex);
-                break;
-            default:
-                AZ_Assert(false, "Invalid edge type %d", edge.m_type);
-                break;
-            }
+            AZStd::vector<uint32_t>& edgeList = graphEdges[edge.m_producerIndex];
+            edgeList.push_back(edgeIndex);
         }
 
+       
         uint16_t groupCount = 0;
+        AZStd::unordered_map<ScopeGroupId, uint16_t> groupIds;
+        // Returns a groupId from the ScopeGroupId of the scopes.
+        auto getGroupId = [&](const ScopeGroupId& groupId)
+        {
+            // An empty ScopeGroupId means the scope doesn't belong to a group.
+            if (groupId.IsEmpty())
+            {
+                return groupCount++;
+            }
+
+            // It doesn't matter that we incremented groupCount when not inserting since we only
+            // care of being a unique increment number.
+            auto inserRet = groupIds.insert(AZStd::pair<ScopeGroupId, uint16_t>(groupId, groupCount++));
+            return inserRet.first->second;
+        };
+
         // This loop will add all unblocked nodes, i.e. nodes that don't have any producers. This
         // includes the root node.
         for (size_t nodeIndex = 0; nodeIndex < m_graphNodes.size(); ++nodeIndex)
@@ -475,9 +662,12 @@ namespace AZ::RHI
             const GraphNode& graphNode = m_graphNodes[nodeIndex];
             if (graphNode.m_unsortedProducerCount == 0)
             {
-                unblockedNodes.push_back({ static_cast<uint16_t>(nodeIndex), groupCount++ });
+                unblockedNodes.push_back({ static_cast<uint16_t>(nodeIndex), getGroupId(graphNode.m_scopeGroupId) });
             }
         }
+
+        AZStd::vector<AZStd::pair<Scope*, uint16_t>> preSortScopes;
+        preSortScopes.reserve(m_graphNodes.size());
 
         // Process nodes that don't have any producers left (they have already been processed).
         // They get added to the unblockedNodes vector in a topological manner.
@@ -488,28 +678,64 @@ namespace AZ::RHI
             const uint16_t producerGroupId = producerNodeId.m_groupId;
             unblockedNodes.pop_back();
 
-            const uint32_t scopeIndexNext = aznumeric_caster(m_scopes.size());
-
             Scope* scope = m_graphNodes[producerIndex].m_scope;
-            // Activate the scope in topological order.
-            scope->Activate(this, scopeIndexNext, GraphGroupId(producerGroupId));
-            m_scopes.push_back(scope);
+            preSortScopes.push_back(AZStd::make_pair(scope, producerGroupId));
 
             // Go through all the edges of this node, find the consumer nodes that are fully sorted and add them to the unblockedNodes.
             for (const uint32_t edgeIndex : graphEdges[producerIndex])
             {
                 const GraphEdge& graphEdge = m_graphEdges[edgeIndex];
                 const uint16_t consumerIndex = static_cast<uint16_t>(graphEdge.m_consumerIndex);
-                if (--m_graphNodes[consumerIndex].m_unsortedProducerCount == 0)
+                GraphNode& graphNode = m_graphNodes[consumerIndex];
+                if (--graphNode.m_unsortedProducerCount == 0)
                 {
                     NodeId newNode;
                     newNode.m_nodeIndex = consumerIndex;
-                    newNode.m_groupId = graphEdge.m_type == GraphEdgeType::SameGroup ? producerGroupId : groupCount++;
+                    newNode.m_groupId = getGroupId(graphNode.m_scopeGroupId);
                     unblockedNodes.emplace_back(newNode);
                 }
             }
             graphEdges[producerIndex].clear();
         }
+
+        //////////////////////////////////////////////////////////////////
+        // This additional sort makes sure that scopes in the same group get grouped consecutively.
+        // This is necessary when using subpasses.
+        // This is an example on how a Multiview(aka XR) scenario would sort scopes WITHOUT
+        // this sort:
+        //     [0] "Root"
+        //     [1] "XRLeftPipeline_-10.MultiViewForwardPass"
+        //     [2] "XRRightPipeline_-10.MultiViewForwardPass"
+        //     [3] "XRRightPipeline_-10.MultiViewSkyBoxPass"
+        //     [4] "XRLeftPipeline_-10.MultiViewSkyBoxPass"
+        // The RHI would crash because the subpasses in the LEFT View are not consecutive.
+        // On the other hand, thanks to this sort the order would end like this:
+        //     [0] "Root"
+        //     [1] "XRLeftPipeline_-10.MultiViewForwardPass"
+        //     [2] "XRLeftPipeline_-10.MultiViewSkyBoxPass" 
+        //     [3] "XRRightPipeline_-10.MultiViewForwardPass"
+        //     [4] "XRRightPipeline_-10.MultiViewSkyBoxPass"
+        AZStd::stable_sort(
+            preSortScopes.begin(),
+            preSortScopes.end(),
+            [](const auto& lhs, const auto& rhs)
+            {
+                // Sort by group id
+                return (lhs.second < rhs.second);
+            });
+
+        // Activate the scope in topological order.
+        m_scopes.resize(preSortScopes.size());
+        for (uint32_t scopeIndex = 0; scopeIndex < preSortScopes.size(); ++scopeIndex)
+        {
+            Scope* scope = preSortScopes[scopeIndex].first;
+            m_scopes[scopeIndex] = scope;
+            Scope::ActivationFlags activationFlags = m_graphNodes[scope->m_graphNodeIndex.GetIndex()].m_scopeGroupId.IsEmpty()
+                ? Scope::ActivationFlags::None
+                : Scope::ActivationFlags::Subpass;
+            scope->Activate(this, scopeIndex, GraphGroupId(preSortScopes[scopeIndex].second), activationFlags);
+        }
+        ////////////////////////////////////////////////////////////////
 
         if (m_graphNodes.size() == m_scopes.size())
         {
@@ -519,7 +745,7 @@ namespace AZ::RHI
         if (Validation::IsEnabled())
         {
             AZStd::string cycleInfoString = "Error, a cycle exists in the graph. Failed to topologically sort. Remaining Edges:\n";
-            for (const AZStd::list<uint32_t>& edgeList : graphEdges)
+            for (const AZStd::vector<uint32_t>& edgeList : graphEdges)
             {
                 for (uint32_t edgeIndex : edgeList)
                 {
@@ -571,7 +797,7 @@ namespace AZ::RHI
         return m_graphNodes[consumer.m_graphNodeIndex.GetIndex()].m_producers;
     }
 
-    void FrameGraph::InsertEdge(Scope& producer, Scope& consumer, GraphEdgeType edgeType /*= GraphEdgeType::DifferentGroup*/)
+    void FrameGraph::InsertEdge(Scope& producer, Scope& consumer)
     {
         // Ignore edges where the read and write are pointing to the same scope
         // This can happen if a scope is reading and writing to different mips of the same attachment
@@ -583,8 +809,7 @@ namespace AZ::RHI
         const GraphEdge graphEdge =
         {
             producer.m_graphNodeIndex.GetIndex(),
-            consumer.m_graphNodeIndex.GetIndex(),
-            edgeType
+            consumer.m_graphNodeIndex.GetIndex()
         };
 
         auto findIter = AZStd::find_if(m_graphEdges.begin(), m_graphEdges.end(), [&graphEdge](const GraphEdge& element)
@@ -602,12 +827,6 @@ namespace AZ::RHI
 
             GraphNode& producerGraphNode = m_graphNodes[graphEdge.m_producerIndex];
             producerGraphNode.m_consumers.push_back(&consumer);
-        }
-        else
-        {
-            // Update the edge type if needed.
-            GraphEdge& edge = *findIter;
-            edge.m_type = edgeType == GraphEdgeType::SameGroup ? edgeType : edge.m_type;
         }
     }
 }
