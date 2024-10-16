@@ -810,19 +810,16 @@ QString FormatRichTextCopyrightNotice()
 #if defined(CARBONATED)
 void CCryEditApp::OnInputChannelEvent(const AzFramework::InputChannel& inputChannel, bool& hasBeenConsumed)
 {
-    if (!hasBeenConsumed)
+    const AzFramework::InputDeviceId& deviceId = inputChannel.GetInputDevice().GetInputDeviceId();
+    if (AzFramework::InputDeviceKeyboard::IsKeyboardDevice(deviceId))
     {
-        const AzFramework::InputDeviceId& deviceId = inputChannel.GetInputDevice().GetInputDeviceId();
-        if (AzFramework::InputDeviceKeyboard::IsKeyboardDevice(deviceId))
+        auto pConsoleSCB = CConsoleSCB::GetCreatedInstance();
+        if (pConsoleSCB)
         {
-            auto pConsoleSCB = CConsoleSCB::GetCreatedInstance();
-            if (pConsoleSCB)
+            auto pConsoleInput = pConsoleSCB->GetConsoleInput();
+            if (pConsoleInput && pConsoleInput->hasFocus())
             {
-                auto pConsoleInput = pConsoleSCB->GetConsoleInput();
-                if (pConsoleInput)
-                {
-                    hasBeenConsumed = pConsoleInput->keyPressEventImpl();
-                }
+                hasBeenConsumed = pConsoleInput->keyPressEventImpl();
             }
         }
     }
