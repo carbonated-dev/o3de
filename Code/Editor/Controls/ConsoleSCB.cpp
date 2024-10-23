@@ -178,7 +178,7 @@ bool ConsoleLineEdit::event(QEvent* ev)
 #if defined(CARBONATED)
         m_keyEvent = *ke;
         // Consume Enter (Return) key right now
-        return ke->key() == Qt::Key_Return ? keyPressEventImpl() : false;
+        return (ke->key() == Qt::Key_Return || ke->key() == Qt::Key_Enter) ? keyPressEventImpl() : false;
 #else
         return QLineEdit::event(ev);
 #endif
@@ -218,28 +218,32 @@ bool ConsoleLineEdit::event(QEvent* ev)
     return true;
 }
 
+#if defined(CARBONATED)
 void ConsoleLineEdit::keyPressEvent(QKeyEvent* ev)
 {
-#if defined(CARBONATED)
     m_keyEvent = *ev;
 
     // Consume Enter (Return) key right now
-    if (ev->key() == Qt::Key_Return)
+    if (ev->key() == Qt::Key_Return || ev->key() == Qt::Key_Enter)
     {
         keyPressEventImpl();
     }
 }
+#endif
 
+#if defined(CARBONATED)
 bool ConsoleLineEdit::keyPressEventImpl()
+#else
+void ConsoleLineEdit::keyPressEvent(QKeyEvent* ev)
+#endif
 {
+#if defined(CARBONATED)
     if (m_keyEvent.type() != QEvent::KeyPress)
     {
         return false;
     }
 
-    QKeyEvent keyEvCopy = m_keyEvent;
-    QKeyEvent* ev = &keyEvCopy;
-    m_keyEvent = invalidKeyEvent;
+    QKeyEvent* ev = &m_keyEvent;
 #endif
     IConsole* console = GetIEditor()->GetSystem()->GetIConsole();
     auto commandManager = GetIEditor()->GetCommandManager();
@@ -313,6 +317,7 @@ bool ConsoleLineEdit::keyPressEventImpl()
         QLineEdit::keyPressEvent(ev);
     }
 #if defined(CARBONATED)
+    m_keyEvent = invalidKeyEvent;
     return true;
 #endif
 }
