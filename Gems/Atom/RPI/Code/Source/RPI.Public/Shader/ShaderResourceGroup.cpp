@@ -117,6 +117,7 @@ namespace AZ
             m_shaderResourceGroup->SetName(m_pool->GetRHIPool()->GetName());
             m_data = RHI::ShaderResourceGroupData(m_layout);
             m_asset = { &shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad };
+            m_supervariantIndex = supervariantIndex;
 
             // The RPI groups match the same dimensions as the RHI group.
             m_imageGroup.resize(m_layout->GetGroupSizeForImages());
@@ -887,6 +888,16 @@ namespace AZ
             return isFullCopy;
         }
     
+        const Data::Asset<ShaderAsset>& ShaderResourceGroup::GetShaderAsset() const
+        {
+            return m_asset;
+        }
+
+        SupervariantIndex ShaderResourceGroup::GetSupervariantIndex() const
+        {
+            return m_supervariantIndex;
+        }
+
         void ShaderResourceGroup::SetBindlessViews(
             RHI::ShaderInputBufferIndex indirectResourceBufferIndex,
             const RHI::BufferView* indirectResourceBuffer,

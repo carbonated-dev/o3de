@@ -42,6 +42,7 @@
 #include <ColorGrading/LutGenerationPass.h>
 #include <Debug/RenderDebugFeatureProcessor.h> 
 #include <Silhouette/SilhouetteFeatureProcessor.h>
+#include <Silhouette/SilhouetteCompositePass.h>
 #include <PostProcess/PostProcessFeatureProcessor.h>
 #include <PostProcessing/BlendColorGradingLutsPass.h>
 #include <PostProcessing/BloomParentPass.h>
@@ -310,6 +311,9 @@ namespace AZ
 
             // Deferred Fog
             passSystem->AddPassCreator(Name("DeferredFogPass"), &DeferredFogPass::Create);
+
+            // Deferred Fog
+            passSystem->AddPassCreator(Name("SilhouetteCompositePass"), &SilhouetteCompositePass::Create);
 
             // Add Reflection passes
             passSystem->AddPassCreator(Name("ReflectionScreenSpacePass"), &Render::ReflectionScreenSpacePass::Create);
