@@ -69,6 +69,11 @@ namespace AZ
             return m_primitiveTopology;
         }
         
+        static inline double GetCurrentTimeSeconds()
+        {
+            return double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
+        }
+    
         id<MTLFunction> PipelineState::CompileShader(id<MTLDevice> mtlDevice, const AZStd::string_view sourceStr, const AZStd::string_view entryPoint, const ShaderStageFunction* shaderFunction, MTLFunctionConstantValues* constantValues)
         {
             id<MTLFunction> pFunction = nullptr;
@@ -88,6 +93,20 @@ namespace AZ
             
             const uint8_t* shaderByteCode = reinterpret_cast<const uint8_t*>(shaderFunction->GetByteCode().data());
             const int byteCodeLength = static_cast<int>(shaderFunction->GetByteCode().size());
+            
+            static double sequencePrevTime = GetCurrentTimeSeconds() - 10.0;  // -10 to ensure a new sequence starts on the first run
+            static double sequenceSummaryTime = 0.0;
+            const double startTime = GetCurrentTimeSeconds();
+            if (startTime - sequencePrevTime > 20.0 / 1000.0)
+            {
+                if (sequenceSummaryTime > 0.0) //1.0 / 1000.0)
+                {
+                    AZ_Info("MicroFreeze", "Shader creation sequence %.1f ms ago took %.3f ms", (startTime - sequencePrevTime) * 1000.0, sequenceSummaryTime * 1000.0);
+                }
+                sequenceSummaryTime = 0.0;
+            }
+            sequencePrevTime = startTime;
+
             if(byteCodeLength > 0 && loadFromByteCode)
             {
                 dispatch_data_t dispatchByteCodeData = dispatch_data_create(shaderByteCode, byteCodeLength, NULL, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
@@ -111,6 +130,15 @@ namespace AZ
                 {
                     AZ_Assert(false, "Shader source is not added by default. It can be added by enabling /O3DE/Atom/RHI/GraphicsDevMode via settings registry and re-building the shader.");
                 }
+            }
+            
+            const double dt = GetCurrentTimeSeconds() - startTime;
+            sequenceSummaryTime += dt;
+            if (dt > 0.2 / 1000.0)
+            {
+                AZ_Info("MicroFreeze", "Shader created in %.3f ms from %s",
+                        dt * 1000.0,
+                        (byteCodeLength > 0 && loadFromByteCode) ? "data" : "source");
             }
             
             if (error)
