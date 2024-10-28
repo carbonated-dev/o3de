@@ -35,7 +35,14 @@ namespace AZ::Debug
             // Initialize the cached pointer with the current handler or nullptr if no handlers are registered.
             // We do it here because Interface::Get will do a full mutex lock if no handlers are registered
             // causing big performance hit.
+#if defined(CARBONATED)
+            // the first time this is executed before CpuProfiler registration
+            // after the m_cachedProfiler assignment below has_value() is true, but value() is nullptr
+            // it must retry on each call, eventually CpuProfiler is registered, then value() is not nullptr
+            if (!m_cachedProfiler.has_value() || m_cachedProfiler.value() == nullptr)
+#else
             if (!m_cachedProfiler.has_value())
+#endif
             {
                 m_cachedProfiler = AZ::Interface<Profiler>::Get();
             }
