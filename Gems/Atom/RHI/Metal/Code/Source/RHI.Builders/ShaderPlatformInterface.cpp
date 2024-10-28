@@ -415,7 +415,12 @@ namespace AZ
             if (isGraphicsDevModeEnabled)
             {
                 //Embed debug symbols into the bytecode
+#if defined(CARBONATED)
+                // -MO is deprecated
+                RHI::ShaderBuildArguments::AppendArguments(metalAirArguments, { "-gline-tables-only", "-frecord-sources" });
+#else
                 RHI::ShaderBuildArguments::AppendArguments(metalAirArguments, { "-gline-tables-only", "-MO" });
+#endif
             }
             
             const auto metalAirArgumentsStr = RHI::ShaderBuildArguments::ListAsString(metalAirArguments);
@@ -614,7 +619,8 @@ namespace AZ
                 finalMetalSLStr.insert(startOfShaderPos + startOfShaderTag.length() + 1, structuredBufferTempStructs);
             }
 
-            // Workaround:  Remove "[[clang::optnone]]" as added by SPIRV-Cross
+            // optimization off attribute "[[clang::optnone]]" added by SPIRV-Cross makes the render 20 times slower
+            // we drop the attribute here, but calculation precision might suffer causing z-fighting
             finalMetalSLStr = AZStd::regex_replace(finalMetalSLStr, AZStd::regex("\\[\\[clang::optnone\\]\\]"), "");
 
             compiledShader = AZStd::vector<char>(finalMetalSLStr.begin(), finalMetalSLStr.end());

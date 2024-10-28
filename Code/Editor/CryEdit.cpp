@@ -59,6 +59,10 @@ AZ_POP_DISABLE_WARNING
 #include <AzFramework/Process/ProcessWatcher.h>
 #include <AzFramework/ProjectManager/ProjectManager.h>
 #include <AzFramework/Spawnable/RootSpawnableInterface.h>
+#if defined(CARBONATED)
+#include <AzFramework/Input/Devices/InputDevice.h>
+#include <AzFramework/Input/Devices/Keyboard/InputDeviceKeyboard.h>
+#endif
 
 // AzToolsFramework
 #include <AzToolsFramework/ActionManager/ActionManagerSystemComponent.h>
@@ -355,6 +359,9 @@ CCryEditApp::CCryEditApp()
 
     AzFramework::AssetSystemInfoBus::Handler::BusConnect();
     AzFramework::AssetSystemStatusBus::Handler::BusConnect();
+#if defined(CARBONATED)
+    AzFramework::InputChannelNotificationBus::Handler::BusConnect();
+#endif
 
     m_disableIdleProcessingCounter = 0;
     EditorIdleProcessingBus::Handler::BusConnect();
@@ -363,6 +370,10 @@ CCryEditApp::CCryEditApp()
 //////////////////////////////////////////////////////////////////////////
 CCryEditApp::~CCryEditApp()
 {
+#if defined(CARBONATED)
+    AzFramework::InputChannelNotificationBus::Handler::BusDisconnect();
+#endif
+
     EditorIdleProcessingBus::Handler::BusDisconnect();
     AzFramework::AssetSystemStatusBus::Handler::BusDisconnect();
     AzFramework::AssetSystemInfoBus::Handler::BusDisconnect();
@@ -774,6 +785,25 @@ QString FormatRichTextCopyrightNotice()
 
     return copyrightString.arg(copyrightHtmlSymbol);
 }
+
+#if defined(CARBONATED)
+void CCryEditApp::OnInputChannelEvent(const AzFramework::InputChannel& inputChannel, bool& hasBeenConsumed)
+{
+    const AzFramework::InputDeviceId& deviceId = inputChannel.GetInputDevice().GetInputDeviceId();
+    if (AzFramework::InputDeviceKeyboard::IsKeyboardDevice(deviceId))
+    {
+        auto pConsoleSCB = CConsoleSCB::GetCreatedInstance();
+        if (pConsoleSCB)
+        {
+            auto pConsoleInput = pConsoleSCB->GetConsoleInput();
+            if (pConsoleInput && pConsoleInput->hasFocus())
+            {
+                hasBeenConsumed = pConsoleInput->keyPressEventImpl();
+            }
+        }
+    }
+}
+#endif
 
 void CCryEditApp::AssetSystemWaiting()
 {
