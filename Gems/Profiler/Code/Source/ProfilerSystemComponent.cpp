@@ -15,6 +15,10 @@
 #include <AzCore/Serialization/Json/JsonUtils.h>
 #include <AzCore/Serialization/SerializeContext.h>
 
+#if defined(CARBONATED) && (defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_ANDROID))
+#include <AzCore/std/time.h>
+#endif
+
 namespace Profiler
 {
     static constexpr AZ::Crc32 profilerServiceCrc = AZ_CRC_CE("ProfilerService");
@@ -51,16 +55,82 @@ namespace Profiler
         int m_framesLeft{ 0 };
     };
 
+#if defined(CARBONATED) && (defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_ANDROID))
+    // the original serializer crahes the app because out of memory
+    // this one produces a pretty badly formated result, but it is super fast, consumes no memory, saves space on disk
+    AZ::Outcome<void, AZStd::string> PlainSave(const AZStd::string& filePath, const AZStd::ring_buffer<TimeRegionMap>& data)
+    {
+        AZ::IO::FileIOStream outputFileStream;
+        if (!outputFileStream.Open(filePath.c_str(), AZ::IO::OpenMode::ModeWrite | AZ::IO::OpenMode::ModeCreatePath | AZ::IO::OpenMode::ModeText))
+        {
+            return AZ::Failure(AZStd::string::format("Error opening file '%s' for writing", filePath.c_str()));
+        }
+        const char* prefix = "{\"Type\":\"JsonSerialization\",\"Version\":1,\"ClassName\":\"CpuProfilingStatisticsSerializer\","
+                             "\"ClassData\":{\"cpuProfilingStatisticsSerializerEntries\":[\n";
+        outputFileStream.Write(strlen(prefix), prefix);
+
+        bool isFirst = true;
+        for (const auto& timeRegionMap : data)
+        {
+            for (const auto& [threadId, regionMap] : timeRegionMap)
+            {
+                const auto threadIdHash = AZStd::hash<AZStd::thread_id>{}(threadId);
+                for (const auto& [regionName, regionVec] : regionMap)
+                {
+                    for (const auto& region : regionVec)
+                    {
+                        char buf[1024];  // function names can be pretty long, it overflows 256
+                        constexpr const char* format = ",{\"groupName\":\"%s\","
+                                             "\"regionName\":\"%s\","
+                                             "\"stackDepth\":%u,"
+                                             "\"startTick\":%lli,"
+                                             "\"endTick\":%lli,"
+                                             "\"threadId\":%zu}\n";
+                        const char* regionGroupName = region.m_groupRegionName.m_groupName;
+                        const char* regionRegionName = region.m_groupRegionName.m_regionName.GetCStr();
+                        const int n = snprintf(buf, sizeof(buf), format,
+                                              regionGroupName,
+                                              regionRegionName,
+                                              region.m_stackDepth,
+                                              region.m_startTick,
+                                              region.m_endTick,
+                                              threadIdHash);
+                        if (isFirst)
+                        {
+                            outputFileStream.Write(n - 1, buf + 1);
+                            isFirst = false;
+                        }
+                        else
+                        {
+                            outputFileStream.Write(n, buf);
+                        }
+                }
+                }
+            }
+        }
+        constexpr const char* postfixFormat = "],\"timeTicksPerSecond\":%llu}}";
+        char buf[64];
+        const int n = snprintf(buf, sizeof(buf), postfixFormat, AZStd::GetTimeTicksPerSecond());
+        outputFileStream.Write(n, buf);
+
+        return AZ::Success();
+    }
+#endif
+
     bool SerializeCpuProfilingData(const AZStd::ring_buffer<TimeRegionMap>& data, AZStd::string outputFilePath, bool wasEnabled)
     {
         AZ_TracePrintf("ProfilerSystemComponent", "Beginning serialization of %zu frames of profiling data\n", data.size());
         AZ::JsonSerializerSettings serializationSettings;
         serializationSettings.m_keepDefaults = true;
 
+#if defined(CARBONATED) && (defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_ANDROID))
+        const auto saveResult = PlainSave(outputFilePath, data);
+#else
         CpuProfilingStatisticsSerializer serializer(data);
 
         const auto saveResult = AZ::JsonSerializationUtils::SaveObjectToFile(&serializer,
             outputFilePath, (CpuProfilingStatisticsSerializer*)nullptr, &serializationSettings);
+#endif
 
         AZStd::string captureInfo = outputFilePath;
         if (!saveResult.IsSuccess())
