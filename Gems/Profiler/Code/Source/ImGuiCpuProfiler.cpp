@@ -920,6 +920,13 @@ namespace Profiler
             return;
         }
 
+#if defined(CARBONATED)
+        // skip out of the viewport blocks by x coordinate, this helps if zooming-in a long frame
+        if (block.m_startTick > m_viewportEndTick || block.m_endTick < m_viewportStartTick)
+        {
+            return;
+        }
+#endif
         float wy = ImGui::GetWindowPos().y - ImGui::GetScrollY();
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
@@ -927,19 +934,42 @@ namespace Profiler
         const float startPixel = ConvertTickToPixelSpace(block.m_startTick, m_viewportStartTick, m_viewportEndTick);
         const float endPixel = ConvertTickToPixelSpace(block.m_endTick, m_viewportStartTick, m_viewportEndTick);
 
+#if !defined(CARBONATED)
         if (endPixel - startPixel < 0.5f)
         {
             return;
         }
+#endif
 
         const ImVec2 startPoint = { startPixel, wy + targetRow * RowHeight + 1};
         const ImVec2 endPoint = { endPixel, wy + (targetRow + 1) * RowHeight };
 
         const ImU32 blockColor = GetBlockColor(block);
 
+#if defined(CARBONATED)
+        // skip out of viewport blocks by y coordinate
+        if (startPoint.y > ImGui::GetWindowPos().y + ImGui::GetWindowHeight() || endPoint.y < ImGui::GetWindowPos().y)
+        {
+            return;
+        }
+
+        if (endPixel - startPixel < 2.0f)  // simplified drawing & no hovering for narrow blocks to reduce the number of primitives
+        {
+            if (endPixel - startPixel > 0.3f)
+            {
+                drawList->AddRectFilled(startPoint, endPoint, blockColor, 0);
+                //drawList->AddLine(startPoint, { startPoint.x, endPoint.y }, blockColor, 1.0f);
+            }
+            return;
+        }
+#endif
+
         drawList->AddRectFilled(startPoint, endPoint, blockColor, 0);
+#if !defined(CARBONATED)
+        // the less primitives the better because of the limit
         drawList->AddLine(startPoint, { endPixel, startPoint.y }, IM_COL32_BLACK, 0.5f);
         drawList->AddLine({ startPixel, endPoint.y }, endPoint, IM_COL32_BLACK, 0.5f);
+#endif
 
         // Draw the region name if possible
         // If the block's current width is too small, we skip drawing the label.

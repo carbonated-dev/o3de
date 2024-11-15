@@ -101,7 +101,12 @@ namespace Profiler
                 va_list args;
                 va_start(args, eventNameArgCount);
                 // Push it to the stack
+#if defined(CARBONATED)
+                // overflow assertion happens with just 512
+                CachedTimeRegion timeRegion({ budget->Name(), AZStd::fixed_string<512 + 128>::format_arg(eventName, args).c_str() });
+#else
                 CachedTimeRegion timeRegion({ budget->Name(), AZStd::fixed_string<512>::format_arg(eventName, args).c_str() });
+#endif
                 ms_threadLocalStorage->RegionStackPushBack(timeRegion);
             }
 
