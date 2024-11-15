@@ -354,10 +354,13 @@ namespace Profiler
                 const AZStd::string regionName = cachedTimeRegion.m_groupRegionName.m_regionName.GetStringView();
                 AZStd::vector<CachedTimeRegion>& regionVec = m_cachedTimeRegionMap[regionName];
                 regionVec.push_back(cachedTimeRegion);
+#if !defined(CARBONATED)
+                // we want them all for detailed micro-freeze profiling
                 if (regionVec.size() >= TimeRegionStackSize)
                 {
                     m_hitSizeLimitMap.insert_or_assign(AZStd::move(regionName), true);
                 }
+#endif
             }
 
             // Clear the cached regions

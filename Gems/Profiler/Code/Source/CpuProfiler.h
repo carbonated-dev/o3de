@@ -73,7 +73,11 @@ namespace Profiler
 
     private:
         // Maximum stack size
+#if defined(CARBONATED)
+        static constexpr uint32_t TimeRegionStackSize = 16u * 1024u;
+#else
         static constexpr uint32_t TimeRegionStackSize = 2048u;
+#endif
 
         // Adds a region to the stack, gets called each time a region begins
         void RegionStackPushBack(CachedTimeRegion& timeRegion);
