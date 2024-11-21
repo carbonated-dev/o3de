@@ -872,6 +872,9 @@ namespace AZ
         
         void MeshFeatureProcessor::OnBeginPrepareRender()
         {
+#if defined(CARBONATED)
+            AZ_PROFILE_FUNCTION(RPI);
+#endif
             m_meshDataChecker.soft_lock();
                         
             // The per-mesh shader option flags are set in feature processors' simulate function
@@ -934,6 +937,12 @@ namespace AZ
 
                 if (r_meshInstancingEnabled)
                 {
+                    AZ_PROFILE_SCOPE(RPI, "MeshFeatureProcessor: update shader options, instancing");
+                    int nDrawPacketsUpdated = 0;
+                    int nDrawPacketsOK = 0;
+                    AZStd::set<const char*> updatedSet;
+                    AZStd::set<const char*> sameSet;
+
                     for (auto& instanceGroupDataIter : instanceGroupsNeedUpdate)
                     {
                         // default values for when r_enablePerMeshShaderOptionFlags was set from true to false
@@ -965,10 +974,61 @@ namespace AZ
                                 });
                             instanceGroupDataIter->UpdateDrawPacket(*GetParentScene(), true);
 
+                            nDrawPacketsUpdated++;
+                            for (auto &instance : instanceGroupDataIter->m_associatedInstances)
+                            {
+                                const char* name = instance->GetModel()->GetModelAsset()->GetName().GetCStr();
+                                updatedSet.insert(name);
+                            }
+
                             // Note, we don't need to call CacheRootConstantInterval() here because the root constant layout won't change
                             // when we switch shader variants.
                         }
+                        else
+                        {
+                            nDrawPacketsOK++;
+                            for (auto &instance : instanceGroupDataIter->m_associatedInstances)
+                            {
+                                const char* name = instance->GetModel()->GetModelAsset()->GetName().GetCStr();
+                                sameSet.insert(name);
+                            }
+                        }
                     }
+
+                    if (nDrawPacketsUpdated > 200)
+                    {
+                        AZ_Info("MicroFreeze", "nDrawPacketsUpdated=%d, same %d", nDrawPacketsUpdated, nDrawPacketsOK);
+                        if (nDrawPacketsUpdated > 500)
+                        {
+                            //const char* name = (*((*(instanceGroupsNeedUpdate.begin()))->m_associatedInstances.begin()))->GetModel()->GetModelAsset()->GetName().GetCStr();
+                            /*
+                            const char* name = "";
+                            for (auto& instanceGroupDataIter : instanceGroupsNeedUpdate)
+                            {
+                                for (auto &instance : instanceGroupDataIter->m_associatedInstances)
+                                {
+                                    const char* newName = instance->GetModel()->GetModelAsset()->GetName().GetCStr();
+                                    if (newName != nullptr && strcmp(name, newName) != 0)
+                                    {
+                                        name = newName;
+                                        AZ_Info("MicroFreeze", "Many instances of %s", name);
+                                    }
+                                }
+                            }
+                             */
+                            /*
+                            for (auto name : updatedSet)
+                            {
+                                AZ_Info("MicroFreeze", "Updated %s", name);
+                            }
+                            for (auto name : sameSet)
+                            {
+                                AZ_Info("MicroFreeze", "Same %s", name);
+                            }
+                             */
+                        }
+                    }
+
                 }
             }
 

@@ -76,6 +76,8 @@ namespace AZ
     
         id<MTLFunction> PipelineState::CompileShader(id<MTLDevice> mtlDevice, const AZStd::string_view sourceStr, const AZStd::string_view entryPoint, const ShaderStageFunction* shaderFunction, MTLFunctionConstantValues* constantValues)
         {
+            AZ_PROFILE_FUNCTION(RHI);  //???
+
             id<MTLFunction> pFunction = nullptr;
             NSString* source = [[NSString alloc] initWithCString : sourceStr.data() encoding: NSASCIIStringEncoding];
             
@@ -99,9 +101,9 @@ namespace AZ
             const double startTime = GetCurrentTimeSeconds();
             if (startTime - sequencePrevTime > 20.0 / 1000.0)
             {
-                if (sequenceSummaryTime > 0.0) //1.0 / 1000.0)
+                if (sequenceSummaryTime > 1.0 / 1000.0)
                 {
-                    AZ_Info("MicroFreeze", "Shader creation sequence %.1f ms ago took %.3f ms", (startTime - sequencePrevTime) * 1000.0, sequenceSummaryTime * 1000.0);
+                    //AZ_Info("MicroFreeze", "Shader creation sequence %.1f ms ago took %.3f ms", (startTime - sequencePrevTime) * 1000.0, sequenceSummaryTime * 1000.0);
                 }
                 sequenceSummaryTime = 0.0;
             }
@@ -134,11 +136,9 @@ namespace AZ
             
             const double dt = GetCurrentTimeSeconds() - startTime;
             sequenceSummaryTime += dt;
-            if (dt > 0.2 / 1000.0)
+            if (dt > 0.5 / 1000.0)
             {
-                AZ_Info("MicroFreeze", "Shader created in %.3f ms from %s",
-                        dt * 1000.0,
-                        (byteCodeLength > 0 && loadFromByteCode) ? "data" : "source");
+                AZ_Info("MicroFreeze", "Shader created in %.3f ms from %s", dt * 1000.0, (byteCodeLength > 0 && loadFromByteCode) ? "data" : "source");
             }
             
             if (error)
@@ -152,12 +152,21 @@ namespace AZ
             
             if (lib)
             {
+                const double t0 = GetCurrentTimeSeconds();
+                
                 NSString* entryPointStr = [[NSString alloc] initWithCString : entryPoint.data() encoding: NSASCIIStringEncoding];
                 pFunction = [lib newFunctionWithName:entryPointStr constantValues:constantValues error:&error];
                 [entryPointStr release];
                 entryPointStr = nil;
                 [lib release];
                 lib = nil;
+
+                const double dt = GetCurrentTimeSeconds() - t0;
+                if (dt > 1.0 / 1000.0)
+                {
+                    AZ_Info("MicroFreeze", "Shader constants entry point created in %.3f ms for %s", dt * 1000.0, entryPoint.data());
+                }
+
             }
             
             AZ_Assert(pFunction, "Shader did not compile");
@@ -171,6 +180,9 @@ namespace AZ
                                                     const RHI::PipelineStateDescriptorForDraw& descriptor,
                                                     RHI::PipelineLibrary* pipelineLibraryBase)
         {
+            //AZ_PROFILE_FUNCTION(RHI);  //???  this is the way
+            const double p0 = AZ::RHI::TimeInterval::GetTimeSec();
+            
             NSError* error = 0;
             Device& device = static_cast<Device&>(deviceBase);
             RHI::ConstPtr<PipelineLayout> pipelineLayout = device.AcquirePipelineLayout(*descriptor.m_pipelineLayoutDescriptor);
@@ -197,67 +209,98 @@ namespace AZ
             m_renderPipelineDesc.vertexDescriptor = vertexDescriptor;
             [vertexDescriptor release];
             vertexDescriptor = nil;
-            
+                
+            const double p1 = AZ::RHI::TimeInterval::GetTimeSec();
+
             MTLFunctionConstantValues* constantValues = CreateFunctionConstantsValues(descriptor);
-            
+                
             m_renderPipelineDesc.vertexFunction = ExtractMtlFunction(device.GetMtlDevice(), descriptor.m_vertexFunction.get(), constantValues);
+
+            const double p1a = AZ::RHI::TimeInterval::GetTimeSec();
+            
             AZ_Assert(m_renderPipelineDesc.vertexFunction, "Vertex mtlFuntion can not be null");
             m_renderPipelineDesc.fragmentFunction = ExtractMtlFunction(device.GetMtlDevice(), descriptor.m_fragmentFunction.get(), constantValues);
-            
+
+            const double p1b = AZ::RHI::TimeInterval::GetTimeSec();
+
             RHI::Format depthStencilFormat = attachmentsConfiguration.GetDepthStencilFormat();
             if(descriptor.m_renderStates.m_depthStencilState.m_stencil.m_enable || IsDepthStencilMerged(depthStencilFormat))
             {
                 m_renderPipelineDesc.stencilAttachmentPixelFormat = ConvertPixelFormat(depthStencilFormat);
-            }
-            
-            //Depthstencil state
-            if(descriptor.m_renderStates.m_depthStencilState.m_depth.m_enable || IsDepthStencilMerged(depthStencilFormat))
+             }
+
+            const double p2 = AZ::RHI::TimeInterval::GetTimeSec();
+
             {
-                m_renderPipelineDesc.depthAttachmentPixelFormat = ConvertPixelFormat(depthStencilFormat);
-                
-                MTLDepthStencilDescriptor* depthStencilDesc = [[MTLDepthStencilDescriptor alloc] init];
-                ConvertDepthStencilState(descriptor.m_renderStates.m_depthStencilState, depthStencilDesc);
-                m_depthStencilState = [device.GetMtlDevice() newDepthStencilStateWithDescriptor:depthStencilDesc];
-                AZ_Assert(m_depthStencilState, "Could not create Depth Stencil state.");
-                [depthStencilDesc release];
-                depthStencilDesc = nil;
-            }
+                //AZ_PROFILE_SCOPE(RHI, "InitInternal 1");  //???
+
+                //Depthstencil state
+                if(descriptor.m_renderStates.m_depthStencilState.m_depth.m_enable || IsDepthStencilMerged(depthStencilFormat))
+                {
+                    m_renderPipelineDesc.depthAttachmentPixelFormat = ConvertPixelFormat(depthStencilFormat);
+                    
+                    MTLDepthStencilDescriptor* depthStencilDesc = [[MTLDepthStencilDescriptor alloc] init];
+                    ConvertDepthStencilState(descriptor.m_renderStates.m_depthStencilState, depthStencilDesc);
+                    m_depthStencilState = [device.GetMtlDevice() newDepthStencilStateWithDescriptor:depthStencilDesc];
+                    AZ_Assert(m_depthStencilState, "Could not create Depth Stencil state.");
+                    [depthStencilDesc release];
+                    depthStencilDesc = nil;
+                }
 #if defined(__IPHONE_16_0) || defined(__MAC_13_0)
-            m_renderPipelineDesc.rasterSampleCount = descriptor.m_renderStates.m_multisampleState.m_samples;
+                m_renderPipelineDesc.rasterSampleCount = descriptor.m_renderStates.m_multisampleState.m_samples;
 #else
-            m_renderPipelineDesc.sampleCount = descriptor.m_renderStates.m_multisampleState.m_samples;
+                m_renderPipelineDesc.sampleCount = descriptor.m_renderStates.m_multisampleState.m_samples;
 #endif
+            }
             
+            const double p3 = AZ::RHI::TimeInterval::GetTimeSec();
+            bool p43true = true;
+
             m_renderPipelineDesc.alphaToCoverageEnabled = descriptor.m_renderStates.m_blendState.m_alphaToCoverageEnable;
             
             PipelineLibrary* pipelineLibrary = static_cast<PipelineLibrary*>(pipelineLibraryBase);
             if (pipelineLibrary && pipelineLibrary->IsInitialized())
             {
+                p43true = true;
                 m_graphicsPipelineState = pipelineLibrary->CreateGraphicsPipelineState(static_cast<uint64_t>(descriptor.GetHash()), m_renderPipelineDesc, &error);
             }
             else
             {
+                p43true = false;
                 MTLRenderPipelineReflection* ref;
                 m_graphicsPipelineState = [device.GetMtlDevice() newRenderPipelineStateWithDescriptor:m_renderPipelineDesc options : MTLPipelineOptionBufferTypeInfo reflection : &ref error : &error];
             }
             
-            if(m_graphicsPipelineState==nil)
-            {
-                if (RHI::Validation::IsEnabled())
-                {
-                    NSLog(@" error => %@ ", [error userInfo] );
-                }
-                AZ_Assert(false, "Could not create Pipeline object!.");
-            }
-            //We keep the descriptors alive in case we want to build the PSO cache. Delete them otherwise.
-            m_pipelineStateMultiSampleState = descriptor.m_renderStates.m_multisampleState;
-            
-            //Cache the rasterizer state
-            ConvertRasterState(descriptor.m_renderStates.m_rasterState, m_rasterizerState);
+            const double p4 = AZ::RHI::TimeInterval::GetTimeSec();
 
-            //Save the primitive topology
-            m_primitiveTopology = ConvertPrimitiveTopology(descriptor.m_inputStreamLayout.GetTopology());
+            {
+                //AZ_PROFILE_SCOPE(RHI, "InitInternal 3");  //???
+                
+                if(m_graphicsPipelineState==nil)
+                {
+                    if (RHI::Validation::IsEnabled())
+                    {
+                        NSLog(@" error => %@ ", [error userInfo] );
+                    }
+                    AZ_Assert(false, "Could not create Pipeline object!.");
+                }
+                //We keep the descriptors alive in case we want to build the PSO cache. Delete them otherwise.
+                m_pipelineStateMultiSampleState = descriptor.m_renderStates.m_multisampleState;
+                
+                //Cache the rasterizer state
+                ConvertRasterState(descriptor.m_renderStates.m_rasterState, m_rasterizerState);
+                
+                //Save the primitive topology
+                m_primitiveTopology = ConvertPrimitiveTopology(descriptor.m_inputStreamLayout.GetTopology());
+            }
+                
+            const double p5 = AZ::RHI::TimeInterval::GetTimeSec();
             
+            if (p5 - p0 > 0.010)  // more than 10ms
+            {
+                AZ_Info("p-state", "dt1a=%.1f dt1ba=%.1f dt21b=%.1f  p43=%d dt43=%.1f", (p1a-p1)*1000.0,  (p1b-p1a)*1000.0,  (p2-p1b)*1000.0,  p43true, (p4-p3)*1000.0);
+            }
+
             if (m_graphicsPipelineState)
             {
                 m_pipelineLayout = AZStd::move(pipelineLayout);

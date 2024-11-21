@@ -442,6 +442,8 @@ namespace AZ
 
         const RHI::PipelineState* Shader::AcquirePipelineState(const RHI::PipelineStateDescriptor& descriptor) const
         {
+            //AZ_PROFILE_FUNCTION(RPI);  //???
+
             return m_pipelineStateCache->AcquirePipelineState(m_pipelineLibraryHandle, descriptor, m_asset->GetName());
         }
 
@@ -467,11 +469,16 @@ namespace AZ
 
         Data::Instance<ShaderResourceGroup> Shader::CreateDrawSrgForShaderVariant(const ShaderOptionGroup& shaderOptions, bool compileTheSrg)
         {
+            //AZ_PROFILE_FUNCTION(RPI);  //???
+
             RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout = m_asset->GetDrawSrgLayout(GetSupervariantIndex());
             Data::Instance<ShaderResourceGroup> drawSrg;
             if (drawSrgLayout)
             {
-                drawSrg = RPI::ShaderResourceGroup::Create(m_asset, GetSupervariantIndex(), drawSrgLayout->GetName());
+                {
+                    //AZ_PROFILE_SCOPE(RPI, "CreateDrawSrgForShaderVariant Create");  //???
+                    drawSrg = RPI::ShaderResourceGroup::Create(m_asset, GetSupervariantIndex(), drawSrgLayout->GetName());
+                }
                 bool useFallbackKey = !shaderOptions.GetShaderOptionLayout()->IsFullySpecialized() ||
                     !m_asset->UseSpecializationConstants(GetSupervariantIndex());
                 if (useFallbackKey && drawSrgLayout->HasShaderVariantKeyFallbackEntry())
@@ -481,6 +488,8 @@ namespace AZ
 
                 if (compileTheSrg)
                 {
+                    //AZ_PROFILE_SCOPE(RPI, "CreateDrawSrgForShaderVariant Compile"); //???
+
                     drawSrg->Compile();
                 }
             }

@@ -28,11 +28,33 @@ namespace AZ::Render::MeshCommon
     inline static AZ::Name MotionDrawListTagName = AZ::Name::FromStringLiteral("motion", AZ::Interface<AZ::NameDictionary>::Get());
 
     template <typename BoundsType>
+    AZStd::string ColliderInfo(const BoundsType& bounds)
+    {
+        return AZStd::string::format("unknown collision primitive of size %lu", sizeof(BoundsType));
+    }
+    template<>
+    inline AZStd::string ColliderInfo<Sphere>(const Sphere& sphere)
+    {
+        return AZStd::string::format("Sphere %f,%f,%f - r=%f",
+                                     sphere.GetCenter().GetX(), sphere.GetCenter().GetY(), sphere.GetCenter().GetZ(), sphere.GetRadius() );
+    }
+    template<>
+    inline AZStd::string ColliderInfo<Aabb>(const Aabb& aabb)
+    {
+        return AZStd::string::format("Aabb %f,%f,%f - %f,%f,%f",
+                                     aabb.GetMin().GetX(), aabb.GetMin().GetY(), aabb.GetMin().GetZ(),
+                                     aabb.GetMax().GetX(), aabb.GetMax().GetY(), aabb.GetMax().GetZ());
+    }
+
+
+    template <typename BoundsType>
     void MarkMeshesForBounds(AZ::RPI::Scene* scene, const BoundsType& bounds, AZ::RPI::Cullable::FlagType flag)
     {
         AzFramework::IVisibilityScene* visScene = scene->GetVisibilityScene();
 
-        visScene->Enumerate(bounds, [flag, &boundsRef = bounds](const AzFramework::IVisibilityScene::NodeData& nodeData)
+        int nUpdates = 0;
+        
+        visScene->Enumerate(bounds, [flag, &boundsRef = bounds, &nUpdates](const AzFramework::IVisibilityScene::NodeData& nodeData)
             {
                 bool nodeIsContainedInBounds = ShapeIntersection::Contains(boundsRef, nodeData.m_bounds);
                 for (auto* visibleEntry : nodeData.m_entries)
@@ -46,11 +68,19 @@ namespace AZ::Render::MeshCommon
                         {
                             // This flag is cleared by the mesh feature processor each frame in OnEndPrepareRender()
                             cullable->m_shaderOptionFlags.fetch_or(flag);
+                            nUpdates++;
+                            constexpr int threshold = 500;
+                            if (nUpdates == threshold)
+                            {
+                                AZ_Info("mmwf", "MarkMeshesForBounds massive (%d) update with flag %d, collision with %s", threshold, flag, ColliderInfo(boundsRef).c_str());
+                            }
                         }
                     }
                 }
             }
         );
+        
+        //AZ_Info("mmwf", "MarkMeshesForBounds flag %d, updated %d", flag, nUpdates);
     }
 
     using BoundsVariant = AZStd::variant<AZStd::monostate, Sphere, Hemisphere, Frustum, Aabb, Capsule>;
@@ -64,6 +94,7 @@ namespace AZ::Render::MeshCommon
     template <typename BoundsType, class Filter = EmptyFilter<BoundsType>>
     void MarkMeshesWithFlag(AZ::RPI::Scene* scene, AZStd::span<const BoundsType> boundsCollection, AZ::RPI::Cullable::FlagType flag, Filter filter = {})
     {
+        //AZ_Info("mmwf", "MarkMeshesWithFlag1 %d", flag);
         for (const BoundsType& bounds : boundsCollection)
         {
             if (filter(bounds))
@@ -76,6 +107,7 @@ namespace AZ::Render::MeshCommon
     template <class Filter = EmptyFilter<BoundsVariant>>
     void MarkMeshesWithFlag(AZ::RPI::Scene* scene, AZStd::span<const BoundsVariant> boundsCollection, AZ::RPI::Cullable::FlagType flag, Filter filter = {})
     {
+        //AZ_Info("mmwf", "MarkMeshesWithFlag2 %d", flag);
         for (const BoundsVariant& bounds : boundsCollection)
         {
             if (filter(bounds))

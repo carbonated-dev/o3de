@@ -63,6 +63,8 @@ namespace AZ
 
         id<MTLRenderPipelineState> PipelineLibrary::CreateGraphicsPipelineState(uint64_t hash, MTLRenderPipelineDescriptor* pipelineStateDesc, NSError** error)
         {
+            AZ_PROFILE_FUNCTION(RHI);  //???
+
             Device& device = static_cast<Device&>(GetDevice());
             AZStd::lock_guard<AZStd::mutex> lock(m_mutex);
             

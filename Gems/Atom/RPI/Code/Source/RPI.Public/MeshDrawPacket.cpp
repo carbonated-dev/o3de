@@ -247,6 +247,8 @@ namespace AZ
 
         bool MeshDrawPacket::DoUpdate(const Scene& parentScene)
         {
+            //AZ_PROFILE_FUNCTION(RPI);  ///??? this is the way
+
             const auto meshes = m_modelLod->GetMeshes();
             const ModelLod::Mesh& mesh = meshes[m_modelLodMeshIndex];
 
@@ -290,6 +292,8 @@ namespace AZ
 
             auto appendShader = [&](const ShaderCollection::Item& shaderItem, const Name& materialPipelineName)
             {
+                //AZ_PROFILE_SCOPE(RPI, "MeshDrawPacket::DoUpdate appendShader");  //???  this is the way
+
                 // Skip the shader item without creating the shader instance
                 // if the mesh is not going to be rendered based on the draw tag
                 RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get();
