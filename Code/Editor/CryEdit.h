@@ -18,10 +18,6 @@
 #include "ViewPane.h"
 
 #include <QSettings>
-#if defined(CARBONATED)
-#include <AzFramework/Input/Buses/Notifications/InputChannelNotificationBus.h>
-#include <AzFramework/Input/Channels/InputChannel.h>
-#endif
 
 #endif
 
@@ -93,9 +89,6 @@ class SANDBOX_API CCryEditApp
     , protected AzFramework::AssetSystemInfoBus::Handler
     , protected EditorIdleProcessingBus::Handler
     , protected AzFramework::AssetSystemStatusBus::Handler
-#if defined(CARBONATED)
-    , public AzFramework::InputChannelNotificationBus::Handler
-#endif
 {
 AZ_POP_DISABLE_DLL_EXPORT_MEMBER_WARNING
 AZ_POP_DISABLE_DLL_EXPORT_BASECLASS_WARNING
@@ -166,6 +159,10 @@ public:
     QString GetRootEnginePath() const;
     void RedirectStdoutToNull();
 
+#if defined(CARBONATED)
+    bool HasConsoleSCBInputFocus() const;
+#endif
+
     // Overrides
 public:
     virtual bool InitInstance();
@@ -230,10 +227,6 @@ public:
     void OnToolsLogMemoryUsage();
     void OnToolsPreferences();
 
-#if defined(CARBONATED)
-    // AzFramework::InputChannelNotificationBus
-    void OnInputChannelEvent(const AzFramework::InputChannel& inputChannel, bool& hasBeenConsumed) override;
-#endif
 protected:
     // ------- AzFramework::AssetSystemInfoBus::Handler ------
     void OnError(AzFramework::AssetSystem::AssetSystemErrors error) override;
