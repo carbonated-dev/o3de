@@ -30,6 +30,37 @@ set(FILES
     ../Common/Clang/AzCore/std/string/fixed_string_Clang.inl
     ../Common/Apple/AzCore/Process/ProcessInfo_Apple.cpp
     ../Common/UnixLike/AzCore/Debug/StackTracer_UnixLike.cpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/include/__libunwind_config.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/include/libunwind.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/include/unwind_arm_ehabi.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/include/unwind.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/include/unwind_itanium.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/include/mach-o/compact_unwind_encoding.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/AddressSpace.hpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/Unwind-EHABI.cpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/Unwind-EHABI.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/Unwind_AIXExtras.cpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/CompactUnwinder.hpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/Unwind-seh.cpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/assembly.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/DwarfInstructions.hpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/Unwind-sjlj.c
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/cet_unwind.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/DwarfParser.hpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/Unwind-wasm.c
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/config.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/EHHeaderParser.hpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/UnwindCursor.hpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/dwarf2.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/FrameHeaderCache.hpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/UnwindLevel1-gcc-ext.c
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/libunwind.cpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/RWMutex.hpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/UnwindLevel1.c
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/libunwind_ext.h
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/Registers.hpp
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/UnwindRegistersSave.s
+    ../Common/UnixLike/AzCore/Debug/libunwind/src/UnwindRegistersRestore.s
     ../Common/Apple/AzCore/Debug/Trace_Apple.cpp
     ../Common/Default/AzCore/IO/Streamer/StreamerConfiguration_Default.cpp
     ../Common/Default/AzCore/IO/Streamer/StreamerContext_Default.cpp

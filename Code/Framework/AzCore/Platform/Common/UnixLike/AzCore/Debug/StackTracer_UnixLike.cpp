@@ -15,8 +15,10 @@
 #include <signal.h>
 #include <cstdio>
 #include <cstdlib>
+
 #define UNW_LOCAL_ONLY
-#include <libunwind.h>
+//#include <libunwind.h>
+#include "libunwind/include/libunwind.h"
 
 #include <AzCore/std/parallel/mutex.h>
 
@@ -51,14 +53,48 @@ StackRecorder::Record(StackFrame* frames, unsigned int maxNumOfFrames, unsigned 
     unw_context_t context;
 
     // Initialize cursor to current frame for local unwinding.
-    unw_getcontext(&context);
-    unw_init_local(&cursor, &context);
-
-    int skip = static_cast<int>((suppressCount == 0) ? 1 : suppressCount); // Skip at least this function
-    while ((unw_step(&cursor) > 0) && (count < maxNumOfFrames))
+    int ret = unw_getcontext1(&context);
+    if (ret != UNW_ESUCCESS)
     {
+        AZ_Error("uuu", false, "Cannot get unwind context");
+        return 0;
+    }
+    
+    ret = unw_init_local1(&cursor, &context);
+    if (ret != UNW_ESUCCESS)
+    {
+        AZ_Error("uuu", false, "Cannot init unwind cursor");
+        return 0;
+    }
+    
+    int skip = static_cast<int>((suppressCount == 0) ? 1 : suppressCount); // Skip at least this function
+    for (;;)
+    {
+        const int res = unw_step1(&cursor);
+        if (res == 0)
+        {
+            break;
+        }
+        if (res <= 0)
+        {
+            char buf[128];
+            buf[0] = 0;
+            snprintf(buf, sizeof(buf), "%d:%d", count, res);
+            if (nativeThread != nullptr)
+            {
+                AZ_Info("uuu", buf);
+            }
+            break;
+        }
+        
+        if (count >= maxNumOfFrames)
+        {
+            break;
+        }
+            
         unw_word_t pc;
-        unw_get_reg(&cursor, UNW_REG_IP, &pc);
+        static_assert(sizeof(pc) == sizeof(void*));
+        unw_get_reg1(&cursor, UNW_REG_IP, &pc);
         if (pc == 0)
         {
             break;
@@ -87,6 +123,19 @@ unsigned int StackConverter::FromNative([[maybe_unused]] StackFrame* frames, [[m
 void
 SymbolStorage::DecodeFrames(const StackFrame* frames, unsigned int numFrames, StackLine* textLines)
 {
+    {
+        for (unsigned int i = 0; i < numFrames; ++i)
+        {
+            textLines[i][0] = 0;
+            if (frames[i].m_programCounter != 0)
+            {
+                ::std::snprintf(textLines[i], AZ_ARRAY_SIZE(textLines[i]), "%d %p", i, (void*)(frames[i].m_programCounter));
+                AZ_Info("uuu", "frame[%d]=%p", i, (void*)(frames[i].m_programCounter));
+            }
+        }
+        return;
+    }
+    
     int count = 0;
     unw_cursor_t cursor;
     unw_context_t context;
@@ -94,14 +143,39 @@ SymbolStorage::DecodeFrames(const StackFrame* frames, unsigned int numFrames, St
     g_mutex.lock();
 
     // Initialize cursor to current frame for local unwinding.
-    unw_getcontext(&context);
-    unw_init_local(&cursor, &context);
+    int ret = unw_getcontext1(&context);
+    if (ret != UNW_ESUCCESS)
+    {
+        AZ_Error("uuu", false, "Cannot get unwind context");
+        return;
+    }
+    
+    ret = unw_init_local1(&cursor, &context);
+    if (ret != UNW_ESUCCESS)
+    {
+        AZ_Error("uuu", false, "Cannot init unwind cursor");
+        return;
+    }
 
     for (unsigned int i = 0; i < numFrames; ++i)
     {
         if (frames[i].IsValid())
         {
-            unw_set_reg(&cursor, UNW_REG_IP, frames[i].m_programCounter);
+            {
+                SymbolStorage::StackLine& textLine = textLines[count++];
+                textLine[0] = 0;
+                ::std::snprintf(textLine, AZ_ARRAY_SIZE(textLine), "%d %p", i, (void*)(frames[i].m_programCounter));
+                continue;
+            }
+            
+            unw_word_t pc;
+            static_assert(sizeof(pc) == sizeof(void*));
+            unw_get_reg1(&cursor, UNW_REG_IP, &pc);
+            if (pc != 0)
+            {
+                unw_set_reg1(&cursor, UNW_REG_SP, pc);
+            }
+            //unw_set_reg(&cursor, UNW_REG_IP, frames[i].m_programCounter);
 
             SymbolStorage::StackLine& textLine = textLines[count++];
             textLine[0] = 0;

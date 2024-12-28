@@ -9,6 +9,10 @@
 #include <Atom/RHI.Reflect/Base.h>
 #include <RHI/CommandQueue.h>
 
+#if defined(CARBONATED)
+#include <Atom/RHI/RHISystemInterface.h>
+#endif
+
 namespace AZ
 {
     namespace Metal
