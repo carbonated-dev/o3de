@@ -13,6 +13,9 @@
 #include <AzToolsFramework/UI/DocumentPropertyEditor/DocumentPropertyEditor.h>
 #include <AzToolsFramework/UI/PropertyEditor/PropertyAudioCtrlTypes.h>
 #include <AzToolsFramework/UI/PropertyEditor/GenericComboBoxCtrl.h>
+#if defined(CARBONATED)
+#include <AzToolsFramework/UI/PropertyEditor/PropertyStringLineEditCtrl.hxx>
+#endif
 
 namespace AzToolsFramework
 {
@@ -198,6 +201,10 @@ namespace AzToolsFramework
                     m_currentUndoBatch, &AzToolsFramework::ToolsApplicationRequests::BeginUndoBatch, "Modify Property");
             }
 
+#if defined(CARBONATED)
+            // Workaround for MAD-16909: Do not process the event OnValueChanged with arg InProgressEdit for StringLineEdit GUI control to avoid internal copy content crash
+            if (!dynamic_cast<AzToolsFramework::PropertyStringLineEditCtrl*>(editorGUI))
+#endif
             IndividualPropertyHandlerEditNotifications::Bus::Event(
                 editorGUI, &IndividualPropertyHandlerEditNotifications::Bus::Events::OnValueChanged,
                 AZ::DocumentPropertyEditor::Nodes::ValueChangeType::InProgressEdit);
