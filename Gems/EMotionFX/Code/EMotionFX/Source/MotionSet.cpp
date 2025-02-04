@@ -543,9 +543,22 @@ namespace EMotionFX
                 AZ_Printf("EMotionFX", "Failed to load motion '%s' for motion set '%s'.", entry->GetFilename(), GetName());
 #endif
             }
+#if defined(CARBONATED)
+            else
+            {
+                AZ_Info("EMotionFXdebug", "Loaded motion '%s' for motion set '%s'.", entry->GetFilename(), GetName());
+            }
+#endif
 
             entry->SetMotion(motion);
         }
+#if defined(CARBONATED)
+        else if (!motion && !entry->GetFilenameString().empty())
+        {
+            AZ_Info("EMotionFXdebug", "Skip loading motion '%s' for motion set '%s', previously failed %d, callback assigned %d",
+                entry->GetFilename(), GetName(), entry->GetLoadingFailed(), m_callback != nullptr);
+        }
+#endif
 
         return motion;
     }
