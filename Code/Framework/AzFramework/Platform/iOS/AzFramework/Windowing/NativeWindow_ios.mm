@@ -51,6 +51,13 @@ namespace AzFramework
                                           [[maybe_unused]]const WindowStyleMasks& styleMasks)
     {
         CGRect screenBounds = [[UIScreen mainScreen] bounds];
+        
+        CGRect nativeBounds = [[UIScreen mainScreen] nativeBounds];
+        NSLog(@"rrrr bounds %.0f x %.0f, native %.0f x %.0f, is landscape %d",
+              screenBounds.size.width, screenBounds.size.height,
+              nativeBounds.size.width, nativeBounds.size.height,
+              IsLandscape());
+
         m_nativeWindow = [[UIWindow alloc] initWithFrame: screenBounds];
         [m_nativeWindow makeKeyAndVisible];
         

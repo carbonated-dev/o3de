@@ -250,10 +250,13 @@ namespace AzFramework
     ////////////////////////////////////////////////////////////////////////////////////////////////
     void InputDeviceVirtualKeyboardiOS::TextEntryStart(const InputTextEntryRequests::VirtualKeyboardOptions& options)
     {
-        UIWindow* foundWindow = nil;        
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        UIWindow* foundWindow = nil;
 #if defined(__IPHONE_13_0) || defined(__TVOS_13_0)
         if(@available(iOS 13.0, tvOS 13.0, *))
         {
+
             NSArray* windows = [[UIApplication sharedApplication] windows];
             for (UIWindow* window in windows)
             {
@@ -274,7 +277,7 @@ namespace AzFramework
         {
             return;
         }
-
+#pragma clang diagnostic pop
         // Add the text field to the root view.
         [rootView addSubview: m_textField];
 

@@ -15,6 +15,9 @@
 
 #include <AzCore/std/string/conversions.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 @implementation InAppPurchasesDelegate
 
 -(NSString*) convertPriceToString:(NSDecimalNumber*) price forLocale:(NSLocale*) locale
@@ -411,3 +414,5 @@
 }
 
 @end
+
+#pragma clang diagnostic pop

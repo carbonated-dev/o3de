@@ -58,6 +58,10 @@ namespace AZ
                                                            scale: screenScale
                                                           device: m_mtlDevice];
                 
+                NSLog(@"rrrr metal view bounds %.0f x %.0f, scale %.1f",
+                      screenBounds.size.width, screenBounds.size.height,
+                      screenScale);
+
                 [m_metalView retain];
                 
                 // Create the MetalViewController
@@ -99,6 +103,10 @@ namespace AZ
                                                        scale: screenScale
                                                       device: m_mtlDevice];
             
+            NSLog(@"rrrr metal subview bounds %.0f x %.0f, scale %.1f",
+                  screenBounds.size.width, screenBounds.size.height,
+                  screenScale);
+
             [m_metalView retain];
             [superView addSubview: m_metalView];
         }

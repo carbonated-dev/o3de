@@ -107,7 +107,8 @@ namespace AZ
                         [alert addAction:okAction];
                     }
                 }
-                
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
                 UIWindow* foundWindow = nil;
                 NSArray* windows = [[UIApplication sharedApplication] windows];
                 for (UIWindow* window in windows)
@@ -119,6 +120,23 @@ namespace AZ
                     }
                 }
                 UIViewController* rootViewController = foundWindow ? foundWindow.rootViewController : nil;
+#pragma clang diagnostic pop
+                /*
+                 // deprecated API fix by CARBONATED
+                UIViewController* rootViewController = nil;
+                NSArray *scenes = [[[UIApplication sharedApplication] connectedScenes] allObjects];
+                for (UIScene* scene in scenes)
+                {
+                    UIWindowScene *windowScene = scene;
+                    UIWindow* window = [windowScene keyWindow];
+                    if (window != nil && window.isKeyWindow)
+                    {
+                        rootViewController = window.rootViewController;
+                        break;
+                    }
+                }
+                UIViewController* rootViewController = foundWindow ? foundWindow.rootViewController : nil;
+                */
                 if (rootViewController)
                 {
                     mainThreadRunning = true;

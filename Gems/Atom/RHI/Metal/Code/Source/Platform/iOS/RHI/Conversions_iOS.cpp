@@ -118,7 +118,8 @@ namespace AZ
                     return false;
                 }
                 
-                bool isGPUFamily4 = [mtlDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily4_v1];
+                //bool isGPUFamily4 = [mtlDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily4_v1];
+                bool isGPUFamily4 = [mtlDevice supportsFamily: MTLGPUFamilyApple4];  // deprecated API fix by CARBONATED
                 
                 if(!isGPUFamily4)
                 {
