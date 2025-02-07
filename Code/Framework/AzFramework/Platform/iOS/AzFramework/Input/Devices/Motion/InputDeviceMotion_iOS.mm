@@ -136,8 +136,26 @@ namespace AzFramework
 #if defined(__IPHONE_13_0) || defined(__TVOS_13_0)
         if(@available(iOS 13.0, tvOS 13.0, *))
         {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#if defined(CARBONATED)
+            UIWindowScene* windowScene = nil;
+            NSArray *scenes = [[[UIApplication sharedApplication] connectedScenes] allObjects];  // deprecated API fix by CARBONATED, use scenes instead of windows
+            for (UIWindowScene* scene in scenes)
+            {
+                NSArray *windows=[scene windows];
+                for (UIWindow* window in windows)
+                {
+                    if (window.isKeyWindow)
+                    {
+                        windowScene = scene;
+                        break;
+                    }
+                }
+                if (windowScene != nil)
+                {
+                    break;
+                }
+            }
+#else
             UIWindow* foundWindow = nil;
             NSArray* windows = [[UIApplication sharedApplication] windows];
             for (UIWindow* window in windows)
@@ -149,7 +167,7 @@ namespace AzFramework
                 }
             }
             UIWindowScene* windowScene = foundWindow ? foundWindow.windowScene : nullptr;
-#pragma clang diagnostic pop
+#endif
             AZ_Assert(windowScene, "WindowScene is invalid");
             if(windowScene)
             {

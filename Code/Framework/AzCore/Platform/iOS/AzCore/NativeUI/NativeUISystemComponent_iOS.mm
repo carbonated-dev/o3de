@@ -107,36 +107,26 @@ namespace AZ
                         [alert addAction:okAction];
                     }
                 }
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-                UIWindow* foundWindow = nil;
-                NSArray* windows = [[UIApplication sharedApplication] windows];
-                for (UIWindow* window in windows)
-                {
-                    if (window.isKeyWindow)
-                    {
-                        foundWindow = window;
-                        break;
-                    }
-                }
-                UIViewController* rootViewController = foundWindow ? foundWindow.rootViewController : nil;
-#pragma clang diagnostic pop
-                /*
-                 // deprecated API fix by CARBONATED
+                
                 UIViewController* rootViewController = nil;
-                NSArray *scenes = [[[UIApplication sharedApplication] connectedScenes] allObjects];
-                for (UIScene* scene in scenes)
+                NSArray *scenes = [[[UIApplication sharedApplication] connectedScenes] allObjects];  // deprecated API fix by CARBONATED, use scenes instead of windows
+                for (UIWindowScene* scene in scenes)
                 {
-                    UIWindowScene *windowScene = scene;
-                    UIWindow* window = [windowScene keyWindow];
-                    if (window != nil && window.isKeyWindow)
+                    NSArray *windows=[scene windows];
+                    for (UIWindow* window in windows)
                     {
-                        rootViewController = window.rootViewController;
+                        if (window.isKeyWindow)
+                        {
+                            rootViewController = window.rootViewController;
+                            break;
+                        }
+                    }
+                    if (rootViewController != nil)
+                    {
                         break;
                     }
                 }
-                UIViewController* rootViewController = foundWindow ? foundWindow.rootViewController : nil;
-                */
+                
                 if (rootViewController)
                 {
                     mainThreadRunning = true;
