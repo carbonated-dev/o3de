@@ -54,12 +54,8 @@ public: // member functions
     ScaleToDeviceMode GetScaleToDeviceMode() override;
     void SetScaleToDeviceMode(ScaleToDeviceMode scaleToDeviceMode) override;
 
-    // carbonated begin (alukyanov/lyshine-related)
-#if defined(CARBONATED)
     bool GetIsFlooringOffsets() override;
     void SetIsFlooringOffsets(bool isFlooringOffsets) override;
-#endif
-    // carbonated end
 
     void GetViewportSpacePoints(RectPoints& points) final;
     AZ::Vector2 GetViewportSpacePivot() final;

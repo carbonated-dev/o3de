@@ -88,10 +88,8 @@ public:
     //! Load a sprite object.
     virtual ISprite* LoadSprite(const AZStd::string& pathname) = 0;
 
-#if defined(CARBONATED)
-#if defined(CARBONATED_CREATE_SPRITE_FROM_IMAGE)
+#if defined(CARBONATED) && defined(CARBONATED_CREATE_SPRITE_FROM_IMAGE)
     virtual ISprite* CreateSprite(AZ::Data::Instance<AZ::RPI::Image>& image) = 0;
-#endif
 #endif
 
     //! Create a sprite that references the specified render target asset

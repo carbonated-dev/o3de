@@ -61,6 +61,7 @@ namespace EMotionFX
             void SetRenderCharacter(bool enable) override;
             bool GetRenderActorVisible() const override;
 #if defined(CARBONATED)
+            AZ::Data::Asset<ActorAsset> GetActorAsset() const override;
             void SetForceJointUpdate(bool force) override;
             bool GetForceJointUpdate() override;
 #endif
@@ -69,10 +70,6 @@ namespace EMotionFX
             void SetActorAsset(AZ::Data::Asset<ActorAsset> actorAsset) override;
             void EnableInstanceUpdate(bool enable) override;
             void SetRayTracingEnabled(bool enabled) override;
-
-            // Returns actor asset
-            AZ::Data::Asset<AZ::Data::AssetData> GetActorAsset() override; // carbonated EMotionFX_port
-
 
             // EditorActorComponentRequestBus overrides ...
             const AZ::Data::AssetId& GetActorAssetId() override;

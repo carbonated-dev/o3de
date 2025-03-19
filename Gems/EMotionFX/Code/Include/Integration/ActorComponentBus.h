@@ -94,6 +94,7 @@ namespace EMotionFX
             virtual void SetRayTracingEnabled(bool enabled) = 0;
 
 #if defined(CARBONATED)
+            virtual AZ::Data::Asset<EMotionFX::Integration::ActorAsset> GetActorAsset() const = 0;
             virtual void SetForceJointUpdate(bool force) = 0;
             virtual bool GetForceJointUpdate() = 0;
 #endif
@@ -103,11 +104,6 @@ namespace EMotionFX
 
             // Use this to alter the actor asset.
             virtual void SetActorAsset(AZ::Data::Asset<EMotionFX::Integration::ActorAsset> actorAsset) = 0;
-
-#if defined(CARBONATED)
-            // Returns actor asset
-            virtual AZ::Data::Asset<AZ::Data::AssetData> GetActorAsset() = 0;
-#endif
 
             // Use this bus to enable or disable the actor instance update in the job scheduler system.
             // This could be useful if you want to manually update the actor instance.

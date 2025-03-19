@@ -690,8 +690,7 @@ CSprite* CSprite::LoadSprite(const AZStd::string& pathname)
     return sprite;
 }
 
-#if defined(CARBONATED)
-#if defined(CARBONATED_CREATE_SPRITE_FROM_IMAGE)
+#if defined(CARBONATED) && defined(CARBONATED_CREATE_SPRITE_FROM_IMAGE)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 CSprite* CSprite::CreateSprite(AZ::Data::Instance<AZ::RPI::Image>& image)
 {
@@ -723,7 +722,6 @@ CSprite* CSprite::CreateSprite(AZ::Data::Instance<AZ::RPI::Image>& image)
 
     return sprite;
 }
-#endif // CARBONATED_CREATE_SPRITE_FROM_IMAGE
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

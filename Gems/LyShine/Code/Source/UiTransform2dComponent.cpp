@@ -1357,10 +1357,10 @@ void UiTransform2dComponent::Reflect(AZ::ReflectContext* context)
             ->Event("SetPivotY", &UiTransformBus::Events::SetPivotY)
             ->Event("GetScaleToDeviceMode", &UiTransformBus::Events::GetScaleToDeviceMode)
             ->Event("SetScaleToDeviceMode", &UiTransformBus::Events::SetScaleToDeviceMode)
-#if defined(CARBONATED) // Carbonated patch : porting 02_27
+#if defined(CARBONATED)
             ->Event("GetIsFlooringOffsets", &UiTransformBus::Events::GetIsFlooringOffsets)
             ->Event("SetIsFlooringOffsets", &UiTransformBus::Events::SetIsFlooringOffsets)
-#endif // CARBONATED
+#endif
             ->Event("GetViewportPosition", &UiTransformBus::Events::GetViewportPosition)
             ->Event("SetViewportPosition", &UiTransformBus::Events::SetViewportPosition)
             ->Event("GetCanvasPosition", &UiTransformBus::Events::GetCanvasPosition)

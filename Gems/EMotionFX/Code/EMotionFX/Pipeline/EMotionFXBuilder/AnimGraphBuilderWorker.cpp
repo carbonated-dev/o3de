@@ -26,7 +26,11 @@ namespace EMotionFX
             animGraphBuilderDescriptor.m_name = "AnimGraphBuilderWorker";
             animGraphBuilderDescriptor.m_patterns.emplace_back(AssetBuilderSDK::AssetBuilderPattern("*.animgraph", AssetBuilderSDK::AssetBuilderPattern::PatternType::Wildcard));
             animGraphBuilderDescriptor.m_busId = azrtti_typeid<AnimGraphBuilderWorker>();
+#if defined(CARBONATED)            
             animGraphBuilderDescriptor.m_version = 3;
+#else
+            animGraphBuilderDescriptor.m_version = 2;
+#endif
             animGraphBuilderDescriptor.m_createJobFunction =
                 AZStd::bind(&AnimGraphBuilderWorker::CreateJobs, this, AZStd::placeholders::_1, AZStd::placeholders::_2);
             animGraphBuilderDescriptor.m_processJobFunction =

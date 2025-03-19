@@ -342,14 +342,12 @@ ISprite* CLyShine::LoadSprite(const AZStd::string& pathname)
     return CSprite::LoadSprite(pathname);
 }
 
-#if defined(CARBONATED)
-#if defined(CARBONATED_CREATE_SPRITE_FROM_IMAGE)
+#if defined(CARBONATED) && defined(CARBONATED_CREATE_SPRITE_FROM_IMAGE)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ISprite* CLyShine::CreateSprite(AZ::Data::Instance<AZ::RPI::Image>& image)
 {
     return CSprite::CreateSprite(image);
 }
-#endif
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

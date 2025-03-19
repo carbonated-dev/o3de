@@ -630,10 +630,12 @@ namespace EMotionFX
             CheckActorCreation();
         }
 
-        AZ::Data::Asset<AZ::Data::AssetData> EditorActorComponent::GetActorAsset()
+#if defined(CARBONATED)
+        AZ::Data::Asset<ActorAsset> EditorActorComponent::GetActorAsset() const
         {
             return m_actorAsset;
         }
+#endif
 
         void EditorActorComponent::EnableInstanceUpdate(bool enable)
         {

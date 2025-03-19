@@ -220,7 +220,7 @@ namespace LmbrCentral
 #if defined(CARBONATED)
 #if AZ_LOADSCREENCOMPONENT_ENABLED
             LoadScreenComponent::CreateDescriptor(),
-#endif // if AZ_LOADSCREENCOMPONENT_ENABLED
+#endif
 #endif
             });
 
@@ -251,7 +251,7 @@ namespace LmbrCentral
 #if defined(CARBONATED)
 #if AZ_LOADSCREENCOMPONENT_ENABLED
                    azrtti_typeid<LoadScreenComponent>(),
-#endif // if AZ_LOADSCREENCOMPONENT_ENABLED
+#endif
 #endif
         };
     }

@@ -83,9 +83,9 @@ protected: // member functions
     bool IsAutoActivationSupported() override;
     // ~UiInteractableComponent
 
-    #if defined(CARBONATED)
+#if defined(CARBONATED)
     void SetValueInternal(float value);
-    #endif
+#endif
 
     UiInteractableStatesInterface::State ComputeInteractableState() override;
 

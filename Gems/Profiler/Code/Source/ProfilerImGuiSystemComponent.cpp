@@ -116,10 +116,12 @@ namespace Profiler
 #endif
     }
 
+#if defined (CARBONATED)
     void ProfilerImGuiSystemComponent::AddExternalProfilerTimingData(const ProfilerExternalTimingData& externalTimingData)
     {
         m_imguiCpuProfiler.AddExternalTimingEntries(externalTimingData);
     }
+#endif
 
     void ProfilerImGuiSystemComponent::OnImGuiUpdate()
     {

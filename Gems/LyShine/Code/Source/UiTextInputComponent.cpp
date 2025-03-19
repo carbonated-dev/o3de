@@ -1336,7 +1336,7 @@ void UiTextInputComponent::Reflect(AZ::ReflectContext* context)
 #if defined(CARBONATED)
             ->Field("ShowSendOnReturnKey", &UiTextInputComponent::m_showSendOnReturnKey)
 #endif
-            // Actions group
+        // Actions group
             ->Field("ChangeAction", &UiTextInputComponent::m_changeAction)
             ->Field("EndEditAction", &UiTextInputComponent::m_endEditAction)
             ->Field("EnterAction", &UiTextInputComponent::m_enterAction);
@@ -1514,7 +1514,7 @@ void UiTextInputComponent::CheckStartTextInput()
             options.m_initialText = textString;
         else
 #endif
-            options.m_initialText = Utf8SubString(textString, m_textCursorPos, m_textSelectionStartPos);
+        options.m_initialText = Utf8SubString(textString, m_textCursorPos, m_textSelectionStartPos);
 
         AZ::EntityId canvasEntityId;
         UiElementBus::EventResult(canvasEntityId, GetEntityId(), &UiElementBus::Events::GetCanvasEntityId);

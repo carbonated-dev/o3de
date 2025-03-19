@@ -24,7 +24,11 @@ namespace EMotionFX
             motionSetBuilderDescriptor.m_name = "MotionSetBuilderWorker";
             motionSetBuilderDescriptor.m_patterns.emplace_back(AssetBuilderSDK::AssetBuilderPattern("*.motionset", AssetBuilderSDK::AssetBuilderPattern::PatternType::Wildcard));
             motionSetBuilderDescriptor.m_busId = azrtti_typeid<MotionSetBuilderWorker>();
+#if defined(CARBONATED)
             motionSetBuilderDescriptor.m_version = 3;
+#else
+            motionSetBuilderDescriptor.m_version = 2;
+#endif
             motionSetBuilderDescriptor.m_createJobFunction =
                 AZStd::bind(&MotionSetBuilderWorker::CreateJobs, this, AZStd::placeholders::_1, AZStd::placeholders::_2);
             motionSetBuilderDescriptor.m_processJobFunction =
