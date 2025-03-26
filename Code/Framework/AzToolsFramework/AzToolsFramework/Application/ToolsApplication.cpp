@@ -1312,12 +1312,13 @@ namespace AzToolsFramework
         return root->Changed() || changed;
     }
 
-    void ToolsApplication::EndUndoBatch()
+    bool ToolsApplication::EndUndoBatch()
     {
+        bool resultValue = true;
         AZ_Assert(m_currentBatchUndo, "Cannot end batch - no batch current");
         if (!m_currentBatchUndo)
         {
-            return; // let's not crash just becuase there's a programmer error.
+            return false; // let's not crash just becuase there's a programmer error.
         }
 
         if (m_currentBatchUndo->GetParent())
@@ -1347,6 +1348,7 @@ namespace AzToolsFramework
             }
             else
             {
+                resultValue = false; // we discarded it because it was empty
                 delete m_currentBatchUndo;
             }
 
@@ -1355,6 +1357,7 @@ namespace AzToolsFramework
 #endif
             m_currentBatchUndo = nullptr;
         }
+        return resultValue;
     }
 
     void ToolsApplication::OnPrefabInstancePropagationBegin()
