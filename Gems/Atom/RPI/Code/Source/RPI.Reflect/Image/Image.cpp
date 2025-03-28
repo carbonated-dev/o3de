@@ -34,6 +34,15 @@ namespace AZ
             AZ_Assert(m_image, "Failed to acquire an image instance from the RHI. Is the RHI initialized?");
         }
 
+        Image::~Image()
+        {
+            AZ::Data::AssetId assetId = GetAssetId();
+            AZ::Data::AssetInfo assetInfo;
+            AZ::Data::AssetCatalogRequestBus::BroadcastResult(assetInfo, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetInfoById, assetId);
+            AZ_Info("iii", "~Image %s", assetInfo.m_relativePath.c_str());
+        }
+
+
         bool Image::IsInitialized() const
         {
             return m_image->IsInitialized();

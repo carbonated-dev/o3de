@@ -228,12 +228,16 @@ namespace TextureAtlasNamespace
                 if (iterator->second.m_refs < 1 && iterator->second.m_atlas->GetTexture())
                 {
                     AtlasInfo temp = iterator->second;
+
+                    AZStd::string atlasName = iterator->first;
+
                     m_atlases.erase(iterator->first);
                     TextureAtlasNotificationBus::Broadcast(&TextureAtlasNotifications::OnAtlasUnloaded, temp.m_atlas);
 
                     // Tell the renderer to release the texture.
                     if (temp.m_atlas && temp.m_atlas->GetTexture())
                     {
+                        AZ_Info("iii", "Release texture for atlas %s", atlasName.c_str());
                         temp.m_atlas->GetTexture().reset();
                     }
                     // Delete the atlas

@@ -22,7 +22,7 @@ namespace AZ::RHI
     {
     public:
         AZ_RTTI(ImageView, "{F2BDEE1F-DEFD-4443-9012-A28AED028D7B}", ResourceView);
-        virtual ~ImageView() = default;
+        virtual ~ImageView();
 
         static constexpr uint32_t InvalidBindlessIndex = 0xFFFFFFFF;
 
