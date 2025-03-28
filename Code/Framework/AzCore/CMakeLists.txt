@@ -121,6 +121,7 @@ ly_add_source_properties(
         AzCore/Memory/OSAllocator.cpp
         AzCore/Memory/PoolAllocator.cpp
         AzCore/Memory/SystemAllocator.cpp
+        AzCore/Memory/GPUAllocator.cpp
     PROPERTY COMPILE_DEFINITIONS
     VALUES ${O3DE_STACK_CAPTURE_DEPTH_DEFINE}
 )

@@ -434,6 +434,8 @@ set(FILES
     Memory/NewAndDelete.inl
     Memory/OSAllocator.cpp
     Memory/OSAllocator.h
+    Memory/GPUAllocator.cpp
+    Memory/GPUAllocator.h
     Memory/PoolAllocator.cpp
     Memory/PoolAllocator.h
     Memory/SimpleSchemaAllocator.h
