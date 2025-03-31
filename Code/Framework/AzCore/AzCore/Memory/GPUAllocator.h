@@ -26,6 +26,9 @@ namespace AZ
 
         bool Create();
 
+        void Allocation(pointer ptr, size_type byteSize);
+        void Deallocation(pointer ptr, size_type byteSize);
+
         //////////////////////////////////////////////////////////////////////////
         // IAllocator
         AllocatorDebugConfig GetDebugConfig() override;
@@ -39,7 +42,7 @@ namespace AZ
         size_type get_allocated_size(pointer ptr, size_type alignment) const override;
         void            GarbageCollect() override                 {}
 
-        size_type       NumAllocatedBytes() const override       { return 0; }
+        size_type       NumAllocatedBytes() const override       { return m_numAllocatedBytes; }
 
         //////////////////////////////////////////////////////////////////////////
 
