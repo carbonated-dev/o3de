@@ -345,6 +345,9 @@ namespace AZ::Data
             {
                 if (m_shouldDispatchEvents)
                 {
+#if defined(CARBONATED)
+                    ASSET_TAG("");  // we don't want all the memory allocated while we're waiting to be tagged by the asset we're waiting for
+#endif
                     // The event will wake up either when the load finishes, a load job is queued for processing, or every
                     // N milliseconds to see if it should dispatch events.
                     constexpr int MaxWaitBetweenDispatchMs = 1;

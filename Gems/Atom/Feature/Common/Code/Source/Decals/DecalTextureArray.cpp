@@ -18,6 +18,10 @@
 #include <Atom/RPI.Reflect/Image/StreamingImageAsset.h>
 #include <AzCore/Name/NameDictionary.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 namespace AZ
 {
     namespace Render
@@ -383,7 +387,9 @@ namespace AZ
         {
             if (materialData.m_materialAssetData.IsReady())
                 return;
-
+#if defined(CARBONATED)
+            ASSET_TAG(materialData.m_materialAssetData.GetHint().c_str());
+#endif
             m_assetsCurrentlyLoading.emplace(materialData.m_materialAssetId);
             materialData.m_materialAssetData = QueueLoad(materialData.m_materialAssetId);
             AZ::Data::AssetBus::MultiHandler::BusConnect(materialData.m_materialAssetId);

@@ -48,6 +48,8 @@ namespace AZ
         RHIDevice = 9,
         Lod = 10,
         Shader = 11,
+        MetalTexture = 12,
+        MetalBuffer = 13,
 
         GameSpecific = 32  // game tags starts from this index, use your own enum starting with this value
     };

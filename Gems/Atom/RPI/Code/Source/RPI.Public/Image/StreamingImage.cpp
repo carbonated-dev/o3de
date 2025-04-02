@@ -32,6 +32,14 @@ namespace AZ
     {
         Data::Instance<StreamingImage> StreamingImage::FindOrCreate(const Data::Asset<StreamingImageAsset>& streamingImageAsset)
         {
+#if defined(CARBONATED)
+            if (!streamingImageAsset.GetHint().empty())
+            {
+                ASSET_TAG(streamingImageAsset.GetHint().c_str());
+                return Data::InstanceDatabase<StreamingImage>::Instance().FindOrCreate(
+                    Data::InstanceId::CreateFromAsset(streamingImageAsset), streamingImageAsset);
+            }
+#endif
             return Data::InstanceDatabase<StreamingImage>::Instance().FindOrCreate(
                 Data::InstanceId::CreateFromAsset(streamingImageAsset), streamingImageAsset);
         }
@@ -215,7 +223,7 @@ namespace AZ
         {
             if (IsInitialized())
             {
-                AZ_Info("iii", "StreamingImage::Shutdown for %s", m_imageAsset.GetHint().c_str());
+                //AZ_Info("iii", "StreamingImage::Shutdown for %s", m_imageAsset.GetHint().c_str());
 
 #if defined (AZ_RPI_STREAMING_IMAGE_HOT_RELOADING)
 #if defined(CARBONATED)
@@ -412,7 +420,7 @@ namespace AZ
 
         void StreamingImage::EvictMipChainAsset(size_t mipChainIndex)
         {
-            AZ_Info("iii", "StreamingImage::EvictMipChainAsset %d", mipChainIndex);
+            //AZ_Info("iii", "StreamingImage::EvictMipChainAsset %d", mipChainIndex);
 
             AZ_Assert(mipChainIndex < m_mipChains.size(), "Exceeded total number of mip chains.");
 

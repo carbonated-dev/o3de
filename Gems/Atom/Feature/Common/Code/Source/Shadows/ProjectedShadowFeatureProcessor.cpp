@@ -26,6 +26,10 @@
 #include <Atom/Feature/Mesh/MeshCommon.h>
 #include <CoreLights/Shadow.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 namespace AZ::Render
 {
     namespace
@@ -806,6 +810,9 @@ namespace AZ::Render
         auto createAtlas = [&](RHI::Format format, RHI::ImageBindFlags bindFlags, RHI::ImageAspectFlags aspectFlags, AZStd::string name)
             ->Data::Instance<RPI::AttachmentImage>
         {
+#if defined(CARBONATED)
+            ASSET_TAG(name.c_str());
+#endif
             RHI::ImageDescriptor imageDescriptor;
             const uint32_t shadowmapSize = static_cast<uint32_t>(m_atlas.GetBaseShadowmapSize());
             imageDescriptor.m_size = RHI::Size(shadowmapSize, shadowmapSize, 1);

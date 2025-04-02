@@ -9,6 +9,10 @@
 
 #include <Atom/Feature/CoreLights/LightCommon.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 namespace AZ::Render::LightCommon
 {
     bool NeedsCPUCulling(
@@ -53,6 +57,9 @@ namespace AZ::Render::LightCommon
         uint32_t inputVisibleBufferUsedCount,
         AZStd::vector<GpuBufferHandler>& outputVisibleBufferHandlers)
     {
+#if defined(CARBONATED)
+        ASSET_TAG(inputBufferName.data());
+#endif
         while (inputVisibleBufferUsedCount >= outputVisibleBufferHandlers.size())
         {
             GpuBufferHandler::Descriptor desc;

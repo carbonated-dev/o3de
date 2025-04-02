@@ -19,12 +19,19 @@
 
 #include <AtomCore/Instance/InstanceDatabase.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 namespace AZ
 {
     namespace RPI
     {
         Data::Instance<AttachmentImage> AttachmentImage::FindOrCreate(const Data::Asset<AttachmentImageAsset>& imageAsset)
         {
+#if defined(CARBONATED)
+            ASSET_TAG(imageAsset.GetHint().c_str());
+#endif
             return Data::InstanceDatabase<AttachmentImage>::Instance().FindOrCreate(
                 Data::InstanceId::CreateFromAssetId(imageAsset.GetId()), imageAsset);
         }

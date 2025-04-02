@@ -47,6 +47,10 @@
 
 #include <Atom/RHI.Reflect/InputStreamLayoutBuilder.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 static const int TabCharCount = 4;
 // set buffer sizes to hold max characters that can be drawn in 1 DrawString call
 static const size_t MaxVerts = 8 * 1024; // 2048 quads
@@ -1438,7 +1442,9 @@ bool AZ::FFont::InitTexture()
     const int width = m_fontTexture->GetWidth();
     const int height = m_fontTexture->GetHeight();
     const Name imageName(m_name.c_str());
-
+#if defined(CARBONATED)
+    ASSET_TAG(imageName.GetCStr());
+#endif
     Data::Instance<RPI::AttachmentImagePool> imagePool = RPI::ImageSystemInterface::Get()->GetSystemAttachmentPool();
     RHI::ImageDescriptor imageDescriptor = RHI::ImageDescriptor::Create2D(RHI::ImageBindFlags::ShaderRead, width, height, rhiImageFormat);
     m_fontAttachmentImage = RPI::AttachmentImage::Create(*imagePool.get(), imageDescriptor, imageName);

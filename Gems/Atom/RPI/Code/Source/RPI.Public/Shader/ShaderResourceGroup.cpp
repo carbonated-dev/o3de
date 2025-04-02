@@ -89,6 +89,11 @@ namespace AZ
         {
 #if defined(CARBONATED)
             MEMORY_TAG(Shader);
+#if defined(AZ_ADVANCED_ASSET_TRACING)
+            AZ::Data::AssetInfo assetInfo;
+            AZ::Data::AssetCatalogRequestBus::BroadcastResult(assetInfo, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetInfoById, shaderAsset.GetId());
+            ASSET_TAG(assetInfo.m_relativePath.c_str());
+#endif
 #endif
             AZ_Assert(anySrgInitParams, "Invalid SrgInitParams");
             auto srgInitParams = AZStd::any_cast<SrgInitParams>(*anySrgInitParams);

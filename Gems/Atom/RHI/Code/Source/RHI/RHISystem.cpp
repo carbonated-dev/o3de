@@ -24,6 +24,10 @@
 #include <AzCore/std/string/conversions.h>
 #include <AzFramework/StringFunc/StringFunc.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 AZ_DEFINE_BUDGET(RHI);
 
 namespace AZ::RHI
@@ -251,7 +255,15 @@ namespace AZ::RHI
                     RHISystemNotificationBus::Broadcast(&RHISystemNotificationBus::Events::OnFramePrepare, m_frameScheduler);
                 }
 
+#if defined(CARBONATED)
+                RHI::MessageOutcome outcome;
+                {
+                    ASSET_TAG("FrameTransientAssets");
+                    outcome = m_frameScheduler.Compile(m_compileRequest);
+                }
+#else
                 RHI::MessageOutcome outcome = m_frameScheduler.Compile(m_compileRequest);
+#endif
                 if (outcome.IsSuccess())
                 {
                     m_frameScheduler.Execute(RHI::JobPolicy::Parallel);

@@ -40,22 +40,22 @@ namespace AZ
     {
         return AllocatorDebugConfig()
             .StackRecordLevels(O3DE_STACK_CAPTURE_DEPTH)
-            .UsesMemoryGuards()
-            .MarksUnallocatedMemory()
+            .UsesMemoryGuards(false)  // this is a fake allocator, it cannot affect the memory
+            .MarksUnallocatedMemory(false)  // this is a fake allocator, it cannot affect the memory
             .ExcludeFromDebugging(false);
     }
 
     void GPUAllocator::Allocation(pointer ptr, size_type byteSize)
     {
 #if defined(AZ_ENABLE_TRACING)
-        AZ_MEMORY_PROFILE(ProfileAllocation(ptr, byteSize, 1, 1));
+        AZ_MEMORY_PROFILE(ProfileAllocation(((uint8_t*)ptr) + 1, byteSize, 1, 1));  // +1 to avoid interference with CPU addresses
         m_numAllocatedBytes += byteSize;
 #endif
     }
     void GPUAllocator::Deallocation(pointer ptr, size_type byteSize)
     {
 #if defined(AZ_ENABLE_TRACING)
-        AZ_MEMORY_PROFILE(ProfileDeallocation(ptr, byteSize, 1, nullptr));
+        AZ_MEMORY_PROFILE(ProfileDeallocation(((uint8_t*)ptr) + 1, byteSize, 1, nullptr));  // +1 to avoid interference with CPU addresses
         m_numAllocatedBytes -= byteSize;
 #endif
     }
@@ -106,8 +106,7 @@ namespace AZ
 
     auto GPUAllocator::get_allocated_size([[maybe_unused]] pointer ptr, [[maybe_unused]] align_type alignment) const -> size_type
     {
-        AZ_Assert(false, ERROR_MESSAGE);
-        return 0;
+        return m_numAllocatedBytes;
     }
 
 } // namespace AZ

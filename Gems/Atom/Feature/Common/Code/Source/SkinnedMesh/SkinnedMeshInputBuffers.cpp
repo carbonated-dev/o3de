@@ -24,6 +24,10 @@
 #include <AzCore/Math/PackedVector3.h>
 #include <inttypes.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 AZ_DECLARE_BUDGET(AzRender);
 
 namespace AZ
@@ -120,6 +124,9 @@ namespace AZ
                         AZStd::string bufferViewName = AZStd::string::format(
                             "%s_lod%" PRIu32 "_mesh%" PRIu32 "_%s", modelName, lodIndex, meshIndex,
                             streamInfo->m_shaderResourceGroupName.GetCStr());
+#if defined(CARBONATED)
+                        ASSET_TAG(bufferViewName.c_str());
+#endif
                         bufferView->SetName(Name(bufferViewName));
                         RHI::ResultCode resultCode = bufferView->Init(*streamBufferView.GetBuffer(), descriptor);
 
