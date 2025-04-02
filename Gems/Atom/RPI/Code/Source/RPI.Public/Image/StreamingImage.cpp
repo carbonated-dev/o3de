@@ -223,8 +223,6 @@ namespace AZ
         {
             if (IsInitialized())
             {
-                //AZ_Info("iii", "StreamingImage::Shutdown for %s", m_imageAsset.GetHint().c_str());
-
 #if defined (AZ_RPI_STREAMING_IMAGE_HOT_RELOADING)
 #if defined(CARBONATED)
                 Data::AssetBus::MultiHandler::BusDisconnect(m_imageAsset.GetId());
@@ -420,8 +418,6 @@ namespace AZ
 
         void StreamingImage::EvictMipChainAsset(size_t mipChainIndex)
         {
-            //AZ_Info("iii", "StreamingImage::EvictMipChainAsset %d", mipChainIndex);
-
             AZ_Assert(mipChainIndex < m_mipChains.size(), "Exceeded total number of mip chains.");
 
             const uint16_t mipChainBit = static_cast<uint16_t>(1 << mipChainIndex);

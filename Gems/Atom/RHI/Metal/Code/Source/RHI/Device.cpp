@@ -414,6 +414,7 @@ namespace AZ
         
         void Device::QueueForRelease(const MemoryView& memoryView)
         {
+            //AZ_Info("iii", "Device::QueueForRelease %p (metal resource %p) %u", memoryView.GetMemory(), memoryView.GetMemory()->GetGpuAddress<void*>(), memoryView.GetSize());
             m_releaseQueue.QueueForCollect(memoryView.GetMemory());
         }
         

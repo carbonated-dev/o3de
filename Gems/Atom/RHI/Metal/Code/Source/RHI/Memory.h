@@ -88,8 +88,6 @@ namespace AZ
                     {
                         id<MTLTexture> mtlTexture = GetGpuAddress<id<MTLTexture>>();
                         
-                        //AZ_Info("iii", "Release metal texture %p %d x %d, mips %d, swap chain %d, use count %d", mtlTexture, mtlTexture.width, mtlTexture.height, mtlTexture.mipmapLevelCount, m_isSwapChainResource, mtlTexture.retainCount);
-
                         //Swapchain textures are not created by the engine and are owned by the drivers hence we cant release them
                         if(mtlTexture && !m_isSwapChainResource)
                         {

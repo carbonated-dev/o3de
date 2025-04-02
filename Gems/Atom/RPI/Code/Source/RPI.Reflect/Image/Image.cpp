@@ -39,7 +39,6 @@ namespace AZ
             AZ::Data::AssetId assetId = GetAssetId();
             AZ::Data::AssetInfo assetInfo;
             AZ::Data::AssetCatalogRequestBus::BroadcastResult(assetInfo, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetInfoById, assetId);
-            AZ_Info("iii", "~Image %s", assetInfo.m_relativePath.c_str());
         }
 
 

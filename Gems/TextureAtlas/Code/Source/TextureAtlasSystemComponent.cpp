@@ -237,7 +237,6 @@ namespace TextureAtlasNamespace
                     // Tell the renderer to release the texture.
                     if (temp.m_atlas && temp.m_atlas->GetTexture())
                     {
-                        AZ_Info("iii", "Release texture for atlas %s", atlasName.c_str());
                         temp.m_atlas->GetTexture().reset();
                     }
                     // Delete the atlas
