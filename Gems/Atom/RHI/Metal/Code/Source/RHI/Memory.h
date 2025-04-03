@@ -275,6 +275,10 @@ namespace AZ
                     case MTLPixelFormatASTC_6x6_LDR:
                     case MTLPixelFormatASTC_6x6_HDR:
                         return 3.56;
+                    case MTLPixelFormatASTC_8x8_sRGB:
+                    case MTLPixelFormatASTC_8x8_LDR:
+                    case MTLPixelFormatASTC_8x8_HDR:
+                        return 2.00;
                 }
                 
                 AZ_Error("metal", false, "Add bpp case for texture format %d", int(pixelFormat));
