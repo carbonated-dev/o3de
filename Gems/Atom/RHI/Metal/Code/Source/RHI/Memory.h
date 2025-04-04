@@ -286,12 +286,12 @@ namespace AZ
             }
             static size_t CalculateTextureSize(id<MTLTexture> mtlTexture)
             {
-                const int width = mtlTexture.width;
-                const int height = mtlTexture.height;
-                const int depth = mtlTexture.depth;
-                const int mipmaps = mtlTexture.mipmapLevelCount;
-                const int bufferBytesPerRow = mtlTexture.bufferBytesPerRow;
-                const int arrayLength = mtlTexture.arrayLength;
+                const unsigned int width = (unsigned int)mtlTexture.width;
+                const unsigned int height = (unsigned int)mtlTexture.height;
+                const unsigned int depth = (unsigned int)mtlTexture.depth;
+                const unsigned int mipmaps = (unsigned int)mtlTexture.mipmapLevelCount;
+                const unsigned int bufferBytesPerRow = (unsigned int)mtlTexture.bufferBytesPerRow;
+                const unsigned int arrayLength = (unsigned int)mtlTexture.arrayLength;
                 
                 const double bpp = GetBPP(mtlTexture.pixelFormat);
                 
