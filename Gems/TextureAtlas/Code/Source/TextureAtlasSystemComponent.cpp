@@ -228,9 +228,6 @@ namespace TextureAtlasNamespace
                 if (iterator->second.m_refs < 1 && iterator->second.m_atlas->GetTexture())
                 {
                     AtlasInfo temp = iterator->second;
-
-                    AZStd::string atlasName = iterator->first;
-
                     m_atlases.erase(iterator->first);
                     TextureAtlasNotificationBus::Broadcast(&TextureAtlasNotifications::OnAtlasUnloaded, temp.m_atlas);
 

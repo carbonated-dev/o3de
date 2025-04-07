@@ -32,7 +32,7 @@ namespace AZ
             AZ_INSTANCE_DATA(Image, "{4E4B1092-1BEE-4DC4-BE4B-8FBC83B0F48C}");
             AZ_CLASS_ALLOCATOR(Image, AZ::SystemAllocator);
 
-            virtual ~Image();
+            virtual ~Image() = default;
 
             //! Returns whether Image is currently initialized.
             bool IsInitialized() const;

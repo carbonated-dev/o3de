@@ -56,12 +56,6 @@ namespace AZ::RHI
         return m_descriptor;
     }
 
-
-    ImageView::~ImageView()
-    {
-        AZ_Info("iii", "RHI ~ImageView: aspect %u, format %u", m_descriptor.m_aspectFlags, m_descriptor.m_overrideFormat);
-    }
-
     const Image& ImageView::GetImage() const
     {
         return static_cast<const Image&>(GetResource());

@@ -35,7 +35,7 @@ namespace AZ::RHI
         using Base = Resource;
     public:
         AZ_RTTI(Image, "{39FFE66C-805A-41AD-9092-91327D51F64B}", Resource);
-        virtual ~Image();
+        virtual ~Image() = default;
             
         //! Returns the image descriptor used to initialize the image. If the image is uninitialized, the contents
         //! are considered undefined.

@@ -25,12 +25,6 @@ namespace AZ::RHI
         return m_descriptor;
     }
 
-    Image::~Image()
-    {
-        AZ_Info("iii", "RHI ~Image: %u x %u, format %u", m_descriptor.m_size.m_width, m_descriptor.m_size.m_height, m_descriptor.m_format);
-    }
-
-    
     void Image::GetSubresourceLayouts(
         const ImageSubresourceRange& subresourceRange,
         ImageSubresourceLayout* subresourceLayouts,
