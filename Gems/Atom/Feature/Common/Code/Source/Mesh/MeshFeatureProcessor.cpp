@@ -2223,7 +2223,12 @@ namespace AZ
         {
 #if defined(CARBONATED)
             MEMORY_TAG(Mesh);
-            ASSET_TAG(m_meshLoader->GetAssetHint().c_str());
+            const char* assetName = "UnknownModelDataInstance";
+            if (!m_meshLoader->GetAssetHint().empty())
+            {
+                assetName = m_meshLoader->GetAssetHint().c_str();
+            }
+            ASSET_TAG(assetName);
 #endif
             RayTracingFeatureProcessor* rayTracingFeatureProcessor = meshFeatureProcessor->GetRayTracingFeatureProcessor();
             TransformServiceFeatureProcessor* transformServiceFeatureProcessor =

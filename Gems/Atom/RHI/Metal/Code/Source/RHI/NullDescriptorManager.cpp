@@ -8,6 +8,10 @@
 #include <RHI/NullDescriptorManager.h>
 #include <RHI/Device.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 namespace AZ
 {
     namespace Metal
@@ -16,6 +20,9 @@ namespace AZ
     
         void NullDescriptorManager::Init(Device& device)
         {
+#if defined(CARBONATED)
+            ASSET_TAG("NullDescriptor");
+#endif
             DeviceObject::Init(device);
             
             RHI::DeviceObject::Init(device);
