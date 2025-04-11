@@ -31,6 +31,10 @@
 #include <AzCore/Task/TaskGraph.h>
 #include <AzCore/std/time.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 namespace AZ::RHI
 {
     static constexpr const char* frameTimeMetricName = "Frame to Frame Time";
@@ -261,7 +265,9 @@ namespace AZ::RHI
     void FrameScheduler::CompileShaderResourceGroups()
     {
         AZ_PROFILE_SCOPE(RHI, "FrameScheduler: CompileShaderResourceGroups");
-
+#if defined(CARBONATED)
+        ASSET_TAG("FrameTransientSRG");
+#endif
         // Execute all queued resource invalidations, which will mark SRG's for compilation.
         {
             ResourceInvalidateBus::ExecuteQueuedEvents();

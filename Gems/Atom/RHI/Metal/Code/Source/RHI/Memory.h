@@ -63,7 +63,7 @@ namespace AZ
                         {
                             id<MTLBuffer> mtlBuffer = resource->GetGpuAddress<id<MTLBuffer>>();
                             const size_t size = mtlBuffer.allocatedSize;
-                            if (size != 0x1000000)  // this size indicates a page in a paged allocator, then it is allocated as textures
+                            //if (size != 0x1000000)  // this size indicates a page in a paged allocator, then it is allocated as textures
                             {
                                 MEMORY_TAG(MetalBuffer);
                                 allocator->Allocation(resource->m_resourcePtr, size);
@@ -92,11 +92,13 @@ namespace AZ
                         if(mtlTexture && !m_isSwapChainResource)
                         {
 #if defined(CARBONATED)
-                            if (mtlTexture.retainCount == 1)
+                            AZ::GPUAllocator* allocator = static_cast<GPUAllocator*>(&AZ::AllocatorInstance<AZ::GPUAllocator>::Get());
+                            const size_t size = CalculateTextureSize(mtlTexture);
+                            allocator->Deallocation(mtlTexture, size);
+                            if (mtlTexture.retainCount != 1)
                             {
-                                AZ::GPUAllocator* allocator = static_cast<GPUAllocator*>(&AZ::AllocatorInstance<AZ::GPUAllocator>::Get());
                                 const size_t size = CalculateTextureSize(mtlTexture);
-                                allocator->Deallocation(mtlTexture, size);
+                                AZ_Info("gpumem", "Delallocate mtl texture %p size %u but  ref count %d", (void*)mtlTexture, size, int(mtlTexture.retainCount ));
                             }
 #endif
                             [mtlTexture release];
@@ -110,14 +112,15 @@ namespace AZ
                         if (mtlBuffer)
                         {
 #if defined(CARBONATED)
+                            const size_t size = mtlBuffer.allocatedSize;
+                            //if (size != 0x1000000)  // this size indicates a page in a paged allocator
+                            {
+                                AZ::GPUAllocator* allocator = static_cast<GPUAllocator*>(&AZ::AllocatorInstance<AZ::GPUAllocator>::Get());
+                                allocator->Deallocation(mtlBuffer, size);
+                            }
                             if (mtlBuffer.retainCount == 1)
                             {
-                                const size_t size = mtlBuffer.allocatedSize;
-                                if (size != 0x1000000)  // this size indicates a page in a paged allocator
-                                {
-                                    AZ::GPUAllocator* allocator = static_cast<GPUAllocator*>(&AZ::AllocatorInstance<AZ::GPUAllocator>::Get());
-                                    allocator->Deallocation(mtlBuffer, size);
-                                }
+                                AZ_Info("gpumem", "Delallocate mtl buffer %p size %u but ref count %d", (void*)mtlBuffer, size_t(mtlBuffer.allocatedSize), int(mtlBuffer.retainCount ));
                             }
 #endif
                             [mtlBuffer release];

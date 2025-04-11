@@ -21,6 +21,10 @@
 #include <AzCore/std/sort.h>
 #include <AzCore/std/optional.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 namespace AZ::RHI
 {
     ResultCode FrameGraphCompiler::Init(Device& device)
@@ -677,7 +681,10 @@ namespace AZ::RHI
                         optimizedClearValue = imageFrameAttachment->GetOptimizedClearValue();
                         descriptor.m_optimizedClearValue = &optimizedClearValue;
                     }
-
+#if defined(CARBONATED)
+                    AZStd::string assetname = AZStd::string::format("FrameTransientImage_%s_%u_%u", imageFrameAttachment->GetId().GetCStr(), descriptor.m_imageDescriptor.m_size.m_width, descriptor.m_imageDescriptor.m_size.m_height);
+                    ASSET_TAG(assetname.c_str());
+#endif
                     Image* image = transientAttachmentPool.ActivateImage(descriptor);
                     if (allocateResources && image)
                     {
@@ -784,7 +791,9 @@ namespace AZ::RHI
     void FrameGraphCompiler::CompileResourceViews(const FrameGraphAttachmentDatabase& attachmentDatabase)
     {
         AZ_PROFILE_SCOPE(RHI, "FrameGraphCompiler: CompileResourceViews");
-
+#if defined(CARBONATED)
+        ASSET_TAG("FrameTransienImageView");
+#endif
         for (ImageFrameAttachment* imageAttachment : attachmentDatabase.GetImageAttachments())
         {
             Image* image = imageAttachment->GetImage();

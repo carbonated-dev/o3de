@@ -144,7 +144,43 @@ namespace AZ::Debug
         ai.m_tagMask = metadata.m_mask;
         ai.m_tag = metadata.m_tag;
         ai.m_assetName = metadata.m_assetName;
-
+        /*
+        if (ai.m_byteSize == 8388608
+            //&& strcmp(m_allocatorName, "GPUAllocator") == 0
+            && ai.m_assetName != nullptr && strcmp(ai.m_assetName, "ui/level/level.texatlas.streamingimage") == 0)
+        {
+            AZ_Info("gpuatlas", "allocate level.texatlas %p", address);
+        }
+        */
+        /*
+        if (strcmp(m_allocatorName, "GPUAllocator") == 0)
+        {
+            if ((ai.m_assetName == nullptr || ai.m_assetName[0] == 0) && ai.m_byteSize >= 1024)
+            {
+                if (ai.m_name == nullptr)
+                {
+                    ai.m_name = "empty";
+                }
+            }
+        }
+        */
+        /*
+        if (ai.m_assetName != nullptr && strcmp(ai.m_assetName, "FrameTransientAssets") == 0 && byteSize >= 10 * 1024)
+        {
+            ai.m_assetName++;
+        }
+        */
+        /*
+        if (ai.m_assetName != nullptr && ai.m_byteSize >= 1280 && ai.m_byteSize <= 1296)
+        {
+            const char* pattern1 = "levels/dlc/";
+            const char* pattern2 = ".spawnable";
+            if (strstr(ai.m_assetName, pattern1) != nullptr && strstr(ai.m_assetName, pattern2) != nullptr)
+            {
+                ai.m_assetName++;
+            }
+        }
+        */
         // prevent a large vulkan buffer allocation to be counted per asset
         constexpr size_t ALLOWED_ALLOCATION_OVERHEAD_ADD = 1024;
         constexpr size_t ALLOWED_ALLOCATION_OVERHEAD_MUL = 2;
@@ -264,16 +300,39 @@ namespace AZ::Debug
         }
 
         AllocationInfo allocationInfo;
+#if defined(CARBONATED)
+        bool recordNotFound = false;
         {
             AZStd::scoped_lock lock(m_recordsMutex);
             Debug::AllocationRecordsType::iterator iter = m_records.find(address);
             // We cannot assert if an allocation does not exist because allocations may have been made before tracking was enabled.
             // It is currently impossible to actually track all allocations that happen before a certain point
-            // AZ_Assert(iter!=m_records.end(), "Could not find address 0x%p in the allocator!", address);
             if (iter == m_records.end())
             {
-                return;
+                recordNotFound = true;
             }
+            else
+            {
+                allocationInfo = iter->second;
+                m_records.erase(iter);
+                
+                // try to be more aggressive and keep the memory footprint low.
+                // \todo store the load factor at the last rehash to avoid unnecessary rehash
+                if (m_records.load_factor() < 0.9f)
+                {
+                    m_records.rehash(0);
+                }
+            }
+        }
+        if (recordNotFound)
+        {
+            AZ_Info("Memory", "Address %p (size %u) not found in allocation map", address, byteSize);
+        }
+#else
+        {
+            AZStd::scoped_lock lock(m_recordsMutex);
+            Debug::AllocationRecordsType::iterator iter = m_records.find(address);
+            AZ_Assert(iter!=m_records.end(), "Could not find address 0x%p in the allocator!", address);
             allocationInfo = iter->second;
             m_records.erase(iter);
 
@@ -284,6 +343,17 @@ namespace AZ::Debug
                 m_records.rehash(0);
             }
         }
+#endif
+        
+#if defined(CARBONATED)
+        /*
+        if (allocationInfo.m_byteSize == 8388608 //&& strcmp(m_allocatorName, "GPUAllocator") == 0
+            && allocationInfo.m_assetName != nullptr && strcmp(allocationInfo.m_assetName, "ui/level/level.texatlas.streamingimage") == 0)
+        {
+            AZ_Info("gpuatlas", "deallocate level.texatlas %p", address);
+        }
+        */
+#endif
 
         AllocatorManager::Instance().DebugBreak(address, allocationInfo);
 
@@ -624,7 +694,9 @@ namespace AZ::Debug
         {
             AZ_Printf("Memory", "Allocation Addr: 0%p Size: %zu Alignment: %u\n", address, info.m_byteSize, info.m_alignment);
         }
-
+#if defined(CARBONATED)
+        AZ_Printf("Memory", "Tag: %u, Mask %llu, Asset %s\n", info.m_tag, static_cast<unsigned long long>(info.m_tagMask), info.m_assetName ? info.m_assetName : "");
+#endif
         if (m_isDetailed)
         {
             if (!info.m_stackFrames)
