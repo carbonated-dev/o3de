@@ -738,9 +738,9 @@ void CLocalizedStringsManager::OnSystemEvent(
         // This event is here not of interest while we're in the Editor.
         if (!gEnv->IsEditor())
         {
-            if (m_cvarLocalizationDebug >= 2)
+           //if (m_cvarLocalizationDebug >= 2)
             {
-                CryLog("<Localization> Loading Requested Tags");
+                CryLogAlways("<Localization> Loading Requested Tags");
             }
 
             for (TStringVec::iterator it = m_tagLoadRequests.begin(); it != m_tagLoadRequests.end(); ++it)
@@ -799,7 +799,7 @@ bool CLocalizedStringsManager::InitLocalizationData(
 
             vEntries.push_back(entry->getContent());
         }
-
+        CryLog("ASDF Inited tag %s!", sType.c_str());
         CRY_ASSERT(m_tagFileNames.size() < 255);
 
         uint8 curNumTags = static_cast<uint8>(m_tagFileNames.size());
@@ -822,9 +822,9 @@ bool CLocalizedStringsManager::RequestLoadLocalizationDataByTag(const char* sTag
         return false;
     }
 
-    if (m_cvarLocalizationDebug >= 2)
+  //  if (m_cvarLocalizationDebug >= 2)
     {
-        CryLog("<Localization> RequestLoadLocalizationDataByTag %s", sTag);
+        CryLogAlways("<Localization> RequestLoadLocalizationDataByTag %s", sTag);
     }
 
     m_tagLoadRequests.push_back(sTag);
@@ -836,6 +836,7 @@ bool CLocalizedStringsManager::RequestLoadLocalizationDataByTag(const char* sTag
 bool CLocalizedStringsManager::LoadLocalizationDataByTag(
     const char* sTag, bool bReload)
 {
+    CryLogAlways(AZStd::string::format("ASDF LOAD by tag %s - %s", sTag, bReload ? "y" : "n").c_str());
     TTagFileNames::iterator it = m_tagFileNames.find(sTag);
     if (it == m_tagFileNames.end())
     {
@@ -843,6 +844,7 @@ bool CLocalizedStringsManager::LoadLocalizationDataByTag(
         return false;
     }
 
+    CryLogAlways("ASDF LOAD1");
 #if defined(CARBONATED)
     // Give a chance to reload an already loaded tag if bReload is true.
     if (!bReload && it->second.loaded)
@@ -853,6 +855,8 @@ bool CLocalizedStringsManager::LoadLocalizationDataByTag(
         CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] LoadLocalizationDataByTag - Already loaded tag '%s'", sTag);
         return true;
     }
+
+        CryLogAlways("ASDF LOAD2");
 
     bool bResult = true;
 
@@ -881,9 +885,11 @@ bool CLocalizedStringsManager::LoadLocalizationDataByTag(
         }
     }
 
-    if (m_cvarLocalizationDebug >= 2)
+        CryLogAlways("ASDF LOAD3");
+
+   // if (m_cvarLocalizationDebug >= 2)
     {
-        CryLog("<Localization> LoadLocalizationDataByTag %s with result %d", sTag, bResult);
+        CryLogAlways("<Localization> LoadLocalizationDataByTag %s with result %d", sTag, bResult);
     }
 
     it->second.loaded = true;
@@ -895,6 +901,9 @@ bool CLocalizedStringsManager::LoadLocalizationDataByTag(
 bool CLocalizedStringsManager::ReleaseLocalizationDataByTag(
     const char* sTag)
 {
+    CryLogAlways(AZStd::string::format("ASDF Release by tag %s", sTag).c_str());
+    AZ_Error("Localization", false, "[LocError] ReleaseLocalizationDataByTag - Releasing Loc '%s'", sTag);
+
     INDENT_LOG_DURING_SCOPE(true, "Releasing localization data with the tag '%s'", sTag);
     ListAndClearProblemLabels();
 
@@ -1894,6 +1903,8 @@ CLocalizedStringsManager::LoadFunc CLocalizedStringsManager::GetLoadFunction() c
 }
 void CLocalizedStringsManager::ReloadData()
 {
+    CryLogAlways("ASDF Localization Reload Data");
+
     tmapFilenames temp = m_loadedTables;
 
     LoadFunc loadFunction = GetLoadFunction();
