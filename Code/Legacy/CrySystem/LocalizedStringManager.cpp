@@ -836,7 +836,7 @@ bool CLocalizedStringsManager::RequestLoadLocalizationDataByTag(const char* sTag
 bool CLocalizedStringsManager::LoadLocalizationDataByTag(
     const char* sTag, bool bReload)
 {
-    CryLogAlways(AZStd::string::format("ASDF LOAD by tag %s - %s", sTag, bReload ? "y" : "n").c_str());
+    CryLogAlways("ASDF LOAD by tag %s - %s", sTag, bReload ? "y" : "n");
     TTagFileNames::iterator it = m_tagFileNames.find(sTag);
     if (it == m_tagFileNames.end())
     {
@@ -901,7 +901,7 @@ bool CLocalizedStringsManager::LoadLocalizationDataByTag(
 bool CLocalizedStringsManager::ReleaseLocalizationDataByTag(
     const char* sTag)
 {
-    CryLogAlways(AZStd::string::format("ASDF Release by tag %s", sTag).c_str());
+    CryLogAlways("ASDF Release by tag %s", sTag);
     AZ_Error("Localization", false, "[LocError] ReleaseLocalizationDataByTag - Releasing Loc '%s'", sTag);
 
     INDENT_LOG_DURING_SCOPE(true, "Releasing localization data with the tag '%s'", sTag);
