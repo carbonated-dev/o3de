@@ -8,11 +8,11 @@
 
 #include <Atom/Feature/SkinnedMesh/SkinnedMeshFeatureProcessorBus.h>
 #include <Atom/Feature/SkinnedMesh/SkinnedMeshStatsBus.h>
-#include <Atom/Feature/Mesh/MeshFeatureProcessor.h>
 
 #include <SkinnedMesh/SkinnedMeshFeatureProcessor.h>
 #include <SkinnedMesh/SkinnedMeshRenderProxy.h>
 #include <SkinnedMesh/SkinnedMeshComputePass.h>
+#include <Mesh/MeshFeatureProcessor.h>
 #include <MorphTargets/MorphTargetComputePass.h>
 #include <MorphTargets/MorphTargetDispatchItem.h>
 
@@ -199,8 +199,7 @@ namespace AZ
                     renderProxy.m_instance->m_model->WaitForUpload();
                 }
 
-                ModelDataInstance& modelDataInstance = **renderProxy.m_meshHandle;
-                const RPI::Cullable& cullable = modelDataInstance.GetCullable();
+                const RPI::Cullable& cullable = (*renderProxy.m_meshHandle)->GetCullable();
 
 #if defined(CARBONATED) && !defined(_RELEASE)
                 if (forcedLodIndex >= 0)
@@ -479,29 +478,30 @@ namespace AZ
             }
         }
 
-        void SkinnedMeshFeatureProcessor::SubmitSkinningDispatchItems(RHI::CommandList* commandList, uint32_t startIndex, uint32_t endIndex)
+        void SkinnedMeshFeatureProcessor::SubmitSkinningDispatchItems(const RHI::FrameGraphExecuteContext& context, uint32_t startIndex, uint32_t endIndex)
         {
             AZStd::lock_guard lock(m_dispatchItemMutex);
 
-            AZStd::unordered_set<const RHI::DispatchItem*>::iterator it = m_skinningDispatches.begin();
+            auto it = m_skinningDispatches.begin();
             AZStd::advance(it, startIndex);
             for (uint32_t index = startIndex; index < endIndex; ++index, ++it)
             {
-                const RHI::DispatchItem* dispatchItem = *it;
-                commandList->Submit(*dispatchItem, index);
+                const auto* dispatchItem = *it;
+                context.GetCommandList()->Submit(dispatchItem->GetDeviceDispatchItem(context.GetDeviceIndex()), index);
             }
         }
 
-        void SkinnedMeshFeatureProcessor::SubmitMorphTargetDispatchItems(RHI::CommandList* commandList, uint32_t startIndex, uint32_t endIndex)
+        void SkinnedMeshFeatureProcessor::SubmitMorphTargetDispatchItems(
+            const RHI::FrameGraphExecuteContext& context, uint32_t startIndex, uint32_t endIndex)
         {
             AZStd::lock_guard lock(m_dispatchItemMutex);
 
-            AZStd::unordered_set<const RHI::DispatchItem*>::iterator it = m_morphTargetDispatches.begin();
+            auto it = m_morphTargetDispatches.begin();
             AZStd::advance(it, startIndex);
             for (uint32_t index = startIndex; index < endIndex; ++index, ++it)
             {
-                const RHI::DispatchItem* dispatchItem = *it;
-                commandList->Submit(*dispatchItem, index);
+                const auto* dispatchItem = *it;
+                context.GetCommandList()->Submit(dispatchItem->GetDeviceDispatchItem(context.GetDeviceIndex()), index);
             }
         }
 

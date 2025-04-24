@@ -169,29 +169,29 @@ namespace AZ
 
             void BootstrapSystemComponent::GetProvidedServices(ComponentDescriptor::DependencyArrayType& provided)
             {
-                provided.push_back(AZ_CRC("BootstrapSystemComponent", 0xb8f32711));
+                provided.push_back(AZ_CRC_CE("BootstrapSystemComponent"));
             }
 
             void BootstrapSystemComponent::GetRequiredServices(ComponentDescriptor::DependencyArrayType& required)
             {
-                required.push_back(AZ_CRC("RPISystem", 0xf2add773));
-                required.push_back(AZ_CRC("SceneSystemComponentService", 0xd8975435));
+                required.push_back(AZ_CRC_CE("RPISystem"));
+                required.push_back(AZ_CRC_CE("SceneSystemComponentService"));
             }
 
             void BootstrapSystemComponent::GetDependentServices(ComponentDescriptor::DependencyArrayType& dependent)
             {
-                dependent.push_back(AZ_CRC("ImGuiSystemComponent", 0x2f08b9a7));
-                dependent.push_back(AZ_CRC("PrimitiveSystemComponent", 0xc860fa59));
-                dependent.push_back(AZ_CRC("MeshSystemComponent", 0x21e5bbb6));
-                dependent.push_back(AZ_CRC("CoreLightsService", 0x91932ef6));
-                dependent.push_back(AZ_CRC("DynamicDrawService", 0x023c1673));
-                dependent.push_back(AZ_CRC("CommonService", 0x6398eec4));
+                dependent.push_back(AZ_CRC_CE("ImGuiSystemComponent"));
+                dependent.push_back(AZ_CRC_CE("PrimitiveSystemComponent"));
+                dependent.push_back(AZ_CRC_CE("MeshSystemComponent"));
+                dependent.push_back(AZ_CRC_CE("CoreLightsService"));
+                dependent.push_back(AZ_CRC_CE("DynamicDrawService"));
+                dependent.push_back(AZ_CRC_CE("CommonService"));
                 dependent.push_back(AZ_CRC_CE("HairService"));
             }
 
             void BootstrapSystemComponent::GetIncompatibleServices(ComponentDescriptor::DependencyArrayType& incompatible)
             {
-                incompatible.push_back(AZ_CRC("BootstrapSystemComponent", 0xb8f32711));
+                incompatible.push_back(AZ_CRC_CE("BootstrapSystemComponent"));
             }
 
             BootstrapSystemComponent::BootstrapSystemComponent()
@@ -488,6 +488,16 @@ namespace AZ
                         CreateDefaultRenderPipeline();
                     }
                 }
+                else
+                {
+                    AZ::ApplicationTypeQuery appType;
+                    AZ::ComponentApplicationBus::Broadcast(&AZ::ComponentApplicationBus::Events::QueryApplicationType, appType);
+                    // Run BRDF pipeline for the app in console mode, to use it in render-to-texture pipelines.
+                    if (appType.IsConsoleMode())
+                    {
+                        RunBRDFPipeline(m_defaultScene, nullptr);
+                    }
+                }
             }
 
             void BootstrapSystemComponent::OnWindowCreated(AzFramework::NativeWindowHandle windowHandle)
@@ -689,34 +699,9 @@ namespace AZ
                     {
                         renderPipeline->SetActiveAAMethod(antiAliasing.c_str());
                     }
-
-                    // As part of our initialization we need to create the BRDF texture generation pipeline
-                    AZ::RPI::RenderPipelineDescriptor pipelineDesc;
-                    pipelineDesc.m_mainViewTagName = "MainCamera";
-                    pipelineDesc.m_name = AZStd::string::format("BRDFTexturePipeline_%i", viewportContext->GetId());
-                    pipelineDesc.m_rootPassTemplate = "BRDFTexturePipeline";
-                    pipelineDesc.m_executeOnce = true;
-
-                    // Save a reference to the generated BRDF texture so it doesn't get deleted if all the passes refering to it get deleted
-                    // and it's ref count goes to zero
-                    if (!m_brdfTexture)
-                    {
-                        const AZStd::shared_ptr<const RPI::PassTemplate> brdfTextureTemplate =
-                            RPI::PassSystemInterface::Get()->GetPassTemplate(Name("BRDFTextureTemplate"));
-                        Data::Asset<RPI::AttachmentImageAsset> brdfImageAsset = RPI::AssetUtils::LoadAssetById<RPI::AttachmentImageAsset>(
-                            brdfTextureTemplate->m_imageAttachments[0].m_assetRef.m_assetId, RPI::AssetUtils::TraceLevel::Error);
-                        if (brdfImageAsset.IsReady())
-                        {
-                            m_brdfTexture = RPI::AttachmentImage::FindOrCreate(brdfImageAsset);
-                        }
-                    }
-
-                    if (!scene->GetRenderPipeline(AZ::Name(pipelineDesc.m_name)))
-                    {
-                        RPI::RenderPipelinePtr brdfTexturePipeline = AZ::RPI::RenderPipeline::CreateRenderPipeline(pipelineDesc);
-                        scene->AddRenderPipeline(brdfTexturePipeline);
-                    }
                 }
+
+                RunBRDFPipeline(scene, viewportContext);
 
                 // Load XR pipelines if applicable
                 if (xrSystem)
@@ -761,6 +746,43 @@ namespace AZ
                 }
 
                 return true;
+            }
+
+            void BootstrapSystemComponent::RunBRDFPipeline(AZ::RPI::ScenePtr scene, AZ::RPI::ViewportContextPtr viewportContext)
+            {
+                // As part of our initialization we need to create the BRDF texture generation pipeline
+
+                // Save a reference to the generated BRDF texture so it doesn't get deleted if all the passes refering to it get deleted
+                // and it's ref count goes to zero
+                if (!m_brdfTexture)
+                {
+
+                    const AZStd::shared_ptr<const RPI::PassTemplate> brdfTextureTemplate =
+                        RPI::PassSystemInterface::Get()->GetPassTemplate(Name("BRDFTextureTemplate"));
+                    Data::Asset<RPI::AttachmentImageAsset> brdfImageAsset = RPI::AssetUtils::LoadAssetById<RPI::AttachmentImageAsset>(
+                        brdfTextureTemplate->m_imageAttachments[0].m_assetRef.m_assetId, RPI::AssetUtils::TraceLevel::Error);
+                    if (brdfImageAsset.IsReady())
+                    {
+                        m_brdfTexture = RPI::AttachmentImage::FindOrCreate(brdfImageAsset);
+                    }
+                }
+
+                AZ::RPI::RenderPipelineDescriptor pipelineDesc;
+                pipelineDesc.m_mainViewTagName = "MainCamera";
+                pipelineDesc.m_rootPassTemplate = "BRDFTexturePipeline";
+                pipelineDesc.m_executeOnce = true;
+                const AzFramework::ViewportId viewportId = viewportContext ? viewportContext->GetId() : AzFramework::InvalidViewportId;
+                for (int deviceIndex{ 0 }; deviceIndex < RHI::RHISystemInterface::Get()->GetDeviceCount(); ++deviceIndex)
+                {
+                    pipelineDesc.m_name = AZStd::string::format("BRDFTexturePipeline_%d_%d", viewportId, deviceIndex);
+
+                    if (!scene->GetRenderPipeline(AZ::Name(pipelineDesc.m_name)))
+                    {
+                        RPI::RenderPipelinePtr brdfTexturePipeline = AZ::RPI::RenderPipeline::CreateRenderPipeline(pipelineDesc);
+                        brdfTexturePipeline->GetRootPass()->SetDeviceIndex(deviceIndex);
+                        scene->AddRenderPipeline(brdfTexturePipeline);
+                    }
+                }
             }
 
             void BootstrapSystemComponent::SwitchRenderPipeline(const AZ::RPI::RenderPipelineDescriptor& newRenderPipelineDesc, AZ::RPI::ViewportContextPtr viewportContext)
@@ -808,6 +830,11 @@ namespace AZ
                 auto multiSampleStete = viewportContext->GetRenderScene()->GetDefaultRenderPipeline()->GetRenderSettings().m_multisampleState;
                 multiSampleStete.m_samples = newSampleCount;
                 AZ::RPI::RPISystemInterface::Get()->SetApplicationMultisampleState(multiSampleStete);
+            }
+
+            void BootstrapSystemComponent::RefreshWindowResolution()
+            {
+                SetWindowResolution();
             }
 
             void BootstrapSystemComponent::RefreshWindowResolution()

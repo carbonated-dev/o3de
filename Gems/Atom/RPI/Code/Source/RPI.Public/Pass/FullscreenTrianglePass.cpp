@@ -17,7 +17,7 @@
 
 #include <Atom/RHI/Factory.h>
 #include <Atom/RHI/FrameScheduler.h>
-#include <Atom/RHI/PipelineState.h>
+#include <Atom/RHI/DevicePipelineState.h>
 
 #include <AzCore/Asset/AssetCommon.h>
 #include <AzCore/Asset/AssetManagerBus.h>
@@ -36,8 +36,10 @@ namespace AZ
 
         FullscreenTrianglePass::FullscreenTrianglePass(const PassDescriptor& descriptor)
             : RenderPass(descriptor)
+            , m_item(RHI::MultiDevice::AllDevices)
             , m_passDescriptor(descriptor)
         {
+            m_defaultShaderAttachmentStage = RHI::ScopeAttachmentStage::FragmentShader;
             LoadShader();
         }
 
@@ -112,7 +114,7 @@ namespace AZ
                 return;
             }
 
-            m_shader = Shader::FindOrCreate(shaderAsset);
+            m_shader = Shader::FindOrCreate(shaderAsset, GetSuperVariantName());
             if (m_shader == nullptr)
             {
                 AZ_Error("PassSystem", false, "[FullscreenTrianglePass '%s']: Failed to create shader instance from asset '%s'!",
@@ -182,12 +184,11 @@ namespace AZ
             // This draw item purposefully does not reference any geometry buffers.
             // Instead it's expected that the extended class uses a vertex shader 
             // that generates a full-screen triangle completely from vertex ids.
-            RHI::DrawLinear draw = RHI::DrawLinear();
-            draw.m_vertexCount = 3;
+            m_geometryView.SetDrawArguments(RHI::DrawLinear(3, 0));
 
-            m_item.m_arguments = RHI::DrawArguments(draw);
-            m_item.m_pipelineState = m_pipelineStateForDraw.Finalize();
-            m_item.m_stencilRef = static_cast<uint8_t>(m_stencilRef);
+            m_item.SetGeometryView(& m_geometryView);
+            m_item.SetPipelineState(m_pipelineStateForDraw.Finalize());
+            m_item.SetStencilRef(static_cast<uint8_t>(m_stencilRef));
         }
 
         void FullscreenTrianglePass::UpdateShaderOptions(const ShaderOptionList& shaderOptions)
@@ -210,6 +211,12 @@ namespace AZ
 
         void FullscreenTrianglePass::InitializeInternal()
         {
+            BuildRenderAttachmentConfiguration();
+            if (m_shader->GetSupervariantIndex() != m_shader->GetAsset()->GetSupervariantIndex(GetSuperVariantName()))
+            {
+                LoadShader();
+            }
+
             RenderPass::InitializeInternal();
             
             ShaderReloadDebugTracker::ScopedSection reloadSection("{%p}->FullscreenTrianglePass::InitializeInternal", this);
@@ -306,12 +313,12 @@ namespace AZ
         {
             RHI::CommandList* commandList = context.GetCommandList();
 
-            SetSrgsForDraw(commandList);
+            SetSrgsForDraw(context);
 
             commandList->SetViewport(m_viewportState);
             commandList->SetScissor(m_scissorState);
 
-            commandList->Submit(m_item);
+            commandList->Submit(m_item.GetDeviceDrawItem(context.GetDeviceIndex()));
         }
         
     }   // namespace RPI

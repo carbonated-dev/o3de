@@ -13,12 +13,6 @@
 #include <AzCore/Memory/Memory.h>
 #include <AzCore/Jobs/Internal/JobManagerWorkStealing.h>
 
-#if defined(CARBONATED)
-// ...
-#else
-//#define JOBMANAGER_ENABLE_STATS
-#endif
-
 namespace AZ
 {
     class Job;

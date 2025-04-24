@@ -84,13 +84,11 @@ void BatchApplicationManager::Reflect()
 {
     ApplicationManagerBase::Reflect();
 
-#if defined(CARBONATED)
     AZ::SerializeContext* context = nullptr;
     AZ::ComponentApplicationBus::BroadcastResult(context, &AZ::ComponentApplicationBus::Events::GetSerializeContext);
     AZ_Assert(context, "No serialize context");
 
     AssetProcessor::PlatformConfiguration::Reflect(context);
-#endif
 }
 
 const char* BatchApplicationManager::GetLogBaseName()

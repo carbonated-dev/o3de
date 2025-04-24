@@ -29,6 +29,10 @@ foreach(enabled_platform ${LY_PAL_TOOLS_ENABLED})
     list(APPEND pal_builder_tools_files ${pal_builder_source_dir}/platform_builders_${enabled_platform_lowercase}_tools_files.cmake)
 endforeach()
 
+if(LY_PIX_ENABLED)
+    set(ATOM_RHI_DX12_RHI_BUILD_DEPENDENCIES 3rdParty::pix)
+endif()
+
 if(NOT PAL_TRAIT_ATOM_RHI_DX12_SUPPORTED)
     
     # Create stub modules. Once we support gem loading configuration, we can remove this stubbed targets
@@ -143,10 +147,27 @@ ly_add_target(
             ${AFTERMATH_BUILD_DEPENDENCY}
         PRIVATE
             Gem::OpenSSL_md5
+            ${ATOM_RHI_DX12_RHI_BUILD_DEPENDENCIES}
     COMPILE_DEFINITIONS 
         PRIVATE
             ${USE_NSIGHT_AFTERMATH_DEFINE}
             
+)
+
+ly_add_target(
+    NAME ${gem_name}.Interface STATIC
+    NAMESPACE Gem
+    FILES_CMAKE
+        atom_rhi_dx12_interface_common_files.cmake
+    INCLUDE_DIRECTORIES
+        PRIVATE
+            Source
+            ${pal_source_dir}
+        PUBLIC
+            Include
+    BUILD_DEPENDENCIES
+        PUBLIC
+            Gem::${gem_name}.Private.Static
 )
 
 ly_add_target(

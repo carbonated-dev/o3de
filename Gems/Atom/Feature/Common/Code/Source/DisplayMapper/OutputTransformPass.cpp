@@ -6,7 +6,7 @@
  *
  */
 
-#include <Atom/Feature/DisplayMapper/OutputTransformPass.h>
+#include <DisplayMapper/OutputTransformPass.h>
 #include <Atom/Feature/ACES/AcesDisplayMapperFeatureProcessor.h>
 
 #include <Atom/RHI/Factory.h>
@@ -96,11 +96,35 @@ namespace AZ
             commandList->SetViewport(m_viewportState);
             commandList->SetScissor(m_scissorState);
 
-            SetSrgsForDraw(commandList);
+            SetSrgsForDraw(context);
 
-            m_item.m_pipelineState = GetPipelineStateFromShaderVariant();
+            m_item.SetPipelineState(GetPipelineStateFromShaderVariant());
 
-            commandList->Submit(m_item);
+            commandList->Submit(m_item.GetDeviceDrawItem(context.GetDeviceIndex()));
+        }
+
+        void OutputTransformPass::FrameBeginInternal(FramePrepareParams params)
+        {
+            ApplyShaperLookupTablePass::FrameBeginInternal(params);
+            AZ::RPI::Scene* scene = GetScene();
+            if (scene)
+            {
+                PostProcessFeatureProcessor* fp = scene->GetFeatureProcessor<PostProcessFeatureProcessor>();
+                if (fp)
+                {
+                    AZ::RPI::ViewPtr view = GetRenderPipeline()->GetFirstView(GetPipelineViewTag());
+                    PostProcessSettings* postProcessSettings = fp->GetLevelSettingsFromView(view);
+                    if (postProcessSettings)
+                    {
+                        ExposureControlSettings* settings = postProcessSettings->GetExposureControlSettings();
+                        if (settings)
+                        {
+                            settings->UpdateBuffer();
+                            view->GetShaderResourceGroup()->SetBufferView(m_exposureControlBufferInputIndex, settings->GetBufferView());
+                        }
+                    }
+                }
+            }
         }
 
         void OutputTransformPass::FrameBeginInternal(FramePrepareParams params)

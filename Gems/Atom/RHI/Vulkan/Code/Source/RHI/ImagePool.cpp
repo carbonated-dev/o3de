@@ -34,7 +34,7 @@ namespace AZ
             return RHI::ResultCode::Success;
         }
 
-        RHI::ResultCode ImagePool::InitImageInternal(const RHI::ImageInitRequest& request)
+        RHI::ResultCode ImagePool::InitImageInternal(const RHI::DeviceImageInitRequest& request)
         {
 #if defined(CARBONATED)
             MEMORY_TAG(ImageMip);
@@ -64,7 +64,7 @@ namespace AZ
             return result;
         }
 
-        RHI::ResultCode ImagePool::UpdateImageContentsInternal(const RHI::ImageUpdateRequest& request) 
+        RHI::ResultCode ImagePool::UpdateImageContentsInternal(const RHI::DeviceImageUpdateRequest& request) 
         {
             size_t bytesTransferred = 0;
             RHI::ResultCode resultCode = static_cast<ImagePoolResolver*>(GetResolver())->UpdateImage(request, bytesTransferred);
@@ -79,7 +79,7 @@ namespace AZ
         {
         }
 
-        void ImagePool::ShutdownResourceInternal(RHI::Resource& resourceBase)
+        void ImagePool::ShutdownResourceInternal(RHI::DeviceResource& resourceBase)
         {
             auto& device = static_cast<Device&>(GetDevice());
             auto& image = static_cast<Image&>(resourceBase);

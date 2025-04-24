@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <Atom/RPI.Reflect/Configuration.h>
 #include <Atom/RPI.Reflect/Material/MaterialFunctor.h>
 #include <Atom/RPI.Reflect/Material/MaterialPropertyDescriptor.h>
 #include <Atom/RPI.Reflect/Material/MaterialNameContext.h>
@@ -37,7 +38,7 @@ namespace AZ
 
         namespace LuaMaterialFunctorAPI
         {
-            class CommonRuntimeConfiguration
+            class ATOM_RPI_REFLECT_API CommonRuntimeConfiguration
             {
             public:
                 CommonRuntimeConfiguration(
@@ -58,7 +59,7 @@ namespace AZ
             };
 
             //! Wraps MaterialFunctorAPI::ReadMaterialPropertyValues for LuaMaterialFunctor access
-            class ReadMaterialPropertyValues
+            class ATOM_RPI_REFLECT_API ReadMaterialPropertyValues
             {
             public:
                 AZ_TYPE_INFO(LuaMaterialFunctorAPI::ReadMaterialPropertyValues, "{2CCCB9A9-AD4F-447C-B587-E7A91CEA8088}");
@@ -88,7 +89,7 @@ namespace AZ
             };
 
             //! Wraps RHI::RenderStates for LuaMaterialFunctor access
-            class RenderStates
+            class ATOM_RPI_REFLECT_API RenderStates
             {
             public:
                 AZ_TYPE_INFO(LuaMaterialFunctorAPI::RenderStates, "{DF724568-0579-4E0D-95CB-1CD9AD484D2F}");
@@ -207,7 +208,7 @@ namespace AZ
                 RHI::RenderStates* m_renderStates = nullptr;
             };
 
-            class ShaderItem
+            class ATOM_RPI_REFLECT_API ShaderItem
             {
             public:
                 AZ_TYPE_INFO(LuaMaterialFunctorAPI::ShaderItem, "{F5BF0362-AA43-408A-96A8-6F9980A4CF93}");
@@ -239,7 +240,7 @@ namespace AZ
             };
 
             //! Wraps MaterialFunctorAPI::ConfigureShaders for LuaMaterialFunctor access
-            class ConfigureShaders
+            class ATOM_RPI_REFLECT_API ConfigureShaders
             {
             public:
                 AZ_TYPE_INFO(LuaMaterialFunctorAPI::ConfigureShaders, "{DD498919-A135-4430-857B-B00146AEB5EC}");
@@ -273,7 +274,7 @@ namespace AZ
             };
 
             //! Wraps MaterialFunctorAPI::RuntimeContext with lua bindings
-            class RuntimeContext
+            class ATOM_RPI_REFLECT_API RuntimeContext
                 : public CommonRuntimeConfiguration
                 , public LuaMaterialFunctorAPI::ReadMaterialPropertyValues
                 , public LuaMaterialFunctorAPI::ConfigureShaders
@@ -317,7 +318,7 @@ namespace AZ
             };
 
             //! Wraps MaterialFunctorAPI::PipelineRuntimeContext with lua bindings
-            class PipelineRuntimeContext
+            class ATOM_RPI_REFLECT_API PipelineRuntimeContext
                 : public CommonRuntimeConfiguration
                 , public LuaMaterialFunctorAPI::ReadMaterialPropertyValues
                 , public LuaMaterialFunctorAPI::ConfigureShaders
@@ -346,7 +347,7 @@ namespace AZ
             };
 
             //! Wraps MaterialFunctorAPI::EditorContext with lua bindings
-            class EditorContext
+            class ATOM_RPI_REFLECT_API EditorContext
                 : public LuaMaterialFunctorAPI::ReadMaterialPropertyValues
             {
             public:
@@ -388,7 +389,7 @@ namespace AZ
                 const MaterialNameContext* m_materialNameContext;
             };
 
-            class Utilities
+            class ATOM_RPI_REFLECT_API Utilities
             {
                 friend CommonRuntimeConfiguration;
                 friend LuaMaterialFunctorAPI::RuntimeContext;
@@ -409,7 +410,7 @@ namespace AZ
         } // namespace LuaMaterialFunctorAPI
 
         //! Materials can use this functor to create custom scripted operations.
-        class LuaMaterialFunctor final
+        class ATOM_RPI_REFLECT_API LuaMaterialFunctor final
             : public RPI::MaterialFunctor
         {
             friend class LuaMaterialFunctorSourceData;

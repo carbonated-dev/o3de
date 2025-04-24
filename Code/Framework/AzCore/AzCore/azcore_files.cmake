@@ -26,7 +26,6 @@ set(FILES
     Asset/AssetSerializer.cpp
     Asset/AssetSerializer.h
     Asset/AssetTypeInfoBus.h
-    Asset/AssetTypeInfoBus.cpp
     Asset/AssetInternal/WeakAsset.h
     base.h
     Casting/lossy_cast.h
@@ -87,7 +86,6 @@ set(FILES
     Debug/PerformanceCollector.h
     Debug/PerformanceCollector.cpp
     Debug/Profiler.cpp
-    Debug/Profiler.inl
     Debug/Profiler.h
     Debug/ProfilerBus.h
     Debug/ProfilerReflection.cpp
@@ -508,7 +506,6 @@ set(FILES
     RTTI/BehaviorMethodImpl.cpp
     RTTI/BehaviorMethodImpl.inl
     RTTI/BehaviorObjectSignals.h
-    RTTI/BehaviorObjectSignals.cpp
     RTTI/ChronoReflection.cpp
     RTTI/ChronoReflection.h
     RTTI/ReflectContext.h
@@ -594,7 +591,6 @@ set(FILES
     Serialization/Json/BoolSerializer.h
     Serialization/Json/BoolSerializer.cpp
     Serialization/Json/ByteStreamSerializer.h
-    Serialization/Json/ByteStreamSerializer.cpp
     Serialization/Json/CastingHelpers.h
     Serialization/Json/DoubleSerializer.h
     Serialization/Json/DoubleSerializer.cpp

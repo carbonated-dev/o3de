@@ -1881,8 +1881,7 @@ namespace AssetProcessor
                     // its already been picked up by a file monitoring / scanning step.
                     continue;
                 }
-
-#if defined(CARBONATED)
+                
                 if (source.m_fromDependencyChain.contains(absolutePath))
                 {
                     AZ_Trace(AssetProcessor::DebugChannel, "Ignoring dependant file: " AZ_STRING_FORMAT " - cyclic dependency detected\n", AZ_STRING_ARG(absolutePath));
@@ -1890,9 +1889,6 @@ namespace AssetProcessor
                 }
 
                 AssessFileInternal(absolutePath, false, false, normalizedFilePath + QString(";") + source.m_fromDependencyChain);
-#else
-                AssessFileInternal(absolutePath, false);
-#endif
             }
         }
 
@@ -3255,11 +3251,7 @@ namespace AssetProcessor
     // during startup, and should avoid logging, sleeping, or doing
     // any more work than is necessary (Log only in error or uncommon
     // circumstances).
-#if defined(CARBONATED)
     void AssetProcessorManager::AssessFileInternal(QString fullFile, bool isDelete, bool fromScanner, QString fromDependencyChain)
-#else
-    void AssetProcessorManager::AssessFileInternal(QString fullFile, bool isDelete, bool fromScanner)
-#endif
     {
         if (m_quitRequested)
         {
@@ -3714,7 +3706,6 @@ namespace AssetProcessor
             AZStd::string_view dependencyFingerprint(fingerprintFromDatabase.begin(), fingerprintFromDatabase.begin() + s_lengthOfUuid);
             int numBuildersEmittingSourceDependencies = 0;
 
-#if defined(CARBONATED)
             // Check for updated builders
             if (!AreBuildersUnchanged(builderEntries, numBuildersEmittingSourceDependencies))
             {
@@ -3737,43 +3728,11 @@ namespace AssetProcessor
             // Note that this means any files that *were* deleted are already handled by CheckMissingFiles
             m_sourceFilesInDatabase.erase(sourceFileItr);
             return true;
-#else
-            if (!fingerprintFromDatabase.empty() && AreBuildersUnchanged(builderEntries, numBuildersEmittingSourceDependencies))
-            {
-                // Builder(s) have not changed since last time
-                AZStd::string currentFingerprint = ComputeRecursiveDependenciesFingerprint(sourceFileItr->m_sourceAssetReference);
-
-                if(dependencyFingerprint != currentFingerprint)
-                {
-                    // Dependencies have changed
-                    ++m_assetsNeedingProcessing_DependenciesChanged;
-                    return false;
-                }
-                // Success - we can skip this file, nothing has changed!
-
-                // Remove it from the list of to-be-processed files, otherwise the AP will assume the file was deleted
-                // Note that this means any files that *were* deleted are already handled by CheckMissingFiles
-                m_sourceFilesInDatabase.erase(sourceFileItr);
-                return true;
-            }
-#endif
         }
-#if defined(CARBONATED)
         // File is a non-tracked file, aka a file that no builder cares about.
         // The fact that it has a matching modtime means we've already seen this file and attempted to process it
         // If it were a new, unprocessed source file, there would be no modtime stored
         return true;
-#else
-        else
-        {
-            // File is a non-tracked file, aka a file that no builder cares about.
-            // The fact that it has a matching modtime means we've already seen this file and attempted to process it
-            // If it were a new, unprocessed source file, there would be no modtime stored
-            return true;
-        }
-
-        return false;
-#endif
     }
 
     void AssetProcessorManager::AssessDeletedFile(QString filePath)
@@ -5944,11 +5903,11 @@ namespace AssetProcessor
         jobdetail.m_critical = true;
         jobdetail.m_priority = INT_MAX; // front of the queue.
         // the new lines make it easier to copy and paste the file names.
-        jobdetail.m_jobParam[AZ_CRC(AutoFailReasonKey)] = autoFailReason;
+        jobdetail.m_jobParam[AZ_CRC_CE(AutoFailReasonKey)] = autoFailReason;
 
         if(!jobLog.empty())
         {
-            jobdetail.m_jobParam[AZ_CRC(AutoFailLogFile)] = jobLog;
+            jobdetail.m_jobParam[AZ_CRC_CE(AutoFailLogFile)] = jobLog;
         }
 
         // this is a failure, so make sure that the system that is tracking files

@@ -355,11 +355,7 @@ namespace CopyDependencyBuilder
         xmlSchemaBuilderDescriptor.m_patterns.push_back(AssetBuilderSDK::AssetBuilderPattern("(?!.*libs\\/gameaudio\\/).*\\.xml", AssetBuilderSDK::AssetBuilderPattern::PatternType::Regex));
         xmlSchemaBuilderDescriptor.m_patterns.push_back(AssetBuilderSDK::AssetBuilderPattern("*.vegdescriptorlist", AssetBuilderSDK::AssetBuilderPattern::PatternType::Wildcard));
         xmlSchemaBuilderDescriptor.m_busId = azrtti_typeid<XmlBuilderWorker>();
-#if defined(CARBONATED)
         xmlSchemaBuilderDescriptor.m_version = 10;
-#else
-        xmlSchemaBuilderDescriptor.m_version = 9;
-#endif
         xmlSchemaBuilderDescriptor.m_createJobFunction =
             AZStd::bind(&XmlBuilderWorker::CreateJobs, this, AZStd::placeholders::_1, AZStd::placeholders::_2);
         xmlSchemaBuilderDescriptor.m_processJobFunction =
@@ -401,12 +397,10 @@ namespace CopyDependencyBuilder
         const AssetBuilderSDK::CreateJobsRequest& request) const
     {
         AZStd::vector<AssetBuilderSDK::SourceFileDependency> sourceDependencies;
-
-#if defined(CARBONATED)
         AZStd::vector<AZStd::string> matchedSchemas;
+
         AZStd::string fullPath;
         AzFramework::StringFunc::AssetDatabasePath::Join(request.m_watchFolder.c_str(), request.m_sourceFile.c_str(), fullPath);
-#endif
 
         // Iterate through each schema file and check whether the source XML matches its file path pattern
         for (const AZStd::string& schemaFileDirectory : m_schemaFileDirectories)
@@ -425,26 +419,13 @@ namespace CopyDependencyBuilder
                 {
                     return AZ::Failure(AZStd::string::format("Failed to load schema file: %s.", schemaPath.c_str()));
                 }
-
-#if defined(CARBONATED)                
                 if (SourceFileDependsOnSchema(schemaAsset, fullPath.c_str()))
                 {
                     matchedSchemas.emplace_back(schemaPath);
                 }
-#else           
-                AZStd::string fullPath;
-                AzFramework::StringFunc::AssetDatabasePath::Join(request.m_watchFolder.c_str(), request.m_sourceFile.c_str(), fullPath);
-                if (SourceFileDependsOnSchema(schemaAsset, fullPath.c_str()))
-                {
-                    AssetBuilderSDK::SourceFileDependency sourceFileDependency;
-                    sourceFileDependency.m_sourceFileDependencyPath = schemaPath;
-                    sourceDependencies.emplace_back(sourceFileDependency);
-                }
-#endif
             }
         }
 
-#if defined(CARBONATED)
         // If we have matched any schemas, then add both the schemas as well as the path dependencies as source dependencies.
         if (matchedSchemas.size() > 0)
         {
@@ -473,7 +454,6 @@ namespace CopyDependencyBuilder
                 }
             }
         }
-#endif
 
         return AZ::Success(sourceDependencies);
     }
@@ -487,8 +467,8 @@ namespace CopyDependencyBuilder
         // We've already iterate through all the schemas and found source dependencies in CreateJobs
         // Retrieve the matched schemas from the job parameters in ProcessJob to avoid redundant work
         const auto& paramMap = request.m_jobDescription.m_jobParameters;
-        auto startIter = paramMap.find(AZ_CRC("sourceDependencyStartPoint", 0xdfa24dde));
-        auto sourceNumIter = paramMap.find(AZ_CRC("sourceDependenciesNum", 0xf52e721a));
+        auto startIter = paramMap.find(AZ_CRC_CE("sourceDependencyStartPoint"));
+        auto sourceNumIter = paramMap.find(AZ_CRC_CE("sourceDependenciesNum"));
         if (startIter != paramMap.end() && sourceNumIter != paramMap.end())
         {
             int startPoint = AzFramework::StringFunc::ToInt(startIter->second.c_str());

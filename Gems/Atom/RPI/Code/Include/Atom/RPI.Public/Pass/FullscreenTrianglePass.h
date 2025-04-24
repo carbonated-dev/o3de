@@ -10,9 +10,10 @@
 #include <AzCore/Memory/SystemAllocator.h>
 
 #include <Atom/RHI/CommandList.h>
-#include <Atom/RHI/DrawItem.h>
+#include <Atom/RHI/DeviceDrawItem.h>
 #include <Atom/RHI/ScopeProducer.h>
 
+#include <Atom/RPI.Public/Configuration.h>
 #include <Atom/RPI.Public/Pass/RenderPass.h>
 #include <Atom/RPI.Public/Shader/Shader.h>
 #include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
@@ -27,7 +28,7 @@ namespace AZ
         //! This pass is designed to work without any dedicated geometry buffers
         //! and instead issues a 3-vertex draw and relies on the vertex shader
         //! to generate a fullscreen triangle from the vertex ids.
-        class FullscreenTrianglePass
+        class ATOM_RPI_PUBLIC_API FullscreenTrianglePass
             : public RenderPass
             , public ShaderReloadNotificationBus::Handler
         {
@@ -79,6 +80,9 @@ namespace AZ
 
             // The draw item submitted by this pass
             RHI::DrawItem m_item;
+
+            // Holds the geometry info for the draw call
+            RHI::GeometryView m_geometryView;
 
             // The stencil reference value for the draw item
             uint32_t m_stencilRef;

@@ -56,13 +56,11 @@ namespace Maestro
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     AZ::TypeId EditorSequenceAgentComponent::GetComponentTypeUuid(const AZ::Component& component) const
     {
         return AzToolsFramework::GetUnderlyingComponentType(component);
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::GetEntityComponents(AZ::Entity::ComponentArrayType& entityComponents) const
     {
         AZ::Entity* entity = GetEntity();
@@ -95,7 +93,6 @@ namespace Maestro
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::Activate()
     {
         // cache pointers and animatable addresses for animation
@@ -107,13 +104,12 @@ namespace Maestro
         EditorComponentBase::Activate();
 
         // Notify the sequence agent was just connected to the sequence.
-        Maestro::EditorSequenceAgentComponentNotificationBus::Event(
+        EditorSequenceAgentComponentNotificationBus::Event(
             GetEntityId(),
-            &Maestro::EditorSequenceAgentComponentNotificationBus::Events::OnSequenceAgentConnected
+            &EditorSequenceAgentComponentNotificationBus::Events::OnSequenceAgentConnected
         );
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::Deactivate()
     {
         // invalidate all cached pointers and address
@@ -124,7 +120,6 @@ namespace Maestro
         EditorComponentBase::Deactivate();
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::ConnectSequence(const AZ::EntityId& sequenceEntityId)
     {
         // check that we aren't already connected to this SequenceComponent - add it if we aren't
@@ -132,19 +127,25 @@ namespace Maestro
         {
             m_sequenceEntityIds.insert(sequenceEntityId);
             // connect to EBus between the given SequenceComponent and me
-            Maestro::SequenceAgentEventBusId busId(sequenceEntityId, GetEntityId());
+            SequenceAgentEventBusId busId(sequenceEntityId, GetEntityId());
             EditorSequenceAgentComponentRequestBus::MultiHandler::BusConnect(busId);
             SequenceAgentComponentRequestBus::MultiHandler::BusConnect(busId);
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::DisconnectSequence()
     {   
-        const Maestro::SequenceAgentEventBusId* busIdToDisconnect = SequenceAgentComponentRequestBus::GetCurrentBusId();
+        const SequenceAgentEventBusId* busIdToDisconnect = SequenceAgentComponentRequestBus::GetCurrentBusId();
 
         if (!busIdToDisconnect)
         {
+            return;
+        }
+
+        const auto entity = GetEntity();
+        if (!entity)
+        {
+            AZ_Assert(false, "EditorSequenceAgentComponent::DisconnectSequence() called for inactive entity.");
             return;
         }
 
@@ -158,7 +159,7 @@ namespace Maestro
 
         // Disconnect from the bus between the SequenceComponent and me
         // Make a copy because calling BusDisconnect destroy the current bus id
-        const Maestro::SequenceAgentEventBusId busIdToDisconnectCopy = *busIdToDisconnect;
+        const SequenceAgentEventBusId busIdToDisconnectCopy = *busIdToDisconnect;
         EditorSequenceAgentComponentRequestBus::MultiHandler::BusDisconnect(busIdToDisconnectCopy);
         SequenceAgentComponentRequestBus::MultiHandler::BusDisconnect(busIdToDisconnectCopy);
 
@@ -169,8 +170,17 @@ namespace Maestro
 
         AZ::EntityId curEntityId = GetEntityId();
 
+        AZ_Trace("EditorSequenceAgentComponent","DisconnectSequence(): removing self from entity %s, %s.", curEntityId.ToString().c_str(), entity->GetName().c_str());
+        // This component was created indirectly via user actions in EditorSequenceComponent,
+        // so temporary disable undo / redo for its destruction adding EntityId to the ignored list, to bypass possible undo / redo errors.
+        AzToolsFramework::ToolsApplicationRequests::Bus::Broadcast(&AzToolsFramework::ToolsApplicationRequests::Bus::Events::AddIgnoredEntity, curEntityId);
+
         // remove this SequenceAgent from this entity if no sequenceComponents are connected to it
         AzToolsFramework::EntityCompositionRequestBus::Broadcast(&AzToolsFramework::EntityCompositionRequests::RemoveComponents, AZ::Entity::ComponentArrayType{this});        
+
+        // Remove EntityId from the ignored list to return to standard undo / redo pipeline.
+        // This call is mandatory after the above AddIgnoredEntity() call which was intended to disable undo / redo only temporary.
+        AzToolsFramework::ToolsApplicationRequests::Bus::Broadcast(&AzToolsFramework::ToolsApplicationRequests::Bus::Events::RemoveIgnoredEntity, curEntityId);
 
         // Let any currently-active undo operations know that this entity has changed state.
         auto undoCacheInterface = AZ::Interface<AzToolsFramework::UndoSystem::UndoCacheInterface>::Get();
@@ -183,31 +193,28 @@ namespace Maestro
         // THIS CLASS INSTANCE IS NOW DEAD DUE TO DELETION BY THE ENTITY DURING RemoveComponents!
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::ConnectAllSequences()
     {
         // Connect all buses
         for (auto iter = m_sequenceEntityIds.begin(); iter != m_sequenceEntityIds.end(); iter++)
         {
-            Maestro::SequenceAgentEventBusId busIdToConnect(*iter, GetEntityId());
+            SequenceAgentEventBusId busIdToConnect(*iter, GetEntityId());
             EditorSequenceAgentComponentRequestBus::MultiHandler::BusConnect(busIdToConnect);
             SequenceAgentComponentRequestBus::MultiHandler::BusConnect(busIdToConnect);
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::DisconnectAllSequences()
     {
         // disconnect all buses
         for (auto iter = m_sequenceEntityIds.begin(); iter != m_sequenceEntityIds.end(); iter++)
         {
-            Maestro::SequenceAgentEventBusId busIdToDisconnect(*iter, GetEntityId());
+            SequenceAgentEventBusId busIdToDisconnect(*iter, GetEntityId());
             EditorSequenceAgentComponentRequestBus::MultiHandler::BusDisconnect(busIdToDisconnect);
             SequenceAgentComponentRequestBus::MultiHandler::BusDisconnect(busIdToDisconnect);
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::BuildGameEntity(AZ::Entity* gameEntity)
     {
         SequenceAgentComponent *sequenceAgentComponent = gameEntity->CreateComponent<SequenceAgentComponent>();
@@ -219,7 +226,6 @@ namespace Maestro
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::GetAllAnimatableProperties(IAnimNode::AnimParamInfos& properties, AZ::ComponentId componentId)
     {       
         // add all properties found during Activate() that match the given componentId
@@ -265,7 +271,6 @@ namespace Maestro
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::GetAnimatableComponents(AZStd::vector<AZ::ComponentId>& animatableComponentIds)
     {
         AZStd::set<AZ::ComponentId> appendedComponentIds;
@@ -283,13 +288,11 @@ namespace Maestro
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     AZ::Uuid EditorSequenceAgentComponent::GetAnimatedAddressTypeId(const AnimatablePropertyAddress& animatableAddress)
     {
         return GetVirtualPropertyTypeId(animatableAddress);
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::GetAnimatedPropertyValue(AnimatedValue& returnValue, const AnimatablePropertyAddress& animatableAddress)
     {
         SequenceAgent::GetAnimatedPropertyValue(returnValue, GetEntityId(), animatableAddress);
@@ -300,7 +303,6 @@ namespace Maestro
         return SequenceAgent::SetAnimatedPropertyValue(GetEntityId(), animatableAddress, value);
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     void EditorSequenceAgentComponent::GetAssetDuration(AnimatedValue& returnValue, AZ::ComponentId componentId, const AZ::Data::AssetId& assetId)
     {
         SequenceAgent::GetAssetDuration(returnValue, componentId, assetId);

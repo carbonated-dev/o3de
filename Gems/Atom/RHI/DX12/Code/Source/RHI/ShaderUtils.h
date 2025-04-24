@@ -18,7 +18,6 @@ namespace AZ::DX12
         //! pipeline descriptor.
         ShaderByteCode PatchShaderFunction(
             const ShaderStageFunction& shaderFunction,
-            uint32_t subStageIndex,
             const RHI::PipelineStateDescriptor& descriptor);
 
         //! Patch a shader bytecode with the proper values of the specialization constants found in the
@@ -28,7 +27,6 @@ namespace AZ::DX12
         //! for more details on how specialization constants works on DX12 
         ShaderByteCodeView PatchShaderFunction(
             const ShaderStageFunction& shaderFunction,
-            uint32_t subStageIndex,
             const RHI::PipelineStateDescriptor& descriptor,
             AZStd::vector<ShaderByteCode>& patchedShaderContainer);
 

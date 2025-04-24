@@ -927,7 +927,7 @@ namespace AzFramework
                     // If version 2, remove SourceScriptName
                     if (node.GetVersion() == 2)
                     {
-                        int index = node.FindElement(AZ_CRC("SourceScriptName", 0x3654ac50));
+                        int index = node.FindElement(AZ_CRC_CE("SourceScriptName"));
                         if (index != -1)
                         {
                             node.RemoveElement(index);

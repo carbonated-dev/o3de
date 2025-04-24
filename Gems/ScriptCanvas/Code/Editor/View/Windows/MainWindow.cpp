@@ -85,6 +85,8 @@
 #include <AzToolsFramework/ActionManager/HotKey/HotKeyManagerInterface.h>
 #include <AzToolsFramework/AssetBrowser/AssetBrowserBus.h>
 #include <AzToolsFramework/AssetBrowser/AssetBrowserModel.h>
+#include <AzToolsFramework/AssetBrowser/AssetSelectionModel.h>
+#include <AzToolsFramework/AssetBrowser/Entries/SourceAssetBrowserEntry.h>
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
 #include <AzToolsFramework/API/EntityCompositionRequestBus.h>
 #include <AzToolsFramework/API/ToolsApplicationAPI.h>
@@ -204,7 +206,7 @@ namespace ScriptCanvasEditor
 
     void Workspace::Save()
     {
-        auto workspace = AZ::UserSettings::CreateFind<EditorSettings::EditorWorkspace>(AZ_CRC("ScriptCanvasEditorWindowState", 0x10c47d36), AZ::UserSettings::CT_LOCAL);
+        auto workspace = AZ::UserSettings::CreateFind<EditorSettings::EditorWorkspace>(AZ_CRC_CE("ScriptCanvasEditorWindowState"), AZ::UserSettings::CT_LOCAL);
         if (workspace)
         {
             workspace->Init(m_mainWindow->saveState(), m_mainWindow->saveGeometry());
@@ -270,7 +272,7 @@ namespace ScriptCanvasEditor
     void Workspace::Restore()
     {
 
-        auto workspace = AZ::UserSettings::Find<EditorSettings::EditorWorkspace>(AZ_CRC("ScriptCanvasEditorWindowState", 0x10c47d36), AZ::UserSettings::CT_LOCAL);
+        auto workspace = AZ::UserSettings::Find<EditorSettings::EditorWorkspace>(AZ_CRC_CE("ScriptCanvasEditorWindowState"), AZ::UserSettings::CT_LOCAL);
         if (workspace)
         {
             workspace->Restore(qobject_cast<QMainWindow*>(m_mainWindow));
@@ -642,7 +644,7 @@ namespace ScriptCanvasEditor
 
         UINotificationBus::Broadcast(&UINotifications::MainWindowCreationEvent, this);
 
-        m_userSettings = AZ::UserSettings::CreateFind<EditorSettings::ScriptCanvasEditorSettings>(AZ_CRC("ScriptCanvasPreviewSettings", 0x1c5a2965), AZ::UserSettings::CT_LOCAL);
+        m_userSettings = AZ::UserSettings::CreateFind<EditorSettings::ScriptCanvasEditorSettings>(AZ_CRC_CE("ScriptCanvasPreviewSettings"), AZ::UserSettings::CT_LOCAL);
         if (m_userSettings)
         {
             m_allowAutoSave = m_userSettings->m_autoSaveConfig.m_enabled;
@@ -1887,22 +1889,33 @@ namespace ScriptCanvasEditor
 
     void MainWindow::OnFileOpen()
     {
-        const auto sourcePath = AZ::IO::FixedMaxPath(AZ::Utils::GetProjectPath()) / "scriptcanvas";
-        const QStringList nameFilters = { "All ScriptCanvas Files (*.scriptcanvas)" };
+        AssetSelectionModel selection;
 
-        QFileDialog dialog(nullptr, tr("Open..."), sourcePath.c_str());
-        dialog.setFileMode(QFileDialog::ExistingFiles);
-        dialog.setNameFilters(nameFilters);
+        StringFilter* stringFilter = new StringFilter();
+        stringFilter->SetName("Script Canvas (*.scriptcanvas)");
+        stringFilter->SetFilterString(".scriptcanvas");
+        stringFilter->SetFilterPropagation(AssetBrowserEntryFilter::PropagateDirection::Down);
+        auto stringFilterPtr = FilterConstType(stringFilter);
 
-        if (dialog.exec() == QDialog::Accepted)
+        selection.SetDisplayFilter(stringFilterPtr);
+        selection.SetSelectionFilter(stringFilterPtr);
+        selection.SetMultiselect(true);
+
+        AssetBrowserComponentRequestBus::Broadcast(
+            &AssetBrowserComponentRequests::PickAssets, selection, AzToolsFramework::GetActiveWindow());
+
+        if (!selection.IsValid())
         {
-            m_filesToOpen = dialog.selectedFiles();
-
-            OpenNextFile();
+            return;
         }
 
-        EnableOpenDocumentActions(true);
+        for (const auto& result : selection.GetResults())
+        {
+            m_filesToOpen.push_back(result->GetFullPath().c_str());
+        }
 
+        OpenNextFile();
+        EnableOpenDocumentActions(true);
     }
 
     void MainWindow::EnableOpenDocumentActions(bool enable)
@@ -3555,7 +3568,7 @@ namespace ScriptCanvasEditor
         return findChild<QObject*>(elementName);
     }
 
-    AZ::EntityId MainWindow::FindEditorNodeIdByAssetNodeId([[maybe_unused]] const SourceHandle& assetId, AZ::EntityId assetNodeId) const
+    AZ::EntityId MainWindow::FindEditorNodeIdByAssetNodeId([[maybe_unused]] const SourceHandle& assetId, [[maybe_unused]] AZ::EntityId assetNodeId) const
     {
         const ScriptCanvas::ScriptCanvasId scriptId = GetActiveScriptCanvasId();
         AZ::EntityId newNodeId;
@@ -3563,7 +3576,7 @@ namespace ScriptCanvasEditor
         return newNodeId;
     }
 
-    AZ::EntityId MainWindow::FindAssetNodeIdByEditorNodeId([[maybe_unused]] const SourceHandle& assetId, AZ::EntityId editorNodeId) const
+    AZ::EntityId MainWindow::FindAssetNodeIdByEditorNodeId([[maybe_unused]] const SourceHandle& assetId, [[maybe_unused]] AZ::EntityId editorNodeId) const
     {
         const ScriptCanvas::ScriptCanvasId scriptId = GetActiveScriptCanvasId();
         AZ::EntityId originalNodeId;
