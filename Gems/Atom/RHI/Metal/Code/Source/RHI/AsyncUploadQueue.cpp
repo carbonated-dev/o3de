@@ -16,6 +16,11 @@
 #include <RHI/Device.h>
 #include <RHI/Fence.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#include <AzCore/Memory/GPUAllocator.h>
+#endif
+
 namespace AZ
 {
     namespace Metal
@@ -48,7 +53,14 @@ namespace AZ
                 framePacket.m_fence.Init(&device, RHI::FenceState::Signaled);
 
                 framePacket.m_stagingResource = [hwDevice newBufferWithLength:descriptor.m_stagingSizeInBytes options:bufferOptions];
-
+#if defined(CARBONATED)
+               {
+                   const size_t size = framePacket.m_stagingResource.allocatedSize;
+                   AZ::GPUAllocator* allocator = static_cast<AZ::GPUAllocator*>(&AZ::AllocatorInstance<AZ::GPUAllocator>::Get());
+                   MEMORY_TAG(MetalBuffer);
+                   allocator->Allocation(framePacket.m_stagingResource, size);
+               }
+#endif
                 framePacket.m_stagingResourceData = static_cast<uint8_t*>(framePacket.m_stagingResource.contents);
             }
             
