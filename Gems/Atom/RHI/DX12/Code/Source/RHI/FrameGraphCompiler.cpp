@@ -240,6 +240,7 @@ namespace AZ
 
                 /// Copy
                 D3D12_RESOURCE_STATE_COMMON
+            };
             const RHI::Scope& parentScope = scopeAttachment.GetScope();
             const RHI::HardwareQueueClass hardwareQueueClass = parentScope.GetHardwareQueueClass();
             const uint32_t hardwareQueueClassIdx = static_cast<uint32_t>(hardwareQueueClass);
