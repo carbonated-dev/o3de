@@ -127,30 +127,6 @@ namespace AZ
             }
         }
 
-        void OutputTransformPass::FrameBeginInternal(FramePrepareParams params)
-        {
-            ApplyShaperLookupTablePass::FrameBeginInternal(params);
-            AZ::RPI::Scene* scene = GetScene();
-            if (scene)
-            {
-                PostProcessFeatureProcessor* fp = scene->GetFeatureProcessor<PostProcessFeatureProcessor>();
-                if (fp)
-                {
-                    AZ::RPI::ViewPtr view = GetRenderPipeline()->GetFirstView(GetPipelineViewTag());
-                    PostProcessSettings* postProcessSettings = fp->GetLevelSettingsFromView(view);
-                    if (postProcessSettings)
-                    {
-                        ExposureControlSettings* settings = postProcessSettings->GetExposureControlSettings();
-                        if (settings)
-                        {
-                            settings->UpdateBuffer();
-                            view->GetShaderResourceGroup()->SetBufferView(m_exposureControlBufferInputIndex, settings->GetBufferView());
-                        }
-                    }
-                }
-            }
-        }
-
         void OutputTransformPass::SetToneMapperType(const ToneMapperType& toneMapperType)
         {
             if (m_toneMapperType != toneMapperType)

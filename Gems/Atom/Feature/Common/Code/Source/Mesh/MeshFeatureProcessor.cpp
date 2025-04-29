@@ -1242,11 +1242,11 @@ namespace AZ
         {
             if (meshHandle.IsValid())
             {
+                auto& modelData = ToModelDataInstance(meshHandle);
 #if defined(CARBONATED)
                 MEMORY_TAG(Mesh);
-                ASSET_TAG(meshHandle->m_originalModelAsset.GetHint().c_str());
+                ASSET_TAG(modelData.m_originalModelAsset.GetHint().c_str());
 #endif
-                auto& modelData = ToModelDataInstance(meshHandle);
                 modelData.m_descriptor.m_customMaterials = materials;
                 if (modelData.m_model)
                 {

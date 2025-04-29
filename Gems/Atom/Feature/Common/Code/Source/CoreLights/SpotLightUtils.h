@@ -11,7 +11,6 @@
 #include <Atom/Feature/Mesh/MeshCommon.h>
 #include <CoreLights/LightCommon.h>
 #include <Shadows/ProjectedShadowFeatureProcessor.h>
-#include <Atom/Feature/CoreLights/LightCommon.h> // Gruber patch : missed include
 
 namespace AZ
 {
