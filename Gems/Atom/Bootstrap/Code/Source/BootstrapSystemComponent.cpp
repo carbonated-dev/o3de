@@ -836,11 +836,6 @@ namespace AZ
             {
                 SetWindowResolution();
             }
-
-            void BootstrapSystemComponent::RefreshWindowResolution()
-            {
-                SetWindowResolution();
-            }
         
 #if defined(CARBONATED)
             void BootstrapSystemComponent::SetWindowResolutionDirectly(AzFramework::WindowSize resolution)
