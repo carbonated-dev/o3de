@@ -79,7 +79,7 @@ namespace AZ
                 // do not count allocation record with size greather than the limit for any asset
                 // sometimes vulkan allocates a huge buffer for small items, we do not want
                 // to count that buffer in a pariticular asset
-                MEMORY_ASSET_LIMIT(createInfo.m_vkCreateInfo.size);
+                MEMORY_ASSET_LIMIT(createInfo.GetCreateInfo()->size);
 #endif
             // Creates the buffer, allocates new memory and bind it to the buffer.
             vkResult = vmaCreateBufferWithAlignment(
