@@ -26,7 +26,7 @@ namespace AZ
 
     namespace RPI
     {
-        class LuaMaterialBehaviorContext
+        class ATOM_RPI_REFLECT_API LuaMaterialBehaviorContext
         {
         public:
             static LuaMaterialBehaviorContext* GetInstance();
