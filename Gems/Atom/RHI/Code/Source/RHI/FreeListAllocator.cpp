@@ -8,6 +8,10 @@
 #include <Atom/RHI/FreeListAllocator.h>
 #include <Atom/RHI.Reflect/Bits.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 namespace AZ::RHI
 {
     bool FreeListAllocator::IsGarbageReady(Garbage& garbage) const
@@ -172,7 +176,9 @@ namespace AZ::RHI
             AZ_Assert(false, "offset is not valid for this allocator");
             return;
         }
-
+#if defined(CARBONATED)
+        ASSET_TAG("");  // do not track reallocation to any asset
+#endif
         m_garbage.push(Garbage{ addressOffset, m_garbageCollectCycle });
     }
 

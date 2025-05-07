@@ -15,6 +15,10 @@
 #include <AzFramework/Scene/Scene.h>
 #include <AzFramework/Visibility/BoundsBus.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 #include <algorithm>
 
 namespace AzFramework
@@ -55,6 +59,9 @@ namespace AzFramework
 
         void Intersector::OnEntityConnected(AZ::EntityId entityId)
         {
+#if defined(CARBONATED)
+                ASSET_TAG("");  // do not count containers grouth to particular assets
+#endif
             m_registeredEntities.AddRef(entityId);
             m_dirtyEntities.insert(entityId);
         }

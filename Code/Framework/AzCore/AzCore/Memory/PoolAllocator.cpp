@@ -28,6 +28,10 @@
 
 #include <AzCore/std/parallel/containers/lock_free_intrusive_stamped_stack.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#endif
+
 #define POOL_ALLOCATION_PAGE_SIZE (size_t{4} * size_t{1024})
 #define POOL_ALLOCATION_MIN_ALLOCATION_SIZE size_t{8}
 #define POOL_ALLOCATION_MAX_ALLOCATION_SIZE size_t{512}
@@ -321,6 +325,9 @@ namespace AZ
         AZ_INLINE void PushFreePage(Page* page);
         inline Page* ConstructPage(size_t elementSize)
         {
+#if defined(CARBONATED)
+            ASSET_TAG("");  // do not count pages to particular assets
+#endif
             // We store the page struct at the end of the block
             char* memBlock;
             memBlock = reinterpret_cast<char*>(static_cast<void*>(
