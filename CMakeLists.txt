@@ -23,9 +23,9 @@ if(CARBONATED)
 endif(CARBONATED)
 
 # memory and performance tracking options
-OPTION(MEMORY_TAG_TRACING "Enable asset and mmeory tags" OFF)
-OPTION(START_MEMORY_TRACING "Start memory tracing from app start" OFF)
-OPTION(ADVANCED_ASSET_TRACING "Take more CPU time to find asset names for precise asset size tracing" OFF)
+OPTION(MEMORY_TAG_TRACING "Enable asset and mmeory tags" ON)
+OPTION(START_MEMORY_TRACING "Start memory tracing from app start" ON)
+OPTION(ADVANCED_ASSET_TRACING "Take more CPU time to find asset names for precise asset size tracing" ON)
 OPTION(LOD_REMOVAL "Enable conditional LOD removal at runtime to save RAM" ON)
 OPTION(MIP_REMOVAL "Enable conditional mipmap level removal at runtime to save RAM" ON)
 
