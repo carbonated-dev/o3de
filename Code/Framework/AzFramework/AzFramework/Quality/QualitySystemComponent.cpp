@@ -124,6 +124,14 @@ namespace AzFramework
                     if (registry->Get(rule, visitArgs.m_jsonKeyPath))
                     {
                         hasMatchingRule = device->Evaluate(rule);
+                        auto val = device->GetValue();
+                        AZ_Info("qqq", "it is %s", val.type().ToString<AZStd::string>().c_str());
+                        AZStd::string value = "unknown";
+                        if (val.is<AZStd::string>())
+                        {
+                            value = AZStd::any_cast<AZStd::string>(val);
+                        }
+                        AZ_Info("qqq", "rule %s, device %s %s, result %d", rule.c_str(), device->GetName().data(), value.c_str(), hasMatchingRule);
 
                         // in order for a rule to apply, all device attribute rules must evaluate true
                         if (!hasMatchingRule)
