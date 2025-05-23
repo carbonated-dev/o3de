@@ -98,7 +98,8 @@ namespace AZ
                             if (mtlTexture.retainCount != 1)
                             {
                                 const size_t size = CalculateTextureSize(mtlTexture);
-                                AZ_Info("gpumem", "Delallocate mtl texture %p size %u but  ref count %d", (void*)mtlTexture, size, int(mtlTexture.retainCount ));
+                                AZ_Info("gpumem", "Delallocate mtl texture %p size %u but ref count %d", (void*)mtlTexture, size, int(mtlTexture.retainCount));
+                                //allocator->AddExtra(size);  // uncomment if you want to track these potentially unreleased resources in allocator log
                             }
 #endif
                             [mtlTexture release];
@@ -114,13 +115,12 @@ namespace AZ
 #if defined(CARBONATED)
                             const size_t size = mtlBuffer.allocatedSize;
                             //if (size != 0x1000000)  // this size indicates a page in a paged allocator
+                            AZ::GPUAllocator* allocator = static_cast<GPUAllocator*>(&AZ::AllocatorInstance<AZ::GPUAllocator>::Get());
+                            allocator->Deallocation(mtlBuffer, size);
+                            if (mtlBuffer.retainCount != 1)
                             {
-                                AZ::GPUAllocator* allocator = static_cast<GPUAllocator*>(&AZ::AllocatorInstance<AZ::GPUAllocator>::Get());
-                                allocator->Deallocation(mtlBuffer, size);
-                            }
-                            if (mtlBuffer.retainCount == 1)
-                            {
-                                AZ_Info("gpumem", "Delallocate mtl buffer %p size %u but ref count %d", (void*)mtlBuffer, size_t(mtlBuffer.allocatedSize), int(mtlBuffer.retainCount ));
+                                AZ_Info("gpumem", "Delallocate mtl buffer %p size %u but ref count %d", (void*)mtlBuffer, size_t(mtlBuffer.allocatedSize), int(mtlBuffer.retainCount));
+                                //allocator->AddExtra(size);  // uncomment if you want to track these potentially unreleased resources in allocator log
                             }
 #endif
                             [mtlBuffer release];

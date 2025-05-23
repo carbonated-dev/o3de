@@ -215,6 +215,15 @@ namespace AZ
             m_renderPipelineDesc.alphaToCoverageEnabled = descriptor.m_renderStates.m_blendState.m_alphaToCoverageEnable;
             
             PipelineLibrary* pipelineLibrary = static_cast<PipelineLibrary*>(pipelineLibraryBase);
+            
+            // just in case
+            if (m_graphicsPipelineState)
+            {
+                [m_graphicsPipelineState release];
+                m_graphicsPipelineState = nil;
+                AZ_Error("gpumem", false, "Old pipeline state not released");
+            }
+            
             if (pipelineLibrary && pipelineLibrary->IsInitialized())
             {
 #if defined(CARBONATED) && defined(CARBONATED_SHADER_LOADING_TIME)
@@ -364,10 +373,36 @@ namespace AZ
             return constantValues;
         }
     
+        PipelineState::~PipelineState()
+        {
+            if (m_graphicsPipelineState)
+            {
+                AZ_Error("gpumem", false, "Pipeline state is not released");
+            }
+        }
+
         void PipelineState::ShutdownInternal()
         {
             if (m_graphicsPipelineState)
             {
+#if defined(CARBONATED)
+                if (m_renderPipelineDesc.retainCount != 1)
+                {
+                    AZ_Info("gpumem", "Delallocate m_renderPipelineDesc but ref count %d", int(m_renderPipelineDesc.retainCount));
+                }
+                if (m_graphicsPipelineState.retainCount != 1)
+                {
+                    AZ_Info("gpumem", "Delallocate m_graphicsPipelineState but ref count %d", int(m_graphicsPipelineState.retainCount));
+                }
+                if (m_renderPipelineDesc.vertexFunction)
+                {
+                    [m_renderPipelineDesc.vertexFunction release];
+                }
+                if (m_renderPipelineDesc.fragmentFunction)
+                {
+                    [m_renderPipelineDesc.fragmentFunction release];
+                }
+#endif
                 [m_renderPipelineDesc release];
                 m_renderPipelineDesc = nil;
                 [m_graphicsPipelineState release];
@@ -376,6 +411,20 @@ namespace AZ
             
             if (m_computePipelineState)
             {
+#if defined(CARBONATED)
+                if (m_computePipelineDesc.retainCount != 1)
+                {
+                    AZ_Info("gpumem", "Delallocate m_computePipelineDesc but ref count %d", int(m_computePipelineDesc.retainCount));
+                }
+                if (m_computePipelineState.retainCount != 1)
+                {
+                    AZ_Info("gpumem", "Delallocate m_computePipelineState but ref count %d", int(m_computePipelineState.retainCount));
+                }
+                if (m_computePipelineDesc.computeFunction)
+                {
+                    [m_computePipelineDesc.computeFunction release];
+                }
+#endif
                 [m_computePipelineDesc release];
                 m_computePipelineDesc = nil;
                 [m_computePipelineState release];
@@ -384,6 +433,15 @@ namespace AZ
             
             if (m_depthStencilState)
             {
+#if defined(CARBONATED)
+                // a lot of ref counts for depth-stencil, so no message
+                /*
+                if (m_depthStencilState.retainCount != 1)
+                {
+                    AZ_Info("gpumem", "Delallocate m_depthStencilState %p but ref count %d", (void*)m_depthStencilState, int(m_depthStencilState.retainCount));
+                }
+                */
+#endif
                 [m_depthStencilState release];
                 m_depthStencilState = nil;
             }

@@ -62,6 +62,7 @@ namespace AZ
             
         private:
             PipelineState() = default;
+            ~PipelineState();
             
             //////////////////////////////////////////////////////////////////////////
             // RHI::PipelineState
