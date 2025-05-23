@@ -28,6 +28,7 @@ namespace AZ
 
         void Allocation(pointer ptr, size_type byteSize);
         void Deallocation(pointer ptr, size_type byteSize);
+        void AddExtra(size_type byteSize);
 
         //////////////////////////////////////////////////////////////////////////
         // IAllocator
@@ -37,12 +38,13 @@ namespace AZ
         // IAllocator
 
         AllocateAddress allocate(size_type byteSize, size_type alignment) override;
-        size_type       deallocate(pointer ptr, size_type byteSize = 0, size_type alignment = 0) override;
+        size_type deallocate(pointer ptr, size_type byteSize = 0, size_type alignment = 0) override;
         AllocateAddress reallocate(pointer ptr, size_type newSize, size_type newAlignment) override;
         size_type get_allocated_size(pointer ptr, size_type alignment) const override;
-        void            GarbageCollect() override                 {}
-
-        size_type       NumAllocatedBytes() const override       { return m_numAllocatedBytes; }
+        
+        const char* GetName() const override { return "GPUAllocator";  }
+        size_type NumAllocatedBytes() const override { return m_numAllocatedBytes; }
+        size_type NumUsedBytes() const override { return m_numAllocatedBytes + m_numExtraBytes; }
 
         //////////////////////////////////////////////////////////////////////////
 
@@ -50,6 +52,7 @@ namespace AZ
         //GPUAllocator(const GPUAllocator&);
         //GPUAllocator& operator=(const GPUAllocator&);
         AZStd::atomic<size_type> m_numAllocatedBytes = 0;
+        AZStd::atomic<size_type> m_numExtraBytes = 0;
     };
 }
 

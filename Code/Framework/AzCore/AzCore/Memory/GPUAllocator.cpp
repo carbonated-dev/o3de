@@ -49,15 +49,19 @@ namespace AZ
     {
 #if defined(AZ_ENABLE_TRACING)
         AZ_MEMORY_PROFILE(ProfileAllocation(((uint8_t*)ptr) + 1, byteSize, 1, 1));  // +1 to avoid interference with CPU addresses
-        m_numAllocatedBytes += byteSize;
 #endif
+        m_numAllocatedBytes += byteSize;
     }
     void GPUAllocator::Deallocation(pointer ptr, size_type byteSize)
     {
 #if defined(AZ_ENABLE_TRACING)
         AZ_MEMORY_PROFILE(ProfileDeallocation(((uint8_t*)ptr) + 1, byteSize, 1, nullptr));  // +1 to avoid interference with CPU addresses
-        m_numAllocatedBytes -= byteSize;
 #endif
+        m_numAllocatedBytes -= byteSize;
+    }
+    void GPUAllocator::AddExtra(size_type byteSize)
+    {
+        m_numExtraBytes += byteSize;
     }
 
     AllocateAddress GPUAllocator::allocate(size_type byteSize, [[maybe_unused]] size_type alignment)
