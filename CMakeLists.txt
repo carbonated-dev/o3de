@@ -25,7 +25,9 @@ endif(CARBONATED)
 # memory and performance tracking options
 OPTION(MEMORY_TAG_TRACING "Enable asset and mmeory tags" ON)
 OPTION(START_MEMORY_TRACING "Start memory tracing from app start" ON)
-OPTION(ADVANCED_ASSET_TRACING "Take more CPU time to find asset names for precise asset size tracing" ON)
+OPTION(ASSET_TRACING "Trace asset names for memory" OFF)
+OPTION(ADVANCED_ASSET_TRACING "Take more CPU time to find asset names for precise asset size tracing" OFF)
+
 OPTION(LOD_REMOVAL "Enable conditional LOD removal at runtime to save RAM" ON)
 OPTION(MIP_REMOVAL "Enable conditional mipmap level removal at runtime to save RAM" ON)
 
@@ -36,6 +38,10 @@ endif(MEMORY_TAG_TRACING)
 if(START_MEMORY_TRACING)
     add_compile_definitions(AZ_START_MEMORY_TRACING)  # enables memory tracing at startup, sys_LogMemoryMap command can dump allocations at any moment
 endif(START_MEMORY_TRACING)
+
+if(ASSET_TRACING)
+    add_compile_definitions(AZ_ASSET_TRACING)  # enables ASSET_TAG(name);
+endif(ASSET_TRACING)
 
 if(ADVANCED_ASSET_TRACING)
     add_compile_definitions(AZ_ADVANCED_ASSET_TRACING)  # adds some CPU overhead to track asset names

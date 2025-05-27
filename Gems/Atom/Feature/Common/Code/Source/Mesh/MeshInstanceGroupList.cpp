@@ -94,6 +94,7 @@ namespace AZ::Render
     {
 #if defined(CARBONATED) && defined(MEMORY_TAGS_ACTIVE)  // MEMORY_TAGS_ACTIVE to avoid unused variables error in release build
         MEMORY_TAG(Mesh);
+#if defined(AZ_ASSET_TRACING)
         const char* meshName = "";
         if (m_instanceGroupData.size() > 0)
         {
@@ -105,6 +106,7 @@ namespace AZ::Render
             }
         }
         ASSET_TAG(meshName);
+#endif
 #endif
         // It is not safe to have multiple threads Add and/or Remove at the same time
         m_instanceDataConcurrencyChecker.soft_lock();

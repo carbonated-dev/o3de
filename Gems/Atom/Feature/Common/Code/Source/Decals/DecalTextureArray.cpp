@@ -388,7 +388,7 @@ namespace AZ
             if (materialData.m_materialAssetData.IsReady())
                 return;
 #if defined(CARBONATED)
-            const char* assetName = "DecalTextureArray";
+            [[maybe_unused]] const char* assetName = "DecalTextureArray";
             if (!materialData.m_materialAssetData.GetHint().empty())
             {
                 assetName = materialData.m_materialAssetData.GetHint().c_str();

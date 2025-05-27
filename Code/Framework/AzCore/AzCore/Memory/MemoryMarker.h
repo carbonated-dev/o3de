@@ -94,10 +94,17 @@ namespace AZ
 #define MEMORY_TAG(x) AZ::MemoryTagMarker CONCATENATION_MACRO_2(memoryTagMarker_, __LINE__)(AZ::MemoryTagValue::x)
 #define MEMORY_TAG_GAME(x) AZ::MemoryTagMarker CONCATENATION_MACRO_2(memoryTagMarkerGame_, __LINE__)(static_cast<AZ::MemoryTagValue>((unsigned int)(x)))
 
+#if defined(AZ_ASSET_TRACING)
 #define ASSET_TAG(x) AZ::AssetMemoryTagMarker CONCATENATION_MACRO_2(assetMemoryTagMarker_, __LINE__)(x)
 #define MEMORY_ASSET_LIMIT(x) AZ::AssetMemoryTagLimit CONCATENATION_MACRO_2(assetMemoryTagLimit_, __LINE__)(x)
 #define MEMORY_SET_ASSET_LIMIT(x) AZ::AssetMemoryTagLimit::SetLimit(x)
 #define MEMORY_GET_ASSET_LIMIT() AZ::AssetMemoryTagLimit::GetLimit()
+#else
+#define ASSET_TAG(x)
+#define MEMORY_ASSET_LIMIT(x)
+#define MEMORY_SET_ASSET_LIMIT(x)
+#define MEMORY_GET_ASSET_LIMIT() 0
+#endif
 
 #else  // AZ_ENABLE_TRACING  && !_RELEASE && CARBONATED
 
