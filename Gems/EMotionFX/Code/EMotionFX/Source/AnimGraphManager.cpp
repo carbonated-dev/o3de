@@ -143,12 +143,15 @@ namespace EMotionFX
     {
         MCore::LockGuardRecursive lock(m_animGraphInstanceLock);
         m_animGraphInstances.push_back(animGraphInstance);
+        AZ_Info("EMotionFXdbg", "added AGI %p index %d", animGraphInstance, m_animGraphInstances.size() - 1);
     }
 
 
     void AnimGraphManager::RemoveAnimGraphInstance(size_t index, bool delFromMemory)
     {
         MCore::LockGuardRecursive lock(m_animGraphInstanceLock);
+
+        AZ_Info("EMotionFXdbg", "remove AGI index %d, del=%d", index, delFromMemory);
 
         if (delFromMemory)
         {
@@ -163,6 +166,10 @@ namespace EMotionFX
                 if (animGraphInstance == actorInstance->GetAnimGraphInstance())
                 {
                     actorInstance->SetAnimGraphInstance(nullptr);
+
+                    const AZStd::string actorName = (actorInstance && actorInstance->GetActor()) ? actorInstance->GetActor()->GetName()
+                                                                                                 : "unknown";
+                    AZ_Info("EMotionFXdbg", "drop AGI %p for actor %s", animGraphInstance, actorName.c_str());
                 }
             }
 

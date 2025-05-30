@@ -273,12 +273,18 @@ namespace EMotionFX
             // Keep the previous asset around until the anim graph instances are removed
             AZ::Data::Asset<AZ::Data::AssetData> prevAnimGraphAsset = cfg.m_animGraphAsset;
             AZ::Data::Asset<AZ::Data::AssetData> prevMotionSetAsset = cfg.m_motionSetAsset;
+
+            const AZStd::string actorName = (m_actorInstance && m_actorInstance->GetActor()) ? m_actorInstance->GetActor()->GetName()
+                                                                                             : GetEntity()->GetName();
+
             if (asset == cfg.m_animGraphAsset)
             {
+                AZ_Info("EMotionFXdbg", "AGC %p %s assign asset %s as animGraphAsset", this, actorName.c_str(), asset.GetHint().c_str());
                 cfg.m_animGraphAsset = asset;
             }
             else if (asset == cfg.m_motionSetAsset)
             {
+                AZ_Info("EMotionFXdbg", "AGC %p %s assign asset %s as motionSetAsset", this, actorName.c_str(), asset.GetHint().c_str());
                 cfg.m_motionSetAsset = asset;
             }
 

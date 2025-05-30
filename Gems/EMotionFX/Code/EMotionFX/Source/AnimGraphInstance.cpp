@@ -40,7 +40,8 @@ namespace EMotionFX
         {
             AzFramework::StringFunc::Path::GetFileName(animGraph->GetFileName(), animGraphName);
         }
-        AZ_Printf("EMotionFX", "Create AnimGraphInstance: motionSet=%s actorInstance=%s animGraph=%s"
+        AZ_Printf("EMotionFX", "Create AnimGraphInstance %p: motionSet=%s actorInstance=%s animGraph=%s"
+            , this
             , motionSet ? motionSet->GetName() : "[missed]"
             , actorInstance && actorInstance->GetActor() ? actorInstance->GetActor()->GetName() : "[missed]"
             , animGraphName.c_str());
@@ -358,6 +359,9 @@ namespace EMotionFX
     // switch to another state using a state name
     bool AnimGraphInstance::SwitchToState(const char* stateName)
     {
+        const AZStd::string actorName = (m_actorInstance && m_actorInstance->GetActor()) ? m_actorInstance->GetActor()->GetName() : "unknown";
+        AZ_Info("EMotionFXdbg", "SwitchToState %s: %s", actorName.c_str(), stateName);
+
         // now try to find the state
         AnimGraphNode* state = m_animGraph->RecursiveFindNodeByName(stateName);
         if (state == nullptr)
@@ -439,9 +443,13 @@ namespace EMotionFX
 
     void AnimGraphInstance::RecursiveSwitchToEntryState(AnimGraphNode* node)
     {
+        const AZStd::string actorName = (m_actorInstance && m_actorInstance->GetActor()) ? m_actorInstance->GetActor()->GetName() : "unknown";
+        AZ_Info("EMotionFXdbg", "RecursiveSwitchToEntryState %p %p %s for %s", this, node, node->GetName(), actorName.c_str());
+
         // check if the given node is a state machine
         if (azrtti_typeid(node) == azrtti_typeid<AnimGraphStateMachine>())
         {
+            AZ_Info("EMotionFXdbg", "fsm node");
             // type cast the node to a state machine
             AnimGraphStateMachine* stateMachine = static_cast<AnimGraphStateMachine*>(node);
 
@@ -455,7 +463,9 @@ namespace EMotionFX
         }
         else
         {
-            // get the number of child nodes, iterate through them and call the function recursively in case we are dealing with a blend tree or another node
+            AZ_Info("EMotionFXdbg", "other node");
+            // get the number of child nodes, iterate through them and call the function recursively in case we are dealing with a blend
+            // tree or another node
             const size_t numChildNodes = node->GetNumChildNodes();
             for (size_t i = 0; i < numChildNodes; ++i)
             {
@@ -559,6 +569,9 @@ namespace EMotionFX
 
     void AnimGraphInstance::ResetUniqueDatas()
     {
+        const AZStd::string actorName = (m_actorInstance && m_actorInstance->GetActor()) ? m_actorInstance->GetActor()->GetName() : "unknown";
+        AZ_Info("EMotionFXdbg", "ResetUniqueDatas %s", actorName.c_str());
+
         GetRootNode()->RecursiveResetUniqueDatas(this);
     }
 
@@ -764,6 +777,9 @@ namespace EMotionFX
 
     void AnimGraphInstance::OnStateEnter(AnimGraphNode* state)
     {
+        const AZStd::string actorName = (m_actorInstance && m_actorInstance->GetActor()) ? m_actorInstance->GetActor()->GetName() : "unknown";
+        AZ_Info("EMotionFXdbg", "On state enter AGI %p %s: %p %s", this, actorName.c_str(), state, state->GetName());
+
         const EventHandlerVector& eventHandlers = m_eventHandlersByEventType[EVENT_TYPE_ON_STATE_ENTER - EVENT_TYPE_ANIM_GRAPH_INSTANCE_FIRST_EVENT];
         for (AnimGraphInstanceEventHandler* eventHandler : eventHandlers)
         {
@@ -784,6 +800,9 @@ namespace EMotionFX
 
     void AnimGraphInstance::OnStateExit(AnimGraphNode* state)
     {
+        const AZStd::string actorName = (m_actorInstance && m_actorInstance->GetActor()) ? m_actorInstance->GetActor()->GetName() : "unknown";
+        AZ_Info("EMotionFXdbg", "On state exit AGI %p %s: %p %s", this, actorName.c_str(), state, state->GetName());
+
         const EventHandlerVector& eventHandlers = m_eventHandlersByEventType[EVENT_TYPE_ON_STATE_EXIT - EVENT_TYPE_ANIM_GRAPH_INSTANCE_FIRST_EVENT];
         for (AnimGraphInstanceEventHandler* eventHandler : eventHandlers)
         {
