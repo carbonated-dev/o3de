@@ -95,12 +95,14 @@ namespace AZ
                             AZ::GPUAllocator* allocator = static_cast<GPUAllocator*>(&AZ::AllocatorInstance<AZ::GPUAllocator>::Get());
                             const size_t size = CalculateTextureSize(mtlTexture);
                             allocator->Deallocation(mtlTexture, size);
+                            /*
                             if (mtlTexture.retainCount != 1)
                             {
                                 const size_t size = CalculateTextureSize(mtlTexture);
                                 AZ_Info("gpumem", "Delallocate mtl texture %p size %u but ref count %d", (void*)mtlTexture, size, int(mtlTexture.retainCount));
                                 //allocator->AddExtra(size);  // uncomment if you want to track these potentially unreleased resources in allocator log
                             }
+                            */
 #endif
                             [mtlTexture release];
                             mtlTexture = nil;

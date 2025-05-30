@@ -57,6 +57,32 @@ namespace AZ
         {
             [m_mtlBinaryArchive release];
             m_mtlBinaryArchive = nil;
+#if defined(CARBONATED)
+            // alternative to PipelineState::ShutdownInternal() shader function relase
+            /*
+            for (auto it : m_renderPipelineStates)
+            {
+                if (it.second.vertexFunction)
+                {
+                    [it.second.vertexFunction release];
+                    it.second.vertexFunction = nil;
+                }
+                if (it.second.fragmentFunction)
+                {
+                    [it.second.fragmentFunction release];
+                    it.second.fragmentFunction = nil;
+                }
+            }
+            for (auto it : m_computePipelineStates)
+            {
+                if (it.second.computeFunction)
+                {
+                    [it.second.computeFunction release];
+                    it.second.computeFunction = nil;
+                }
+            }
+            */
+#endif
             m_renderPipelineStates.clear();
             m_computePipelineStates.clear();
         }

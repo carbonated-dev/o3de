@@ -168,11 +168,11 @@ namespace AZ
         }
 #endif
         AZ_Assert(
-            address != nullptr, "SystemAllocator: Failed to allocate %zu bytes aligned on %zu!", byteSize,
+            address.GetAddress() != nullptr, "SystemAllocator: Failed to allocate %zu bytes aligned on %zu!", byteSize,
             alignment);
 
         AZ_PROFILE_MEMORY_ALLOC_EX(MemoryReserved, fileName, lineNum, address, byteSize, name);
-        AZ_MEMORY_PROFILE(ProfileAllocation(address, byteSize, alignment, 1));
+        AZ_MEMORY_PROFILE(ProfileAllocation(address.GetAddress(), byteSize, alignment, 1));
 
         return address;
     }
@@ -212,7 +212,8 @@ namespace AZ
     //=========================================================================
     AllocateAddress SystemAllocator::reallocate(pointer ptr, size_type newSize, size_type newAlignment)
     {
-        #if (AZCORE_SYSTEM_ALLOCATOR == AZCORE_SYSTEM_ALLOCATOR_MALLOC)
+#if (AZCORE_SYSTEM_ALLOCATOR == AZCORE_SYSTEM_ALLOCATOR_MALLOC)
+        
 #if defined(CARBONATED)
             if (ptr != nullptr)
             {
@@ -225,13 +226,21 @@ namespace AZ
             AZ_Assert(SystemAllocatorPrivate::g_AllocatedBytes >= AZ_OS_MSIZE(ptr, newAlignment), "SystemAllocator: Deallocating more memory than allocated!");
             SystemAllocatorPrivate::g_AllocatedBytes -= AZ_OS_MSIZE(ptr, newAlignment);
 #endif
+
+#if defined(CARBONATED)
+#if defined(AZ_ENABLE_TRACING)
+            AZ_MEMORY_PROFILE(ProfileReallocationBegin(ptr));
+#endif
+#endif
             AllocateAddress newAddress(AZ_OS_REALLOC(ptr, newSize, newAlignment), newSize);
             if (newAddress)
             {
                 SystemAllocatorPrivate::g_AllocatedBytes += newSize;
             }
             [[maybe_unused]] const size_type allocatedSize = newSize;
-        #else
+        
+#else
+        
             newSize = MemorySizeAdjustedUp(newSize);
             AZ_PROFILE_MEMORY_FREE(MemoryReserved, ptr);
             
@@ -242,7 +251,8 @@ namespace AZ
 #endif
             AllocateAddress newAddress = m_subAllocator->reallocate(ptr, newSize, newAlignment);
             [[maybe_unused]] const size_type allocatedSize = get_allocated_size(newAddress, 1);
-        #endif
+
+#endif
 
         AZ_PROFILE_MEMORY_ALLOC(MemoryReserved, newAddress, newSize, "SystemAllocator realloc");
 #if defined(CARBONATED)

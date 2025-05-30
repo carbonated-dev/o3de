@@ -62,7 +62,13 @@ namespace AZ
 
         void CommandQueue::ShutdownInternal()
         {
-            m_hwQueue = nil;            
+#if defined(CARBONATED)
+            if (m_hwQueue)
+            {
+                [m_hwQueue release];
+            }
+#endif
+            m_hwQueue = nil;
         }
 
         void CommandQueue::QueueGpuSignal(Fence& fence)

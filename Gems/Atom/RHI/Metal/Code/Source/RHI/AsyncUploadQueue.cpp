@@ -73,6 +73,13 @@ namespace AZ
 
             for (size_t i = 0; i < m_descriptor.m_frameCount; ++i)
             {
+#if defined(CARBONATED)
+                if (m_framePackets[i].m_stagingResource)
+                {
+                    [m_framePackets[i].m_stagingResource release];  //???
+                    m_framePackets[i].m_stagingResource = nil;
+                }
+#endif
                 m_framePackets[i].m_fence.Shutdown();
             }
             m_framePackets.clear();

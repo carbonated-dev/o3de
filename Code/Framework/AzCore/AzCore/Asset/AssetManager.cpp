@@ -401,6 +401,7 @@ namespace AZ::Data
                         {
                             AZ_Info("AssetManager", "Non-main thread blocking loading wait timeout %d exceeded for %s",
                                     m_timeoutMillis, m_assetData.GetHint().c_str());
+                            AZ_Info("aaa", "timeout for %s at %lld", m_assetData.GetId().ToString<AZStd::string>().c_str(), static_cast<int64_t>(AZ::GetRealElapsedTimeMs()));
                         }
                     }
                     else
@@ -2461,7 +2462,12 @@ namespace AZ::Data
 
         // Notify any dependent jobs.
         BlockingAssetLoadBus::Event(asset.GetId(), &BlockingAssetLoadBus::Events::OnLoadComplete);
-
+        
+        if (asset.GetHint().ends_with(".motion"))
+        {
+            AZ_Info("aaa", "notified completion for %s %s at %lld", asset.GetHint().c_str(), asset.GetId().ToString<AZStd::string>().c_str(), static_cast<int64_t>(AZ::GetRealElapsedTimeMs()));
+        }
+        
         UnregisterAssetLoading(asset);
     }
 

@@ -193,6 +193,10 @@ namespace AZ
             {
                 m_renderPipelineDesc.stencilAttachmentPixelFormat = ConvertPixelFormat(depthStencilFormat);
             }
+#if defined(CARBONATED)
+            [constantValues release];  //???
+            constantValues = nil;
+#endif
             
             //Depthstencil state
             if(descriptor.m_renderStates.m_depthStencilState.m_depth.m_enable || IsDepthStencilMerged(depthStencilFormat))
@@ -392,19 +396,28 @@ namespace AZ
                 }
                 if (m_graphicsPipelineState.retainCount != 1)
                 {
-                    AZ_Info("gpumem", "Delallocate m_graphicsPipelineState but ref count %d", int(m_graphicsPipelineState.retainCount));
+                    AZ_Info("gpumem", "Delallocate m_graphicsPipelineState %p but ref count %d", (void*)m_graphicsPipelineState, int(m_graphicsPipelineState.retainCount));
                 }
                 if (m_renderPipelineDesc.vertexFunction)
                 {
                     [m_renderPipelineDesc.vertexFunction release];
+                    m_renderPipelineDesc.vertexFunction = nil;
                 }
                 if (m_renderPipelineDesc.fragmentFunction)
                 {
                     [m_renderPipelineDesc.fragmentFunction release];
+                    m_renderPipelineDesc.fragmentFunction = nil;
+                }
+                
+                if (m_renderPipelineDesc.binaryArchives)  //???
+                {
+                    [m_renderPipelineDesc.binaryArchives release];
+                    m_renderPipelineDesc.binaryArchives = nil;
                 }
 #endif
                 [m_renderPipelineDesc release];
                 m_renderPipelineDesc = nil;
+                
                 [m_graphicsPipelineState release];
                 m_graphicsPipelineState = nil;
             }
@@ -423,6 +436,13 @@ namespace AZ
                 if (m_computePipelineDesc.computeFunction)
                 {
                     [m_computePipelineDesc.computeFunction release];
+                    m_computePipelineDesc.computeFunction = nil;
+                }
+                
+                if (m_computePipelineDesc.binaryArchives)  //???
+                {
+                    [m_computePipelineDesc.binaryArchives release];
+                    m_computePipelineDesc.binaryArchives = nil;
                 }
 #endif
                 [m_computePipelineDesc release];

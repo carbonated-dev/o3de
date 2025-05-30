@@ -31,6 +31,12 @@ namespace AZ
         
         void Fence::Shutdown()
         {
+#if defined(CARBONATED)
+            if (m_fence)
+            {
+                [m_fence release];  //???
+            }
+#endif
             m_fence = nil;
             m_device = nullptr;
         }

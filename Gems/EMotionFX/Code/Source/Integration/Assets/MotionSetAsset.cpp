@@ -16,6 +16,10 @@
 #include <EMotionFX/Source/EMotionFXManager.h>
 #include <EMotionFX/Source/Importer/Importer.h>
 
+#if defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+#include <AzCore/Time/ITime.h>
+#endif
+
 namespace EMotionFX
 {
     namespace Integration
@@ -219,12 +223,14 @@ namespace EMotionFX
 
                 if (motionAssetId.IsValid())
                 {
+                    AZ_Info("aaa", "before load motion %s at %lld", motionAssetId.ToString<AZStd::string>().c_str(), static_cast<int64_t>(AZ::GetRealElapsedTimeMs()));
+                    
                     AZ::Data::Asset<MotionAsset> motionAsset = AZ::Data::AssetManager::Instance().GetAsset<MotionAsset>(motionAssetId, AZ::Data::AssetLoadBehavior::Default);
 
                     if (motionAsset)
                     {
 #if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
-                        motionAsset.BlockUntilLoadComplete(10000);
+                        motionAsset.BlockUntilLoadComplete(15000);
 #else
                         motionAsset.BlockUntilLoadComplete();
 #endif

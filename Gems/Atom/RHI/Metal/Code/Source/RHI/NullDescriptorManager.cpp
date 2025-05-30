@@ -51,6 +51,12 @@ namespace AZ
         {
             m_nullImages.clear();
             m_nullBuffer.m_memoryView = {};
+#if defined(CARBONATED)
+            if (m_nullMtlSamplerState)
+            {
+                [m_nullMtlSamplerState release];  //???
+            }
+#endif
             m_nullMtlSamplerState = nil;
             
             [m_nullDescriptorHeap release];

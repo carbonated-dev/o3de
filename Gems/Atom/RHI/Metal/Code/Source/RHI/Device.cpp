@@ -125,6 +125,10 @@ namespace AZ
             {
                 m_commandListPools[i].Shutdown();
             }
+#if defined(CARBONATED)
+            [m_eventListener release];  //???
+            m_eventListener = nil;
+#endif
         }
 
         RHI::ResultCode Device::BeginFrameInternal()
@@ -414,7 +418,11 @@ namespace AZ
         
         void Device::QueueForRelease(const MemoryView& memoryView)
         {
-            //AZ_Info("iii", "Device::QueueForRelease %p (metal resource %p) %u", memoryView.GetMemory(), memoryView.GetMemory()->GetGpuAddress<void*>(), memoryView.GetSize());
+            /*
+            auto address = memoryView.GetMemory()->GetGpuAddress<id<MTLResource>>();
+            int refCount = int(address.retainCount);
+            AZ_Info("qqq", "queue for collect %p %d", (void*)address, refCount);
+            */
             m_releaseQueue.QueueForCollect(memoryView.GetMemory());
         }
         
