@@ -54,9 +54,18 @@ namespace AZStd
         inline);
     AZ_TYPE_INFO_INTERNAL_BOTHFIX_UUID(basic_string, "AZStd::basic_string",, "{C26397ED-8F60-4DF6-8320-0D0C592DA3CD}", \
         inline, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_TYPENAME);
-
+#if defined(CARBONATED)
+    // Xcode 16 compiler error fix
+    // expand the macro, make explicit GetTemplateIdentity implementation to avoid compiler error
+    inline AZ::TemplateId GetO3deTemplateId(AZ::Adl, decltype(AZ::AzGenericTypeInfo::Internal::TemplateIdentityTypeAutoType<AZStd::basic_fixed_string>()))
+    {
+        constexpr AZ::TypeId postfixUuid{"{FA339E31-C383-49C7-80AC-5E1A3D8FA296}"};
+        return postfixUuid;
+    }
+#else
     AZ_TEMPLATE_INFO_INTERNAL_BOTHFIX_UUID(basic_fixed_string, "AZStd::fixed_string",, "{FA339E31-C383-49C7-80AC-5E1A3D8FA296}", \
         inline);
+#endif
     AZ_TYPE_INFO_INTERNAL_BOTHFIX_UUID(basic_fixed_string, "AZStd::fixed_string",, "{FA339E31-C383-49C7-80AC-5E1A3D8FA296}", \
         inline, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_AUTO, AZ_TYPE_INFO_INTERNAL_TYPENAME);
 

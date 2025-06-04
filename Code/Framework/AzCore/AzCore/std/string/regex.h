@@ -2297,7 +2297,10 @@ namespace AZStd
             }
             else
             {
+#if !defined(CARBONATED)
+                // Xcode 16 fix: there is no _Adop function
                 this->_Adopt(m_regEx);
+#endif
             }
         }
 
