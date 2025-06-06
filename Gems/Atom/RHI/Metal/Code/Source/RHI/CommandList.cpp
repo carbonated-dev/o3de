@@ -853,11 +853,7 @@ namespace AZ
 
             AZ_PROFILE_FUNCTION(RHI);
             const auto& viewports = m_state.m_viewportState.m_states;
-#if defined(CARBONATED)
-            MTLViewport* metalViewports = aznew MTLViewport[viewports.size()];  // Xcode 16 compile bug fix
-#else
             MTLViewport metalViewports[viewports.size()];
-#endif
             for (uint32_t i = 0; i < viewports.size(); ++i)
             {
                 metalViewports[i].originX = viewports[i].m_minX;
@@ -872,9 +868,6 @@ namespace AZ
             [renderEncoder setViewports: metalViewports
                                   count: viewports.size()];
             m_state.m_viewportState.m_isDirty = false;
-#if defined(CARBONATED) && defined(AZ_PLATFORM_IOS)
-            delete[] metalViewports;
-#endif
         }
 
         void CommandList::CommitScissorState()
