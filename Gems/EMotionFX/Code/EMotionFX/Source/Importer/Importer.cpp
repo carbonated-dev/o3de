@@ -361,7 +361,7 @@ namespace EMotionFX
     // try to load a motion from disk
     Motion* Importer::LoadMotion(AZStd::string filename, MotionSettings* settings)
     {
-#if !defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_CONCURRENCY)
+#if !(defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_CONCURRENCY))
         AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::Bus::Events::NormalizePathKeepCase, filename);
 #endif
         // check if we want to load the motion even if a motion with the given filename is already inside the motion manager

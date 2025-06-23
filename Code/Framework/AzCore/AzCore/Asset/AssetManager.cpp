@@ -274,6 +274,13 @@ namespace AZ::Data
             , m_shouldDispatchEvents(shouldDispatchEvents)
 #endif
         {
+#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT) && (defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_ANDROID))
+            // exclude desktop platforms because AssetProcessor might interfere
+            if (m_timeoutMillis == 0)
+            {
+                m_timeoutMillis = 10001; // 10 sec wait time by default if loading is blocked, +1 to detect the default value by the log
+            }
+#endif
             // Track all blocking requests with the AssetManager.  This enables load jobs to potentially get routed
             // to the thread that's currently blocking waiting on the load job to complete.
             AssetManager::Instance().AddBlockingRequest(m_assetData.GetId(), this);
