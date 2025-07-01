@@ -120,7 +120,9 @@ namespace AZ::IO
 
             // [LYN-2376] Remove once legacy slice support is removed
             bool m_containsLevelPak = false; // indicates whether this archive has level.pak inside it or not  
-
+#if defined(CARBONATED) && defined(CARBONATED_SIMPLE_PAK)
+            bool m_isSimplePack = false;  // indicates there is no manifest or catalog, so it is not added to bundles container
+#endif
             AZ::IO::PathView GetFullPath() const { return pZip->GetFilePath(); }
 
             AZStd::intrusive_ptr<INestedArchive> pArchive;
