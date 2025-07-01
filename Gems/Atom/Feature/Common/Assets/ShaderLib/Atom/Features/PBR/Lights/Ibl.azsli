@@ -42,6 +42,8 @@ real3 GetIblDiffuse(
     return diffuseResponse * albedo * diffuseSample;
 }
 
+#if ENABLE_REFLECTIONPROBE_PARALLAXCORRECTION || ENABLE_REFLECTIONPROBE_BLENDING
+
 real3 GetIblSpecular(
     float3 position, 
     real3 normal, 
@@ -89,7 +91,54 @@ real3 GetIblSpecular(
     }
     
     return outSpecular;
+
 }
+
+#else  // ENABLE_REFLECTIONPROBE_PARALLAXCORRECTION || ENABLE_REFLECTIONPROBE_BLENDING
+
+#ifndef CARBONATED_NO_LIGHT_PROBES
+    #define CARBONATED_NO_LIGHT_PROBES 0
+#endif
+    
+real3 GetIblSpecularGlobal(
+    real3 normal, 
+    real3 specularF0, 
+    real roughnessLinear, 
+    real3 dirToCamera, 
+    real2 brdf)
+{
+    real3 reflectDir = reflect(-dirToCamera, normal);
+    reflectDir = MultiplyVectorQuaternion(reflectDir, real4(SceneSrg::m_iblOrientation));    
+
+    real3 outSpecular = real3(SceneSrg::m_specularEnvMap.SampleLevel(SceneSrg::m_samplerEnv, GetCubemapCoords(reflectDir), GetRoughnessMip(roughnessLinear)).rgb);
+    outSpecular *= (specularF0 * brdf.x + brdf.y);
+    
+    return outSpecular;
+}
+
+real3 GetIblSpecularProbe(
+    real3 normal, 
+    real3 specularF0, 
+    real roughnessLinear, 
+    real3 dirToCamera, 
+    real2 brdf,
+    TextureCube reflectionProbeCubemap)
+{
+    real3 reflectDir = reflect(-dirToCamera, normal);
+    reflectDir = MultiplyVectorQuaternion(reflectDir, real4(SceneSrg::m_iblOrientation));    
+
+#if CARBONATED_NO_LIGHT_PROBES
+    // use gloabl light instead
+    real3 probeSpecular = real3(SceneSrg::m_specularEnvMap.SampleLevel(SceneSrg::m_samplerEnv, GetCubemapCoords(reflectDir), GetRoughnessMip(roughnessLinear)).rgb);
+#else
+    real3 probeSpecular = real3(reflectionProbeCubemap.SampleLevel(SceneSrg::m_samplerEnv, GetCubemapCoords(reflectDir), GetRoughnessMip(roughnessLinear)).rgb);
+#endif
+    probeSpecular *= (specularF0 * brdf.x + brdf.y);
+    
+    return probeSpecular;
+}
+
+#endif // ENABLE_REFLECTIONPROBE_PARALLAXCORRECTION || ENABLE_REFLECTIONPROBE_BLENDING
 
 void ApplyIBL(Surface surface, inout LightingData lightingData, bool useDiffuseIbl, bool useSpecularIbl, ReflectionProbeData reflectionProbe, TextureCube reflectionProbeCubemap)
 {
@@ -104,12 +153,18 @@ void ApplyIBL(Surface surface, inout LightingData lightingData, bool useDiffuseI
             real3 iblDiffuse = GetIblDiffuse(surface.GetDiffuseNormal(), surface.albedo, lightingData.diffuseResponse);
             lightingData.diffuseLighting += (iblDiffuse * globalIblExposure * lightingData.diffuseAmbientOcclusion);
         }
-
+        
         if(useSpecularIbl)
         {
+#if ENABLE_REFLECTIONPROBE_PARALLAXCORRECTION || ENABLE_REFLECTIONPROBE_BLENDING
             real3 iblSpecular = GetIblSpecular(surface.position, surface.GetSpecularNormal(), surface.GetSpecularF0(), surface.roughnessLinear, lightingData.dirToCamera, lightingData.brdf, reflectionProbe, reflectionProbeCubemap);
+#else            
+            real3 iblSpecular = reflectionProbe.m_useReflectionProbe ?
+                GetIblSpecularProbe (surface.GetSpecularNormal(), surface.GetSpecularF0(), surface.roughnessLinear, lightingData.dirToCamera, lightingData.brdf, reflectionProbeCubemap) :
+                GetIblSpecularGlobal(surface.GetSpecularNormal(), surface.GetSpecularF0(), surface.roughnessLinear, lightingData.dirToCamera, lightingData.brdf);
+#endif                
             iblSpecular *= lightingData.multiScatterCompensation;
-            
+
 #if ENABLE_CLEAR_COAT
             if (o_clearCoat_feature_enabled && surface.clearCoat.factor > 0.0)
             {
