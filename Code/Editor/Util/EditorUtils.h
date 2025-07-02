@@ -115,9 +115,16 @@ namespace EditorUtils
         // Move constructor: needed to use CreateScopedVariable, and transfers ownership.
         TScopedVariableValue(TScopedVariableValue&& tInput)
         {
+#if defined(CARBONATED)
+            // compile bug fix revealed by Xcode 16: m_tVariable=>m_pVariable, m_tDestructtValue (double t)
+            std::move(m_pVariable, tInput.m_pVariable);
+            std::move(m_tConstructValue, tInput.m_tConstructValue);
+            std::move(m_tDestructValue, tInput.m_tDestructValue);
+#else
             std::move(m_pVariable, tInput.m_tVariable);
             std::move(m_tConstructValue, tInput.m_tConstructValue);
             std::move(m_tDestructValue, tInput.m_tDestructtValue);
+#endif
         }
 
         // Applies the scoping exit, if the variable is valid.
