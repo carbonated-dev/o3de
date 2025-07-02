@@ -619,6 +619,11 @@ namespace AssetProcessor
         // Files from the scanner, waiting for initial analysis
         QSet<AssetFileInfo> m_scannerFiles;
 
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
+        // Files from the scanner, waiting for initial analysis
+        QSet<AssetFileInfo> m_processOnlyFiles;
+#endif
+		
         //////////////////// Analysis Early-Out feature ///////////////////
         // ComputeBuilderDirty builds the maps of which builders are dirty and how they have changed.
         // note that until ComputeBuilderDirty is called, it is assumed that *all* are dirty, to be conservative.

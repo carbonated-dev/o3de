@@ -557,6 +557,27 @@ namespace AssetProcessor
         {
             if (iter.value().m_sourceAssetReference)
             {
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)				
+				// Support "only_process" command line argument
+                if (!m_processOnlyFiles.isEmpty())
+                {
+                    // If we have the list "to process only" then we check for the deletion of unneeded assets/products in this list
+                    bool inProcessOnly = false;
+                    for (const auto& file : m_processOnlyFiles)
+                    {
+                        if (AssetUtilities::ArePathsEqual(file.m_filePath, QString(iter.value().m_sourceAssetReference.AbsolutePath().c_str())))
+                        {
+                            inProcessOnly = true;
+                            break;
+                        }
+                    }
+                    if (!inProcessOnly)
+                    {
+                        // Other files in database we will ignore
+                        continue;
+                    }
+                }
+#endif
                 // CheckDeletedSourceFile actually expects the database name as the second value
                 // iter.key is the full path normalized.  iter.value is the database path.
                 // we need the relative path too:
@@ -579,7 +600,10 @@ namespace AssetProcessor
 
         m_scanFoldersInDatabase.clear();
         m_sourceFilesInDatabase.clear();
-
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)										  
+        m_processOnlyFiles.clear();
+#endif
+		
         QueueIdleCheck();
     }
 
@@ -3590,6 +3614,48 @@ namespace AssetProcessor
 
     void AssetProcessorManager::RecordFilesFromScanner(QSet<AssetFileInfo> filePaths)
     {
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)		
+        // Support "only_process" command line argument
+        QStringList onlyProcessedFilesArguments = AssetUtilities::ReadOnlyProcessedFilesFromCommandLine();
+        if (!onlyProcessedFilesArguments.isEmpty())
+        {
+            QString projectPath = AssetUtilities::ComputeProjectPath();
+            QStringList filesToProcess = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(projectPath, onlyProcessedFilesArguments);
+            if (!filesToProcess.isEmpty())
+            {
+                QSet<AssetFileInfo> filteredFiles;
+
+                for (const auto& file : filesToProcess)
+                {
+                    for (const auto& fileInProject : filePaths)
+                    {
+                        if (!fileInProject.m_isDirectory)
+                        {
+                            if (AssetUtilities::ArePathsEqual(file, fileInProject.m_filePath))
+                            {
+                                filteredFiles.insert(fileInProject);
+                                m_processOnlyFiles.insert(fileInProject);
+                            }
+                        }
+                    }
+                }
+
+                if (!filteredFiles.isEmpty())
+                {
+                    AssetProcessor::StatsCapture::BeginCaptureStat("WarmingFileCache");
+                    WarmUpFileCache(filePaths);
+                    AssetProcessor::StatsCapture::EndCaptureStat("WarmingFileCache");
+
+                    filePaths.clear();
+                    m_scannerFiles = filteredFiles;
+
+                    Q_EMIT FileCacheIsReady();
+                    CheckReadyToAssessScanFiles();
+                    return;
+                }
+            }
+        }
+#endif
         m_scannerFiles = filePaths;
 
         AssetProcessor::StatsCapture::BeginCaptureStat("WarmingFileCache");

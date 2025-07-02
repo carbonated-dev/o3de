@@ -113,6 +113,23 @@ namespace AssetUtilities
     //! Reads platforms from command line
     QStringList ReadPlatformsFromCommandLine();
 
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
+    //! Reads only processed files from command line.
+    QStringList ReadOnlyProcessedFilesFromCommandLine();
+
+/**
+     * @brief ResolveAbsolutePathsWithExistingFiles.
+     * Recursively finds all files matching the given masks or paths relative to the project root.
+     *
+     * @param projectPath Absolute path to the project root directory.
+     * @param inputPaths  List of file masks or paths (can be relative or absolute).
+     * @return            QStringList with full native paths to existing files.
+     */
+    QStringList ResolveAbsolutePathsWithExistingFiles(const QString& projectPath, const QStringList& inputPaths);
+
+    //! Compares paths to the files ignoring case and native separators
+    bool ArePathsEqual(const QString& path1, const QString& path2);
+#endif
     //! Copies the sourceFile to the outputFile,returns true if the copy operation succeeds otherwise return false
     //! This function will try deleting the outputFile first,if it exists, before doing the copy operation
     bool CopyFileWithTimeout(QString sourceFile, QString outputFile, unsigned int waitTimeinSeconds = 0);
