@@ -621,7 +621,7 @@ namespace AssetProcessor
 
 #if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
         // Files from the scanner that should be processed according to the "process-project-assets" and/or "process-engine-assets" command line arguments.
-        // If there no new command line keys then the container is empty, so APB checks all the assets.
+        // If there are no new command line keys then the container is empty, so APB checks all the assets.
         QSet<AssetFileInfo> m_filesToProcess;
 #endif
 
