@@ -3621,7 +3621,7 @@ namespace AssetProcessor
         if (!processedProjectFilesArguments.isEmpty() || !processedEngineFilesArguments.isEmpty())
         {
             QStringList filesToProcess = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(AssetUtilities::ComputeProjectPath(), processedProjectFilesArguments);
-			QStringList filesToProcessInEngine = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(QString(AZ::Utils::GetEnginePath().c_str()), processedEngineFilesArguments);
+            QStringList filesToProcessInEngine = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(QString(AZ::Utils::GetEnginePath().c_str()), processedEngineFilesArguments);
             filesToProcess << filesToProcessInEngine;
             if (!filesToProcess.isEmpty())
             {
