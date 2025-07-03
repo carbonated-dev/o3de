@@ -557,6 +557,27 @@ namespace AssetProcessor
         {
             if (iter.value().m_sourceAssetReference)
             {
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
+                // Support "process-project-assets" and "process-engine-assets" command line arguments
+                if (!m_filesToProcess.isEmpty())
+                {
+                    // If we have the list "to process only" then we should check for the deletion of unneeded assets/products in this list
+                    bool inProcessOnlyList = false;
+                    for (const auto& file : m_filesToProcess)
+                    {
+                        if (AssetUtilities::ArePathsEqual(file.m_filePath, QString(iter.value().m_sourceAssetReference.AbsolutePath().c_str())))
+                        {
+                            inProcessOnlyList = true;
+                            break;
+                        }
+                    }
+                    if (!inProcessOnlyList)
+                    {
+                        // Ignoring all other files in database
+                        continue;
+                    }
+                }
+#endif
                 // CheckDeletedSourceFile actually expects the database name as the second value
                 // iter.key is the full path normalized.  iter.value is the database path.
                 // we need the relative path too:
@@ -579,6 +600,9 @@ namespace AssetProcessor
 
         m_scanFoldersInDatabase.clear();
         m_sourceFilesInDatabase.clear();
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
+        m_filesToProcess.clear();
+#endif
 
         QueueIdleCheck();
     }
@@ -3590,6 +3614,50 @@ namespace AssetProcessor
 
     void AssetProcessorManager::RecordFilesFromScanner(QSet<AssetFileInfo> filePaths)
     {
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
+        // Support "process-project-assets" and "process-engine-assets" command line arguments
+        QStringList processedProjectFilesArguments = AssetUtilities::ReadProcessedAssetsFilesFromCommandLine(true);
+        QStringList processedEngineFilesArguments = AssetUtilities::ReadProcessedAssetsFilesFromCommandLine(false);
+        if (!processedProjectFilesArguments.isEmpty() || !processedEngineFilesArguments.isEmpty())
+        {
+            QStringList filesToProcess = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(AssetUtilities::ComputeProjectPath(), processedProjectFilesArguments);
+            QStringList filesToProcessInEngine = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(QString(AZ::Utils::GetEnginePath().c_str()), processedEngineFilesArguments);
+            filesToProcess << filesToProcessInEngine;
+            if (!filesToProcess.isEmpty())
+            {
+                QSet<AssetFileInfo> filteredFiles;
+
+                for (const auto& file : filesToProcess)
+                {
+                    for (const auto& fileInProject : filePaths)
+                    {
+                        if (!fileInProject.m_isDirectory)
+                        {
+                            if (AssetUtilities::ArePathsEqual(file, fileInProject.m_filePath))
+                            {
+                                filteredFiles.insert(fileInProject);
+                                m_filesToProcess.insert(fileInProject);
+                            }
+                        }
+                    }
+                }
+
+                if (!filteredFiles.isEmpty())
+                {
+                    AssetProcessor::StatsCapture::BeginCaptureStat("WarmingFileCache");
+                    WarmUpFileCache(filePaths);
+                    AssetProcessor::StatsCapture::EndCaptureStat("WarmingFileCache");
+
+                    filePaths.clear();
+                    m_scannerFiles = filteredFiles;
+
+                    Q_EMIT FileCacheIsReady();
+                    CheckReadyToAssessScanFiles();
+                    return;
+                }
+            }
+        }
+#endif
         m_scannerFiles = filePaths;
 
         AssetProcessor::StatsCapture::BeginCaptureStat("WarmingFileCache");
