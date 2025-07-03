@@ -558,7 +558,7 @@ namespace AssetProcessor
             if (iter.value().m_sourceAssetReference)
             {
 #if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)				
-				// Support "only_process" command line argument
+				// Support "process-project-assets" and "process-engine-assets" command line arguments
                 if (!m_processOnlyFiles.isEmpty())
                 {
                     // If we have the list "to process only" then we check for the deletion of unneeded assets/products in this list
@@ -3614,13 +3614,15 @@ namespace AssetProcessor
 
     void AssetProcessorManager::RecordFilesFromScanner(QSet<AssetFileInfo> filePaths)
     {
-#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)		
-        // Support "only_process" command line argument
-        QStringList onlyProcessedFilesArguments = AssetUtilities::ReadOnlyProcessedFilesFromCommandLine();
-        if (!onlyProcessedFilesArguments.isEmpty())
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
+        // Support "process-project-assets" and "process-engine-assets" command line arguments
+        QStringList processedProjectFilesArguments = AssetUtilities::ReadProcessedAssetsFilesFromCommandLine(true);
+        QStringList processedEngineFilesArguments = AssetUtilities::ReadProcessedAssetsFilesFromCommandLine(false);
+        if (!processedProjectFilesArguments.isEmpty() || !processedEngineFilesArguments.isEmpty())
         {
-            QString projectPath = AssetUtilities::ComputeProjectPath();
-            QStringList filesToProcess = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(projectPath, onlyProcessedFilesArguments);
+            QStringList filesToProcess = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(AssetUtilities::ComputeProjectPath(), processedProjectFilesArguments);
+			QStringList filesToProcessInEngine = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(QString(AZ::Utils::GetEnginePath().c_str()), processedEngineFilesArguments);
+            filesToProcess << filesToProcessInEngine;
             if (!filesToProcess.isEmpty())
             {
                 QSet<AssetFileInfo> filteredFiles;

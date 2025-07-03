@@ -114,18 +114,24 @@ namespace AssetUtilities
     QStringList ReadPlatformsFromCommandLine();
 
 #if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
-    //! Reads only processed files from command line.
-    QStringList ReadOnlyProcessedFilesFromCommandLine();
-
-/**
-     * @brief ResolveAbsolutePathsWithExistingFiles.
-     * Recursively finds all files matching the given masks or paths relative to the project root.
+	/**
+     * @brief ReadOnlyProcessedFilesFromCommandLine.
+     * Reads only processed files from command line.
      *
-     * @param projectPath Absolute path to the project root directory.
+     * @param projectOrEnginePath: true - project path, --process-project-assets=XXXX, false - engine path, --process-engine-assets=YYYY
+     * @return QStringList with masks to the files/subdirectories
+     */
+    QStringList ReadProcessedAssetsFilesFromCommandLine(bool projectOrEnginePath);
+
+	/**
+     * @brief ResolveAbsolutePathsWithExistingFiles.
+     * Recursively finds all files matching the given masks or paths relative to the root.
+     *
+     * @param rootPath    Absolute path to the root project or engine directory
      * @param inputPaths  List of file masks or paths (can be relative or absolute).
      * @return            QStringList with full native paths to existing files.
      */
-    QStringList ResolveAbsolutePathsWithExistingFiles(const QString& projectPath, const QStringList& inputPaths);
+    QStringList ResolveAbsolutePathsWithExistingFiles(const QString& rootPath, const QStringList& inputPaths);
 
     //! Compares paths to the files ignoring case and native separators
     bool ArePathsEqual(const QString& path1, const QString& path2);

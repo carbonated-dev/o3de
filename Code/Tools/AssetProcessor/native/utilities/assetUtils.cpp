@@ -60,6 +60,10 @@
 
 #include <sstream>
 
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
+#include <QDirIterator>
+#endif
+
 namespace AssetUtilsInternal
 {
     static const unsigned int g_RetryWaitInterval = 250; // The amount of time that we are waiting for retry.
@@ -694,12 +698,14 @@ namespace AssetUtilities
     }
 
 #if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
-    QStringList ReadOnlyProcessedFilesFromCommandLine()
+    QStringList ReadProcessedAssetsFilesFromCommandLine(bool projectOrEnginePath)
     {
         QStringList args = QCoreApplication::arguments();
         for (QString arg : args)
         {
-            if (arg.contains("--only_process=", Qt::CaseInsensitive) || arg.contains("/only_process=", Qt::CaseInsensitive))
+            if (projectOrEnginePath && (arg.contains("--process-project-assets=", Qt::CaseInsensitive) || arg.contains("/process-project-assets=", Qt::CaseInsensitive)) ||
+			   !projectOrEnginePath && (arg.contains("--process-engine-assets=", Qt::CaseInsensitive) || arg.contains("/process-engine-assets=", Qt::CaseInsensitive))
+				)
             {
                 QString rawPlatformString = arg.split("=")[1];
                 return rawPlatformString.split(",");
@@ -709,7 +715,7 @@ namespace AssetUtilities
         return QStringList();
     }
 
-    QStringList ResolveAbsolutePathsWithExistingFiles(const QString& projectPath, const QStringList& inputPaths)
+    QStringList ResolveAbsolutePathsWithExistingFiles(const QString& rootPath, const QStringList& inputPaths)
     {
         QStringList result;
 
@@ -728,7 +734,7 @@ namespace AssetUtilities
             }
 
             // Case 2: Handle relative paths/masks
-            QDir baseDir(projectPath);
+            QDir baseDir(rootPath);
             QString combinedPath = baseDir.absoluteFilePath(path);
             QFileInfo combinedInfo(combinedPath);
 
