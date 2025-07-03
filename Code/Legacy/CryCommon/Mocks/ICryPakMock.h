@@ -78,8 +78,12 @@ struct CryPakMock
     MOCK_CONST_METHOD0(GetPakPriority, AZ::IO::FileSearchPriority());
     MOCK_CONST_METHOD1(GetFileOffsetOnMedia, uint64_t(AZStd::string_view szName));
     MOCK_CONST_METHOD1(GetFileMediaType, EStreamSourceMediaType(AZStd::string_view szName));
+#if defined(CARBONATED) // Fix broken mocks for tests in MSVS starting with v.17.12.4 / VC++17; the fix exists in 2505.0
+    MOCK_METHOD0(GetLevelPackOpenEvent, LevelPackOpenEvent*());
+    MOCK_METHOD0(GetLevelPackCloseEvent, LevelPackCloseEvent*());
+#else
     MOCK_METHOD0(GetLevelPackOpenEvent, auto()->LevelPackOpenEvent*);
     MOCK_METHOD0(GetLevelPackCloseEvent, auto()->LevelPackCloseEvent*);
-
+#endif // defined(CARBONATED)
 };
 
