@@ -115,8 +115,8 @@ namespace AssetUtilities
 
 #if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
 	/**
-     * @brief ReadOnlyProcessedFilesFromCommandLine.
-     * Reads only processed files from command line.
+     * @brief ReadProcessedAssetsFilesFromCommandLine.
+     * Reads file masks that should be processed from command line.
      *
      * @param projectOrEnginePath: true - project path, --process-project-assets=XXXX, false - engine path, --process-engine-assets=YYYY
      * @return QStringList with masks to the files/subdirectories

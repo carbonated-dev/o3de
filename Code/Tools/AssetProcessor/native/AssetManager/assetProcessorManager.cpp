@@ -561,19 +561,19 @@ namespace AssetProcessor
 				// Support "process-project-assets" and "process-engine-assets" command line arguments
                 if (!m_processOnlyFiles.isEmpty())
                 {
-                    // If we have the list "to process only" then we check for the deletion of unneeded assets/products in this list
-                    bool inProcessOnly = false;
+                    // If we have the list "to process only" then we should check for the deletion of unneeded assets/products in this list
+                    bool inProcessOnlyList = false;
                     for (const auto& file : m_processOnlyFiles)
                     {
                         if (AssetUtilities::ArePathsEqual(file.m_filePath, QString(iter.value().m_sourceAssetReference.AbsolutePath().c_str())))
                         {
-                            inProcessOnly = true;
+                            inProcessOnlyList = true;
                             break;
                         }
                     }
-                    if (!inProcessOnly)
+                    if (!inProcessOnlyList)
                     {
-                        // Other files in database we will ignore
+                        // Ignoring all other files in database
                         continue;
                     }
                 }

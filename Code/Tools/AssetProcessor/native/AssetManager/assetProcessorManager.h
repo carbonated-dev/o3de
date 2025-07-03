@@ -620,7 +620,7 @@ namespace AssetProcessor
         QSet<AssetFileInfo> m_scannerFiles;
 
 #if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
-        // Files from the scanner, waiting for initial analysis
+        // Files from the scanner that should be processed according to the "process-project-assets" and/or "process-engine-assets" command line arguments
         QSet<AssetFileInfo> m_processOnlyFiles;
 #endif
 		
