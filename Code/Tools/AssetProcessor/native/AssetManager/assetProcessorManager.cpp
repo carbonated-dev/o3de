@@ -559,11 +559,11 @@ namespace AssetProcessor
             {
 #if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
                 // Support "process-project-assets" and "process-engine-assets" command line arguments
-                if (!m_processOnlyFiles.isEmpty())
+                if (!m_filesToProcess.isEmpty())
                 {
                     // If we have the list "to process only" then we should check for the deletion of unneeded assets/products in this list
                     bool inProcessOnlyList = false;
-                    for (const auto& file : m_processOnlyFiles)
+                    for (const auto& file : m_filesToProcess)
                     {
                         if (AssetUtilities::ArePathsEqual(file.m_filePath, QString(iter.value().m_sourceAssetReference.AbsolutePath().c_str())))
                         {
@@ -601,7 +601,7 @@ namespace AssetProcessor
         m_scanFoldersInDatabase.clear();
         m_sourceFilesInDatabase.clear();
 #if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
-        m_processOnlyFiles.clear();
+        m_filesToProcess.clear();
 #endif
 
         QueueIdleCheck();
@@ -3636,7 +3636,7 @@ namespace AssetProcessor
                             if (AssetUtilities::ArePathsEqual(file, fileInProject.m_filePath))
                             {
                                 filteredFiles.insert(fileInProject);
-                                m_processOnlyFiles.insert(fileInProject);
+                                m_filesToProcess.insert(fileInProject);
                             }
                         }
                     }
