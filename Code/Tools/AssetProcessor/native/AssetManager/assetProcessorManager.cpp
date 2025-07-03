@@ -558,7 +558,7 @@ namespace AssetProcessor
             if (iter.value().m_sourceAssetReference)
             {
 #if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)				
-				// Support "process-project-assets" and "process-engine-assets" command line arguments
+                // Support "process-project-assets" and "process-engine-assets" command line arguments
                 if (!m_processOnlyFiles.isEmpty())
                 {
                     // If we have the list "to process only" then we should check for the deletion of unneeded assets/products in this list

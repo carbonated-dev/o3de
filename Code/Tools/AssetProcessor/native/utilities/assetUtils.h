@@ -114,7 +114,7 @@ namespace AssetUtilities
     QStringList ReadPlatformsFromCommandLine();
 
 #if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
-	/**
+     /**
      * @brief ReadProcessedAssetsFilesFromCommandLine.
      * Reads file masks that should be processed from command line.
      *
@@ -123,7 +123,7 @@ namespace AssetUtilities
      */
     QStringList ReadProcessedAssetsFilesFromCommandLine(bool projectOrEnginePath);
 
-	/**
+     /**
      * @brief ResolveAbsolutePathsWithExistingFiles.
      * Recursively finds all files matching the given masks or paths relative to the root.
      *

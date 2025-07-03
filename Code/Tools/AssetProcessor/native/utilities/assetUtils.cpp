@@ -704,8 +704,8 @@ namespace AssetUtilities
         for (QString arg : args)
         {
             if (projectOrEnginePath && (arg.contains("--process-project-assets=", Qt::CaseInsensitive) || arg.contains("/process-project-assets=", Qt::CaseInsensitive)) ||
-			   !projectOrEnginePath && (arg.contains("--process-engine-assets=", Qt::CaseInsensitive) || arg.contains("/process-engine-assets=", Qt::CaseInsensitive))
-				)
+            !projectOrEnginePath && (arg.contains("--process-engine-assets=", Qt::CaseInsensitive) || arg.contains("/process-engine-assets=", Qt::CaseInsensitive))
+            )
             {
                 QString rawPlatformString = arg.split("=")[1];
                 return rawPlatformString.split(",");
@@ -759,7 +759,7 @@ namespace AssetUtilities
             }
             else
             {
-                // Path doesn't exist directly — treat as a mask
+                // Path doesn't exist directly - treat as a mask
                 // Extract directory part and pattern from the input path
                 QString dirPart = QFileInfo(path).path();
                 QString filePattern = QFileInfo(path).fileName();
