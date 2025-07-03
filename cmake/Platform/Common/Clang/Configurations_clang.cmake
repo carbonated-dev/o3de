@@ -21,6 +21,12 @@ ly_append_configurations_options(
         -Werror
 
         ###################
+        # CARBONATED for Xcode 16
+        ###################
+        # use non constexpr size c arrays
+        -Wno-vla
+
+        ###################
         # Disabled warnings (please do not disable any others without first consulting sig-build)
         ###################
         -Wno-inconsistent-missing-override # unfortunately there is no warning in MSVC to detect missing overrides,

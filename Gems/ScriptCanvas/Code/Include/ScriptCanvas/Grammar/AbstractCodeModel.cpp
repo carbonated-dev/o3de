@@ -4872,7 +4872,11 @@ namespace ScriptCanvas
 
         void AbstractCodeModel::ParseOutputData(ExecutionTreePtr execution, ExecutionChild& executionChild)
         {
+#if defined(CARBONATED)
+            if (azrtti_cast<const Nodes::Core::FunctionDefinitionNode*>(execution->GetId().m_node))  // Xcode 16 compile bug fix
+#else
             if (const auto nodeling = azrtti_cast<const Nodes::Core::FunctionDefinitionNode*>(execution->GetId().m_node))
+#endif
             {
                 // this nodeling will always be the Execution-In part of the function definition
                 // since a call to a user out does not enter this path

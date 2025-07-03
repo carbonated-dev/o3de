@@ -515,7 +515,18 @@ namespace AZStd
     AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL(AZStd::char_traits, AZ_TYPE_INFO_INTERNAL_TYPENAME);
     AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL(AZStd::basic_string_view, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_TYPENAME);
     AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL(AZStd::basic_string, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_TYPENAME);
+#if defined(CARBONATED)
+    // Xcode 16 compiler error fix
+    // split in two parts to avoid ambiguous GetTemplateIdentity compiler error
+    // the commented out line below is part 1 of the original macro
+    //AZ::TemplateId GetO3deTemplateId(AZ::Adl, decltype(AZ::AzGenericTypeInfo::Internal::GetTemplateIdentity<AZStd::basic_fixed_string>()));
+    // I changed GetTemplateIdentity to explicit implementation to avoid the error
+    AZ::TemplateId GetO3deTemplateId(AZ::Adl, decltype(AZ::AzGenericTypeInfo::Internal::TemplateIdentityTypeAutoType<AZStd::basic_fixed_string>()));
+    // part 2 of the original macro
+    AZ_TYPE_INFO_INTERNAL_BOTHFIX_UUID_DECL(AZStd::basic_fixed_string, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_AUTO, AZ_TYPE_INFO_INTERNAL_TYPENAME);
+#else
     AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL(AZStd::basic_fixed_string, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_AUTO, AZ_TYPE_INFO_INTERNAL_TYPENAME);
+#endif
 }
 
 namespace AZStd
