@@ -26,7 +26,11 @@ namespace AZ::IO
         static const AZ::EBusHandlerPolicy HandlerPolicy = AZ::EBusHandlerPolicy::Multiple;
         static const AZ::EBusAddressPolicy AddressPolicy = AZ::EBusAddressPolicy::Single;
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors
+        virtual void BundleOpened([[maybe_unused]] const char* bundleName, [[maybe_unused]] AZStd::shared_ptr<AzFramework::AssetBundleManifest> bundleManifest, [[maybe_unused]] const char* nextBundle, [[maybe_unused]] AZStd::shared_ptr<AzFramework::AssetRegistry> bundleCatalog) {}
+#else
         virtual void BundleOpened([[maybe_unused]] const char* bundleName, AZStd::shared_ptr<AzFramework::AssetBundleManifest> bundleManifest, [[maybe_unused]] const char* nextBundle, AZStd::shared_ptr<AzFramework::AssetRegistry> bundleCatalog) {}
+#endif // defined(CARBONATED)
         virtual void BundleClosed([[maybe_unused]] const char* bundleName) {}
 
         // Sent when a file is accessed through Archive

@@ -1602,7 +1602,11 @@ namespace AZ::IO
     //////////////////////////////////////////////////////////////////////////
     // open the physical archive file - creates if it doesn't exist
     // returns nullptr if it's invalid or can't open the file
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors
+    AZStd::intrusive_ptr<INestedArchive> Archive::OpenArchive(AZStd::string_view szPath, AZStd::string_view bindRoot, uint32_t nFlags, [[maybe_unused]] AZStd::intrusive_ptr<AZ::IO::MemoryBlock> pData)
+#else
     AZStd::intrusive_ptr<INestedArchive> Archive::OpenArchive(AZStd::string_view szPath, AZStd::string_view bindRoot, uint32_t nFlags, AZStd::intrusive_ptr<AZ::IO::MemoryBlock> pData)
+#endif // defined(CARBONATED)
     {
         auto szFullPath = AZ::IO::FileIOBase::GetDirectInstance()->ResolvePath(szPath);
         if (!szFullPath)

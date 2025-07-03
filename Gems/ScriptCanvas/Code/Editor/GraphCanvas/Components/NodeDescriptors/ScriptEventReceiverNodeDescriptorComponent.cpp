@@ -466,7 +466,11 @@ namespace ScriptCanvasEditor
         return this;
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    void ScriptEventReceiverNodeDescriptorComponent::OnAssetReloaded([[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData> asset)
+#else
     void ScriptEventReceiverNodeDescriptorComponent::OnAssetReloaded(AZ::Data::Asset<AZ::Data::AssetData> asset)
+#endif // defined(CARBONATED)
     {
         AZ::EntityId graphCanvasGraphId;
         GraphCanvas::SceneMemberRequestBus::EventResult(graphCanvasGraphId, GetEntityId(), &GraphCanvas::SceneMemberRequests::GetScene);

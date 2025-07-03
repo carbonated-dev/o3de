@@ -540,7 +540,11 @@ void AssetImporterManager::ProcessMoveFiles()
     }
 }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+bool AssetImporterManager::Copy([[maybe_unused]] QString relativePath, QString oldAbsolutePath, QString destinationAbsolutePath)
+#else
 bool AssetImporterManager::Copy(QString relativePath, QString oldAbsolutePath, QString destinationAbsolutePath)
+#endif // defined(CARBONATED)
 {
     QString fileName = GetFileName(destinationAbsolutePath);
     QString subPath = QFileInfo(destinationAbsolutePath).absoluteDir().absolutePath();

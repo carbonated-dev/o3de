@@ -79,7 +79,11 @@ namespace AWSMetrics
         : public MetricsManager
     {
     private:
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        AZ::Outcome<void, AZStd::string> SendMetricsToFile([[maybe_unused]] AZStd::shared_ptr<MetricsQueue> metricsQueue) override
+#else
         AZ::Outcome<void, AZStd::string> SendMetricsToFile(AZStd::shared_ptr<MetricsQueue> metricsQueue) override
+#endif // defined(CARBONATED)
         {
             if (AZ::IO::FileIOBase::GetInstance())
             {

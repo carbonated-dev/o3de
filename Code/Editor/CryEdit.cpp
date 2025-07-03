@@ -1770,7 +1770,11 @@ bool CCryEditApp::InitInstance()
 }
 
 //////////////////////////////////////////////////////////////////////////
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+void CCryEditApp::LoadFile([[maybe_unused]] QString fileName)
+#else
 void CCryEditApp::LoadFile(QString fileName)
+#endif // defined(CARBONATED)
 {
     if (GetIEditor()->GetViewManager()->GetViewCount() == 0)
     {

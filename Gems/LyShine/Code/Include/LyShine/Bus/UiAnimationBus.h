@@ -116,7 +116,11 @@ public: // member functions
     virtual void OnUiAnimationEvent(IUiAnimationListener::EUiAnimationEvent uiAnimationEvent, AZStd::string animSequenceName) = 0;
 
     //! Called on animation track event triggered
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    virtual void OnUiTrackEvent([[maybe_unused]] AZStd::string eventName, [[maybe_unused]] AZStd::string valueName, [[maybe_unused]] AZStd::string animSequenceName) {}
+#else
     virtual void OnUiTrackEvent(AZStd::string eventName, AZStd::string valueName, AZStd::string animSequenceName) {}
+#endif // defined(CARBONATED)
 };
 
 typedef AZ::EBus<UiAnimationNotifications> UiAnimationNotificationBus;

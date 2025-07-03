@@ -72,7 +72,11 @@ namespace UnitTest
             void PreShutdown() override {}
             AZ::RHI::ResourceMemoryRequirements GetResourceMemoryRequirements([[maybe_unused]] const AZ::RHI::ImageDescriptor& descriptor) override { return AZ::RHI::ResourceMemoryRequirements{}; };
             AZ::RHI::ResourceMemoryRequirements GetResourceMemoryRequirements([[maybe_unused]] const AZ::RHI::BufferDescriptor& descriptor) override { return AZ::RHI::ResourceMemoryRequirements{}; };
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+            void ObjectCollectionNotify([[maybe_unused]] AZ::RHI::ObjectCollectorNotifyFunction notifyFunction) override {}
+#else
             void ObjectCollectionNotify(AZ::RHI::ObjectCollectorNotifyFunction notifyFunction) override {}
+#endif // defined(CARBONATED)
             AZ::RHI::ShadingRateImageValue ConvertShadingRate([[maybe_unused]] AZ::RHI::ShadingRate rate) const override
             {
                 return AZ::RHI::ShadingRateImageValue{};

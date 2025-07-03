@@ -41,8 +41,13 @@ namespace GameStateSamples
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    inline void GameStatePrimaryUserMonitor::OnActiveGameStateChanged(AZStd::shared_ptr<IGameState> oldGameState,
+                                                                      [[maybe_unused]] AZStd::shared_ptr<IGameState> newGameState)
+#else
     inline void GameStatePrimaryUserMonitor::OnActiveGameStateChanged(AZStd::shared_ptr<IGameState> oldGameState,
                                                                       AZStd::shared_ptr<IGameState> newGameState)
+#endif // defined(CARBONATED)
     {
         if (m_primaryUserSignedOutWhileLevelLoading &&
             azrtti_istypeof<GameStateLevelLoading>(oldGameState.get()))

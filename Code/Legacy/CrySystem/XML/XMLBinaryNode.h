@@ -91,7 +91,11 @@ public:
     virtual bool getAttributeByIndex(int index, XmlString& key, XmlString& value);
 
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    void copyAttributes([[maybe_unused]] XmlNodeRef fromNode) override { assert(0); };
+#else
     void copyAttributes(XmlNodeRef fromNode) override { assert(0); };
+#endif // defined(CARBONATED)
 
     //! Get XML Node attribute for specified key.
     const char* getAttr(const char* key) const override;

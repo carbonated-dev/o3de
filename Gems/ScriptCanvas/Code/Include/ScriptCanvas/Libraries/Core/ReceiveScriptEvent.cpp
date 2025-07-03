@@ -140,7 +140,11 @@ namespace ScriptCanvas
                 }
             }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+            void ReceiveScriptEvent::InitializeEvent([[maybe_unused]] AZ::Data::Asset<ScriptEvents::ScriptEventsAsset> asset, int eventIndex, SlotIdMapping& populationMapping)
+#else
             void ReceiveScriptEvent::InitializeEvent(AZ::Data::Asset<ScriptEvents::ScriptEventsAsset> asset, int eventIndex, SlotIdMapping& populationMapping)
+#endif // defined(CARBONATED)
             {
                 if (!m_handler)
                 {

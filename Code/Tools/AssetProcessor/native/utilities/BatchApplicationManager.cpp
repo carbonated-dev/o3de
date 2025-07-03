@@ -98,7 +98,11 @@ const char* BatchApplicationManager::GetLogBaseName()
     return "AP_Batch";
 }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+ApplicationManager::RegistryCheckInstructions BatchApplicationManager::PopupRegistryProblemsMessage([[maybe_unused]] QString warningText)
+#else
 ApplicationManager::RegistryCheckInstructions BatchApplicationManager::PopupRegistryProblemsMessage(QString warningText)
+#endif // defined(CARBONATED)
 {
     return RegistryCheckInstructions::Exit;
 }

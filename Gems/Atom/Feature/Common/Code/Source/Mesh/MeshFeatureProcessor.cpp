@@ -1789,7 +1789,11 @@ namespace AZ
             OnAssetReady(asset);
         }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        void ModelDataInstance::MeshLoader::OnAssetError([[maybe_unused]] Data::Asset<Data::AssetData> asset)
+#else
         void ModelDataInstance::MeshLoader::OnAssetError(Data::Asset<Data::AssetData> asset)
+#endif // defined(CARBONATED)
         {
             // Note: m_modelAsset and asset represents same asset, but only m_modelAsset contains the file path in its hint from serialization
             AZ_Error(

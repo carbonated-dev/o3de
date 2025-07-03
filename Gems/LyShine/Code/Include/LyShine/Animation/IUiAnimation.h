@@ -1060,7 +1060,11 @@ struct IUiAnimationListener
     virtual ~IUiAnimationListener(){}
     //! callback on UI animation events
     virtual void OnUiAnimationEvent(EUiAnimationEvent uiAnimationEvent, IUiAnimSequence* pAnimSequence) = 0;
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    virtual void OnUiTrackEvent([[maybe_unused]] AZStd::string eventName, [[maybe_unused]] AZStd::string valueName, [[maybe_unused]] IUiAnimSequence* pAnimSequence) {}
+#else
     virtual void OnUiTrackEvent(AZStd::string eventName, AZStd::string valueName, [[maybe_unused]] IUiAnimSequence* pAnimSequence) {}
+#endif // defined(CARBONATED)
     // </interfuscator:shuffle>
 };
 

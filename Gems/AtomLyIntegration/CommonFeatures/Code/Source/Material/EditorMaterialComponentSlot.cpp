@@ -464,7 +464,11 @@ namespace AZ
             }
         }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        void EditorMaterialComponentSlot::OnAssetReloaded([[maybe_unused]] Data::Asset<Data::AssetData> asset)
+#else
         void EditorMaterialComponentSlot::OnAssetReloaded(Data::Asset<Data::AssetData> asset)
+#endif // defined(CARBONATED)
         {
             UpdatePreview();
         }

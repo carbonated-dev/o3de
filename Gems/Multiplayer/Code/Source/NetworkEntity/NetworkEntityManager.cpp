@@ -643,8 +643,13 @@ namespace Multiplayer
         return ticket;
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    void NetworkEntityManager::OnRootSpawnableAssigned([[maybe_unused]] AZ::Data::Asset<AzFramework::Spawnable> rootSpawnable,
+        [[maybe_unused]] uint32_t generation)
+#else
     void NetworkEntityManager::OnRootSpawnableAssigned(AZ::Data::Asset<AzFramework::Spawnable> rootSpawnable,
         [[maybe_unused]] uint32_t generation)
+#endif // defined(CARBONATED)
     {
         auto* multiplayer = GetMultiplayer();
         const auto agentType = multiplayer->GetAgentType();

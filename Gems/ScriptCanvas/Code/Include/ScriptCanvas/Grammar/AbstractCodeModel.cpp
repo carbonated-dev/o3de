@@ -606,7 +606,11 @@ namespace ScriptCanvas
             return AZStd::const_pointer_cast<Scope>(m_graphScope)->AddVariableName(name);
         }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        void AbstractCodeModel::AddUserOutToLeaf(ExecutionTreePtr parent, [[maybe_unused]] ExecutionTreeConstPtr root, AZStd::string_view name)
+#else
         void AbstractCodeModel::AddUserOutToLeaf(ExecutionTreePtr parent, ExecutionTreeConstPtr root, AZStd::string_view name)
+#endif // defined(CARBONATED)
         {
             ExecutionTreePtr out;
 

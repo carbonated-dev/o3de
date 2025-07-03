@@ -145,7 +145,11 @@ namespace ParsingUtilitiesCpp
             m_result += "\n";
         }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        void EvaluateRoot([[maybe_unused]] ExecutionTreeConstPtr node, const Slot*) override
+#else
         void EvaluateRoot(ExecutionTreeConstPtr node, const Slot*)
+#endif // defined(CARBONATED)
         {
             m_result += "\nRoot:\n";
         }
