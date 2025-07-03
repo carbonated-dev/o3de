@@ -623,7 +623,7 @@ namespace AssetProcessor
         // Files from the scanner that should be processed according to the "process-project-assets" and/or "process-engine-assets" command line arguments
         QSet<AssetFileInfo> m_processOnlyFiles;
 #endif
-		
+
         //////////////////// Analysis Early-Out feature ///////////////////
         // ComputeBuilderDirty builds the maps of which builders are dirty and how they have changed.
         // note that until ComputeBuilderDirty is called, it is assumed that *all* are dirty, to be conservative.

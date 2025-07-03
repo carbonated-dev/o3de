@@ -557,7 +557,7 @@ namespace AssetProcessor
         {
             if (iter.value().m_sourceAssetReference)
             {
-#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)				
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
                 // Support "process-project-assets" and "process-engine-assets" command line arguments
                 if (!m_processOnlyFiles.isEmpty())
                 {
@@ -600,10 +600,10 @@ namespace AssetProcessor
 
         m_scanFoldersInDatabase.clear();
         m_sourceFilesInDatabase.clear();
-#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)										  
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
         m_processOnlyFiles.clear();
 #endif
-		
+
         QueueIdleCheck();
     }
 
