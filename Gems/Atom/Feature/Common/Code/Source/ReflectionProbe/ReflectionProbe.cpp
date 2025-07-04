@@ -39,7 +39,11 @@ namespace AZ
             }
         }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        void ReflectionProbe::OnAssetError([[maybe_unused]] Data::Asset<Data::AssetData> asset)
+#else
         void ReflectionProbe::OnAssetError(Data::Asset<Data::AssetData> asset)
+#endif // defined(CARBONATED)
         {
             AZ_Error("ReflectionProbe", false, "Failed to load ReflectionProbe dependency asset %s", asset.ToString<AZStd::string>().c_str());
             Data::AssetBus::Handler::BusDisconnect();
