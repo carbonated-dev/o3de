@@ -145,10 +145,17 @@ namespace AZ
         // same as above, but uses the class's AzTypeInfo name as the pool name. Useful when sharing pools across different editors
         // without having to manually coordinate the pool name. 
         // important note: to use this, the T type must either include the AZ_RTTI macro, or be externally exposed via AZ_TYPE_INFO_SPECIALIZE
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        template<class T>
+        AZ::Outcome<AZStd::shared_ptr<InstancePool<T>>, AZStd::string> CreatePool(
+            typename InstancePool<T>::ResetInstance resetFunc = [](T&){}, 
+            [[maybe_unused]] typename InstancePool<T>::CreateInstance createFunc = []() { return new T{}; })
+#else
         template<class T>
         AZ::Outcome<AZStd::shared_ptr<InstancePool<T>>, AZStd::string> CreatePool(
             typename InstancePool<T>::ResetInstance resetFunc = [](T&){}, 
             typename InstancePool<T>::CreateInstance createFunc = []() { return new T{}; })
+#endif // defined(CARBONATED)
         {
             return CreatePool<T>(GetDefaultName<T>(), resetFunc);
         }

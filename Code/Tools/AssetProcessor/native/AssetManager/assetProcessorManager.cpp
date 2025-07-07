@@ -350,7 +350,11 @@ namespace AssetProcessor
     }
 
     //! A network request came in, Given a Job Run Key (from the above Job Request), asking for the actual log for that job.
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    GetAbsoluteAssetDatabaseLocationResponse AssetProcessorManager::ProcessGetAbsoluteAssetDatabaseLocationRequest([[maybe_unused]] MessageData<GetAbsoluteAssetDatabaseLocationRequest> messageData)
+#else
     GetAbsoluteAssetDatabaseLocationResponse AssetProcessorManager::ProcessGetAbsoluteAssetDatabaseLocationRequest(MessageData<GetAbsoluteAssetDatabaseLocationRequest> messageData)
+#endif // defined(CARBONATED)
     {
         GetAbsoluteAssetDatabaseLocationResponse response;
 

@@ -860,8 +860,13 @@ namespace AZ
             m_needUpdatePipelineStates = true;
         }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        void DiffuseProbeGridFeatureProcessor::OnRenderPipelinePersistentViewChanged(
+            RPI::RenderPipeline* renderPipeline, RPI::PipelineViewTag viewTag, RPI::ViewPtr newView, [[maybe_unused]] RPI::ViewPtr previousView)
+#else
         void DiffuseProbeGridFeatureProcessor::OnRenderPipelinePersistentViewChanged(
             RPI::RenderPipeline* renderPipeline, RPI::PipelineViewTag viewTag, RPI::ViewPtr newView, RPI::ViewPtr previousView)
+#endif // defined(CARBONATED)
         {
             if (m_sceneAndViewShader)
             {

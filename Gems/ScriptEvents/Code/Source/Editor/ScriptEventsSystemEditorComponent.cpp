@@ -166,7 +166,11 @@ namespace ScriptEventsEditor
         scriptEventAsset->m_definition.IncreaseVersion();
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    void ScriptEventAssetHandler::BeforePropertyEdit(AzToolsFramework::InstanceDataNode* node, [[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData> asset)
+#else
     void ScriptEventAssetHandler::BeforePropertyEdit(AzToolsFramework::InstanceDataNode* node, AZ::Data::Asset<AZ::Data::AssetData> asset)
+#endif // defined(CARBONATED)
     {
         ScriptEventData::VersionedProperty* property = nullptr;
         AzToolsFramework::InstanceDataNode* parent = node;

@@ -117,7 +117,11 @@ namespace MessagePopup
     }
 
     //-----------------------------------------------------------------------------
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    void LyShineMessagePopup::OnShowPopup(AZ::u32 _popupID, const AZStd::string& _message, EPopupButtons _buttons, EPopupKind _kind, [[maybe_unused]] AZStd::function<void(int _button)> _callback, void** _popupClientID)
+#else
     void LyShineMessagePopup::OnShowPopup(AZ::u32 _popupID, const AZStd::string& _message, EPopupButtons _buttons, EPopupKind _kind, AZStd::function<void(int _button)> _callback, void** _popupClientID)
+#endif // defined(CARBONATED)
     {
         AZ::EntityId canvasEntityId;
         bool isNavigationSupported = false;

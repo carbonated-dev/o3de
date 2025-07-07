@@ -3350,7 +3350,11 @@ namespace UnitTest
                 BusDisconnect();
             }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+            void OnAssetReady([[maybe_unused]] Asset<AssetData> asset) override
+#else
             void OnAssetReady(Asset<AssetData> asset) override
+#endif // defined(CARBONATED)
             {
                 m_loadSignal->release();
             }
@@ -3542,7 +3546,11 @@ namespace UnitTest
                 BusDisconnect();
             }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+            void OnAssetReady([[maybe_unused]] Asset<AssetData> asset) override
+#else
             void OnAssetReady(Asset<AssetData> asset) override
+#endif // defined(CARBONATED)
             {
                 ColoredPrintf(COLOR_YELLOW, "ThreadA: OnAssetReady called \n");
                 m_onAssetReadySignal.release();

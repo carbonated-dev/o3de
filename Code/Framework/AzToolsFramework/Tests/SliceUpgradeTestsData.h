@@ -128,12 +128,21 @@ namespace UnitTest
             AZ::SerializeContext* serializeContext = AZ::RttiCast<AZ::SerializeContext*>(reflection);
             if (serializeContext)
             {
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+                serializeContext->Class<TestComponentA_V1, AzToolsFramework::Components::EditorComponentBase>()
+                    ->Version(1)
+                    ->Field("NewData", &TestComponentA_V1::m_data)
+                    ->TypeChange<TestDataA, NewTestDataA>("Data", 0, 1, []([[maybe_unused]] TestDataA in) -> NewTestDataA {
+                        return NewTestDataA();
+                    })
+#else
                 serializeContext->Class<TestComponentA_V1, AzToolsFramework::Components::EditorComponentBase>()
                     ->Version(1)
                     ->Field("NewData", &TestComponentA_V1::m_data)
                     ->TypeChange<TestDataA, NewTestDataA>("Data", 0, 1, [](TestDataA in) -> NewTestDataA {
                         return NewTestDataA();
                     })
+#endif // defined(CARBONATED)
                     ->NameChange(0, 1, "Data", "NewData")
                     ;
             }

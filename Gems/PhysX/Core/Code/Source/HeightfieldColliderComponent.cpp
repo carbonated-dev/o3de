@@ -110,7 +110,11 @@ namespace PhysX
         }
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    void HeightfieldColliderComponent::OnAssetError([[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData> asset)
+#else
     void HeightfieldColliderComponent::OnAssetError(AZ::Data::Asset<AZ::Data::AssetData> asset)
+#endif // defined(CARBONATED)
     {
         InitHeightfieldCollider(HeightfieldCollider::DataSource::GenerateNewHeightfield);
     }

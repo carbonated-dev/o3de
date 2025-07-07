@@ -204,7 +204,11 @@ namespace AZ
             m_boxChangedByGridEvent.Signal(true);
         }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        void DiffuseProbeGridComponentController::OnAssetReady([[maybe_unused]] Data::Asset<Data::AssetData> asset)
+#else
         void DiffuseProbeGridComponentController::OnAssetReady(Data::Asset<Data::AssetData> asset)
+#endif // defined(CARBONATED)
         {
             // if all assets are ready we can set the baked texture images
             if (m_configuration.m_bakedIrradianceTextureAsset.IsReady() &&

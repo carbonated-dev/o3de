@@ -51,7 +51,11 @@ namespace AZ
             //! @deprecated use OnRenderPipelineChanged(RenderPipeline*, RenderPipelineChangeType::Added)
             //! Notifies when a render pipeline is added to this scene. 
             //! @param pipeline The render pipeline which was added
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors
+            virtual void OnRenderPipelineAdded([[maybe_unused]] RenderPipelinePtr pipeline) {};
+#else
             virtual void OnRenderPipelineAdded(RenderPipelinePtr pipeline) {};
+#endif // defined(CARBONATED)
                         
             //! O3DE_DEPRECATION_NOTICE(GHI-12687)
             //! @deprecated use OnRenderPipelineChanged(RenderPipeline*, RenderPipelineChangeType::PassChanged)
@@ -76,7 +80,11 @@ namespace AZ
             //! @param viewTag The viewTag in this render pipeline which the new view was set to
             //! @param newView The view which was set to the render pipeline's view tag
             //! @param previousView The previous view associates to render pipeline's view tag before the new view was set
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors
+            virtual void OnRenderPipelinePersistentViewChanged([[maybe_unused]] RenderPipeline* renderPipeline, [[maybe_unused]] PipelineViewTag viewTag, [[maybe_unused]] ViewPtr newView, [[maybe_unused]] ViewPtr previousView) {}
+#else
             virtual void OnRenderPipelinePersistentViewChanged([[maybe_unused]] RenderPipeline* renderPipeline, PipelineViewTag viewTag, ViewPtr newView, ViewPtr previousView) {}
+#endif // defined(CARBONATED)
 
             //! Notifies when the PrepareRender phase is beginning
             //! This phase is when data is read from the FeatureProcessors and written to the draw lists.

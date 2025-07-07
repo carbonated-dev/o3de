@@ -1029,7 +1029,11 @@ namespace AzToolsFramework
         }
 
         //=========================================================================
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        SliceTransaction::Result SlicePreSaveCallbackForWorldEntities([[maybe_unused]] SliceTransaction::TransactionPtr transaction, const char* fullPath, SliceTransaction::SliceAssetPtr& asset)
+#else
         SliceTransaction::Result SlicePreSaveCallbackForWorldEntities(SliceTransaction::TransactionPtr transaction, const char* fullPath, SliceTransaction::SliceAssetPtr& asset)
+#endif // defined(CARBONATED)
         {
             AZ_PROFILE_SCOPE(AzToolsFramework, "SliceUtilities::SlicePreSaveCallbackForWorldEntities");
 

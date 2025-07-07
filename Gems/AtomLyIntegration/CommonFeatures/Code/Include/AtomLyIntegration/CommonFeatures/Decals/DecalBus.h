@@ -113,7 +113,11 @@ namespace AZ
 
             //! Signals that the material has changed
             //! @param materialAsset The material asset of the decal
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+            virtual void OnMaterialChanged([[maybe_unused]] Data::Asset<RPI::MaterialAsset> materialAsset){ }
+#else
             virtual void OnMaterialChanged(Data::Asset<RPI::MaterialAsset> materialAsset){ }
+#endif // defined(CARBONATED)
         };
 
         /// The EBus for decal notification events.

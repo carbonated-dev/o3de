@@ -290,7 +290,11 @@ namespace
         return response;
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    GetScanFoldersResponse HandleGetScanFoldersRequest([[maybe_unused]] MessageData<GetScanFoldersRequest> messageData)
+#else
     GetScanFoldersResponse HandleGetScanFoldersRequest(MessageData<GetScanFoldersRequest> messageData)
+#endif // defined(CARBONATED)
     {
         bool success = true;
         AZStd::vector<AZStd::string> scanFolders;
@@ -305,7 +309,11 @@ namespace
         return GetScanFoldersResponse(move(scanFolders));
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    GetAssetSafeFoldersResponse HandleGetAssetSafeFoldersRequest([[maybe_unused]] MessageData<GetAssetSafeFoldersRequest> messageData)
+#else
     GetAssetSafeFoldersResponse HandleGetAssetSafeFoldersRequest(MessageData<GetAssetSafeFoldersRequest> messageData)
+#endif // defined(CARBONATED)
     {
         bool success = true;
         AZStd::vector<AZStd::string> assetSafeFolders;

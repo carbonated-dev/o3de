@@ -202,7 +202,11 @@ void RCcontrollerUnitTests::ConnectCompileGroupSignalsAndSlots(bool& gotCreated,
 
 void RCcontrollerUnitTests::ConnectJobSignalsAndSlots(bool& allJobsCompleted, JobEntry& completedJob)
 {
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    QObject::connect(m_rcController.get(), &RCController::FileCompiled, this, [&](JobEntry entry, [[maybe_unused]] AssetBuilderSDK::ProcessJobResponse response)
+#else
     QObject::connect(m_rcController.get(), &RCController::FileCompiled, this, [&](JobEntry entry, AssetBuilderSDK::ProcessJobResponse response)
+#endif // defined(CARBONATED)
         {
             completedJob = entry;
         });

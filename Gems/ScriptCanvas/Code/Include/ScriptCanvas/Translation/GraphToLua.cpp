@@ -1501,7 +1501,11 @@ namespace ScriptCanvas
             }
         }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        void GraphToLua::WriteDebugInfoVariableChange([[maybe_unused]] Grammar::ExecutionTreeConstPtr execution, Grammar::OutputAssignmentConstPtr output)
+#else
         void GraphToLua::WriteDebugInfoVariableChange(Grammar::ExecutionTreeConstPtr execution, Grammar::OutputAssignmentConstPtr output)
+#endif // defined(CARBONATED)
         {
             if (IsDebugInfoWritten())
             {
@@ -1663,7 +1667,11 @@ namespace ScriptCanvas
             }
         }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        void GraphToLua::WriteFunctionCallNullCheckPost([[maybe_unused]] Grammar::ExecutionTreeConstPtr execution)
+#else
         void GraphToLua::WriteFunctionCallNullCheckPost(Grammar::ExecutionTreeConstPtr execution)
+#endif // defined(CARBONATED)
         {
             m_dotLua.Outdent();
             m_dotLua.WriteLineIndented("end");

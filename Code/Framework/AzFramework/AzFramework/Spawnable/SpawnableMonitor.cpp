@@ -90,7 +90,11 @@ namespace AzFramework
         }
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    void SpawnableMonitor::OnAssetReady([[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData> asset)
+#else
     void SpawnableMonitor::OnAssetReady(AZ::Data::Asset<AZ::Data::AssetData> asset)
+#endif // defined(CARBONATED)
     {
         AZ_Assert(!m_isLoaded, "Trying to load spawnable %s (%s) for a second time.",
             asset.GetHint().c_str(), asset.GetId().ToString<AZStd::string>().c_str());

@@ -66,7 +66,11 @@ namespace AssetProcessor
         }
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    void BuilderManager::IncomingBuilderPing(AZ::u32 connId, AZ::u32 /*type*/, AZ::u32 serial, QByteArray payload, [[maybe_unused]] QString platform)
+#else
     void BuilderManager::IncomingBuilderPing(AZ::u32 connId, AZ::u32 /*type*/, AZ::u32 serial, QByteArray payload, QString platform)
+#endif // defined(CARBONATED)
     {
         AssetBuilder::BuilderHelloRequest requestPing;
         AssetBuilder::BuilderHelloResponse responsePing;

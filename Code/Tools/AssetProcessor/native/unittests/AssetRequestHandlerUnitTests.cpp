@@ -66,7 +66,11 @@ namespace AssetProcessor
             m_fenceId = fenceId;
             return m_fenceFileName;
         }
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        bool DeleteFenceFile([[maybe_unused]] QString fenceFileName) override
+#else
         bool DeleteFenceFile(QString fenceFileName) override
+#endif // defined(CARBONATED)
         {
             m_numTimesDeleteFenceFileCalled++;
             return m_deleteFenceFileResult;

@@ -48,7 +48,11 @@ namespace UnitTest
         void Render(const RenderPacket&)  override {};
 
         // Overrides for scene notification bus handler
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+        void OnRenderPipelinePersistentViewChanged(AZ::RPI::RenderPipeline* renderPipeline, [[maybe_unused]] AZ::RPI::PipelineViewTag viewTag, [[maybe_unused]] AZ::RPI::ViewPtr newView, [[maybe_unused]] AZ::RPI::ViewPtr previousView) override
+#else
         void OnRenderPipelinePersistentViewChanged(AZ::RPI::RenderPipeline* renderPipeline, AZ::RPI::PipelineViewTag viewTag, AZ::RPI::ViewPtr newView, AZ::RPI::ViewPtr previousView) override
+#endif // defined(CARBONATED)
         {
             m_viewSetCount++;
             m_lastPipeline = renderPipeline;

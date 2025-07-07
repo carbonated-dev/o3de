@@ -206,7 +206,11 @@ namespace AzQtComponents
         }
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    QString PaletteCardCollection::uniquePaletteName([[maybe_unused]] QSharedPointer<PaletteCard> card, const QString& name) const
+#else
     QString PaletteCardCollection::uniquePaletteName(QSharedPointer<PaletteCard> card, const QString& name) const
+#endif // defined(CARBONATED)
     {
         const auto paletteNameExists = [this](const QString& name)
         {

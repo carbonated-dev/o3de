@@ -674,7 +674,11 @@ namespace LandscapeCanvasEditor
         UpdateConnectionData(connection, false /* added */);
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    void MainWindow::PreOnGraphModelNodeWrapped([[maybe_unused]] GraphModel::NodePtr wrapperNode, GraphModel::NodePtr node)
+#else
     void MainWindow::PreOnGraphModelNodeWrapped(GraphModel::NodePtr wrapperNode, GraphModel::NodePtr node)
+#endif // defined(CARBONATED)
     {
         if (m_ignoreGraphUpdates)
         {

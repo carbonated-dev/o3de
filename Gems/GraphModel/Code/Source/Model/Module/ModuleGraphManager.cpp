@@ -44,7 +44,11 @@ namespace GraphModel
         AzToolsFramework::AssetSystemBus::Handler::BusDisconnect();
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    void ModuleGraphManager::SourceFileChanged(AZStd::string relativePath, [[maybe_unused]] AZStd::string scanFolder, AZ::Uuid sourceUUID)
+#else
     void ModuleGraphManager::SourceFileChanged(AZStd::string relativePath, AZStd::string scanFolder, AZ::Uuid sourceUUID)
+#endif // defined(CARBONATED)
     {
         AZStd::string extension;
         if (AzFramework::StringFunc::Path::GetExtension(relativePath.data(), extension) && extension == m_moduleFileExtension)
