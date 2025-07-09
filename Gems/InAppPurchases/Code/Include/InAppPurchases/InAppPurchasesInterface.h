@@ -74,7 +74,7 @@ namespace InAppPurchases
         const AZStd::string& GetDeveloperPayload() const { return m_developerPayload; }
         virtual AZ::u64 GetPurchaseTime() const { return m_purchaseTime; }
         PurchaseState GetPurchaseState() const { return m_purchaseState; }
-		
+
 #if defined(CARBONATED)  // PR375
         const AZStd::string& GetProductPrice() const { return m_productPrice; }
         const AZStd::string& GetProductCurrencyCode() const { return m_productPriceCurrencyCode; }
