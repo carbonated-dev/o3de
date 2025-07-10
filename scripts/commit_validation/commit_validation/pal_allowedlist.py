@@ -13,6 +13,10 @@ from typing import List
 DEFAULT_ALLOWEDLIST_FILE = os.path.join(os.path.dirname(__file__), 'pal_allowedlist.txt')
 """The path to the default allowed-list file"""
 
+""" CARBONATED begin """
+CARBONATED_ALLOWEDLIST_FILE = os.path.join(os.path.dirname(__file__), 'carbonated_pal_allowedlist.txt')
+"""The path to the optional carbonated allowed-list file"""
+""" CARBONATED end """
 
 class PALAllowedlist:
     """A utility class used for determining if PAL rules should apply to a particular file path. If a path matches the
@@ -36,8 +40,19 @@ class PALAllowedlist:
                 return True
         return False
 
-
 def load() -> PALAllowedlist:
-    """Returns an instance of :class:`PALAllowedlist` created from the glob patterns in :const:`DEFAULT_ALLOWEDLIST_FILE`"""
-    with open(DEFAULT_ALLOWEDLIST_FILE) as fh:
-        return PALAllowedlist(fh.read().splitlines())
+""" CARBONATED begin """
+    """Returns an instance of :class:`PALAllowedlist` created from the glob patterns in
+    :const:`DEFAULT_ALLOWEDLIST_FILE` and optionally from :const:`CARBONATED_ALLOWEDLIST_FILE`"""
+    patterns = []
+
+    if os.path.exists(DEFAULT_ALLOWEDLIST_FILE):
+        with open(DEFAULT_ALLOWEDLIST_FILE) as fh:
+            patterns.extend(fh.read().splitlines())
+
+    if os.path.exists(CARBONATED_ALLOWEDLIST_FILE):
+        with open(CARBONATED_ALLOWEDLIST_FILE) as fh:
+            patterns.extend(fh.read().splitlines())
+
+    return PALAllowedlist(patterns)
+""" CARBONATED end """

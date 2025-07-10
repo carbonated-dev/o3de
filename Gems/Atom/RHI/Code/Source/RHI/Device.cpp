@@ -13,6 +13,10 @@
 
 #include <AzCore/std/sort.h>
 
+#if !(defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC))
+#include <AzCore/std/chrono/chrono.h>
+#endif
+
 namespace AZ::RHI
 {
     bool Device::IsInitialized() const
@@ -207,7 +211,12 @@ namespace AZ::RHI
                     {
                         found = true;
 
-                        fc.m_commands[ib].m_commitTime = TimeInterval::GetTimeSec();
+#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
+                        fc.m_commands[ib].m_commitTime = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
+#else
+                        const auto current_time = AZStd::chrono::system_clock::now();
+                        fc.m_commands[ib].m_commitTime = AZStd::chrono::duration<double>(current_time.time_since_epoch()).count();
+#endif
                         break;
                     }
                 }
