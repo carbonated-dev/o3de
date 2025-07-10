@@ -41,7 +41,7 @@ class PALAllowedlist:
         return False
 
 def load() -> PALAllowedlist:
-""" CARBONATED begin """
+    """ CARBONATED begin """
     """Returns an instance of :class:`PALAllowedlist` created from the glob patterns in
     :const:`DEFAULT_ALLOWEDLIST_FILE` and optionally from :const:`CARBONATED_ALLOWEDLIST_FILE`"""
     patterns = []
@@ -55,4 +55,4 @@ def load() -> PALAllowedlist:
             patterns.extend(fh.read().splitlines())
 
     return PALAllowedlist(patterns)
-""" CARBONATED end """
+    """ CARBONATED end """
