@@ -14,10 +14,6 @@
 #include <AzCore/std/sort.h>
 #include <AzCore/Time/ITime.h>
 
-#if !(defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC))
-#include <AzCore/std/chrono/chrono.h>
-#endif
-
 namespace AZ::RHI
 {
     bool Device::IsInitialized() const

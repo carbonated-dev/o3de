@@ -10,13 +10,11 @@ import fnmatch
 import os
 from typing import List
 
-DEFAULT_ALLOWEDLIST_FILE = os.path.join(os.path.dirname(__file__), 'pal_allowedlist.txt')
 """The path to the default allowed-list file"""
+DEFAULT_ALLOWEDLIST_FILE = os.path.join(os.path.dirname(__file__), 'pal_allowedlist.txt')
 
-""" CARBONATED begin """
-CARBONATED_ALLOWEDLIST_FILE = os.path.join(os.path.dirname(__file__), 'carbonated_pal_allowedlist.txt')
 """The path to the optional carbonated allowed-list file"""
-""" CARBONATED end """
+CARBONATED_ALLOWEDLIST_FILE = os.path.join(os.path.dirname(__file__), 'carbonated_pal_allowedlist.txt')     """ CARBONATED begin """
 
 class PALAllowedlist:
     """A utility class used for determining if PAL rules should apply to a particular file path. If a path matches the
@@ -44,6 +42,10 @@ def load() -> PALAllowedlist:
     """ CARBONATED begin """
     """Returns an instance of :class:`PALAllowedlist` created from the glob patterns in
     :const:`DEFAULT_ALLOWEDLIST_FILE` and optionally from :const:`CARBONATED_ALLOWEDLIST_FILE`"""
+
+    """ with open(DEFAULT_ALLOWEDLIST_FILE) as fh:
+        return PALAllowedlist(fh.read().splitlines()) """
+        
     patterns = []
 
     if os.path.exists(DEFAULT_ALLOWEDLIST_FILE):
