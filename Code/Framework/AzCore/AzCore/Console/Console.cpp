@@ -132,7 +132,7 @@ namespace AZ
                                              requiredSet,
                                              requiredClear };
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !(defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_ANDROID))
             // A protection against an execution of the same command more than once.
             // If LoadLevel command is in Registry\autoexec.game.setreg then it is also copied to
             // "Cache\pc\bootstrap.game.<profile>.setreg". The engine executes both setreg files for Windows standalone client.

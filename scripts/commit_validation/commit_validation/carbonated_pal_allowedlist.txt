@@ -1,5 +1,6 @@
 */Code/Framework/AzCore/AzCore/Settings/SettingsRegistryMergeUtils.h
 */Code/Framework/AzCore/AzCore/Asset/AssetManager.cpp
+*/Code/Framework/AzCore/AzCore/Console/Console.cpp
 */Gems/Atom/RPI/Code/Source/RPI.Public/Material/Material.cpp
 */Gems/Atom/RPI/Code/Source/RPI.Reflect/Material/MaterialTypeAsset.cpp
 */Gems/Atom/RHI/Metal/Code/Source/RHI/PipelineState.cpp
