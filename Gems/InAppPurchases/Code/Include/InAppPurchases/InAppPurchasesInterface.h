@@ -165,7 +165,10 @@ namespace InAppPurchases
 #if defined(CARBONATED) // PR375
         virtual AZStd::string GetTransactionReceipt() const { return ""; }
 #endif
-        
+#if defined(CARBONATED) && defined(CARBONATED_CHECK_PURCHASE_SUPPORT)
+        virtual bool IsInAppPurchaseSupported() const { return false; }
+#endif
+
         virtual void ConsumePurchase(const AZStd::string& purchaseToken) const = 0;
         
         virtual void FinishTransaction(const AZStd::string& transactionId, bool downloadHostedContent) const = 0;

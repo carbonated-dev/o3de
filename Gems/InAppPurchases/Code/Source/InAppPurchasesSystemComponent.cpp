@@ -281,6 +281,14 @@ namespace InAppPurchases
     }
 #endif
 
+#if defined(CARBONATED) && defined(CARBONATED_CHECK_PURCHASE_SUPPORT)
+    bool SystemComponent::IsInAppPurchaseSupported() const
+    {
+        return InAppPurchasesInterface::GetInstance() != nullptr;
+    }
+#endif
+
+
     void SystemComponent::ConsumePurchase(const AZStd::string& purchaseToken) const
     {
         if (InAppPurchasesInterface::GetInstance() != nullptr)

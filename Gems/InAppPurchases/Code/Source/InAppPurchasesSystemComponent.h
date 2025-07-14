@@ -53,6 +53,9 @@ namespace InAppPurchases
 #if defined(CARBONATED)  // PR375
         AZStd::string GetTransactionReceipt() const override;
 #endif
+#if defined(CARBONATED) && defined(CARBONATED_CHECK_PURCHASE_SUPPORT)
+        bool IsInAppPurchaseSupported() const override;
+#endif
         
         void ConsumePurchase(const AZStd::string& purchaseToken) const override;
         
