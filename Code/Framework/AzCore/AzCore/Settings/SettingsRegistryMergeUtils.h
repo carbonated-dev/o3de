@@ -190,6 +190,12 @@ namespace AZ::SettingsRegistryMergeUtils
         };
 
 #if defined(CARBONATED) && defined(AZ_PLATFORM_LINUX)
+        // On Linux (especially when running editor or tools from the terminal), the FileIOBase system may not be initialized correctly by the time the SettingsRegistry is loaded.
+        // This leads to the following symptoms:
+        //    Configuration files are not readable (for example, bootstrap.setreg, project.setting, user.sereg).
+        //    The project may not start because the configuration is not loaded.
+        //    Logs may show that the file was not found, although it physically exists.
+        // The reason is that FileIOBase::getInstance() may return null ptr or invalid AZ::IO::File IO Base if LocalFileIO::getInstance() is not set or setInstance() is not called.
         FileReaderClass m_fileReaderClass = FileReaderClass::UseSystemFileOnly;
 #else
         FileReaderClass m_fileReaderClass = FileReaderClass::UseFileIOIfAvailableFallbackToSystemFile;
