@@ -72,6 +72,9 @@ namespace InAppPurchases
                 ->Event("QueryPurchasedProducts", &InAppPurchasesRequestBus::Events::QueryPurchasedProducts)
                 ->Event("ConsumePurchase", &InAppPurchasesRequestBus::Events::ConsumePurchase)
                 ->Event("FinishTransaction", &InAppPurchasesRequestBus::Events::FinishTransaction)
+#if defined(CARBONATED) && defined(CARBONATED_CHECK_PURCHASE_SUPPORT)
+                ->Event("IsInAppPurchaseSupported", &InAppPurchasesRequestBus::Events::IsInAppPurchaseSupported)
+#endif
                 ;
 
             behaviorContext->EBus<InAppPurchasesResponseAccessorBus>("InAppPurchasesResponseAccessorBus")
