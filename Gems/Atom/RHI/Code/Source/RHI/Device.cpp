@@ -12,6 +12,7 @@
 #include <Atom/RHI/RHIUtils.h>
 
 #include <AzCore/std/sort.h>
+#include <AzCore/Time/ITime.h>
 
 namespace AZ::RHI
 {
@@ -207,7 +208,11 @@ namespace AZ::RHI
                     {
                         found = true;
 
-                        fc.m_commands[ib].m_commitTime = TimeInterval::GetTimeSec();
+#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
+                        fc.m_commands[ib].m_commitTime = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
+#else
+                        fc.m_commands[ib].m_commitTime = static_cast<double>(AZ::GetRealElapsedTimeUs()) / 1000000.0;
+#endif
                         break;
                     }
                 }

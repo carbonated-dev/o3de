@@ -1687,7 +1687,7 @@ namespace AZ
 #if defined(CARBONATED)
             MEMORY_TAG(Mesh);
             ASSET_TAG(m_modelAsset.GetHint().c_str());
-#endif        	
+#endif
             SystemTickBus::Handler::BusDisconnect();
 
             // Assign the fully loaded asset back to the mesh handle to not only hold asset id, but the actual data as well.
