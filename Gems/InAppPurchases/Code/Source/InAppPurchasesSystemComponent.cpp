@@ -72,6 +72,9 @@ namespace InAppPurchases
                 ->Event("QueryPurchasedProducts", &InAppPurchasesRequestBus::Events::QueryPurchasedProducts)
                 ->Event("ConsumePurchase", &InAppPurchasesRequestBus::Events::ConsumePurchase)
                 ->Event("FinishTransaction", &InAppPurchasesRequestBus::Events::FinishTransaction)
+#if defined(CARBONATED) && defined(CARBONATED_CHECK_PURCHASE_SUPPORT)
+                ->Event("IsInAppPurchaseSupported", &InAppPurchasesRequestBus::Events::IsInAppPurchaseSupported)
+#endif
                 ;
 
             behaviorContext->EBus<InAppPurchasesResponseAccessorBus>("InAppPurchasesResponseAccessorBus")
@@ -280,6 +283,14 @@ namespace InAppPurchases
         return "";
     }
 #endif
+
+#if defined(CARBONATED) && defined(CARBONATED_CHECK_PURCHASE_SUPPORT)
+    bool SystemComponent::IsInAppPurchaseSupported() const
+    {
+        return InAppPurchasesInterface::GetInstance() != nullptr;
+    }
+#endif
+
 
     void SystemComponent::ConsumePurchase(const AZStd::string& purchaseToken) const
     {
