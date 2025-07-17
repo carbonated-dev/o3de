@@ -3014,6 +3014,84 @@ namespace AZ
             TransformServiceFeatureProcessor* transformServiceFeatureProcessor = meshFeatureProcessor->GetTransformServiceFeatureProcessor();
             for (auto& objectSrg : m_objectSrgList)
             {
+#if defined(CARBONATED)
+                if (reflectionProbeFeatureProcessor && (m_descriptor.m_useForwardPassIblSpecular || m_flags.m_hasForwardPassIblSpecularMaterial))
+                {
+                    // retrieve the list of probes that overlap the mesh bounds
+                    Transform transform = transformServiceFeatureProcessor->GetTransformForId(m_objectId);
+
+                    Aabb aabbWS = m_aabb;
+                    aabbWS.ApplyTransform(transform);
+
+                    ReflectionProbeHandleVector reflectionProbeHandles;
+                    reflectionProbeFeatureProcessor->FindReflectionProbes(aabbWS, reflectionProbeHandles);
+
+                    AZ::RHI::ShaderInputConstantIndex useReflectionProbeConstantIndex = objectSrg->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_useReflectionProbe"));
+                    AZ_Error("ModelDataInstance", useReflectionProbeConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
+
+                    if (!reflectionProbeHandles.empty())
+                    {
+                        // retrieve probe constant indices
+                        AZ::RHI::ShaderInputConstantIndex modelToWorldConstantIndex = objectSrg->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_modelToWorld"));
+                        AZ_Error("ModelDataInstance", modelToWorldConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
+
+                        AZ::RHI::ShaderInputConstantIndex modelToWorldInverseConstantIndex = objectSrg->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_modelToWorldInverse"));
+                        AZ_Error("ModelDataInstance", modelToWorldInverseConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
+
+                        AZ::RHI::ShaderInputConstantIndex outerObbHalfLengthsConstantIndex = objectSrg->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_outerObbHalfLengths"));
+                        AZ_Error("ModelDataInstance", outerObbHalfLengthsConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
+
+                        AZ::RHI::ShaderInputConstantIndex innerObbHalfLengthsConstantIndex = objectSrg->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_innerObbHalfLengths"));
+                        AZ_Error("ModelDataInstance", innerObbHalfLengthsConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
+
+                        AZ::RHI::ShaderInputConstantIndex useParallaxCorrectionConstantIndex = objectSrg->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_useParallaxCorrection"));
+                        AZ_Error("ModelDataInstance", useParallaxCorrectionConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
+
+                        AZ::RHI::ShaderInputConstantIndex exposureConstantIndex = objectSrg->FindShaderInputConstantIndex(Name("m_reflectionProbeData.m_exposure"));
+                        AZ_Error("ModelDataInstance", exposureConstantIndex.IsValid(), "Failed to find ReflectionProbe constant index");
+
+                        // retrieve probe cubemap index
+                        Name reflectionCubeMapImageName = Name("m_reflectionProbeCubeMap");
+                        RHI::ShaderInputImageIndex reflectionCubeMapImageIndex = objectSrg->FindShaderInputImageIndex(reflectionCubeMapImageName);
+                        AZ_Error("ModelDataInstance", reflectionCubeMapImageIndex.IsValid(), "Failed to find shader image index [%s]", reflectionCubeMapImageName.GetCStr());
+
+                        // take the last handle from the list, which will be the smallest (most influential) probe
+                        ReflectionProbeHandle handle = reflectionProbeHandles.back();
+
+                        objectSrg->SetConstant(modelToWorldConstantIndex, Matrix3x4::CreateFromTransform(reflectionProbeFeatureProcessor->GetTransform(handle)));
+                        objectSrg->SetConstant(modelToWorldInverseConstantIndex, Matrix3x4::CreateFromTransform(reflectionProbeFeatureProcessor->GetTransform(handle)).GetInverseFull());
+                        objectSrg->SetConstant(outerObbHalfLengthsConstantIndex, reflectionProbeFeatureProcessor->GetOuterObbWs(handle).GetHalfLengths());
+                        objectSrg->SetConstant(innerObbHalfLengthsConstantIndex, reflectionProbeFeatureProcessor->GetInnerObbWs(handle).GetHalfLengths());
+                        objectSrg->SetConstant(useReflectionProbeConstantIndex, true);
+                        objectSrg->SetConstant(useParallaxCorrectionConstantIndex, reflectionProbeFeatureProcessor->GetUseParallaxCorrection(handle));
+                        objectSrg->SetConstant(exposureConstantIndex, reflectionProbeFeatureProcessor->GetRenderExposure(handle));
+
+                        objectSrg->SetImage(reflectionCubeMapImageIndex, reflectionProbeFeatureProcessor->GetCubeMap(handle));
+                    }
+                    else
+                    {
+                        objectSrg->SetConstant(useReflectionProbeConstantIndex, false);
+                        
+                        // set dummy cubemap, it magically fixes iOS 18 crash
+                        Name reflectionCubeMapImageName = Name("m_reflectionProbeCubeMap");
+                        RHI::ShaderInputImageIndex reflectionCubeMapImageIndex = objectSrg->FindShaderInputImageIndex(reflectionCubeMapImageName);
+                        if (reflectionCubeMapImageIndex.IsValid())
+                        {
+                            objectSrg->SetImage(reflectionCubeMapImageIndex, Data::Instance<RPI::Image>());
+                        }
+                    }
+                }
+                else
+                {
+                    // set dummy cubemap, it magically fixes iOS 18 crash
+                    Name reflectionCubeMapImageName = Name("m_reflectionProbeCubeMap");
+                    RHI::ShaderInputImageIndex reflectionCubeMapImageIndex = objectSrg->FindShaderInputImageIndex(reflectionCubeMapImageName);
+                    if (reflectionCubeMapImageIndex.IsValid())
+                    {
+                        objectSrg->SetImage(reflectionCubeMapImageIndex, Data::Instance<RPI::Image>());
+                    }
+                }
+#else
                 if (reflectionProbeFeatureProcessor && (m_descriptor.m_useForwardPassIblSpecular || m_flags.m_hasForwardPassIblSpecularMaterial))
                 {
                     // retrieve probe constant indices
@@ -3072,7 +3150,7 @@ namespace AZ
                         objectSrg->SetConstant(useReflectionProbeConstantIndex, false);
                     }
                 }
-
+#endif
                 RHI::ShaderInputConstantIndex lightingChannelMaskIndex = objectSrg->FindShaderInputConstantIndex(AZ::Name("m_lightingChannelMask"));
                 if (lightingChannelMaskIndex.IsValid())
                 {
