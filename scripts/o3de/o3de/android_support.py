@@ -2074,18 +2074,20 @@ class AndroidProjectGenerator(object):
         if not splash_overrides:
             return
             
-# CARBONATED -- begin : process orientation for custom splash screens
-        orientation = az_android_package_env['ANDROID_SCREEN_ORIENTATION']
+# CARBONATED -- begin : process 'orientation' for custom splash screens
+        orientation_source = az_android_package_env['ANDROID_SCREEN_ORIENTATION']
 
         # Check orientation type and convert if needed
-        if isinstance(orientation, str):
-            if orientation not in ORIENTATION_MAPPING:
+        if isinstance(orientation_source, str):
+            if orientation_source not in ORIENTATION_MAPPING:
                 raise RuntimeError(
                     f'Invalid orientation "{orientation}" in android_project.json. '
                     f'Expected one of: {list(ORIENTATION_MAPPING.keys())}'
                 )
-            orientation = ORIENTATION_MAPPING[orientation]
-        elif not isinstance(orientation, int):
+            orientation = ORIENTATION_MAPPING[orientation_source]
+        elif isinstance(orientation_source, int):
+            orientation = orientation_source
+        else:
             raise RuntimeError(
                 f'ANDROID_SCREEN_ORIENTATION must be a string or int in android_project.json. '
                 f'Got: {type(orientation).__name__}'
