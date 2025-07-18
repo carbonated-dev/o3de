@@ -2075,8 +2075,8 @@ class AndroidProjectGenerator(object):
             return
             
 # CARBONATED -- begin : process 'orientation' for custom splash screens
-        VALID_ORIENTATIONS = {ORIENTATION_LANDSCAPE, ORIENTATION_PORTRAIT, ORIENTATION_ALL}
         orientation_source = az_android_package_env['ANDROID_SCREEN_ORIENTATION']
+        orientation = ORIENTATION_LANDSCAPE
 
         # Check orientation type and convert if needed
         if isinstance(orientation_source, str):
@@ -2087,6 +2087,7 @@ class AndroidProjectGenerator(object):
                 )
             orientation = ORIENTATION_MAPPING[orientation_source]
         elif isinstance(orientation_source, int):
+            VALID_ORIENTATIONS = {ORIENTATION_LANDSCAPE, ORIENTATION_PORTRAIT, ORIENTATION_ALL}
             if orientation_source not in VALID_ORIENTATIONS:
                 raise RuntimeError(
                     f'Invalid numeric orientation "{orientation}" in android_project.json. '
