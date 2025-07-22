@@ -315,6 +315,15 @@ def generate_android_project(args: argparse) -> int:
                                                                        package_description=f'Android SDK Platform {android_platform_sdk_api_level}')
         logger.info(f"Selected Android Platform API Level : {android_platform_sdk_api_level}")
 
+# CARBONATED -- begin. MinSdk Version
+        if args.platform_min_sdk_version:
+            android_platform_min_sdk_version = args.platform_min_sdk_version
+        else:
+            android_platform_min_sdk_version = android_config.get_value(android_support.SETTINGS_PLATFORM_MIN_SDK_VERSION.key)
+            if not android_platform_min_sdk_version:
+                raise android_support.AndroidToolError(f"The Android Min SDK Version was not specified in either the command argument (--platform-min-sdk-version) "
+                                                       f"nor the android settings ({android_support.SETTINGS_PLATFORM_MIN_SDK_VERSION.key}).")
+# CARBONATED -- end
         # Make sure the NDK is specified and installed
         if args.ndk_version:
             android_ndk_version = args.ndk_version
@@ -416,6 +425,9 @@ def generate_android_project(args: argparse) -> int:
                                                       android_sdk_path=android_env.sdk_manager.get_android_sdk_path(),
                                                       android_build_tool_version=android_env.sdk_build_tools_version,
                                                       android_platform_sdk_api_level=android_platform_sdk_api_level,
+# CARBONATED -- begin. MinSdk Version
+                                                      android_platform_min_sdk_version=android_platform_min_sdk_version,
+# CARBONATED -- end
                                                       android_ndk_package=ndk_package,
                                                       project_name=project_name,
                                                       project_path=project_path,
@@ -542,6 +554,16 @@ def add_args(subparsers) -> None:
         android_generate_subparser.add_argument('--platform-sdk-api-level', type=str,
                                                 help=f"Specify the platform SDK API Level ({android_support.SETTINGS_PLATFORM_SDK_API.key})")
 
+# CARBONATED -- begin. MinSdk Version
+    platform_min_sdk_version = android_config.get_value(android_support.SETTINGS_PLATFORM_MIN_SDK_VERSION.key)
+    if platform_min_sdk_version:
+        android_generate_subparser.add_argument('--platform-min-sdk-version', type=str,
+                                                help=f"Specify the platform Min SDK Version. Default: {platform_min_sdk_version}",
+                                                default=platform_min_sdk_version)
+    else:
+        android_generate_subparser.add_argument('--platform-min-sdk-version', type=str,
+                                                help=f"Specify the platform Min SDK Version ({android_support.SETTINGS_PLATFORM_MIN_SDK_VERSION.key})")
+# CARBONATED -- end
     # Android NDK Version version (https://developer.android.com/ndk/downloads)
     ndk_version = android_config.get_value(android_support.SETTINGS_NDK_VERSION.key)
     if ndk_version:

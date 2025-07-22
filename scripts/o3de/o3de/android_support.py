@@ -119,6 +119,11 @@ SETTINGS_PLATFORM_SDK_API      = register_setting(key='platform.sdk.api',
                                                   description='The android platform API level (ref https://developer.android.com/tools/releases/platforms)',
                                                   default='31')
 
+# CARBONATED -- begin. MinSdk Version
+SETTINGS_PLATFORM_MIN_SDK_VERSION = register_setting(key='platform.min.sdk.version',
+                                                  description='The android Min Sdk Version (ref https://developer.android.com/tools/releases/platforms)',
+                                                  default='31')
+# CARBONATED -- end
 SETTINGS_NDK_VERSION           = register_setting(key='ndk.version',
                                                   description='The version of the android NDK (ref https://developer.android.com/ndk/downloads). File matching patterns can be used (i.e. 25.* will search for the most update to date major version 25)',
                                                   default='25.*')
@@ -1106,7 +1111,11 @@ class AndroidProjectManifestEnvironment(object):
     that were passed in or calculated from the command line arguments.
     """
 
-    def __init__(self, project_path: Path, project_settings: dict, android_settings: dict, android_gradle_plugin_version: Version, android_platform_sdk_api_level: str, oculus_project: bool):
+    def __init__(self, project_path: Path, project_settings: dict, android_settings: dict, android_gradle_plugin_version: Version, android_platform_sdk_api_level: str, 
+# CARBONATED -- begin. MinSdk Version    
+                    android_platform_min_sdk_version: str, 
+# CARBONATED -- end
+                    oculus_project: bool):
         """
         Initialize the object with the project specific parameters and values for the game project
 
@@ -1114,6 +1123,9 @@ class AndroidProjectManifestEnvironment(object):
         :param android_settings:                The android settings to key of custom values
         :param android_gradle_plugin_version:   The version of the android gradle plugin
         :param android_platform_sdk_api_level:  The android SDK platform version
+# CARBONATED -- begin. MinSdk Version    
+        :android_platform_min_sdk_version:      The android Min SDK version
+# CARBONATED -- end
         :param oculus_project:                  Indicates if it's an oculus project
         """
 
@@ -1156,6 +1168,9 @@ class AndroidProjectManifestEnvironment(object):
             'ANDROID_ENABLE_KEEP_SCREEN_ON':    android_settings.get('enable_keep_screen_on', 'false'),
             'ANDROID_DISABLE_IMMERSIVE_MODE':   android_settings.get('disable_immersive_mode', 'false'),
             'ANDROID_TARGET_SDK_VERSION':       android_platform_sdk_api_level,
+# CARBONATED -- begin. MinSdk Version    
+            'ANDROID_MIN_SDK_VERSION':          android_platform_min_sdk_version,
+# CARBONATED -- end
             'ICONS':                            android_settings.get('icons', None),
             'SPLASH_SCREEN':                    android_settings.get('splash_screen', None),
 
@@ -1305,6 +1320,9 @@ class AndroidProjectGenerator(object):
     """
 
     def __init__(self, engine_root: Path, android_build_dir: Path, android_sdk_path: Path, android_build_tool_version: str, android_platform_sdk_api_level: str,
+# CARBONATED -- begin. MinSdk Version    
+                 android_platform_min_sdk_version: str,
+# CARBONATED -- end
                  android_ndk_package: str, project_name: str, project_path: Path, project_general_settings: dict, project_android_settings: dict,
                  cmake_path: Path, cmake_version: str, gradle_path: Path, gradle_version: str, gradle_custom_jvm_args: str, android_gradle_plugin_version: str,
                  ninja_path: Path, asset_mode:str, signing_config: AndroidSigningConfig or None, extra_cmake_configure_args: str, src_pak_file_path: str,
@@ -1317,6 +1335,9 @@ class AndroidProjectGenerator(object):
         :param android_sdk_path:                The Path to the Android SDK Root used to generate and process the android build script.
         :param android_build_tool_version:      The Android SDK build-tool version.
         :param android_platform_sdk_api_level:  The Android Platform SDK API Level to use for the android build
+# CARBONATED -- begin. MinSdk Version        
+        :param android_platform_min_sdk_version:The Android Platform Min SDK Version to use for the android build
+# CARBONATED -- end
         :param android_ndk_package:             The Android NDK package version to use
         :param project_name:                    The name of the project the android build script is being generated for.
         :param project_path:                    The Path to the root of the project that the android build script is being generated for.
@@ -1346,6 +1367,9 @@ class AndroidProjectGenerator(object):
         self._android_sdk_build_tool_version = android_build_tool_version
         self._android_ndk = android_ndk_package
         self._android_platform_sdk_api_level = android_platform_sdk_api_level
+# CARBONATED -- begin. MinSdk Version        
+        self._android_platform_min_sdk_version = android_platform_min_sdk_version
+# CARBONATED -- end
 
         # Target project properties
         self._project_name = project_name
@@ -1435,7 +1459,11 @@ class AndroidProjectGenerator(object):
         root_gradle_env = {
             'ANDROID_GRADLE_PLUGIN_VERSION': str(self._gradle_plugin_version),
             'SDK_VER': self._android_platform_sdk_api_level,
-            'MIN_SDK_VER': self._android_platform_sdk_api_level,
+# CARBONATED -- begin. MinSdk Version            
+            'MIN_SDK_VER': self._android_platform_min_sdk_version,
+# old code below:            
+#            'MIN_SDK_VER': self._android_platform_sdk_api_level,            
+# CARBONATED -- end
             'NDK_VERSION': self._android_ndk.version,
             'SDK_BUILD_TOOL_VER': self._android_sdk_build_tool_version,
             'LY_ENGINE_ROOT': self._engine_root.as_posix(),
@@ -1853,6 +1881,9 @@ class AndroidProjectGenerator(object):
                                                                    android_settings=self._project_android_settings,
                                                                    android_gradle_plugin_version=self._gradle_plugin_version,
                                                                    android_platform_sdk_api_level=self._android_platform_sdk_api_level,
+# CARBONATED -- begin. MinSdk Version
+                                                                   android_platform_min_sdk_version=self._android_platform_min_sdk_version,
+# CARBONATED -- end
                                                                    oculus_project=self._is_oculus_project)
         self.create_file_from_project_template(src_template_file=ANDROID_MANIFEST_FILE,
                                                template_env=az_android_package_env,
