@@ -1257,7 +1257,16 @@ namespace AZ
 #ifdef DISABLE_TIMELINE_SEMAPHORES
             m_features.m_signalFenceFromCPU = false;
 #else
+#if defined(CARBONATED) && defined(CARBONATED_DISABLE_TIMELINE_SEMAPHORES_IF_VK_LESS_1_2)
+            const uint32_t physicalDeviceVersion = physicalDevice.GetVulkanVersion();
+            const uint32_t majorVersion = VK_VERSION_MAJOR(physicalDeviceVersion);
+            const uint32_t minorVersion = VK_VERSION_MINOR(physicalDeviceVersion);
+            m_features.m_signalFenceFromCPU = (majorVersion > 1 || minorVersion > 1) ? physicalDevice.GetPhysicalDeviceTimelineSemaphoreFeatures().timelineSemaphore : false;
+            AZ_Printf("LVB", "Vulkan versions=%i.%i\n", majorVersion, minorVersion);
+#else
             m_features.m_signalFenceFromCPU = physicalDevice.GetPhysicalDeviceTimelineSemaphoreFeatures().timelineSemaphore;
+            AZ_Printf("LVB", "NO CARBONATED_DISABLE_TIMELINE_SEMAPHORES defined\n");
+#endif
 #endif
 
             const auto& deviceLimits = physicalDevice.GetDeviceLimits();
