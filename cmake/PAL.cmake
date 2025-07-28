@@ -203,6 +203,13 @@ function(o3de_find_restricted_folder restricted_name restricted_path)
     # Iterate over the restricted directories from the manifest file
     foreach(restricted_entry ${restricted_entries})
         set(restricted_json_file ${restricted_entry}/restricted.json)
+        if (NOT EXISTS ${restricted_json_file})
+            message(STATUS "Restricted file '${restricted_entry}' is listed in the o3de manifest, but does not exist.\n"
+                         "      If this is a left-over from an old project, consider removing it from the manifest by using\n"
+                         "      the o3de command line tool (excute this from a CLI inside the scripts folder in the engine)\n"
+                         "        o3de register --remove -rp \"${restricted_entry}\"")
+            continue()
+        endif()
         ly_file_read(${restricted_json_file} restricted_json)
         string(JSON this_restricted_name ERROR_VARIABLE json_error GET ${restricted_json} "restricted_name")
         if(json_error)
@@ -438,6 +445,8 @@ include(${pal_cmake_dir}/Toolchain_${PAL_PLATFORM_NAME_LOWERCASE}.cmake OPTIONAL
 
 set(LY_DISABLE_TEST_MODULES FALSE CACHE BOOL "Option to forcibly disable the inclusion of test targets in the build")
 
-if(LY_DISABLE_TEST_MODULES)
+if(LY_DISABLE_TEST_MODULES OR NOT PAL_TRAIT_TEST_GOOGLE_TEST_SUPPORTED)
+    # AzTest library, which requires google test, is not supported on this platform
+    # so none of the tests can build either.
     ly_set(PAL_TRAIT_BUILD_TESTS_SUPPORTED FALSE)
 endif()

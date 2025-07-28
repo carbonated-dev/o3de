@@ -6,7 +6,7 @@
 #
 #
 
-import imghdr
+import puremagic
 import configparser
 import datetime
 import fnmatch
@@ -599,8 +599,7 @@ class AndroidProjectGenerator(object):
             'MIN_SDK_VER': self.android_sdk_platform,
             'NDK_VERSION': self.android_ndk_version,
             'SDK_BUILD_TOOL_VER': self.android_sdk_build_tool_version,
-            'LY_ENGINE_ROOT': common.normalize_path_for_settings(self.engine_root),
-            'ROOT_DEPENDENCIES': ''
+            'LY_ENGINE_ROOT': common.normalize_path_for_settings(self.engine_root)
         }
         # Generate the gradle build script
         self.create_file_from_project_template(src_template_file='root.build.gradle.in',
@@ -823,10 +822,9 @@ class AndroidProjectGenerator(object):
 
         gradle_build_env = dict()
 
-        engine_root_as_path = pathlib.Path(self.engine_root)
-        project_path_as_path = pathlib.Path(self.project_path)
+        engine_root_as_path= pathlib.Path(self.engine_root)
 
-        absolute_cmakelist_path = (project_path_as_path / 'CMakeLists.txt').resolve().as_posix()
+        absolute_cmakelist_path = (engine_root_as_path / 'CMakeLists.txt').resolve().as_posix()
         absolute_azandroid_path = (engine_root_as_path / 'Code/Framework/AzAndroid/java').resolve().as_posix()
 
         gradle_build_env['TARGET_TYPE'] = 'application'
@@ -850,7 +848,7 @@ class AndroidProjectGenerator(object):
             # Prepare the cmake argument list based on the collected android settings and each build config
             cmake_argument_list = [
                 '"-GNinja"',
-                f'"-S{project_path_as_path.as_posix()}"',
+                f'"-S{template_engine_root}"',
                 f'"-DCMAKE_BUILD_TYPE={native_config_lower}"',
                 f'"-DCMAKE_TOOLCHAIN_FILE={template_engine_root}/cmake/Platform/Android/Toolchain_android.cmake"',
                 f'"-DLY_3RDPARTY_PATH={template_third_party_path}"',
@@ -860,7 +858,7 @@ class AndroidProjectGenerator(object):
                 cmake_argument_list.append(f'"-DLY_ANDROID_VULKAN_VALIDATION_PATH={pathlib.PurePath(self.vulkan_validation_path).as_posix()}"')
 
             if not self.is_test_project:
-                cmake_argument_list.append(f'"-DLY_PROJECTS={project_path_as_path.as_posix()}"')
+                cmake_argument_list.append(f'"-DLY_PROJECTS={pathlib.PurePath(self.project_path).as_posix()}"')
             else:
                 cmake_argument_list.append('"-DLY_TEST_PROJECT=1"')
 
@@ -1043,7 +1041,7 @@ class AndroidProjectGenerator(object):
             src_path = self.android_project_builder_path / src_file
             resolved_src = src_path.resolve(strict=True)
 
-            if imghdr.what(resolved_src) in ('rgb', 'gif', 'pbm', 'ppm', 'tiff', 'rast', 'xbm', 'jpeg', 'bmp', 'png'):
+            if puremagic.what(resolved_src) in ('rgb', 'gif', 'pbm', 'ppm', 'tiff', 'rast', 'xbm', 'jpeg', 'bmp', 'png'):
                 # If the source file is a binary asset, then perform a copy to the target path
                 logging.debug("Copy Binary file %s -> %s", str(src_path.resolve(strict=True)), str(dst_path.resolve()))
                 dst_path.parent.mkdir(parents=True, exist_ok=True)
