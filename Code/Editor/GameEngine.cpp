@@ -47,7 +47,6 @@
 #include "ViewManager.h"
 #include "AnimationContext.h"
 #include "MainWindow.h"
-#include "Include/IObjectManager.h"
 
 #if defined(CARBONATED)  // aefimov MAD-10299 assert modal dialog fix
 #include <AzCore/EBus/EBus.h>
@@ -255,7 +254,12 @@ CGameEngine::~CGameEngine()
 {
 AZ_POP_DISABLE_WARNING
     GetIEditor()->UnregisterNotifyListener(this);
-    m_pISystem->GetIMovieSystem()->SetCallback(nullptr);
+
+    IMovieSystem* movieSystem = AZ::Interface<IMovieSystem>::Get();
+    if (movieSystem)
+    {
+        movieSystem->SetCallback(nullptr);
+    }
 
     delete m_pISystem;
     m_pISystem = nullptr;
@@ -420,9 +424,10 @@ AZ::Outcome<void, AZStd::string> CGameEngine::Init(
 
     SetEditorCoreEnvironment(gEnv);
 
-    if (gEnv && gEnv->pMovieSystem)
+    IMovieSystem* movieSystem = AZ::Interface<IMovieSystem>::Get();
+    if (movieSystem)
     {
-        gEnv->pMovieSystem->EnablePhysicsEvents(m_bSimulationMode);
+        movieSystem->EnablePhysicsEvents(m_bSimulationMode);
     }
 
     CLogFile::AboutSystem();
@@ -514,10 +519,20 @@ void CGameEngine::SwitchToInGame()
 
     GetIEditor()->Notify(eNotify_OnBeginGameMode);
 
-    m_pISystem->GetIMovieSystem()->EnablePhysicsEvents(true);
+    IMovieSystem* movieSystem = AZ::Interface<IMovieSystem>::Get();
+    if (movieSystem)
+    {
+        movieSystem->EnablePhysicsEvents(true);
+    }
+
     m_bInGameMode = true;
 
-    m_pISystem->GetIMovieSystem()->Reset(true, false);
+    if (movieSystem)
+    {
+        constexpr bool playOnReset = true;
+        constexpr bool seekToStart = false;
+        movieSystem->Reset(playOnReset, seekToStart);
+    }
 
     // Transition to runtime entity context.
     AzToolsFramework::EditorEntityContextRequestBus::Broadcast(&AzToolsFramework::EditorEntityContextRequestBus::Events::StartPlayInEditor);
@@ -539,15 +554,24 @@ void CGameEngine::SwitchToInEditor()
     AzToolsFramework::EditorEntityContextRequestBus::Broadcast(&AzToolsFramework::EditorEntityContextRequestBus::Events::StopPlayInEditor);
 
     // Reset movie system
-    for (int i = m_pISystem->GetIMovieSystem()->GetNumPlayingSequences(); --i >= 0;)
+    IMovieSystem* movieSystem = AZ::Interface<IMovieSystem>::Get();
+    if (movieSystem)
     {
-        m_pISystem->GetIMovieSystem()->GetPlayingSequence(i)->Deactivate();
+        for (int i = movieSystem->GetNumPlayingSequences(); --i >= 0;)
+        {
+            movieSystem->GetPlayingSequence(i)->Deactivate();
+        }
+        constexpr bool playOnReset = false;
+        constexpr bool seekToStart = false;
+        movieSystem->Reset(playOnReset, seekToStart);
     }
-    m_pISystem->GetIMovieSystem()->Reset(false, false);
 
     CViewport* pGameViewport = GetIEditor()->GetViewManager()->GetGameViewport();
 
-    m_pISystem->GetIMovieSystem()->EnablePhysicsEvents(m_bSimulationMode);
+    if (movieSystem)
+    {
+        movieSystem->EnablePhysicsEvents(m_bSimulationMode);
+    }
 
     m_bInGameMode = false;
 
@@ -651,7 +675,11 @@ void CGameEngine::SetSimulationMode(bool enabled, bool bOnlyPhysics)
         return;
     }
 
-    m_pISystem->GetIMovieSystem()->EnablePhysicsEvents(enabled);
+    IMovieSystem* movieSystem = AZ::Interface<IMovieSystem>::Get();
+    if (movieSystem)
+    {
+        movieSystem->EnablePhysicsEvents(enabled);
+    }
 
     if (enabled)
     {
