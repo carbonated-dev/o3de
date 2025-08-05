@@ -256,7 +256,7 @@ namespace
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowInit);
 #if defined(CARBONATED)
-				AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::OnWindowInit);
+                AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::OnWindowInit);
 #endif
             }
             break;
@@ -267,7 +267,7 @@ namespace
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowDestroy);
 
 #if defined(CARBONATED)
-				AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::OnWindowDestroy);
+                AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::OnWindowDestroy);
 #endif
                 androidEnv->SetWindow(nullptr);
             }
