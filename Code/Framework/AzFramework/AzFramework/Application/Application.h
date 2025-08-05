@@ -159,7 +159,6 @@ namespace AzFramework
         //////////////////////////////////////////////////////////////////////////
         NetworkContext* GetNetworkContext() override;
 #endif
-        // Fix for suspend/resume Android application
 #if defined(CARBONATED)
         /// Inform an application that the main window is created and initiated
         void OnWindowInit() override { m_mainWindowCreated = true; }
