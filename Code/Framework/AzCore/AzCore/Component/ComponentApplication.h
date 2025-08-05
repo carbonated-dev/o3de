@@ -421,8 +421,7 @@ namespace AZ
         RecordMetricsCallback m_recordMetricsOnTickCallback;
 
 #if defined(CARBONATED)
-        bool m_mainWindowCreated = true; // Let's assign it to "true" so it will not affect other platforms. For now it will be changed from
-                                         // the Android when an app goes to background and resumes
+        bool m_mainWindowCreated = true; // Keep "true" for platforms other than Android
 #endif
     };
 }
