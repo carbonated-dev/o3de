@@ -1644,6 +1644,11 @@ namespace AZ
             TickBus::ExecuteQueuedEvents();
         }
 
+#if defined(CARBONATED)
+        // Fix of crash for Android suspend/resume. "m_mainWindowCreated" is "true" by default.
+        // When an app suspends then the window is destroyed and "m_mainWindowCreated" is set to "false" to don't "Tick/Update" any Features/Gems
+        if (m_mainWindowCreated)
+#endif
         {
             AZ_PROFILE_SCOPE(AzCore, "ComponentApplication::Tick:OnTick");
             const AZ::TimeUs deltaTimeUs = m_timeSystem->AdvanceTickDeltaTimes();

@@ -87,6 +87,13 @@ namespace AzFramework
         /// Request to exit the main loop.
         virtual void ExitMainLoop() {}
 
+#if defined(CARBONATED)
+        /// Inform an application that the main window is created and initiated
+        virtual void OnWindowInit() {}
+
+        /// Inform an application that the main window is destroyed
+        virtual void OnWindowDestroy() {}
+#endif
         /// Returns true is ExitMainLoop has been called, false otherwise.
         virtual bool WasExitMainLoopRequested() { return false; }
 

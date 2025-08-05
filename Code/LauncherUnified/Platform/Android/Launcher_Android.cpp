@@ -19,6 +19,9 @@
 #include <AzFramework/Input/Buses/Notifications/RawInputNotificationBus_Platform.h>
 #include <AzGameFramework/Application/GameApplication.h>
 
+#if defined(CARBONATED)
+#include <AzFramework/Application/Application.h>
+#endif
 #include <IConsole.h>
 
 #include <android/asset_manager_jni.h>
@@ -252,6 +255,9 @@ namespace
 
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowInit);
+#if defined(CARBONATED)
+				AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::OnWindowInit);
+#endif
             }
             break;
 
@@ -260,6 +266,9 @@ namespace
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowDestroy);
 
+#if defined(CARBONATED)
+				AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::OnWindowDestroy);
+#endif
                 androidEnv->SetWindow(nullptr);
             }
             break;

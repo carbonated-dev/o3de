@@ -419,5 +419,10 @@ namespace AZ
         //! @return true to indicate a record event operation should occur in the current Tick() call
         using RecordMetricsCallback = AZStd::function<bool(AZStd::chrono::steady_clock::time_point)>;
         RecordMetricsCallback m_recordMetricsOnTickCallback;
+
+#if defined(CARBONATED)
+        bool m_mainWindowCreated = true; // Let's assign it to "true" so it will not affect other platforms. For now it will be changed from
+                                         // the Android when an app goes to background and resumes
+#endif
     };
 }
