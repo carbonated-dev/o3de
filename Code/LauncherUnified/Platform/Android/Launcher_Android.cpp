@@ -231,7 +231,9 @@ namespace
 
             case APP_CMD_RESUME:
             {
-#if !defined(CARBONATED)
+#if defined(CARBONATED)
+                // moved to APP_CMD_GAINED_FOCUS
+#else
                 androidEnv->SetIsRunning(true);
 #endif
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
