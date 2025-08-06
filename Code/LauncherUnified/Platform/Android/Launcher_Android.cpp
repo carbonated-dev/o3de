@@ -231,8 +231,8 @@ namespace
 
             case APP_CMD_RESUME:
             {
-#if defined(CARBONATED)
-                //androidEnv->SetIsRunning(true);
+#if !defined(CARBONATED)
+                androidEnv->SetIsRunning(true);
 #endif
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnResume);
