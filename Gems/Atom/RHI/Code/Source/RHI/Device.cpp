@@ -146,8 +146,13 @@ namespace AZ::RHI
                     m_FrameGPUWaitAvgTime = fc.m_waitTime / fc.m_numBuffers;
                     m_FrameGPUEndMaxTime = fc.m_endMaxTime;
                     /*{
+#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
                         const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
                         AZ_Info("GPUtime", "Get GPU data at %f on frame CHANGE for frame %u as %f / %f", t, fc.m_frameNumber, m_FrameGPUTime, m_FrameGPUSumTime);
+#else
+                        const auto t = AZStd::chrono::system_clock::to_time_t(AZStd::chrono::system_clock::now());
+                        AZ_Info("GPUtime", "Get GPU data at %llu on frame CHANGE for frame %u as %f / %f", t, fc.m_frameNumber, m_FrameGPUTime, m_FrameGPUSumTime);
+#endif
                     }*/
                 }
             }
@@ -156,8 +161,13 @@ namespace AZ::RHI
             m_frameCommandIndex = (m_frameCommandIndex + 1) % m_frameCommands.array_size;
             m_frameCommands[m_frameCommandIndex].Init(m_frameCounter);
             /*{
+#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
                 const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
                 AZ_Info("GPUtime", "begin frame at %f, frame num %u", t, m_frameCounter);
+#else
+                const auto t = AZStd::chrono::system_clock::to_time_t(AZStd::chrono::system_clock::now());
+                AZ_Info("GPUtime", "begin frame at %llu, frame num %u", t, m_frameCounter);
+#endif
             }*/
             m_FrameTimeLock.unlock();
 #endif
@@ -180,8 +190,13 @@ namespace AZ::RHI
         {
             m_frameCommands[m_frameCommandIndex].RegisterCommandBuffer(buffer);
             /*{
+#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
                 const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
                 AZ_Info("GPUtime", "Register command buffer %p for frame %u at %f", buffer, m_frameCommands[m_frameCommandIndex].m_frameNumber, t);
+#else
+                const auto t = AZStd::chrono::system_clock::to_time_t(AZStd::chrono::system_clock::now());
+                AZ_Info("GPUtime", "Register command buffer %p for frame %u at %llu", buffer, m_frameCommands[m_frameCommandIndex].m_frameNumber, t);
+#endif
             }*/
         }
         m_FrameTimeLock.unlock();
@@ -266,14 +281,24 @@ namespace AZ::RHI
                                 m_FrameGPUWaitAvgTime = fc.m_waitTime / fc.m_numBuffers;
                                 m_FrameGPUEndMaxTime = fc.m_endMaxTime;
                                 /*{
+#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
                                     const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
                                     AZ_Info("GPUtime", "Get GPU data at %f for frame %u as %f / %f", t, fc.m_frameNumber, m_FrameGPUTime, m_FrameGPUSumTime);
+#else
+                                    const auto t = AZStd::chrono::system_clock::to_time_t(AZStd::chrono::system_clock::now());
+                                    AZ_Info("GPUtime", "Get GPU data at %llu for frame %u as %f / %f", t, fc.m_frameNumber, m_FrameGPUTime, m_FrameGPUSumTime);
+#endif
                                 }*/
                             }
                             /*else
                             {
+#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
                                 const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
                                 AZ_Info("GPUtime", "Do NOT get GPU data at %f for frame %u because frame is likely incomplete", t, fc.m_frameNumber);
+#else
+                                const auto t = AZStd::chrono::system_clock::to_time_t(AZStd::chrono::system_clock::now());
+                                AZ_Info("GPUtime", "Do NOT get GPU data at %llu for frame %u because frame is likely incomplete", t, fc.m_frameNumber);
+#endif
                             }*/
                         }
                         break;
