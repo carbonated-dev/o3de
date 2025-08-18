@@ -32,6 +32,28 @@ namespace AZ::Debug
 
             budget->BeginProfileRegion();
 
+#if defined (CARBONATED)
+            // Initialize the cached pointer with the current handler or nullptr if no handlers are registered.
+            // We do it here because Interface::Get will do a full mutex lock if no handlers are registered
+            // causing big performance hit.
+            if (!m_cachedProfiler.has_value())
+            {
+                if (auto profiler = AZ::Interface<Profiler>::Get())
+                {
+                    // We will assign "m_cachedProfiler" only if Get() returns something real
+                    // It happens only after
+                    // CpuProfiler::Init() {
+                    //   AZ::Interface<AZ::Debug::Profiler>::Register(this);
+                    //   ....
+                    // }
+                    m_cachedProfiler = profiler;
+                }
+                else
+                {
+                    return;
+                }
+            }
+#else
             // Initialize the cached pointer with the current handler or nullptr if no handlers are registered.
             // We do it here because Interface::Get will do a full mutex lock if no handlers are registered
             // causing big performance hit.
@@ -39,7 +61,7 @@ namespace AZ::Debug
             {
                 m_cachedProfiler = AZ::Interface<Profiler>::Get();
             }
-
+#endif
             if (m_cachedProfiler.value())
             {
                 m_cachedProfiler.value()->BeginRegion(budget, eventName, sizeof...(T), args...);
@@ -55,7 +77,11 @@ namespace AZ::Debug
         {
             budget->EndProfileRegion();
 
+#if defined(CARBONATED)
+            if (m_cachedProfiler.has_value() && m_cachedProfiler.value())
+#else
             if (m_cachedProfiler.value())
+#endif
             {
                 m_cachedProfiler.value()->EndRegion(budget);
             }
