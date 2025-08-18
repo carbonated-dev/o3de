@@ -28,6 +28,10 @@ namespace AZ::Debug
     #if !defined(_RELEASE)
         if (budget)
         {
+            Platform::BeginProfileRegion(budget, eventName, args...);
+
+            budget->BeginProfileRegion();
+
 #if defined (CARBONATED)
             // Initialize the cached pointer with the current handler or nullptr if no handlers are registered.
             // We do it here because Interface::Get will do a full mutex lock if no handlers are registered
@@ -45,17 +49,11 @@ namespace AZ::Debug
                     m_cachedProfiler = profiler;
                 }
                 else
+                {
                     return;
+                }
             }
-
-            Platform::BeginProfileRegion(budget, eventName, args...);
-
-            budget->BeginProfileRegion();
 #else
-            Platform::BeginProfileRegion(budget, eventName, args...);
-
-            budget->BeginProfileRegion();
-
             // Initialize the cached pointer with the current handler or nullptr if no handlers are registered.
             // We do it here because Interface::Get will do a full mutex lock if no handlers are registered
             // causing big performance hit.
