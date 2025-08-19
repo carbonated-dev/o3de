@@ -75,7 +75,11 @@ ${OVERRIDE_JAVA_SOURCESET}
 
     // CARBONATED -- begin: assetPacks = [...]
     ${AAB_ASSET_PACK_LIST}
-    // CARBONATED -- end    
+    // CARBONATED -- Enable Prefab feature (for Swappy integration)
+    buildFeatures {
+        prefab true
+    }	
+    // CARBONATED -- end
 }
 
 // Inject the zip64 option into package task to allow 4GiB apks
