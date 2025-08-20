@@ -31,7 +31,7 @@ if(ANDROID_USE_OCULUS_OPENXR)
 endif()
 
 # CARBONATED -- begin: Swappy integration
-set(SWAPPY_STATIC_LIB "")
+
 set(IS_ANDROID FALSE)
 
 if(${PAL_PLATFORM_NAME_LOWERCASE} STREQUAL "android")
@@ -51,10 +51,6 @@ if(IS_ANDROID)
     endif()
     get_target_property(SWAPPY_INCLUDE_DIRS games-frame-pacing::swappy_static INTERFACE_INCLUDE_DIRECTORIES)
     message(STATUS "SWAPPY_INCLUDE_DIRS: ${SWAPPY_INCLUDE_DIRS}")
-
-	# Define the path to "libs" using "include"
-	get_filename_component(SWAPPY_ROOT_DIR "${SWAPPY_INCLUDE_DIRS}" DIRECTORY)
-    set(SWAPPY_STATIC_LIB "${SWAPPY_ROOT_DIR}/libs/android.${ANDROID_ABI}/libswappy_static.a")
 endif()
 # CARBONATED -- end
 
@@ -188,8 +184,7 @@ ly_add_target(
 
 # CARBONATED -- begin: Swappy integration
 if(IS_ANDROID)
-	message(STATUS "Linking Swappy static: ${SWAPPY_STATIC_LIB}")
-	target_link_libraries(${gem_name}.Private.Static PRIVATE ${SWAPPY_STATIC_LIB})
+	target_link_libraries(${gem_name}.Private.Static PRIVATE games-frame-pacing::swappy_static)
 endif()
 # CARBONATED -- end
 
