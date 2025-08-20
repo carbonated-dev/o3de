@@ -31,24 +31,31 @@ if(ANDROID_USE_OCULUS_OPENXR)
 endif()
 
 # CARBONATED -- begin: Swappy integration
-
+set(SWAPPY_STATIC_LIB "")
 set(IS_ANDROID FALSE)
+
 if(${PAL_PLATFORM_NAME_LOWERCASE} STREQUAL "android")
     set(IS_ANDROID TRUE)
 endif()
 
-# Let's find Swappy via Prefab
-find_package(games-frame-pacing CONFIG REQUIRED)
-
 if(IS_ANDROID)
-	if (TARGET games-frame-pacing::swappy)
-		message(STATUS "games-frame-pacing::swappy target found")
-	else()
-		message(FATAL_ERROR "games-frame-pacing::swappy target NOT found. Check Prefab setup.")
-	endif()
-    get_target_property(SWAPPY_INCLUDE_DIRS games-frame-pacing::swappy INTERFACE_INCLUDE_DIRECTORIES)
-endif()
+	message(STATUS "Android ABI: ${ANDROID_ABI}")
 
+    # Let's find Swappy via Prefab
+    find_package(games-frame-pacing CONFIG REQUIRED)
+	
+    if (TARGET games-frame-pacing::swappy_static)
+        message(STATUS "games-frame-pacing::swappy_static target found")
+    else()
+        message(FATAL_ERROR "games-frame-pacing::swappy_static target NOT found. Check Prefab setup.")
+    endif()
+    get_target_property(SWAPPY_INCLUDE_DIRS games-frame-pacing::swappy_static INTERFACE_INCLUDE_DIRECTORIES)
+    message(STATUS "SWAPPY_INCLUDE_DIRS: ${SWAPPY_INCLUDE_DIRS}")
+
+	# Define the path to "libs" using "include"
+	get_filename_component(SWAPPY_ROOT_DIR "${SWAPPY_INCLUDE_DIRS}" DIRECTORY)
+    set(SWAPPY_STATIC_LIB "${SWAPPY_ROOT_DIR}/libs/android.${ANDROID_ABI}/libswappy_static.a")
+endif()
 # CARBONATED -- end
 
 ly_add_target(
@@ -144,16 +151,9 @@ if(NOT PAL_TRAIT_ATOM_RHI_VULKAN_SUPPORTED)
 
 endif()
 
-
-
 ly_add_target(
     NAME ${gem_name}.Private.Static STATIC
     NAMESPACE Gem
-# CARBONATED -- begin: Swappy integration
-    LINK_LIBS
-        PRIVATE
-            $<$<BOOL:${IS_ANDROID}>:games-frame-pacing::swappy>	
-# CARBONATED -- end
     FILES_CMAKE
         atom_rhi_vulkan_private_common_files.cmake
         ${pal_source_dir}/platform_private_${PAL_PLATFORM_NAME_LOWERCASE}_files.cmake
@@ -185,6 +185,13 @@ ly_add_target(
             ${USE_NSIGHT_AFTERMATH_DEFINE}
             ${DISABLE_TIMELINE_SEMAPHORES_DEFINE}
 )
+
+# CARBONATED -- begin: Swappy integration
+if(IS_ANDROID)
+	message(STATUS "Linking Swappy static: ${SWAPPY_STATIC_LIB}")
+	target_link_libraries(${gem_name}.Private.Static PRIVATE ${SWAPPY_STATIC_LIB})
+endif()
+# CARBONATED -- end
 
 ly_add_target(
     NAME ${gem_name}.Private ${PAL_TRAIT_MONOLITHIC_DRIVEN_MODULE_TYPE}
