@@ -234,5 +234,12 @@ namespace AZ
                 return mtlDrawableTexture;
             }
         }
+		
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+        void SwapChain::SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS)
+        {
+			
+		}
+#endif				
     }
 }
