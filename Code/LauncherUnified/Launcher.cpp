@@ -32,6 +32,12 @@
 
 #include <Launcher_Traits_Platform.h>
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && defined(AZ_PLATFORM_WINDOWS)
+#include <AzCore/Time/ITime.h> // AZ::GetRealElapsedTimeMs(), AZ::TimeMsToSecondsDouble
+#include <AzCore/std/chrono/chrono.h> // AZStd::chrono::milliseconds / microseconds
+#include <AzCore/std/parallel/thread.h> // AZStd::this_thread::sleep_for
+#endif // CARBONATED && CARBONATED_DESIRED_FPS && AZ_PLATFORM_WINDOWS
+
 #if defined(AZ_MONOLITHIC_BUILD)
 extern "C" void CreateStaticModules(AZStd::vector<AZ::Module*>& modulesOut);
 #endif //  defined(AZ_MONOLITHIC_BUILD)
@@ -80,8 +86,42 @@ namespace
         }
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && defined(AZ_PLATFORM_WINDOWS)
+    class LauncherFPSListener : public AzFramework::WindowNotificationBus::Handler
+    {
+    public:
+        LauncherFPSListener()
+        {
+            AzFramework::WindowNotificationBus::Handler::BusConnect(this);
+        }
+
+        ~LauncherFPSListener()
+        {
+            AzFramework::WindowNotificationBus::Handler::BusDisconnect();
+        }
+
+        void OnDesiredFPSChanged(uint32_t desiredFPS) override
+        {
+            m_desiredFPS.store(desiredFPS, AZStd::memory_order_relaxed);
+        }
+
+        uint32_t GetDesiredFPS() const
+        {
+            return m_desiredFPS.load(AZStd::memory_order_relaxed);
+        }
+
+    private:
+        AZStd::atomic<uint32_t> m_desiredFPS{ 60 };
+    };
+#endif // CARBONATED && CARBONATED_DESIRED_FPS && AZ_PLATFORM_WINDOWS
+
     void RunMainLoop(AzGameFramework::GameApplication& gameApplication)
     {
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && defined(AZ_PLATFORM_WINDOWS)
+        LauncherFPSListener fpsListener;
+        auto lastFrameTime = AZ::GetRealElapsedTimeMs();
+#endif // CARBONATED && CARBONATED_DESIRED_FPS && AZ_PLATFORM_WINDOWS
+
         // Ideally we'd just call GameApplication::RunMainLoop instead, but
         // we'd have to stop calling ISystem::UpdatePreTickBus / PostTickBus
         // directly, and instead have something subscribe to the TickBus in
@@ -121,6 +161,25 @@ namespace
             {
                 system->UpdatePostTickBus();
             }
+
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && defined(AZ_PLATFORM_WINDOWS)
+            // --- Frame limiting ---
+            uint32_t desiredFPS = fpsListener.GetDesiredFPS();
+            if (desiredFPS != 0)
+            {
+                AZ::TimeMs targetFrameTimeMs{ 1000 / desiredFPS };
+                auto now = AZ::GetRealElapsedTimeMs();
+                AZ::TimeMs elapsedMs = now - lastFrameTime;
+
+                if (elapsedMs < targetFrameTimeMs)
+                {
+                    auto sleepMs = static_cast<AZStd::chrono::milliseconds::rep>(targetFrameTimeMs - elapsedMs);
+                    AZStd::this_thread::sleep_for(AZStd::chrono::milliseconds(sleepMs));
+                    now = AZ::GetRealElapsedTimeMs();
+                }
+                lastFrameTime = now;
+            }
+#endif // CARBONATED && CARBONATED_DESIRED_FPS && AZ_PLATFORM_WINDOWS
         }
     }
 }

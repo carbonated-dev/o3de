@@ -8,3 +8,4 @@
 */Gems/Atom/RHI/Metal/Code/Source/RHI/MetalViewController.mm
 */Gems/Atom/RHI/Metal/Code/Source/RHI/MetalViewController.h
 */Gems/Atom/RHI/Vulkan/Code/Source/RHI/SwapChain.cpp
+*/Code/LauncherUnified/Launcher.cpp
