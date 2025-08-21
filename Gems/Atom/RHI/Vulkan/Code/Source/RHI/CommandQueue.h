@@ -85,14 +85,7 @@ namespace AZ
             // RHI::CommandQueue
             RHI::ResultCode InitInternal(RHI::Device& device, const RHI::CommandQueueDescriptor& descriptor) override;
             void ShutdownInternal() override;
-#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID)
-        public:
-            void* GetNativeQueue() override; // We need it public for SwappyVk_queuePresent
-
-        private:
-#else
             void* GetNativeQueue() override;
-#endif
             //////////////////////////////////////////////////////////////////////////
 
             VkPipelineStageFlags CalculateSupportedPipelineStages() const;

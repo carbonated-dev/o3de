@@ -162,6 +162,14 @@ namespace AZ
             }
         }
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+        void WindowContext::OnDesiredFPSChanged(uint32_t desiredFPS)
+        {
+            RHI::Ptr<RHI::SwapChain> defaultSwapChain = GetSwapChain(ViewType::Default);
+            defaultSwapChain->SetDesiredFPS(desiredFPS);
+        };
+#endif
+
         bool WindowContext::IsExclusiveFullScreenPreferred() const
         {
             RHI::Ptr<RHI::SwapChain> defaultSwapChain = GetSwapChain(ViewType::Default);
