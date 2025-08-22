@@ -39,7 +39,7 @@ if(${PAL_PLATFORM_NAME_LOWERCASE} STREQUAL "android")
 endif()
 
 if(IS_ANDROID)
-	message(STATUS "Android ABI: ${ANDROID_ABI}")
+    message(STATUS "Android ABI: ${ANDROID_ABI}")
 
     # Let's find Swappy via Prefab
     find_package(games-frame-pacing CONFIG REQUIRED)

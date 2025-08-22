@@ -45,7 +45,7 @@ namespace AZ
             RHI::ResultCode ResizeInternal(const RHI::SwapChainDimensions& dimensions, RHI::SwapChainDimensions* nativeDimensions) override;
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
             void SetDesiredFPSInternal(uint32_t desiredFPS) override;
-#endif			
+#endif
             //////////////////////////////////////////////////////////////////////////
             
             void AddSubView();
