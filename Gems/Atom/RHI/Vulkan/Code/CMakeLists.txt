@@ -43,7 +43,7 @@ if(IS_ANDROID)
 
     # Let's find Swappy via Prefab
     find_package(games-frame-pacing CONFIG REQUIRED)
-	
+
     if (TARGET games-frame-pacing::swappy_static)
         message(STATUS "games-frame-pacing::swappy_static target found")
     else()
@@ -161,7 +161,7 @@ ly_add_target(
             Source
             ${pal_source_dir}
 # CARBONATED -- begin: Swappy integration
-            $<$<BOOL:${IS_ANDROID}>:${SWAPPY_INCLUDE_DIRS}>			
+            $<$<BOOL:${IS_ANDROID}>:${SWAPPY_INCLUDE_DIRS}>
 # CARBONATED -- end
         PUBLIC
             Include
@@ -184,7 +184,7 @@ ly_add_target(
 
 # CARBONATED -- begin: Swappy integration
 if(IS_ANDROID)
-	target_link_libraries(${gem_name}.Private.Static PRIVATE games-frame-pacing::swappy_static)
+    target_link_libraries(${gem_name}.Private.Static PRIVATE games-frame-pacing::swappy_static)
 endif()
 # CARBONATED -- end
 
