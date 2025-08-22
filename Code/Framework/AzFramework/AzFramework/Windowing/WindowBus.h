@@ -135,12 +135,10 @@ namespace AzFramework
         virtual bool SetSyncInterval(uint32_t newSyncInterval) = 0;
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
-        //! Returns the desired frames per second for the display.
-        //! Currently only supported on Android using Swappy package
+        //! Returns the desired frames per second.
         virtual uint32_t GetDesiredFPS() const = 0;
 
-        //! Sets the desired frames per second for the display.
-        //! Currently only supported on Android using Swappy package
+        //! Sets the desired frames per second.
         virtual void SetDesiredFPS(uint32_t desiredFPS) = 0;
 #endif
 

@@ -41,8 +41,7 @@ namespace AZ::RHI
         void SetVerticalSyncInterval(uint32_t verticalSyncInterval);
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
-        //! Sets the desired frames per second for the display. 
-        //! Currently only supported on Android using Swappy package
+        //! Sets the desired frames per second.
         void SetDesiredFPS(uint32_t desiredFPS);
 #endif
 

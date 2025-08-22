@@ -24,14 +24,15 @@ AZ_CVAR(uint32_t, vsync_interval, 1, OnVsyncIntervalChanged, AZ::ConsoleFunctorF
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
 void OnDesiredFPSChanged(uint32_t const& desiredFPS)
 {
-    AzFramework::WindowNotificationBus::Broadcast(&AzFramework::WindowNotificationBus::Events::OnDesiredFPSChanged, desiredFPS);
+    AzFramework::WindowNotificationBus::Broadcast(
+        &AzFramework::WindowNotificationBus::Events::OnDesiredFPSChanged, AZ::GetClamp(desiredFPS, 1u, 240u));
 }
 // NOTE: On change, broadcasts the new desired FPS to all windows.
 // Currently it is supported on Android platform using Swappy
 // It takes effect immediately.
 // The value of the desired FPS is constrained to be greater than 0.
 // It takes into an account the device refresh rate and sets the interval accordingly to set desired FPS.
-AZ_CVAR(uint32_t, desired_fps, 60, OnDesiredFPSChanged, AZ::ConsoleFunctorFlags::Null, "Set desired FPS");
+AZ_CVAR(uint32_t, desired_fps, 60, OnDesiredFPSChanged, AZ::ConsoleFunctorFlags::Null, "Set desired frames per second rate");
 #endif
 
 namespace AzFramework

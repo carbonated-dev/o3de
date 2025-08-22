@@ -997,7 +997,7 @@ dependencies {{
 {plugins}
 """
 
-# CARBONATED -- begin : additional libs for messaging + Swappy
+# CARBONATED -- begin : additional libs for messaging and Swappy
 ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.firebase:firebase-core:21.1.1'
     implementation 'com.google.firebase:firebase-messaging:24.0.3'
