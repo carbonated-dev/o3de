@@ -238,7 +238,29 @@ namespace AZ
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         void SwapChain::SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS)
         {
-			
+			/*
+			// To @work3:
+			// This code is suggested by ChatGPT.
+			// Uncomment it and try. Maybe it is a trash but sometimes such code works "from the box".
+            if (m_metalView)
+            {
+               // For iOS 10+
+               if ([m_metalView respondsToSelector:@selector(setPreferredFramesPerSecond:)])
+               {
+                   m_metalView.preferredFramesPerSecond = desiredFPS;
+               }
+
+               // For iOS 15+ (new API, support ranges)
+               if (@available(iOS 15.0, *))
+               {
+                   CAFrameRateRange range;
+                   range.minimum = desiredFPS;
+                   range.maximum = desiredFPS;
+                   range.preferred = desiredFPS;
+                   m_metalView.preferredFrameRateRange = range;
+               }
+            }
+			*/
 		}
 #endif				
     }
