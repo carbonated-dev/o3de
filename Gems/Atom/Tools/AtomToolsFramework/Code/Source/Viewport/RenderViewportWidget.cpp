@@ -500,7 +500,6 @@ namespace AtomToolsFramework
             console->GetCvarValue("desired_fps", desiredFPS);
         }
         return desiredFPS;
-
     }
 
     void RenderViewportWidget::SetDesiredFPS([[maybe_unused]] uint32_t desiredFPS)
