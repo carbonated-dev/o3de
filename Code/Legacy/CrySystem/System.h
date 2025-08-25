@@ -196,7 +196,7 @@ public:
     AZ::IO::IArchive* GetIPak() override { return m_env.pCryPak; };
     IConsole* GetIConsole() override { return m_env.pConsole; };
     IRemoteConsole* GetIRemoteConsole() override;
-    IMovieSystem* GetIMovieSystem() override { return m_env.pMovieSystem; };
+    IMovieSystem* GetIMovieSystem() override { return m_movieSystem; };
     ICryFont* GetICryFont() override{ return m_env.pCryFont; }
     ILog* GetILog() override{ return m_env.pLog; }
     ICmdLine* GetICmdLine() override{ return m_pCmdLine; }
@@ -410,6 +410,8 @@ private: // ------------------------------------------------------
     bool m_executedCommandLine = false;
 
     AZStd::unique_ptr<AzFramework::MissingAssetLogger> m_missingAssetLogger;
+
+    IMovieSystem* m_movieSystem;
 
 public:
 

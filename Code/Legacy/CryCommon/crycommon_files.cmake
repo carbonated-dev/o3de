@@ -41,8 +41,6 @@ set(FILES
     CryPath.h
     CrySystemBus.h
     CrySystemBus.cpp
-    CrySystemPostTickBus.h
-    CrySystemPreTickBus.h
     CryVersion.h
     MiniQueue.h
     MultiThread_Containers.h
