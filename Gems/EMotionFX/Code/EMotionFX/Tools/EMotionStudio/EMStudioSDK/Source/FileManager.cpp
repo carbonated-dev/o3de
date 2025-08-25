@@ -237,11 +237,7 @@ namespace EMStudio
         return false;
     }
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
     void FileManager::SourceFileChanged(AZStd::string relativePath, [[maybe_unused]] AZStd::string scanFolder, [[maybe_unused]] AZ::TypeId sourceTypeId)
-#else
-    void FileManager::SourceFileChanged(AZStd::string relativePath, AZStd::string scanFolder, [[maybe_unused]] AZ::TypeId sourceTypeId)
-#endif // defined(CARBONATED)
     {
         AZStd::string filename;
         AZStd::string assetSourcePath = AZ::IO::FileIOBase::GetInstance()->GetAlias("@projectroot@");

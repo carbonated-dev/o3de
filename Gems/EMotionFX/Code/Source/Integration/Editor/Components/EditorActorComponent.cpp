@@ -111,7 +111,7 @@ namespace EMotionFX
                         ->Attribute(AZ::Edit::Attributes::Icon, ":/EMotionFX/ActorComponent.svg")
                         ->Attribute(AZ::Edit::Attributes::PrimaryAssetType, azrtti_typeid<ActorAsset>())
                         ->Attribute(AZ::Edit::Attributes::ViewportIcon, ":/EMotionFX/Viewport/ActorComponent.svg")
-                        ->Attribute(AZ::Edit::Attributes::AppearsInAddComponentMenu, AZ_CRC("Game", 0x232b318c))
+                        ->Attribute(AZ::Edit::Attributes::AppearsInAddComponentMenu, AZ_CRC_CE("Game"))
                         ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
                         ->Attribute(AZ::Edit::Attributes::HelpPageURL, "https://o3de.org/docs/user-guide/components/reference/animation/actor/")
                         ->DataElement(0, &EditorActorComponent::m_actorAsset,
@@ -145,6 +145,7 @@ namespace EMotionFX
                         ->Attribute(AZ::Edit::Attributes::ChangeNotify, &EditorActorComponent::OnSkinningMethodChanged)
                         ->EnumAttribute(SkinningMethod::DualQuat, "Dual quat skinning")
                         ->EnumAttribute(SkinningMethod::Linear, "Linear skinning")
+                        ->EnumAttribute(SkinningMethod::None, "Disabled")
                         ->DataElement(AZ::Edit::UIHandlers::CheckBox, &EditorActorComponent::m_excludeFromReflectionCubeMaps, "Exclude from reflection cubemaps", "Actor will not be visible in baked reflection probe cubemaps")
                             ->Attribute(AZ::Edit::Attributes::ChangeNotify, AZ::Edit::PropertyRefreshLevels::ValuesOnly)
                             ->Attribute(AZ::Edit::Attributes::ChangeNotify, &EditorActorComponent::OnExcludeFromReflectionCubeMapsChanged)
@@ -159,7 +160,7 @@ namespace EMotionFX
                         ->DataElement(0, &EditorActorComponent::m_attachmentTarget,
                             "Target entity", "Entity Id whose actor instance we should attach to.")
                         ->Attribute(AZ::Edit::Attributes::ChangeNotify, AZ::Edit::PropertyRefreshLevels::EntireTree)
-                        ->Attribute(AZ::Edit::Attributes::RequiredService, AZ_CRC("EMotionFXActorService", 0xd6e8f48d))
+                        ->Attribute(AZ::Edit::Attributes::RequiredService, AZ_CRC_CE("EMotionFXActorService"))
                         ->Attribute(AZ::Edit::Attributes::Visibility, &EditorActorComponent::AttachmentTargetVisibility)
                         ->Attribute(AZ::Edit::Attributes::ChangeNotify, &EditorActorComponent::OnAttachmentTargetChanged)
                         ->ClassElement(AZ::Edit::ClassElements::Group, "Out of view")
@@ -611,19 +612,11 @@ namespace EMotionFX
 
                 if (dependencyAsset && dependencyAsset.GetType() == azrtti_typeid<AZ::RPI::ModelAsset>())
                 {
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
-                    m_modelReloadedEventHandler = AZ::Render::ModelReloadedEvent::Handler(
+                     m_modelReloadedEventHandler = AZ::Render::ModelReloadedEvent::Handler(
                         [this]([[maybe_unused]] AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset)
                         {
                             m_actorAsset.QueueLoad();
                         });
-#else
-                     m_modelReloadedEventHandler = AZ::Render::ModelReloadedEvent::Handler(
-                        [this](AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset)
-                        {
-                            m_actorAsset.QueueLoad();
-                        });
-#endif // defined(CARBONATED)
 
                     // Now that the ModelAsset has been found, request a reload.
                     // When this finishes, the callback will trigger a QueueLoad on m_actorAsset.
