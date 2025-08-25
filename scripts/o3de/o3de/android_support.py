@@ -9,7 +9,7 @@ import argparse
 import configparser
 import datetime
 import fnmatch
-import imghdr
+import puremagic
 import json
 import logging
 import os
@@ -53,7 +53,7 @@ elif platform.system() == 'Linux':
     EXE_EXTENSION = ''
     O3DE_SCRIPT_EXTENSION = '.sh'
     SDKMANAGER_EXTENSION = ''
-    GRADLE_EXTENSION = '.sh'
+    GRADLE_EXTENSION = ''
     DEFAULT_ANDROID_SDK_PATH = f"{os.getenv('HOME')}/Android/Sdk"
     PYTHON_SCRIPT = 'python.sh'
 else:
@@ -61,8 +61,9 @@ else:
 
 ASSET_MODE_LOOSE = 'LOOSE'
 ASSET_MODE_PAK = 'PAK'
+ASSET_MODE_NONE = 'NONE'
 
-ASSET_MODES = [ASSET_MODE_LOOSE, ASSET_MODE_PAK]
+ASSET_MODES = [ASSET_MODE_LOOSE, ASSET_MODE_PAK, ASSET_MODE_NONE]
 
 BUILD_CONFIGURATIONS = ['Debug', 'Profile', 'Release']
 ANDROID_ARCH = 'arm64-v8a'
@@ -156,8 +157,8 @@ SETTINGS_SIGNING_KEY_PASSWORD   = register_setting(key='signconfig.key.password'
 
 # General O3DE build and deployment options
 SETTINGS_ASSET_MODE             = register_setting(key='asset.mode',
-                                                   description='The asset mode to determine how the assets are stored in the target APK. Valid values are LOOSE and PAK.',
-                                                   restricted_regex=f'({ASSET_MODE_LOOSE}|{ASSET_MODE_PAK})',
+                                                   description=f"The asset mode to determine how the assets are stored in the target APK. Valid values are {','.join(ASSET_MODES)}.",
+                                                   restricted_regex=f'({ASSET_MODE_LOOSE}|{ASSET_MODE_PAK}|{ASSET_MODE_NONE})',
                                                    restricted_regex_description=f"Valid values are {','.join(ASSET_MODES)}.")
 
 SETTINGS_STRIP_DEBUG            = register_setting(key='strip.debug',
@@ -289,7 +290,7 @@ class AndroidGradlePluginRequirements(object):
         @param java_version:    The version string reported by java (-version)
         @return: None
         """
-        java_version_check = Version(java_version.split('_')[0])
+        java_version_check = Version(java_version)
         if not java_version_check >= self._jdk_version:
             raise AndroidToolError(f"The installed version of java ({java_version_check}) does not meet the minimum version of ({self._jdk_version}) "
                                    f"which is required by the Android Gradle Plugin version ({self._agp_version}). Refer to the android gradle plugin "
@@ -311,18 +312,17 @@ class AndroidGradlePluginRequirements(object):
 # Note: This map needs to be updated in conjunction with newer versions of the Android Gradle plugins.
 
 ANDROID_GRADLE_PLUGIN_COMPATIBILITY_MAP = {
-
-    '8.2': AndroidGradlePluginRequirements(agp_version='8.2',
-                                           gradle_version='8.2',
+    '8.10': AndroidGradlePluginRequirements(agp_version='8.10',
+                                           gradle_version='8.11',
                                            sdk_build_tools_version='35.0.0',
                                            jdk_version='17',
                                            release_note_url='https://developer.android.com/build/releases/gradle-plugin'),
-
+    
     '8.1': AndroidGradlePluginRequirements(agp_version='8.1',
                                            gradle_version='8.0',
                                            sdk_build_tools_version='33.0.1',
                                            jdk_version='17',
-                                           release_note_url='https://developer.android.com/build/releases/past-releases/agp-8-1-0-release-notes'),
+                                           release_note_url='https://developer.android.com/build/releases/gradle-plugin'),
 
     '8.0': AndroidGradlePluginRequirements(agp_version='8.0',
                                            gradle_version='8.0',
@@ -1728,7 +1728,7 @@ class AndroidProjectGenerator(object):
         absolute_azandroid_path = (self._engine_root / 'Code/Framework/AzAndroid/java').resolve().as_posix()
 
         gradle_build_env['TARGET_TYPE'] = 'application'
-        gradle_build_env['PROJECT_DEPENDENCIES'] = PROJECT_DEPENDENCIES_VALUE_FORMAT.format(dependencies='\n'.join(gradle_project_dependencies), additional_dependencies=ADDITIONAL_DEPENDENCIES, plugins=ADDITIONAL_PLUGINS) # CARBONATED: added implementations/plugins
+        gradle_build_env['PROJECT_DEPENDENCIES'] = PROJECT_DEPENDENCIES_VALUE_FORMAT.format(dependencies='\n'.join(gradle_project_dependencies))
         gradle_build_env['NATIVE_CMAKE_SECTION_ANDROID'] = NATIVE_CMAKE_SECTION_ANDROID_FORMAT.format(cmake_version=str(self._cmake_version), native_build_path=native_build_path, absolute_cmakelist_path=absolute_cmakelist_path)
         gradle_build_env['NATIVE_CMAKE_SECTION_DEFAULT_CONFIG'] = NATIVE_CMAKE_SECTION_DEFAULT_CONFIG_NDK_FORMAT_STR.format(abi=ANDROID_ARCH)
 
@@ -1783,8 +1783,13 @@ class AndroidProjectGenerator(object):
                 cmake_argument_list.append(f'"-DLY_PROJECTS={template_project_path}"')
 
             if self._extra_cmake_configure_args:
+                # Extra cmake configure arguments are passed in as a single string separated by spaces and wrapped in quotes.
+                # We need to remove the quotes from the beginning and end of the string, and then split the string by spaces.
+                extra_cmake_args = self._extra_cmake_configure_args
+                if extra_cmake_args.startswith('"') and extra_cmake_args.endswith('"'):
+                    extra_cmake_args = extra_cmake_args[1:-1]
                 # Splits the arguments by white space but only if it's not in a quoted string (e.g. when specifiying a path with white spaces)
-                extra_cmake_configure_arg_list = [f'"{arg}"' for arg in re.split('''\s(?=(?:[^'"]|'[^']*'|"[^"]*")*$)''', self._extra_cmake_configure_args)]
+                extra_cmake_configure_arg_list = [f'"{arg}"' for arg in re.split('''\s(?=(?:[^'"]|'[^']*'|"[^"]*")*$)''', extra_cmake_args)]
                 cmake_argument_list.extend(extra_cmake_configure_arg_list)
 
             # Prepare the config-specific section to place the cmake argument list in the build.gradle for the app
@@ -1931,7 +1936,7 @@ class AndroidProjectGenerator(object):
             src_path = self._android_project_builder_path / src_file
             resolved_src = src_path.resolve(strict=True)
 
-            if imghdr.what(resolved_src) in ('rgb', 'gif', 'pbm', 'ppm', 'tiff', 'rast', 'xbm', 'jpeg', 'bmp', 'png'):
+            if puremagic.what(resolved_src) in ('rgb', 'gif', 'pbm', 'ppm', 'tiff', 'rast', 'xbm', 'jpeg', 'bmp', 'png'):
                 # If the source file is a binary asset, then perform a copy to the target path
                 logging.debug("Copy Binary file %s -> %s", str(src_path.resolve(strict=True)), str(dst_path.resolve()))
                 dst_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2032,7 +2037,7 @@ class AndroidProjectGenerator(object):
         for resolution in ANDROID_RESOLUTION_SETTINGS:
 
             target_directory = dst_resource_path / f'{MIPMAP_PATH_PREFIX}-{resolution}'
-            target_directory.mkdir(parents=True, exist_ok=True)
+            target_directory.mkdir(parent=True, exist_ok=True)
 
             # get the current resolution icon override
             icon_source = icon_overrides.get(resolution, default_icon)

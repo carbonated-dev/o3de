@@ -10,8 +10,8 @@ import fnmatch
 import os
 from typing import List
 
-"""The path to the default allowed-list file"""
 DEFAULT_ALLOWEDLIST_FILE = os.path.join(os.path.dirname(__file__), 'pal_allowedlist.txt')
+"""The path to the default allowed-list file"""
 
 """ CARBONATED. The path to the optional carbonated allowed-list file"""
 CARBONATED_ALLOWEDLIST_FILE = os.path.join(os.path.dirname(__file__), 'carbonated_pal_allowedlist.txt')
@@ -37,6 +37,7 @@ class PALAllowedlist:
             if fnmatch.fnmatch(path, pattern):
                 return True
         return False
+
 
 def load() -> PALAllowedlist:
     """ CARBONATED begin """
