@@ -127,17 +127,10 @@ namespace UnitTest
         {
             assetTypes.push_back(AZ::AzTypeInfo<AzFramework::Spawnable>::Uuid());
         }
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         AZ::Data::AssetHandler::LoadResult LoadAssetData(
             const AZ::Data::Asset<AZ::Data::AssetData>& asset,
             [[maybe_unused]] AZStd::shared_ptr<AZ::Data::AssetDataStream> stream,
             [[maybe_unused]] const AZ::Data::AssetFilterCB& assetLoadFilterCB) override
-#else
-        AZ::Data::AssetHandler::LoadResult LoadAssetData(
-            const AZ::Data::Asset<AZ::Data::AssetData>& asset,
-            AZStd::shared_ptr<AZ::Data::AssetDataStream> stream,
-            [[maybe_unused]] const AZ::Data::AssetFilterCB& assetLoadFilterCB) override
-#endif // defined(CARBONATED)
         {
             MockAssetData* temp = reinterpret_cast<MockAssetData*>(asset.GetData());
             temp->SetStatus(AZ::Data::AssetData::AssetStatus::Ready);

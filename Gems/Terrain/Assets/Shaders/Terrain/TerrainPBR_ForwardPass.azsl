@@ -8,8 +8,8 @@
 
 #include <Atom/Features/SrgSemantics.azsli>
 
-#include <scenesrg.srgi>
-#include <viewsrg.srgi>
+#include <scenesrg_all.srgi>
+#include <viewsrg_all.srgi>
 #include <TerrainSrg.azsli>
 #include <TerrainCommon.azsli>
 #include <TerrainDetailHelpers.azsli>
@@ -153,21 +153,15 @@ ForwardPassOutput TerrainPBR_MainPassPS(VSOutput input)
         surface.CalculateRoughnessA();
     }
 
-#if ENABLE_CLEAR_COAT
     // Clear Coat
     surface.clearCoat.InitializeToZero();
-#endif
 
     // ------- LightingData -------
 
     LightingData lightingData;
 
     // Light iterator
-#if ENABLE_LIGHT_CULLING
     lightingData.tileIterator.Init(input.m_position, PassSrg::m_lightListRemapped, PassSrg::m_tileLightData);
-#else
-    lightingData.tileIterator.Init();
-#endif
     lightingData.Init(surface.position, surface.normal, surface.roughnessLinear, ViewSrg::m_worldPosition.xyz);
 
     // Shadow, Occlusion

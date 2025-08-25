@@ -100,12 +100,12 @@ namespace TestAssetBuilder
 
     void TestAssetBuilderComponent::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided)
     {
-        provided.push_back(AZ_CRC("TestAssetBuilderPluginService", 0xa380f578));
+        provided.push_back(AZ_CRC_CE("TestAssetBuilderPluginService"));
     }
 
     void TestAssetBuilderComponent::GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType& incompatible)
     {
-        incompatible.push_back(AZ_CRC("TestAssetBuilderPluginService", 0xa380f578));
+        incompatible.push_back(AZ_CRC_CE("TestAssetBuilderPluginService"));
     }
 
     void TestAssetBuilderComponent::GetRequiredServices(AZ::ComponentDescriptor::DependencyArrayType& required)
@@ -479,7 +479,7 @@ namespace TestAssetBuilder
             }
             if (depAssetInfo.m_assetId.m_subId != depAssetId.m_subId)
             {
-                AZ_Error("AssetBuilder", false, "GetAssetInfoById - Asset Info m_subId for %s should be %d.", depAssetId.ToString<AZStd::string>().c_str(), depAssetId.m_subId);
+                AZ_Error("AssetBuilder", false, "GetAssetInfoById - Asset Info m_subId for %s shoudl be %d.", depAssetId.ToString<AZStd::string>().c_str(), depAssetId.m_subId);
                 return;
             }
             AZ::Data::AssetStreamInfo resultInfo = AZ::Data::AssetManager::Instance().GetLoadStreamInfoForAsset(depAssetId, depAssetInfo.m_assetType);
