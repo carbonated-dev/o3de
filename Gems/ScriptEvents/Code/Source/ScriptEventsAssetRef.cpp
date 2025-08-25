@@ -99,11 +99,7 @@ namespace ScriptEvents
         return AZ::Edit::PropertyRefreshLevels::None;
     }
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
     void ScriptEventsAssetRef::OnAssetReady([[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData> asset)
-#else
-    void ScriptEventsAssetRef::OnAssetReady(AZ::Data::Asset<AZ::Data::AssetData> asset)
-#endif // defined(CARBONATED)
     {
         if (ScriptEventsAsset* scriptEventAsset = m_asset.GetAs<ScriptEventsAsset>())
         {

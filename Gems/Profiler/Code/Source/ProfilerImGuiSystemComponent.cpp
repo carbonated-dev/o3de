@@ -116,16 +116,22 @@ namespace Profiler
 #endif
     }
 
+#if defined(CARBONATED)
     void ProfilerImGuiSystemComponent::AddExternalProfilerTimingData(const ProfilerExternalTimingData& externalTimingData)
     {
         m_imguiCpuProfiler.AddExternalTimingEntries(externalTimingData);
     }
+#endif
 
     void ProfilerImGuiSystemComponent::OnImGuiUpdate()
     {
         if (m_showCpuProfiler)
         {
             ShowCpuProfilerWindow(m_showCpuProfiler);
+        }
+        if (m_showHeapMemoryProfiler)
+        {
+            m_imguiHeapMemoryProfiler.Draw(m_showHeapMemoryProfiler);
         }
     }
 
@@ -144,6 +150,7 @@ namespace Profiler
                 }
 #endif
             }
+            ImGui::MenuItem("Heap Memory", "", &m_showHeapMemoryProfiler);
             ImGui::EndMenu();
         }
     }

@@ -9,10 +9,7 @@
 --
 ----------------------------------------------------------------------------------------------------
 
--- Gruber patch begin : check if global variable exists 
---if g_timelineCounter == nil then
--- Gruber patch end
-if rawget(_G, "g_timelineCounter") == nil then
+if g_timelineCounter == nil then
     g_timelineCounter = 0
     g_animationCallbackCounter = 0
     g_animationCallbacks = {}

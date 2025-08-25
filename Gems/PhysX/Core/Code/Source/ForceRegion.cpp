@@ -70,24 +70,12 @@ namespace PhysX
                     ;
             }
         }
-
-         AZ::BehaviorContext* behaviorContext = azrtti_cast<AZ::BehaviorContext*>(context);
-        if (behaviorContext)
-        {
-            behaviorContext->EBus<ForceRegionRequestBus>("ForceRegionRequestBus")
-                ->Event("AddForceLinearDamping", &ForceRegionRequestBus::Events::AddForceLinearDamping)
-                ->Event("AddForceLocalSpace", &ForceRegionRequestBus::Events::AddForceLocalSpace)
-                ->Event("AddForcePoint", &ForceRegionRequestBus::Events::AddForcePoint)
-                ->Event("AddForceSimpleDrag", &ForceRegionRequestBus::Events::AddForceSimpleDrag)
-                ->Event("AddForceSplineFollow", &ForceRegionRequestBus::Events::AddForceSplineFollow)
-                ->Event("AddForceWorldSpace", &ForceRegionRequestBus::Events::AddForceWorldSpace);
-        }
     }
 
     ForceRegion::ForceRegion(const ForceRegion& forceRegion)
     {
         // Force region must be deep copied as it contains pointers
-        AZ::SerializeContext* context;
+        AZ::SerializeContext* context = nullptr;
         AZ::ComponentApplicationBus::BroadcastResult(context, &AZ::ComponentApplicationBus::Events::GetSerializeContext);
         context->CloneObjectInplace<ForceRegion>(*this, &forceRegion);
     }

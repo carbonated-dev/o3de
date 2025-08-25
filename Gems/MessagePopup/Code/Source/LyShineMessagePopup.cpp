@@ -45,13 +45,13 @@ namespace MessagePopup
     //-------------------------------------------------------------------------
     void LyShineMessagePopup::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided)
     {
-        provided.push_back(AZ_CRC("MessagePopupService"));
+        provided.push_back(AZ_CRC_CE("MessagePopupService"));
     }
 
     //-------------------------------------------------------------------------
     void LyShineMessagePopup::GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType& incompatible)
     {
-        incompatible.push_back(AZ_CRC("MessagePopupService"));
+        incompatible.push_back(AZ_CRC_CE("MessagePopupService"));
     }
 
     //-------------------------------------------------------------------------
@@ -117,11 +117,9 @@ namespace MessagePopup
     }
 
     //-----------------------------------------------------------------------------
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    // The callback function is provided by the API, but isn't used in this function, because the above function callign OnHide will
+    // cause the popup callback function to be called.
     void LyShineMessagePopup::OnShowPopup(AZ::u32 _popupID, const AZStd::string& _message, EPopupButtons _buttons, EPopupKind _kind, [[maybe_unused]] AZStd::function<void(int _button)> _callback, void** _popupClientID)
-#else
-    void LyShineMessagePopup::OnShowPopup(AZ::u32 _popupID, const AZStd::string& _message, EPopupButtons _buttons, EPopupKind _kind, AZStd::function<void(int _button)> _callback, void** _popupClientID)
-#endif // defined(CARBONATED)
     {
         AZ::EntityId canvasEntityId;
         bool isNavigationSupported = false;

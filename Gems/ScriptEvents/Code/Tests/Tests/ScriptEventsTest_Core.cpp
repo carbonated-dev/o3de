@@ -231,17 +231,13 @@ namespace ScriptEventsTests
             AZ::Data::AssetBus::Handler::BusDisconnect();
         }
         
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         void OnAssetError([[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData> assetData) override
-#else
-        void OnAssetError(AZ::Data::Asset<AZ::Data::AssetData> assetData) override
-#endif // defined(CARBONATED)
         {
             EXPECT_TRUE(false);
             AZ::Data::AssetBus::Handler::BusDisconnect();
         }
 
-        void OnAssetReady(AZ::Data::Asset<AZ::Data::AssetData>) override
+        void OnAssetReady([[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData>) override
         {
             m_ready++;
 
@@ -251,11 +247,7 @@ namespace ScriptEventsTests
             m_onReadyCallback();
         }
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         void OnAssetSaved([[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData> asset, [[maybe_unused]] bool isSuccessful) override
-#else
-        void OnAssetSaved(AZ::Data::Asset<AZ::Data::AssetData> asset, [[maybe_unused]] bool isSuccessful) override
-#endif // defined(CARBONATED)
         {
             AZ::Data::AssetBus::Handler::BusDisconnect();
             AZ::Data::AssetManager::Instance().DispatchEvents();

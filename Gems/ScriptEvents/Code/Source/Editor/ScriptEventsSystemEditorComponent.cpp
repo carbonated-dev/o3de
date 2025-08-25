@@ -166,11 +166,7 @@ namespace ScriptEventsEditor
         scriptEventAsset->m_definition.IncreaseVersion();
     }
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
     void ScriptEventAssetHandler::BeforePropertyEdit(AzToolsFramework::InstanceDataNode* node, [[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData> asset)
-#else
-    void ScriptEventAssetHandler::BeforePropertyEdit(AzToolsFramework::InstanceDataNode* node, AZ::Data::Asset<AZ::Data::AssetData> asset)
-#endif // defined(CARBONATED)
     {
         ScriptEventData::VersionedProperty* property = nullptr;
         AzToolsFramework::InstanceDataNode* parent = node;
@@ -196,7 +192,7 @@ namespace ScriptEventsEditor
         {
             serialize->Class<ScriptEventEditorSystemComponent, AZ::Component>()
                 ->Version(3)
-                ->Attribute(AZ::Edit::Attributes::SystemComponentTags, AZStd::vector<AZ::Crc32>({ AZ_CRC("AssetBuilder", 0xc739c7d7) }));
+                ->Attribute(AZ::Edit::Attributes::SystemComponentTags, AZStd::vector<AZ::Crc32>({ AZ_CRC_CE("AssetBuilder") }));
             ;
         }
 
@@ -214,12 +210,12 @@ namespace ScriptEventsEditor
 
     void ScriptEventEditorSystemComponent::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided)
     {
-        provided.push_back(AZ_CRC("ScriptEventsService", 0x6897c23b));
+        provided.push_back(AZ_CRC_CE("ScriptEventsService"));
     }
 
     void ScriptEventEditorSystemComponent::GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType& incompatible)
     {
-        incompatible.push_back(AZ_CRC("ScriptEventsService", 0x6897c23b));
+        incompatible.push_back(AZ_CRC_CE("ScriptEventsService"));
     }
 
     ////////////////////

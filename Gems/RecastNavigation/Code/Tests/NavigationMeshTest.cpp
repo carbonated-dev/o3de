@@ -628,8 +628,8 @@ namespace RecastNavigationTests
         DetourNavigationRequestBus::EventResult(waypoints, AZ::EntityId(1), &DetourNavigationRequests::FindPathBetweenEntities,
             AZ::EntityId(), AZ::EntityId(), false, partial);
 #else
-        DetourNavigationRequestBus::EventResult(
-            waypoints, AZ::EntityId(1), &DetourNavigationRequests::FindPathBetweenEntities, AZ::EntityId(), AZ::EntityId());
+        DetourNavigationRequestBus::EventResult(waypoints, AZ::EntityId(1), &DetourNavigationRequests::FindPathBetweenEntities,
+            AZ::EntityId(), AZ::EntityId());
 #endif
 
         EXPECT_EQ(waypoints.size(), 0);
@@ -660,8 +660,8 @@ namespace RecastNavigationTests
         DetourNavigationRequestBus::EventResult(waypoints, AZ::EntityId(1), &DetourNavigationRequests::FindPathBetweenEntities,
             AZ::EntityId(1), AZ::EntityId(2), false, partial);
 #else
-        DetourNavigationRequestBus::EventResult(
-            waypoints, AZ::EntityId(1), &DetourNavigationRequests::FindPathBetweenEntities, AZ::EntityId(1), AZ::EntityId(2));
+        DetourNavigationRequestBus::EventResult(waypoints, AZ::EntityId(1), &DetourNavigationRequests::FindPathBetweenEntities,
+            AZ::EntityId(1), AZ::EntityId(2));
 #endif
 
         EXPECT_EQ(waypoints.size(), 0);

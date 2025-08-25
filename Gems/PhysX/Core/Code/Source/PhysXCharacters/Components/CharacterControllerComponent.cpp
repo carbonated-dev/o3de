@@ -35,13 +35,14 @@ namespace PhysX
             serializeContext->Class<CharacterControllerComponent, AZ::Component>()
                 ->Version(1)
                 ->Field("CharacterConfig", &CharacterControllerComponent::m_characterConfig)
-                ->Field("ShapeConfig", &CharacterControllerComponent::m_shapeConfig);
+                ->Field("ShapeConfig", &CharacterControllerComponent::m_shapeConfig)
+                ;
         }
 
         if (auto behaviorContext = azrtti_cast<AZ::BehaviorContext*>(context))
         {
-            behaviorContext
-                ->EBus<CharacterControllerRequestBus>("PhysXCharacterControllerRequestBus", "Character Controller (PhysX specific)")
+            behaviorContext->EBus<CharacterControllerRequestBus>("PhysXCharacterControllerRequestBus",
+                "Character Controller (PhysX specific)")
                 ->Attribute(AZ::Script::Attributes::Storage, AZ::Script::Attributes::StorageType::RuntimeOwn)
                 ->Attribute(AZ::Edit::Attributes::Category, "PhysX")
                 ->Event("Resize", &CharacterControllerRequests::Resize)
@@ -52,14 +53,15 @@ namespace PhysX
                 ->Event("GetHalfSideExtent", &CharacterControllerRequests::GetHalfSideExtent, "Get Half Side Extent")
                 ->Event("SetHalfSideExtent", &CharacterControllerRequests::SetHalfSideExtent, "Set Half Side Extent")
                 ->Event("GetHalfForwardExtent", &CharacterControllerRequests::GetHalfForwardExtent, "Get Half Forward Extent")
-                ->Event("SetHalfForwardExtent", &CharacterControllerRequests::SetHalfForwardExtent, "Set Half Forward Extent");
+                ->Event("SetHalfForwardExtent", &CharacterControllerRequests::SetHalfForwardExtent, "Set Half Forward Extent")
+                ;
         }
     }
 
     CharacterControllerComponent::CharacterControllerComponent() = default;
 
-    CharacterControllerComponent::CharacterControllerComponent(
-        AZStd::unique_ptr<Physics::CharacterConfiguration> characterConfig, AZStd::shared_ptr<Physics::ShapeConfiguration> shapeConfig)
+    CharacterControllerComponent::CharacterControllerComponent(AZStd::unique_ptr<Physics::CharacterConfiguration> characterConfig,
+        AZStd::shared_ptr<Physics::ShapeConfiguration> shapeConfig)
         : m_characterConfig(AZStd::move(characterConfig))
         , m_shapeConfig(AZStd::move(shapeConfig))
     {

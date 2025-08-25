@@ -22,6 +22,7 @@ ly_add_target(
             AZ::AzCore
             AZ::AzFramework
             Gem::Atom_RHI.Profiler
+            Gem::Atom_RHI.Public  # CARBONATED AZ::RHI::Device::EnableGatheringStats DisableGatheringStats, plus 1 more
 )
 
 ly_add_target(

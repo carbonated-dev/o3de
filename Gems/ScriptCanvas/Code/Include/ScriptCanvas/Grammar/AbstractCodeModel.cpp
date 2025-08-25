@@ -249,7 +249,7 @@ namespace ScriptCanvas
                 AZ_Assert(datum != nullptr, "the datum must be valid");
 
                 // #functions2 slot<->variable check to verify if it is a member variable
-                auto variable = sourceVariable->GetScope() == VariableFlags::Scope::Graph
+                auto variable = (sourceVariable->GetScope() == VariableFlags::Scope::Graph)
                     ? AddMemberVariable(*datum, sourceVariable->GetVariableName(), sourceVariable->GetVariableId())
                     : AddVariable(*datum, sourceVariable->GetVariableName(), sourceVariable->GetVariableId());
 
@@ -606,11 +606,7 @@ namespace ScriptCanvas
             return AZStd::const_pointer_cast<Scope>(m_graphScope)->AddVariableName(name);
         }
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         void AbstractCodeModel::AddUserOutToLeaf(ExecutionTreePtr parent, [[maybe_unused]] ExecutionTreeConstPtr root, AZStd::string_view name)
-#else
-        void AbstractCodeModel::AddUserOutToLeaf(ExecutionTreePtr parent, ExecutionTreeConstPtr root, AZStd::string_view name)
-#endif // defined(CARBONATED)
         {
             ExecutionTreePtr out;
 
@@ -4876,11 +4872,7 @@ namespace ScriptCanvas
 
         void AbstractCodeModel::ParseOutputData(ExecutionTreePtr execution, ExecutionChild& executionChild)
         {
-#if defined(CARBONATED)
-            if (azrtti_cast<const Nodes::Core::FunctionDefinitionNode*>(execution->GetId().m_node))  // Xcode 16 compile bug fix
-#else
-            if (const auto nodeling = azrtti_cast<const Nodes::Core::FunctionDefinitionNode*>(execution->GetId().m_node))
-#endif
+            if (azrtti_cast<const Nodes::Core::FunctionDefinitionNode*>(execution->GetId().m_node))
             {
                 // this nodeling will always be the Execution-In part of the function definition
                 // since a call to a user out does not enter this path
@@ -5569,3 +5561,4 @@ namespace ScriptCanvas
         }
     }
 }
+
