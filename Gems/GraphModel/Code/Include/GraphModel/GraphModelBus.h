@@ -233,19 +233,11 @@ namespace GraphModelIntegration
 
         //! Sent whenever a graph model slot value changes
         //! \param slot The slot that was modified in the graph.
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         virtual void OnGraphModelSlotModified([[maybe_unused]] GraphModel::SlotPtr slot) {};
-#else
-        virtual void OnGraphModelSlotModified(GraphModel::SlotPtr slot){};
-#endif // defined(CARBONATED)
 
         //! Something in the graph has been modified
         //! \param node The node that was modified in the graph.  If this is nullptr, some metadata on the graph itself was modified
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         virtual void OnGraphModelGraphModified([[maybe_unused]] GraphModel::NodePtr node) {};
-#else
-        virtual void OnGraphModelGraphModified(GraphModel::NodePtr node){};
-#endif // defined(CARBONATED)
 
         //! A request has been made to record data for an undoable operation 
         virtual void OnGraphModelRequestUndoPoint(){};

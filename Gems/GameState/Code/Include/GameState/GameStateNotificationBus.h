@@ -31,13 +31,8 @@ namespace GameState
         //! Called when a game state transition occurs
         //! \param[in] oldGameState The old game state we are transitioning from (can be null)
         //! \param[in] newGameState The new game state we are transitioning into (can be null)
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         virtual void OnActiveGameStateChanged([[maybe_unused]] AZStd::shared_ptr<IGameState> oldGameState,
                                               [[maybe_unused]] AZStd::shared_ptr<IGameState> newGameState) {}
-#else
-        virtual void OnActiveGameStateChanged(AZStd::shared_ptr<IGameState> oldGameState,
-                                              AZStd::shared_ptr<IGameState> newGameState) {}
-#endif // defined(CARBONATED)
     };
     using GameStateNotificationBus = AZ::EBus<GameStateNotifications>;
 } // namespace GameState
