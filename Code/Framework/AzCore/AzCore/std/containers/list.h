@@ -1236,6 +1236,10 @@ namespace AZStd
             base_node_ptr_type insNode = insertPos.base().get_iterator().m_node;
 #else
             base_node_ptr_type insNode = insertPos.base().m_node;
+            if (insNode->m_prev == (void*)0x3800000038000000 || insNode->m_next == (void*)0x3800000038000000)
+            {
+                ;
+            }
 #endif
 
             ++m_numElements;

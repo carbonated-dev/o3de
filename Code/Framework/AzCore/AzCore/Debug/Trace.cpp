@@ -407,8 +407,8 @@ namespace AZ::Debug
                 Instance().Break();
             }
 #if AZ_ENABLE_TRACE_ASSERTS
-            //display native UI dialogs at verbosity level 2 or higher
-            else if (currentLevel >= assertLevel_nativeUI
+            //display native UI dialogs at verbosity level 2
+            else if (currentLevel == assertLevel_nativeUI
 #if defined(CARBONATED)
                 && assertDialogReady != 0
 #endif

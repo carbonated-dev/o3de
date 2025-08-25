@@ -353,9 +353,9 @@ namespace AZ::Data
         void Wait()
         {
             AZ_PROFILE_SCOPE(AzCore, "WaitForAsset - %s", m_assetData.GetHint().c_str());
+#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
             constexpr int MaxWaitForAssetUpdateMs = 20;
             int currentWaitForAssetUpdate = MaxWaitForAssetUpdateMs;
-#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
             const int64_t startTime = m_timeoutMillis ? static_cast<int64_t>(AZ::GetRealElapsedTimeMs()) : 0;
             int jobCount = 0;
 #endif
@@ -1383,6 +1383,13 @@ namespace AZ::Data
                 AssetHandler* handler = handlerIt->second;
                 auto assetData = handler->CreateAsset(assetId, assetType);
                 AZ_Error("AssetDatabase", assetData, "Failed to create asset with (id=%s, type=%s)", assetId.ToString<AZ::OSString>().c_str(), assetType.ToString<AZ::OSString>().c_str());
+
+                if (!assetData)
+                {
+                    AZ_Error("AssetDatabase", assetData, "Failed to create asset with (id=%s, type=%s)", assetId.ToString<AZ::OSString>().c_str(), assetType.ToString<AZ::OSString>().c_str());
+                    handler->CreateAsset(assetId, assetType);  // retry
+                }
+
                 if (assetData)
                 {
                     assetData->m_assetId = assetId;

@@ -790,7 +790,7 @@ void ScriptSystemComponent::GetHandledAssetTypes(AZStd::vector<Data::AssetType>&
 //=========================================================================
 void ScriptSystemComponent::GetProvidedServices(ComponentDescriptor::DependencyArrayType& provided)
 {
-    provided.push_back(AZ_CRC("ScriptService", 0x787235ab));
+    provided.push_back(AZ_CRC_CE("ScriptService"));
 }
 
 //=========================================================================
@@ -798,7 +798,7 @@ void ScriptSystemComponent::GetProvidedServices(ComponentDescriptor::DependencyA
 //=========================================================================
 void ScriptSystemComponent::GetIncompatibleServices(ComponentDescriptor::DependencyArrayType& incompatible)
 {
-    incompatible.push_back(AZ_CRC("ScriptService", 0x787235ab));
+    incompatible.push_back(AZ_CRC_CE("ScriptService"));
 }
 
 //=========================================================================
@@ -806,7 +806,7 @@ void ScriptSystemComponent::GetIncompatibleServices(ComponentDescriptor::Depende
 //=========================================================================
 void ScriptSystemComponent::GetDependentServices(ComponentDescriptor::DependencyArrayType& dependent)
 {
-    dependent.push_back(AZ_CRC("AssetDatabaseService", 0x3abf5601));
+    dependent.push_back(AZ_CRC_CE("AssetDatabaseService"));
 }
 
 //=========================================================================
@@ -923,7 +923,7 @@ void ScriptSystemComponent::Reflect(ReflectContext* reflection)
         
         serializeContext->Class<ScriptSystemComponent, AZ::Component>()
             ->Version(1)
-            // ->Attribute(AZ::Edit::Attributes::SystemComponentTags, AZStd::vector<AZ::Crc32>({ AZ_CRC("AssetBuilder", 0xc739c7d7) }))
+            // ->Attribute(AZ::Edit::Attributes::SystemComponentTags, AZStd::vector<AZ::Crc32>({ AZ_CRC_CE("AssetBuilder") }))
             ->Field("garbageCollectorSteps", &ScriptSystemComponent::m_defaultGarbageCollectorSteps)
             ;
 

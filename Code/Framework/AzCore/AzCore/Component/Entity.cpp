@@ -34,11 +34,6 @@
 
 #include <AzCore/Debug/Profiler.h>
 
-DECLARE_EBUS_INSTANTIATION(EntityEvents);
-DECLARE_EBUS_INSTANTIATION(TransformInterface);
-DECLARE_EBUS_INSTANTIATION(TransformNotification);
-DECLARE_EBUS_INSTANTIATION(TransformHierarchyInformation);
-
 namespace AZ
 {
     class SerializeEntityFactory
@@ -163,6 +158,15 @@ namespace AZ
 
     void Entity::Init()
     {
+        for (ComponentArrayType::iterator it = m_components.begin(); it != m_components.end(); it++)
+        {
+            Component* component = *it;
+            if (component)
+            {
+                component->Check();
+            }
+        }
+
         AZ_Assert(m_state == State::Constructed, "Component should be in Constructed state to be Initialized!");
         SetState(State::Initializing);
 
@@ -293,6 +297,12 @@ namespace AZ
     {
         Component* component = nullptr;
         ComponentDescriptorBus::EventResult(component, componentTypeId, &ComponentDescriptorBus::Events::CreateComponent);
+
+        if (component)
+        {
+            component->Check();
+        }
+
         if (component)
         {
             if (!AddComponent(component))
@@ -720,7 +730,7 @@ namespace AZ
             for (int i = 0; i < classElement.GetNumSubElements(); ++i)
             {
                 AZ::SerializeContext::DataElementNode& elementNode = classElement.GetSubElement(i);
-                if (elementNode.GetName() == AZ_CRC("Id", 0xbf396750))
+                if (elementNode.GetName() == AZ_CRC_CE("Id"))
                 {
                     u64 oldEntityId;
                     if (elementNode.GetData(oldEntityId))
@@ -763,7 +773,7 @@ namespace AZ
             for (int i = 0; i < classElement.GetNumSubElements(); ++i)
             {
                 AZ::SerializeContext::DataElementNode& elementNode = classElement.GetSubElement(i);
-                if (elementNode.GetName() == AZ_CRC("m_refId", 0xb7853eda))
+                if (elementNode.GetName() == AZ_CRC_CE("m_refId"))
                 {
                     u64 oldEntityId;
                     if (elementNode.GetData(oldEntityId))

@@ -21,9 +21,7 @@
 #include <AzCore/std/parallel/binary_semaphore.h>
 #include <AzCore/std/parallel/thread.h>
 
-#if defined(CARBONATED)
 // #define JOBMANAGER_ENABLE_STATS
-#endif
 
 namespace AZ
 {
@@ -109,13 +107,8 @@ namespace AZ
                 unsigned int m_jobsForked = 0;
                 unsigned int m_jobsDone = 0;
                 unsigned int m_jobsStolen = 0;
-#if defined(CARBONATED)
                 AZStd::chrono::milliseconds m_jobTime;
                 AZStd::chrono::milliseconds m_stealTime;
-#else
-                u64 m_jobTime = 0;
-                u64 m_stealTime = 0;
-#endif
 #endif
             };
             using ThreadList = AZStd::vector<ThreadInfo*>;

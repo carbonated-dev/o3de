@@ -326,11 +326,7 @@ namespace UnitTest
 
         virtual void OnEventConst() const {};
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         virtual BehaviorTestClass OnEventResultWithBehaviorClassParameter([[maybe_unused]] BehaviorTestClass data) { return BehaviorTestClass(); };
-#else
-        virtual BehaviorTestClass OnEventResultWithBehaviorClassParameter(BehaviorTestClass data) { return BehaviorTestClass(); };
-#endif // defined(CARBONATED)
     };
 
     typedef AZ::EBus<BehaviorTestBusEvents> BehaviorTestBus;

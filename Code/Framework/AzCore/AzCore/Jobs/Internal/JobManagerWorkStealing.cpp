@@ -15,6 +15,7 @@
 #include <AzCore/std/parallel/lock.h>
 #include <AzCore/std/functional.h>
 #include <AzCore/std/string/fixed_string.h>
+#include <AzCore/std/chrono/chrono.h>
 
 #include <AzCore/Debug/Profiler.h>
 
@@ -245,13 +246,8 @@ void JobManagerWorkStealing::ClearStats()
         info->m_jobsForked = 0;
         info->m_jobsDone = 0;
         info->m_jobsStolen = 0;
-#if defined(CARBONATED)
         info->m_jobTime = AZStd::chrono::milliseconds(0);
         info->m_stealTime = AZStd::chrono::milliseconds(0);
-#else
-        info->m_jobTime = 0;
-        info->m_stealTime = 0;
-#endif
     }
 #endif
 }
@@ -259,7 +255,6 @@ void JobManagerWorkStealing::ClearStats()
 void JobManagerWorkStealing::PrintStats()
 {
 #ifdef JOBMANAGER_ENABLE_STATS
-#if defined(CARBONATED)
     AZ_Printf("JobManagerWorkStealing", "===================================================");
     AZ_Printf("JobManagerWorkStealing", "Job System Stats:");
     AZ_Printf("JobManagerWorkStealing", "Thread   Global jobs    Forks/dependents   Jobs done   Jobs stolen    Job time (ms)  Steal time (ms)  Total time (ms)");
@@ -268,28 +263,12 @@ void JobManagerWorkStealing::PrintStats()
     {
         ThreadInfo* info = m_threads[i];
 
-        int jobTime = aznumeric_cast<int>(info->m_jobTime.count());
-        int stealTime = aznumeric_cast<int>(info->m_stealTime.count());
+        const int jobTime = aznumeric_cast<int>(info->m_jobTime.count());
+        const int stealTime = aznumeric_cast<int>(info->m_stealTime.count());
 
         AZ_Printf("JobManagerWorkStealing", " %d:      %5d          %5d           %5d         %5d            %5d           %5d         %5d",
             i, info->m_globalJobs, info->m_jobsForked, info->m_jobsDone, info->m_jobsStolen, jobTime, stealTime, jobTime + stealTime);
     }
-#else
-    char str[256];
-    printf("===================================================\n");
-    printf("Job System Stats:\n");
-    printf("Thread   Global jobs    Forks/dependents   Jobs done   Jobs stolen    Job time (ms)  Steal time (ms)  Total time (ms)\n");
-    printf("------   -------------  -----------------  ----------  ------------   -------------  ---------------  ---------------\n");
-    for (unsigned int i = 0; i < m_threads.size(); ++i)
-    {
-        ThreadInfo* info = m_threads[i];
-        double jobTime = 1000.0f * static_cast<double>(info->m_jobTime) / AZStd::GetTimeTicksPerSecond();
-        double stealTime = 1000.0f * static_cast<double>(info->m_stealTime) / AZStd::GetTimeTicksPerSecond();
-        azsnprintf(str, AZ_ARRAY_SIZE(str),  " %d:        %5d          %5d           %5d         %5d            %3.2f           %3.2f         %3.2f\n",
-            i, info->m_globalJobs, info->m_jobsForked, info->m_jobsDone, info->m_jobsStolen, jobTime, stealTime, jobTime + stealTime);
-        printf(str);
-    }
-#endif
 #endif
 }
 
@@ -433,11 +412,7 @@ void JobManagerWorkStealing::ProcessJobsInternal(ThreadInfo* info, Job* suspende
         while (!isTerminated)
         {
 #ifdef JOBMANAGER_ENABLE_STATS
-#if defined(CARBONATED)
             auto jobStartTime = AZStd::chrono::system_clock::now();
-#else
-            AZStd::sys_time_t jobStartTime = AZStd::GetTimeNowTicks();
-#endif
 #endif
             //run current job and jobs from the local queue until it is empty
             while (job)
@@ -474,13 +449,8 @@ void JobManagerWorkStealing::ProcessJobsInternal(ThreadInfo* info, Job* suspende
             }
 
 #ifdef JOBMANAGER_ENABLE_STATS
-#if defined(CARBONATED)
             auto jobEndTime = AZStd::chrono::system_clock::now();
             info->m_jobTime += AZStd::chrono::duration_cast<AZStd::chrono::milliseconds>(jobEndTime - jobStartTime);
-#else
-            AZStd::sys_time_t jobEndTime = AZStd::GetTimeNowTicks();
-            info->m_jobTime += jobEndTime - jobStartTime;
-#endif
 #endif
             if (m_workerThreads.size() < 2)
             {
@@ -539,11 +509,7 @@ void JobManagerWorkStealing::ProcessJobsInternal(ThreadInfo* info, Job* suspende
                 }
             }
 #ifdef JOBMANAGER_ENABLE_STATS
-#if defined(CARBONATED)
             info->m_stealTime += AZStd::chrono::duration_cast<AZStd::chrono::milliseconds>(AZStd::chrono::system_clock::now() - jobEndTime);
-#else
-            info->m_stealTime += AZStd::GetTimeNowTicks() - jobEndTime;
-#endif
 #endif
         }
     }

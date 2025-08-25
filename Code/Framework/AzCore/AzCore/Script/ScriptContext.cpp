@@ -409,7 +409,7 @@ namespace AZ
     namespace Internal
     {
         // Flag on Lua user data to validate that it is AZ user data
-        static const Crc32 AZLuaUserData = AZ_CRC("AZLuaUserData", 0x7d76a773);
+        static const Crc32 AZLuaUserData = AZ_CRC_CE("AZLuaUserData");
 
         // Special indices in the table at AZ_LUA_WEAK_CACHE_TABLE_REF
         enum {
@@ -933,7 +933,7 @@ namespace AZ
             LSV_BEGIN(l, 1);
             // Lua: object
             AZ::LuaUserData* userData = reinterpret_cast<AZ::LuaUserData*>(lua_touserdata(l, -1));
-            AZ_Assert(userData && userData->magicData == AZ_CRC("AZLuaUserData", 0x7d76a773), "this isn't user data");
+            AZ_Assert(userData && userData->magicData == AZ_CRC_CE("AZLuaUserData"), "this isn't user data");
             lua_getmetatable(l, -1); // load the class metatable
             // Lua: object, mt
             lua_rawgeti(l, -1, AZ_LUA_CLASS_METATABLE_NAME_INDEX);
@@ -1713,7 +1713,7 @@ LUA_API const Node* lua_getDummyNode()
 {
     if (!s_luaDummyNodeVariable)
     {
-        const AZ::u32 luaDummyNodeVariableID = AZ_CRC("lua_DummyNode", 0x155c8ce4);
+        const AZ::u32 luaDummyNodeVariableID = AZ_CRC_CE("lua_DummyNode");
 
         s_luaDummyNodeVariable = AZ::Environment::FindVariable<Node>(luaDummyNodeVariableID);
         if (!s_luaDummyNodeVariable)
@@ -3367,6 +3367,7 @@ LUA_API const Node* lua_getDummyNode()
             LuaLoadFromStack fromStack = FromLuaStack(context, &param, bcClass);
             return fromStack(lua, index, param, bcClass, allocator);
         }
+
         bool StackRead(lua_State* lua, int index, AZ::BehaviorArgument& param, AZ::StackVariableAllocator* allocator)
         {
             return StackRead(lua, index, ScriptContext::FromNativeContext(lua)->GetBoundContext(), param, allocator);
@@ -5766,9 +5767,9 @@ LUA_API const Node* lua_getDummyNode()
                 }
                 else
                 {
+#if (!defined(_RELEASE))
                     switch (error)
                     {
-#if (!defined(_RELEASE))
                     case ScriptContext::ErrorType::Error:
                         AZ_Error("Script", false, "%s", message);
                         break;
@@ -5785,7 +5786,7 @@ LUA_API const Node* lua_getDummyNode()
                         break;
 #endif
                     }
-               }
+                }
             }
 
             //////////////////////////////////////////////////////////////////////////

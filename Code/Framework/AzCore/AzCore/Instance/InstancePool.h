@@ -157,7 +157,7 @@ namespace AZ
             typename InstancePool<T>::CreateInstance createFunc = []() { return new T{}; })
 #endif // defined(CARBONATED)
         {
-            return CreatePool<T>(GetDefaultName<T>(), resetFunc);
+            return CreatePool<T>(GetDefaultName<T>(), resetFunc, createFunc);
         }
 
         // returns the pool with the specified name

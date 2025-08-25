@@ -10,6 +10,8 @@ package com.amazon.lumberyard.io;
 import android.content.res.AssetManager;
 import android.util.Log;
 import java.io.IOException;
+import android.app.Activity;
+
 
 ////////////////////////////////////////////////////////////////
 public class APKHandler

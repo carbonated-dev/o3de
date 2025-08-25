@@ -42,6 +42,9 @@ namespace AZ
 
         SimpleSchemaAllocator()
         {
+#if defined(CARBONATED)
+            m_totalAllocatedBytes = 0;
+#endif
             SetProfilingActive(ProfileAllocations);
             Create();
 
