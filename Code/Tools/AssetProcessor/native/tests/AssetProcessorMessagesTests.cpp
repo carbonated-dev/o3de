@@ -164,17 +164,10 @@ namespace AssetProcessorMessagesTests
             m_batchApplicationManager->InitAssetRequestHandler(m_assetRequestHandler);
             m_batchApplicationManager->ConnectAssetCatalog();
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
-            QObject::connect(m_batchApplicationManager->m_connectionManager, &ConnectionManager::ConnectionError, []([[maybe_unused]] unsigned connId, [[maybe_unused]] QString error)
+            QObject::connect(m_batchApplicationManager->m_connectionManager, &ConnectionManager::ConnectionError, [](unsigned /*connId*/, [[maybe_unused]] QString error)
                 {
                     AZ_Error("ConnectionManager", false, "%s", error.toUtf8().constData());
                 });
-#else
-            QObject::connect(m_batchApplicationManager->m_connectionManager, &ConnectionManager::ConnectionError, [](unsigned /*connId*/, QString error)
-                {
-                    AZ_Error("ConnectionManager", false, "%s", error.toUtf8().constData());
-                });
-#endif // defined(CARBONATED)
 
             ASSERT_TRUE(m_batchApplicationManager->m_applicationServer->startListening(AssetProcessorPort));
 

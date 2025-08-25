@@ -511,7 +511,6 @@ namespace AssetProcessor
 
             bool isExcludedDependency = dependencyPathSearch.starts_with(ExcludedDependenciesSymbol);
             dependencyPathSearch = isExcludedDependency ? dependencyPathSearch.substr(1) : dependencyPathSearch;
-
             // The database uses % for wildcards, both path based searching uses *, so keep a copy of the path with the * wildcard for later
             // use.
 #if defined(CARBONATED)
@@ -577,13 +576,14 @@ namespace AssetProcessor
                                 }
 #else
                                 AZ::IO::PathView searchPath(productDatabaseEntry.m_productName);
+
                                 if (!searchPath.Match(pathWildcardSearchPath))
                                 {
                                     continue;
                                 }
 #endif
                             }
-                            
+
                             AZStd::vector<AssetBuilderSDK::ProductDependency>& productDependencyList = isExcludedDependency ? excludedDeps : resolvedDeps;
                             productDependencyList.emplace_back(AZ::Data::AssetId(sourceDatabaseEntry.m_sourceGuid, productDatabaseEntry.m_subID), productDependencyFlags);
                         }

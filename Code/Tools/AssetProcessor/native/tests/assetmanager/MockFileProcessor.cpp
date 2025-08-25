@@ -10,20 +10,12 @@
 
 namespace UnitTests
 {
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
     void MockFileProcessor::AssessAddedFile([[maybe_unused]] QString fileName)
-#else
-     void MockFileProcessor::AssessAddedFile(QString fileName)
-#endif // defined(CARBONATED)
     {
         m_events[TestEvents::Added].Signal();
     }
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
-    void MockFileProcessor::AssessDeletedFile([[maybe_unused]] QString fileName)
-#else
-     void MockFileProcessor::AssessDeletedFile(QString fileName)
-#endif // defined(CARBONATED)
+     void MockFileProcessor::AssessDeletedFile([[maybe_unused]] QString fileName)
     {
         m_events[TestEvents::Deleted].Signal();
     }

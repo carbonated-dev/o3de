@@ -5,7 +5,9 @@
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
+#pragma once
 
-#include <AzTest/AzTest.h>
-
-AZ_UNIT_TEST_HOOK(DEFAULT_UNIT_TEST_ENV);
+QStringList ReadRecentFiles();
+void WriteRecentFiles(const QStringList& filenames);
+void AddRecentFile(const QString& filename);
+void ClearRecentFile();

@@ -84,13 +84,11 @@ void BatchApplicationManager::Reflect()
 {
     ApplicationManagerBase::Reflect();
 
-#if defined(CARBONATED)
     AZ::SerializeContext* context = nullptr;
     AZ::ComponentApplicationBus::BroadcastResult(context, &AZ::ComponentApplicationBus::Events::GetSerializeContext);
     AZ_Assert(context, "No serialize context");
 
     AssetProcessor::PlatformConfiguration::Reflect(context);
-#endif
 }
 
 const char* BatchApplicationManager::GetLogBaseName()
@@ -98,11 +96,7 @@ const char* BatchApplicationManager::GetLogBaseName()
     return "AP_Batch";
 }
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
 ApplicationManager::RegistryCheckInstructions BatchApplicationManager::PopupRegistryProblemsMessage([[maybe_unused]] QString warningText)
-#else
-ApplicationManager::RegistryCheckInstructions BatchApplicationManager::PopupRegistryProblemsMessage(QString warningText)
-#endif // defined(CARBONATED)
 {
     return RegistryCheckInstructions::Exit;
 }

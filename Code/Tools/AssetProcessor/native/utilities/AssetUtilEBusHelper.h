@@ -39,17 +39,9 @@ public:
 
     virtual ~AssetProcessorPlaformBusTraits() {}
     //Informs that the AP got a connection for this platform.
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
     virtual void AssetProcessorPlatformConnected([[maybe_unused]] const AZStd::string platform) {}
-#else
-    virtual void AssetProcessorPlatformConnected(const AZStd::string platform) {}
-#endif // defined(CARBONATED)
-    // Informs that a connection got disconnected for this platform.
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    //Informs that a connection got disconnected for this platform.
     virtual void AssetProcessorPlatformDisconnected([[maybe_unused]] const AZStd::string platform) {}
-#else
-    virtual void AssetProcessorPlatformDisconnected(const AZStd::string platform) {}
-#endif // defined(CARBONATED)
 };
 
 using AssetProcessorPlatformBus = AZ::EBus<AssetProcessorPlaformBusTraits>;

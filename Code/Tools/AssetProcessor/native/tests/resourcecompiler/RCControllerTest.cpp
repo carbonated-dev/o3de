@@ -222,11 +222,7 @@ TEST_F(RCcontrollerTest_Simple, DISABLED_SameJobIsCompletedMultipleTimes_Complet
     using namespace AssetProcessor;
 
     AZStd::vector<JobEntry> jobEntries;
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
     QObject::connect(m_rcController.get(), &RCController::FileCompiled, [&jobEntries](JobEntry entry, [[maybe_unused]] AssetBuilderSDK::ProcessJobResponse response)
-#else
-    QObject::connect(m_rcController.get(), &RCController::FileCompiled, [&jobEntries](JobEntry entry, AssetBuilderSDK::ProcessJobResponse response)
-#endif // defined(CARBONATED)
     {
         jobEntries.push_back(entry);
     });
