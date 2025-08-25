@@ -120,6 +120,10 @@ void ApplyDecal(uint currDecalIndex, inout Surface surface)
                 baseMap = ViewSrg::m_decalTextureArrayDiffuse3.Sample(PassSrg::LinearSampler, decalUV);
                 normalMap = ViewSrg::m_decalTextureArrayNormalMaps3.Sample(PassSrg::LinearSampler, decalUV).rg;
             break;
+            case 4:
+                baseMap = ViewSrg::m_decalTextureArrayDiffuse4.Sample(PassSrg::LinearSampler, decalUV);
+                normalMap = ViewSrg::m_decalTextureArrayNormalMaps4.Sample(PassSrg::LinearSampler, decalUV).rg;
+            break;            
         }
         
         const real decalAttenuation = GetDecalAttenuation(surface.GetVertexNormal(), decalRot[2], real(decal.m_angleAttenuation));

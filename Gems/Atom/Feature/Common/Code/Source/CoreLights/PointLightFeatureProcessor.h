@@ -61,8 +61,8 @@ namespace AZ
             void SetLightingChannelMask(LightHandle handle, uint32_t lightingChannelMask) override;
             void SetPointData(LightHandle handle, const PointLightData& data) override;
 
-            const Data::Instance<RPI::Buffer>  GetLightBuffer() const;
-            uint32_t GetLightCount()const;
+            const Data::Instance<RPI::Buffer> GetLightBuffer() const override;
+            uint32_t GetLightCount() const override;
 
         private:
             PointLightFeatureProcessor(const PointLightFeatureProcessor&) = delete;
@@ -80,7 +80,6 @@ namespace AZ
             RHI::Handle<uint32_t> m_lightMeshFlag;
             RHI::Handle<uint32_t> m_shadowMeshFlag;
             bool m_deviceBufferNeedsUpdate = false;
-            bool m_pointLightsEnabled = true;
 
             AZStd::array<AZ::Transform, PointLightData::NumShadowFaces> m_pointShadowTransforms;
         };

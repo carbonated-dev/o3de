@@ -98,8 +98,7 @@ namespace AZ::RHI
         return m_fragmentFunction == rhs.m_fragmentFunction && m_pipelineLayoutDescriptor == rhs.m_pipelineLayoutDescriptor &&
             m_renderStates == rhs.m_renderStates && m_vertexFunction == rhs.m_vertexFunction &&
             m_geometryFunction == rhs.m_geometryFunction && m_inputStreamLayout == rhs.m_inputStreamLayout && 
-            m_renderAttachmentConfiguration == rhs.m_renderAttachmentConfiguration &&
-            m_specializationData == rhs.m_specializationData;
+            m_renderAttachmentConfiguration == rhs.m_renderAttachmentConfiguration && m_specializationData == rhs.m_specializationData;
     }
 
     bool PipelineStateDescriptorForDispatch::operator == (const PipelineStateDescriptorForDispatch& rhs) const

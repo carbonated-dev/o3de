@@ -7,7 +7,6 @@
             "name": "textureMap",
             "displayName": "Height Map",
             "description": "Displacement height map to create parallax effect.",
-            "optional": true,
             "type": "Image",
             "connection": {
                 "type": "ShaderInput",
@@ -28,7 +27,6 @@
             "type": "Enum",
             "enumIsUv": true,
             "defaultValue": "Tiled",
-            "optional": true,
             "connection": {
                 "type": "ShaderInput",
                 "name": "m_parallaxUvIndex"
@@ -42,7 +40,6 @@
             "defaultValue": 0.05,
             "min": 0.0,
             "softMax": 0.1,
-            "optional": true,
             "connection": {
                 "type": "ShaderInput",
                 "name": "m_heightmapScale"
@@ -56,7 +53,6 @@
             "defaultValue": 0.0,
             "softMin": -0.1,
             "softMax": 0.1,
-            "optional": true,
             "connection": {
                 "type": "ShaderInput",
                 "name": "m_heightmapOffset"
@@ -69,7 +65,6 @@
             "type": "Enum",
             "enumValues": [ "Basic", "Steep", "POM", "Relief", "ContactRefinement" ],
             "defaultValue": "POM",
-            "optional": true,
             "connection": {
                 "type": "ShaderOption",
                 "name": "o_parallax_algorithm"
@@ -82,7 +77,6 @@
             "type": "Enum",
             "enumValues": [ "Low", "Medium", "High", "Ultra" ],
             "defaultValue": "Low",
-            "optional": true,
             "connection": {
                 "type": "ShaderOption",
                 "name": "o_parallax_quality"
@@ -94,7 +88,6 @@
             "description": "Enable PDO to offset the original pixel depths. This will affect any shaders using depth, for example, when receiving shadows.",
             "type": "Bool",
             "defaultValue": false,
-            "optional": true,
             "connection": {
                 "type": "ShaderOption",
                 "name": "o_parallax_enablePixelDepthOffset"
@@ -108,7 +101,6 @@
             "defaultValue": 1.0,
             "min": 0.0,
             "max": 1.0,
-            "optional": true,
             "connection": {
                 "type": "ShaderInput",
                 "name": "m_parallax_pdo_shadowFactor"
@@ -120,7 +112,6 @@
             "description": "Highlight areas where the height map is clipped by the mesh surface.",
             "type": "Bool",
             "defaultValue": false,
-            "optional": true,
             "connection": {
                 "type": "ShaderOption",
                 "name": "o_parallax_highlightClipping"

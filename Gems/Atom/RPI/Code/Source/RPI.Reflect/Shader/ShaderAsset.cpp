@@ -21,14 +21,12 @@
 #include <Atom/RPI.Public/Shader/ShaderReloadDebugTracker.h>
 #include <Atom/RPI.Public/Shader/ShaderReloadNotificationBus.h>
 
-DECLARE_EBUS_INSTANTIATION(RPI::ShaderVariantFinderNotification);
+DECLARE_EBUS_INSTANTIATION_DLL_MULTI_ADDRESS(RPI::ShaderVariantFinderNotification);
 
 namespace AZ
 {
     namespace RPI
     {
-        const ShaderVariantStableId ShaderAsset::RootShaderVariantStableId{0};
-
         static constexpr uint32_t SubProductTypeBitPosition = 0;
         static constexpr uint32_t SubProductTypeNumBits = SupervariantIndexBitPosition - SubProductTypeBitPosition;
         [[maybe_unused]] static constexpr uint32_t SubProductTypeMaxValue = (1 << SubProductTypeNumBits) - 1;

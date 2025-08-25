@@ -22,7 +22,6 @@
 
 #include <Atom/Feature/ImGui/SystemBus.h>
 #include <ImGuiContextScope.h>
-#include <ImGui/ImGuiPass.h>
 #include <imgui/imgui.h>
 
 #include <AzFramework/Components/ConsoleBus.h>  // Gruber patch. LVB

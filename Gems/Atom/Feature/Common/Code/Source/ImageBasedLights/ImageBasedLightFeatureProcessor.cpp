@@ -6,7 +6,7 @@
  *
  */
 
-#include <Atom/Feature/ImageBasedLights/ImageBasedLightFeatureProcessor.h>
+#include <ImageBasedLights/ImageBasedLightFeatureProcessor.h>
 
 #include <Atom/RPI.Public/Scene.h>
 #include <Atom/RPI.Public/RPIUtils.h>
@@ -87,24 +87,25 @@ namespace AZ
         {
             const constexpr char* DefaultSpecularCubeMapPath = "textures/default/default_iblglobalcm_iblspecular.dds.streamingimage";
             const constexpr char* DefaultDiffuseCubeMapPath = "textures/default/default_iblglobalcm_ibldiffuse.dds.streamingimage";
-            
+#if defined(CARBONATED)
             m_defaultSpecularImage = RPI::LoadStreamingTexture(DefaultSpecularCubeMapPath);
-            // Gruber patch. ivasilec : do not assert here
-            // AZ_Assert(m_defaultSpecularImage, "Failed to load default specular cubemap");
             if (!m_defaultSpecularImage)
             {
                 AZ_Warning("ImageBasedLightFeatureProcessor", false, "Failed to load default specular cubemap");
             }
-            // Gruber end
-            
+
             m_defaultDiffuseImage = RPI::LoadStreamingTexture(DefaultDiffuseCubeMapPath);
-            // Gruber patch. ivasilec : do not assert here
-            //AZ_Assert(m_defaultDiffuseImage, "Failed to load default diffuse cubemap");
             if (!m_defaultDiffuseImage)
             {
                 AZ_Warning("ImageBasedLightFeatureProcessor", false, "Failed to load default diffuse cubemap");
             }
-            // Gruber end
+#else
+            m_defaultSpecularImage = RPI::LoadStreamingTexture(DefaultSpecularCubeMapPath);
+            AZ_Assert(m_defaultSpecularImage, "Failed to load default specular cubemap");
+
+            m_defaultDiffuseImage = RPI::LoadStreamingTexture(DefaultDiffuseCubeMapPath);
+            AZ_Assert(m_defaultDiffuseImage, "Failed to load default diffuse cubemap");
+#endif
         }
 
         Data::Instance<RPI::Image> ImageBasedLightFeatureProcessor::GetInstanceForImage(const Data::Asset<RPI::StreamingImageAsset>& imageAsset, const Data::Instance<RPI::Image>& defaultImage)

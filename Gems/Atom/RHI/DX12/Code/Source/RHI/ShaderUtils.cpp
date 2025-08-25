@@ -6,10 +6,8 @@
  *
  */
 
-#if defined(CARBONATED)
-#include <RHI/DX12.h>
-#endif
 #include <RHI/ShaderUtils.h>
+#include <RHI/DX12.h>
 #include <openssl/md5.h>
 #include <Atom/RHI.Reflect/DX12/ShaderStageFunction.h>
 
@@ -66,14 +64,12 @@ namespace AZ::DX12
     }
 
     ShaderByteCode ShaderUtils::PatchShaderFunction(
-        const ShaderStageFunction& shaderFunction,
-        uint32_t subStageIndex,
-        const RHI::PipelineStateDescriptor& descriptor)
+        const ShaderStageFunction& shaderFunction, const RHI::PipelineStateDescriptor& descriptor)
     {
-        ShaderByteCode patched(shaderFunction.GetByteCode(subStageIndex).size());
-        ::memcpy(patched.data(), shaderFunction.GetByteCode(subStageIndex).data(), patched.size());
+        ShaderByteCode patched(shaderFunction.GetByteCode().size());
+        ::memcpy(patched.data(), shaderFunction.GetByteCode().data(), patched.size());
         const AZStd::vector<RHI::SpecializationConstant>& specializationConstants = descriptor.m_specializationData;
-        for (const auto& element : shaderFunction.GetSpecializationOffsets(subStageIndex))
+        for (const auto& element : shaderFunction.GetSpecializationOffsets())
         {
             auto findIter = AZStd::find_if(
                 specializationConstants.begin(),
@@ -108,7 +104,6 @@ namespace AZ::DX12
 
     ShaderByteCodeView ShaderUtils::PatchShaderFunction(
         const ShaderStageFunction& shaderFunction,
-        uint32_t subStageIndex,
         const RHI::PipelineStateDescriptor& descriptor,
         AZStd::vector<ShaderByteCode>& patchedShaderContainer)
     {
@@ -118,7 +113,7 @@ namespace AZ::DX12
             return shaderFunction.GetByteCode();
         }
 
-        ShaderByteCode patchedShader = PatchShaderFunction(shaderFunction, subStageIndex, descriptor);
+        ShaderByteCode patchedShader = PatchShaderFunction(shaderFunction, descriptor);
         patchedShaderContainer.emplace_back(AZStd::move(patchedShader));
         return patchedShaderContainer.back();
     }

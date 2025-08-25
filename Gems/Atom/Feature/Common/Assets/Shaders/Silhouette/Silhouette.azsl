@@ -6,7 +6,7 @@
  *
  */
 
-#include <viewsrg.srgi>
+#include <viewsrg_all.srgi>
 
 #include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
 #include <Atom/Features/PostProcessing/FullscreenPixelInfo.azsli>
@@ -74,7 +74,7 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
             real4 sampleColor = PassSrg::m_silhouettes.Load(IN.m_position.xy + offset, sampleIndex);
             pixelSample = max(pixelSample, sampleColor);
         }
-        
+
         if(pixelSample.a == 0.0)
         {
             discard;

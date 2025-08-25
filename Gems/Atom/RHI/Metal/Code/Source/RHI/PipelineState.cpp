@@ -106,8 +106,11 @@ namespace AZ
                 {
                     //In case byte code was not generated try to create the lib with source code
                     MTLCompileOptions* compileOptions = [MTLCompileOptions alloc];
-#if defined(CARBONATED) && defined(AZ_PLATFORM_IOS)
-                    compileOptions.mathMode = MTLMathModeFast;  // remove deprecated API
+#if defined(__IPHONE_18_0) || defined(__MAC_15_0)
+                    if(@available(iOS 18.0, macOS 15.0, *))
+                    {
+                        compileOptions.mathMode = MTLMathModeFast;
+                    }
 #else
                     compileOptions.fastMathEnabled = YES;
 #endif
@@ -157,7 +160,7 @@ namespace AZ
         
         RHI::ResultCode PipelineState::InitInternal(RHI::Device& deviceBase,
                                                     const RHI::PipelineStateDescriptorForDraw& descriptor,
-                                                    RHI::PipelineLibrary* pipelineLibraryBase)
+                                                    RHI::DevicePipelineLibrary* pipelineLibraryBase)
         {
             NSError* error = 0;
             Device& device = static_cast<Device&>(deviceBase);
@@ -167,17 +170,52 @@ namespace AZ
             const RHI::RenderAttachmentConfiguration& attachmentsConfiguration = descriptor.m_renderAttachmentConfiguration;
             m_renderPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
             
-            for (AZ::u32 i = 0; i < attachmentsConfiguration.GetRenderTargetCount(); ++i)
+            const auto& attachmentLayout = attachmentsConfiguration.m_renderAttachmentLayout;
+            RHI::Format depthStencilFormat = RHI::Format::Unknown;
+            m_attachmentIndexToColorIndex.fill(-1);
+            int currentColorIndex = 0;
+            // Initialize all used color attachments (by all subpasses) and only enable the ones used in this subpass.
+            // Also collect the format for the depth/stencil if one is being used.
+            for (uint32_t subpassIndex = 0; subpassIndex < attachmentLayout.m_subpassCount; ++subpassIndex)
             {
-                m_renderPipelineDesc.colorAttachments[i].pixelFormat = ConvertPixelFormat(attachmentsConfiguration.GetRenderTargetFormat(i));
-                m_renderPipelineDesc.colorAttachments[i].writeMask = ConvertColorWriteMask(descriptor.m_renderStates.m_blendState.m_targets[i].m_writeMask);
-                m_renderPipelineDesc.colorAttachments[i].blendingEnabled = descriptor.m_renderStates.m_blendState.m_targets[i].m_enable;
-                m_renderPipelineDesc.colorAttachments[i].alphaBlendOperation = ConvertBlendOp(descriptor.m_renderStates.m_blendState.m_targets[i].m_blendAlphaOp);
-                m_renderPipelineDesc.colorAttachments[i].rgbBlendOperation = ConvertBlendOp(descriptor.m_renderStates.m_blendState.m_targets[i].m_blendOp);
-                m_renderPipelineDesc.colorAttachments[i].destinationAlphaBlendFactor = ConvertBlendFactor(descriptor.m_renderStates.m_blendState.m_targets[i].m_blendAlphaDest);
-                m_renderPipelineDesc.colorAttachments[i].destinationRGBBlendFactor = ConvertBlendFactor(descriptor.m_renderStates.m_blendState.m_targets[i].m_blendDest);;
-                m_renderPipelineDesc.colorAttachments[i].sourceAlphaBlendFactor = ConvertBlendFactor(descriptor.m_renderStates.m_blendState.m_targets[i].m_blendAlphaSource);
-                m_renderPipelineDesc.colorAttachments[i].sourceRGBBlendFactor = ConvertBlendFactor(descriptor.m_renderStates.m_blendState.m_targets[i].m_blendSource);;
+                const RHI::SubpassRenderAttachmentLayout& subpassLayout = attachmentLayout.m_subpassLayouts[subpassIndex];
+                if(depthStencilFormat == RHI::Format::Unknown && subpassLayout.m_depthStencilDescriptor.IsValid())
+                {
+                    depthStencilFormat = attachmentLayout.m_attachmentFormats[subpassLayout.m_depthStencilDescriptor.m_attachmentIndex];
+                }
+                
+                for(uint32_t subpassAttachmentIndex = 0; subpassAttachmentIndex < subpassLayout.m_rendertargetCount; ++subpassAttachmentIndex)
+                {
+                    uint32_t i = subpassLayout.m_rendertargetDescriptors[subpassAttachmentIndex].m_attachmentIndex;
+                    if (m_attachmentIndexToColorIndex[i] < 0)
+                    {
+                        m_attachmentIndexToColorIndex[i] = currentColorIndex++;
+                    }
+                    MTLRenderPipelineColorAttachmentDescriptor* colorDescriptor = m_renderPipelineDesc.colorAttachments[m_attachmentIndexToColorIndex[i]];
+                    colorDescriptor.pixelFormat = ConvertPixelFormat(attachmentLayout.m_attachmentFormats[i]);
+                    colorDescriptor.writeMask = MTLColorWriteMaskNone;
+                    colorDescriptor.blendingEnabled = false;
+                }
+            }
+
+            // Enable the color attachments used by the subpass.
+            // Also translates the proper color index for the blending state (since index 0 may now be index 3
+            // due to merging passes)
+            const RHI::SubpassRenderAttachmentLayout& subpassLayout = attachmentLayout.m_subpassLayouts[attachmentsConfiguration.m_subpassIndex];
+            for(uint32_t subpassAttachmentIndex = 0; subpassAttachmentIndex < subpassLayout.m_rendertargetCount; ++subpassAttachmentIndex)
+            {
+                const auto& blendState = descriptor.m_renderStates.m_blendState.m_targets[subpassAttachmentIndex];
+                uint32_t i = subpassLayout.m_rendertargetDescriptors[subpassAttachmentIndex].m_attachmentIndex;
+                MTLRenderPipelineColorAttachmentDescriptor* colorDescriptor = m_renderPipelineDesc.colorAttachments[m_attachmentIndexToColorIndex[i]];
+                colorDescriptor.pixelFormat = ConvertPixelFormat(attachmentLayout.m_attachmentFormats[i]);
+                colorDescriptor.writeMask = ConvertColorWriteMask(blendState.m_writeMask);
+                colorDescriptor.blendingEnabled = blendState.m_enable;
+                colorDescriptor.alphaBlendOperation = ConvertBlendOp(blendState.m_blendAlphaOp);
+                colorDescriptor.rgbBlendOperation = ConvertBlendOp(blendState.m_blendOp);
+                colorDescriptor.destinationAlphaBlendFactor = ConvertBlendFactor(blendState.m_blendAlphaDest);
+                colorDescriptor.destinationRGBBlendFactor = ConvertBlendFactor(blendState.m_blendDest);;
+                colorDescriptor.sourceAlphaBlendFactor = ConvertBlendFactor(blendState.m_blendAlphaSource);
+                colorDescriptor.sourceRGBBlendFactor = ConvertBlendFactor(blendState.m_blendSource);
             }
             
             MTLVertexDescriptor* vertexDescriptor = [[MTLVertexDescriptor alloc] init];
@@ -192,13 +230,12 @@ namespace AZ
             AZ_Assert(m_renderPipelineDesc.vertexFunction, "Vertex mtlFuntion can not be null");
             m_renderPipelineDesc.fragmentFunction = ExtractMtlFunction(device.GetMtlDevice(), descriptor.m_fragmentFunction.get(), constantValues);
             
-            RHI::Format depthStencilFormat = attachmentsConfiguration.GetDepthStencilFormat();
             if(descriptor.m_renderStates.m_depthStencilState.m_stencil.m_enable || IsDepthStencilMerged(depthStencilFormat))
             {
                 m_renderPipelineDesc.stencilAttachmentPixelFormat = ConvertPixelFormat(depthStencilFormat);
             }
             
-            //Depthstencil state
+            // Depthstencil state
             if(descriptor.m_renderStates.m_depthStencilState.m_depth.m_enable || IsDepthStencilMerged(depthStencilFormat))
             {
                 m_renderPipelineDesc.depthAttachmentPixelFormat = ConvertPixelFormat(depthStencilFormat);
@@ -249,6 +286,15 @@ namespace AZ
                 AZ_Assert(false, "Could not create Pipeline object!.");
             }
             //We keep the descriptors alive in case we want to build the PSO cache. Delete them otherwise.
+            if (!r_enablePsoCaching)
+            {
+                [m_renderPipelineDesc release];
+                m_renderPipelineDesc = nil;
+            }
+            
+            [constantValues release];
+            constantValues = nil;
+             
             m_pipelineStateMultiSampleState = descriptor.m_renderStates.m_multisampleState;
             
             //Cache the rasterizer state
@@ -272,7 +318,7 @@ namespace AZ
 
         RHI::ResultCode PipelineState::InitInternal(RHI::Device& deviceBase,
                                                     const RHI::PipelineStateDescriptorForDispatch& descriptor,
-                                                    RHI::PipelineLibrary* pipelineLibraryBase)
+                                                    RHI::DevicePipelineLibrary* pipelineLibraryBase)
         {
             Device& device = static_cast<Device&>(deviceBase);
             NSError* error = 0;
@@ -319,7 +365,7 @@ namespace AZ
             }
         }
 
-        RHI::ResultCode PipelineState::InitInternal(RHI::Device& device, const RHI::PipelineStateDescriptorForRayTracing& descriptor, RHI::PipelineLibrary* pipelineLibrary)
+        RHI::ResultCode PipelineState::InitInternal(RHI::Device& device, const RHI::PipelineStateDescriptorForRayTracing& descriptor, RHI::DevicePipelineLibrary* pipelineLibrary)
         {
             // [GFX TODO][ATOM-5268] Implement Metal Ray Tracing
             AZ_Assert(false, "Not implemented");
@@ -365,6 +411,30 @@ namespace AZ
                 }
                 [constantValues setConstantValue:&value type:type atIndex:specializationData.m_id];
             }
+            
+            if(const RHI::PipelineStateDescriptorForDraw* drawPipelineDescriptor = azrtti_cast<const RHI::PipelineStateDescriptorForDraw*>(&pipelineDescriptor))
+            {
+                // Set the function specialization values for the color and input attachments according to the attachments of the renderpass.
+                // This is needed in order to support merging of passes as subpasses. See Metal::ShaderPlatformInterface
+                const RHI::RenderAttachmentConfiguration& renderAttachmentConfiguration = drawPipelineDescriptor->m_renderAttachmentConfiguration;
+                const RHI::SubpassRenderAttachmentLayout& subpassLayout = renderAttachmentConfiguration.m_renderAttachmentLayout.m_subpassLayouts[renderAttachmentConfiguration.m_subpassIndex];
+                for (uint32_t i = 0; i < subpassLayout.m_rendertargetCount; ++i)
+                {
+                    uint32_t value = m_attachmentIndexToColorIndex[subpassLayout.m_rendertargetDescriptors[i].m_attachmentIndex];
+                    NSString* functionConstantName = [[NSString alloc] initWithCString : AZStd::string::format("colorAttachment%d", i).c_str() encoding: NSASCIIStringEncoding];
+                    [constantValues setConstantValue:&value type:MTLDataTypeInt withName:functionConstantName];
+                    [functionConstantName  release];
+                    functionConstantName  = nil;
+                }
+                for (uint32_t i = 0; i < subpassLayout.m_subpassInputCount; ++i)
+                {
+                    uint32_t value = m_attachmentIndexToColorIndex[subpassLayout.m_subpassInputDescriptors[i].m_attachmentIndex];
+                    NSString* functionConstantName = [[NSString alloc] initWithCString : AZStd::string::format("inputAttachment%d", i).c_str() encoding: NSASCIIStringEncoding];
+                    [constantValues setConstantValue:&value type:MTLDataTypeInt withName:functionConstantName];
+                    [functionConstantName  release];
+                    functionConstantName  = nil;
+                }
+            }
             return constantValues;
         }
     
@@ -372,7 +442,6 @@ namespace AZ
         {
             if (m_graphicsPipelineState)
             {
-#if defined(CARBONATED)
                 if (m_renderPipelineDesc.vertexFunction)
                 {
                     [m_renderPipelineDesc.vertexFunction release];
@@ -381,7 +450,6 @@ namespace AZ
                 {
                     [m_renderPipelineDesc.fragmentFunction release];
                 }
-#endif
                 [m_renderPipelineDesc release];
                 m_renderPipelineDesc = nil;
                 [m_graphicsPipelineState release];
@@ -390,12 +458,10 @@ namespace AZ
             
             if (m_computePipelineState)
             {
-#if defined(CARBONATED)
                 if (m_computePipelineDesc.computeFunction)
                 {
                     [m_computePipelineDesc.computeFunction release];
                 }
-#endif
                 [m_computePipelineDesc release];
                 m_computePipelineDesc = nil;
                 [m_computePipelineState release];

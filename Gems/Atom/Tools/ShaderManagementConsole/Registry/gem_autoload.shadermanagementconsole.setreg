@@ -224,16 +224,6 @@
                     }
                 }
             },
-            "Metastream": {
-                "Targets": {
-                    "Metastream": {
-                        "AutoLoad": false
-                    },
-                    "Metastream.Editor": {
-                        "AutoLoad": false
-                    }
-                }
-            },
             "PhysX": {
                 "Targets": {
                     "PhysX.Editor": {

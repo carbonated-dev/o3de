@@ -83,10 +83,9 @@ namespace AZ::RHI
 
     void AsyncWorkQueue::ProcessQueue()
     {
+        WorkItem workItem;
         for (;;)
         {
-            // use a fresh workitem each time, so that we don't end up clearing its variables during move below.
-            WorkItem workItem;
             {
                 AZStd::unique_lock<AZStd::mutex> lock(m_workQueueMutex);
 
@@ -109,7 +108,6 @@ namespace AZ::RHI
                 AZStd::unique_lock<AZStd::mutex> lock(m_waitWorkItemMutex);
                 m_lastCompletedWorkItem = workItem.m_handle;
             }
-
             m_waitWorkItemCondition.notify_all();
         }
     }

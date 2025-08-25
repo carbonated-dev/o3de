@@ -8,11 +8,11 @@
 
 #include <CoreLights/PolygonLightFeatureProcessor.h>
 #include <CoreLights/LtcCommon.h>
+#include <Mesh/MeshFeatureProcessor.h>
 
 #include <AzCore/Math/Vector3.h>
 #include <AzCore/Math/Color.h>
 
-#include <Atom/Feature/Mesh/MeshFeatureProcessor.h>
 #include <Atom/Feature/CoreLights/CoreLightsConstants.h>
 
 #include <Atom/RHI/Factory.h>
@@ -49,16 +49,6 @@ namespace AZ::Render
         desc.m_elementCountSrgName = "m_polygonLightCount";
         desc.m_elementSize = sizeof(PolygonLightData);
         desc.m_srgLayout = RPI::RPISystemInterface::Get()->GetViewSrgLayout().get();
-
-        m_polygonLightEnabled = desc.m_srgLayout->FindShaderInputBufferIndex(Name(desc.m_bufferSrgName)).IsValid();
-        if (!m_polygonLightEnabled)
-        {
-            AZ_Warning(
-                "PolygonLightFeatureProcessor",
-                false,
-                "Could not find m_polygonLights entry in the View SRG. Disabling PolygonLightFeatureProcessor.");
-            return;
-        }
 
         m_lightBufferHandler = GpuBufferHandler(desc);
 
@@ -150,11 +140,6 @@ namespace AZ::Render
         AZ_PROFILE_SCOPE(RPI, "PolygonLightFeatureProcessor: Simulate");
         AZ_UNUSED(packet);
 
-        if (!m_polygonLightEnabled)
-        {
-            return;
-        }
-
         if (m_deviceBufferNeedsUpdate)
         {
             m_lightBufferHandler.UpdateBuffer(m_lightData.GetDataVector<0>());
@@ -179,10 +164,6 @@ namespace AZ::Render
     void PolygonLightFeatureProcessor::Render(const PolygonLightFeatureProcessor::RenderPacket& packet)
     {
         AZ_PROFILE_SCOPE(RPI, "PolygonLightFeatureProcessor: Render");
-        if (!m_polygonLightEnabled)
-        {
-            return;
-        }
 
         for (const RPI::ViewPtr& view : packet.m_views)
         {

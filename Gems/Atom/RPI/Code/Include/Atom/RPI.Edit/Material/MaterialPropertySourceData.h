@@ -9,6 +9,7 @@
 #pragma once
 
 #include <AzCore/RTTI/TypeInfo.h>
+#include <Atom/RPI.Edit/Configuration.h>
 #include <Atom/RPI.Reflect/Base.h>
 #include <Atom/RPI.Reflect/Material/MaterialPropertyDescriptor.h>
 #include <Atom/RPI.Reflect/Material/MaterialDynamicMetadata.h>
@@ -22,14 +23,14 @@ namespace AZ
         class JsonMaterialPropertySerializer;
 
         //! Stores data that defines one material property, for use in JSON source files such as .materialtype and .materialpipeline.
-        struct MaterialPropertySourceData
+        struct ATOM_RPI_EDIT_API MaterialPropertySourceData
         {
             friend class JsonMaterialPropertySerializer;
 
             AZ_CLASS_ALLOCATOR(MaterialPropertySourceData, SystemAllocator);
             AZ_TYPE_INFO(AZ::RPI::MaterialPropertySourceData, "{E0DB3C0D-75DB-4ADB-9E79-30DA63FA18B7}");
 
-            struct Connection
+            struct ATOM_RPI_EDIT_API Connection
             {
             public:
                 AZ_TYPE_INFO(AZ::RPI::MaterialPropertySourceData::Connection, "{C2F37C26-D7EF-4142-A650-EF50BB18610F}");
@@ -45,9 +46,9 @@ namespace AZ
 
             using ConnectionList = AZStd::vector<Connection>;
 
-            static const float DefaultMin;
-            static const float DefaultMax;
-            static const float DefaultStep;
+            static constexpr float DefaultMin = AZStd::numeric_limits<float>::lowest();
+            static constexpr float DefaultMax = AZStd::numeric_limits<float>::max();
+            static constexpr float DefaultStep = 0.1f;
 
             static void Reflect(ReflectContext* context);
 
@@ -67,7 +68,6 @@ namespace AZ
 
             AZStd::vector<AZStd::string> m_enumValues; //!< Only used if property is Enum type
             bool m_enumIsUv = false;  //!< Indicates if the enum value should use m_enumValues or those extracted from m_uvNameMap.
-            bool m_optional = false;
 
             // Editor metadata ...
             AZStd::string m_displayName;

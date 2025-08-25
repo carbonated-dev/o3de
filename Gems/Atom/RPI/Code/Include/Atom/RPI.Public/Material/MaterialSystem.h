@@ -7,6 +7,7 @@
  */
 #pragma once
 
+#include <Atom/RPI.Public/Configuration.h>
 #include <Atom/RPI.Reflect/Asset/AssetHandler.h>
 
 namespace AZ
@@ -15,10 +16,8 @@ namespace AZ
 
     namespace RPI
     {
-        class LuaMaterialBehaviorContext;
-
         //! Manages system-wide initialization and support for material classes
-        class MaterialSystem
+        class ATOM_RPI_PUBLIC_API MaterialSystem
         {
         public:
             static void Reflect(AZ::ReflectContext* context);
@@ -26,9 +25,6 @@ namespace AZ
 
             void Init();
             void Shutdown();
-
-        private:
-            LuaMaterialBehaviorContext* m_luaMaterialBehaviorContext = nullptr;
         };
 
     } // namespace RPI

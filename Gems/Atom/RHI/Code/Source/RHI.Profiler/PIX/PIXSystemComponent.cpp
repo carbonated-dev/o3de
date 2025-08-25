@@ -14,7 +14,6 @@
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzFramework/StringFunc/StringFunc.h>
-#include <Atom/RHI/RHIUtils.h>
 #include <Atom_RHI_Traits_Platform.h>
 
 #include <WinPixEventRuntime/pix3.h>
@@ -75,7 +74,7 @@ namespace AZ::RHI
 
     void PIXSystemComponent::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided)
     {
-        provided.push_back(AZ_CRC("GraphicsProfilerService"));
+        provided.push_back(AZ_CRC_CE("GraphicsProfilerService"));
     }
 
     void PIXSystemComponent::Activate()

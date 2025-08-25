@@ -7,14 +7,14 @@
  */
 
 #include <CoreLights/QuadLightFeatureProcessor.h>
+#include <CoreLights/LightCommon.h>
 #include <CoreLights/LtcCommon.h>
+#include <Mesh/MeshFeatureProcessor.h>
 
 #include <AzCore/Math/Vector3.h>
 #include <AzCore/Math/Color.h>
 
 #include <Atom/Feature/CoreLights/CoreLightsConstants.h>
-#include <Atom/Feature/CoreLights/LightCommon.h>
-#include <Atom/Feature/Mesh/MeshFeatureProcessor.h>
 
 #include <Atom/RHI/Factory.h>
 
@@ -52,16 +52,6 @@ namespace AZ
             desc.m_elementCountSrgName = "m_quadLightCount";
             desc.m_elementSize = sizeof(QuadLightData);
             desc.m_srgLayout = RPI::RPISystemInterface::Get()->GetViewSrgLayout().get();
-
-            m_quadLightEnabled = desc.m_srgLayout->FindShaderInputBufferIndex(Name(desc.m_bufferSrgName)).IsValid();
-            if (!m_quadLightEnabled)
-            {
-                AZ_Warning(
-                    "QuadLightFeatureProcessor",
-                    false,
-                    "Could not find m_quadLights entry in the View SRG. Disabling QuadLightFeatureProcessor.");
-                return;
-            }
 
             m_lightBufferHandler = GpuBufferHandler(desc);
 
@@ -126,10 +116,6 @@ namespace AZ
         {
             AZ_PROFILE_SCOPE(RPI, "QuadLightFeatureProcessor: Simulate");
             AZ_UNUSED(packet);
-            if (!m_quadLightEnabled)
-            {
-                return;
-            }
 
             if (m_deviceBufferNeedsUpdate)
             {
@@ -158,10 +144,6 @@ namespace AZ
         void QuadLightFeatureProcessor::Render(const QuadLightFeatureProcessor::RenderPacket& packet)
         {
             AZ_PROFILE_SCOPE(RPI, "QuadLightFeatureProcessor: Render");
-            if (!m_quadLightEnabled)
-            {
-                return;
-            }
 
             for (const RPI::ViewPtr& view : packet.m_views)
             {

@@ -248,11 +248,7 @@ namespace ImageProcessingAtom
         return destinationImage;
     }
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
     IImageObjectPtr ISPCCompressor::DecompressImage([[maybe_unused]] IImageObjectPtr sourceImage, [[maybe_unused]] EPixelFormat destinationFormat) const
-#else
-    IImageObjectPtr ISPCCompressor::DecompressImage(IImageObjectPtr sourceImage, [[maybe_unused]] EPixelFormat destinationFormat) const
-#endif // defined(CARBONATED)
     {
         return nullptr;
     }

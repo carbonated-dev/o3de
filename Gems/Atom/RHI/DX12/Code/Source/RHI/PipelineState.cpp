@@ -44,7 +44,7 @@ namespace AZ
         RHI::ResultCode PipelineState::InitInternal(
             RHI::Device& deviceBase,
             const RHI::PipelineStateDescriptorForDraw& descriptor,
-            RHI::PipelineLibrary* pipelineLibraryBase)
+            RHI::DevicePipelineLibrary* pipelineLibraryBase)
         {
             Device& device = static_cast<Device&>(deviceBase);
 
@@ -62,19 +62,19 @@ namespace AZ
             if (const ShaderStageFunction* vertexFunction = azrtti_cast<const ShaderStageFunction*>(descriptor.m_vertexFunction.get()))
             {
                 pipelineStateDesc.VS =
-                    D3D12BytecodeFromView(ShaderUtils::PatchShaderFunction(*vertexFunction, 0, descriptor, shaderByteCodeCache));
+                    D3D12BytecodeFromView(ShaderUtils::PatchShaderFunction(*vertexFunction, descriptor, shaderByteCodeCache));
             }
 
             if (const ShaderStageFunction* geometryFunction = azrtti_cast<const ShaderStageFunction*>(descriptor.m_geometryFunction.get()))
             {
                 pipelineStateDesc.GS =
-                    D3D12BytecodeFromView(ShaderUtils::PatchShaderFunction(*geometryFunction, 0, descriptor, shaderByteCodeCache));
+                    D3D12BytecodeFromView(ShaderUtils::PatchShaderFunction(*geometryFunction, descriptor, shaderByteCodeCache));
             }
 
             if (const ShaderStageFunction* fragmentFunction = azrtti_cast<const ShaderStageFunction*>(descriptor.m_fragmentFunction.get()))
             {
                 pipelineStateDesc.PS =
-                    D3D12BytecodeFromView(ShaderUtils::PatchShaderFunction(*fragmentFunction, 0, descriptor, shaderByteCodeCache));
+                    D3D12BytecodeFromView(ShaderUtils::PatchShaderFunction(*fragmentFunction, descriptor, shaderByteCodeCache));
             }
 
             const RHI::RenderAttachmentConfiguration& renderAttachmentConfiguration = descriptor.m_renderAttachmentConfiguration;
@@ -127,7 +127,7 @@ namespace AZ
         RHI::ResultCode PipelineState::InitInternal(
             RHI::Device& deviceBase,
             const RHI::PipelineStateDescriptorForDispatch& descriptor,
-            RHI::PipelineLibrary* pipelineLibraryBase)
+            RHI::DevicePipelineLibrary* pipelineLibraryBase)
         {
             Device& device = static_cast<Device&>(deviceBase);
 
@@ -141,7 +141,7 @@ namespace AZ
             if (const ShaderStageFunction* computeFunction = azrtti_cast<const ShaderStageFunction*>(descriptor.m_computeFunction.get()))
             {
                 pipelineStateDesc.CS =
-                    D3D12BytecodeFromView(ShaderUtils::PatchShaderFunction(*computeFunction, 0, descriptor, shaderByteCodeCache));
+                    D3D12BytecodeFromView(ShaderUtils::PatchShaderFunction(*computeFunction, descriptor, shaderByteCodeCache));
             }
 
             PipelineLibrary* pipelineLibrary = static_cast<PipelineLibrary*>(pipelineLibraryBase);
@@ -175,7 +175,7 @@ namespace AZ
         RHI::ResultCode PipelineState::InitInternal(
             RHI::Device& deviceBase,
             const RHI::PipelineStateDescriptorForRayTracing& descriptor,
-            [[maybe_unused]] RHI::PipelineLibrary* pipelineLibraryBase)
+            [[maybe_unused]] RHI::DevicePipelineLibrary* pipelineLibraryBase)
         {
             Device& device = static_cast<Device&>(deviceBase);
 

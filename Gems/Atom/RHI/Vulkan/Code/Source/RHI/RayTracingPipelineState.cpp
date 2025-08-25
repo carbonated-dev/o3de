@@ -6,12 +6,13 @@
  *
  */
 
-#include <RHI/RayTracingPipelineState.h>
-#include <RHI/Device.h>
-#include <RHI/SpecializationConstantData.h>
 #include <Atom/RHI.Reflect/SamplerState.h>
-#include <Atom/RHI.Reflect/Vulkan/ShaderStageFunction.h>
 #include <Atom/RHI.Reflect/VkAllocator.h>
+#include <Atom/RHI.Reflect/Vulkan/ShaderStageFunction.h>
+#include <RHI/Device.h>
+#include <RHI/RayTracingPipelineState.h>
+#include <RHI/ReleaseContainer.h>
+#include <RHI/SpecializationConstantData.h>
 
 namespace AZ
 {
@@ -22,7 +23,7 @@ namespace AZ
             return aznew RayTracingPipelineState;
         }
 
-        RHI::ResultCode RayTracingPipelineState::InitInternal(RHI::Device& deviceBase, const RHI::RayTracingPipelineStateDescriptor* descriptor)
+        RHI::ResultCode RayTracingPipelineState::InitInternal(RHI::Device& deviceBase, const RHI::DeviceRayTracingPipelineStateDescriptor* descriptor)
         {
             Device &device = static_cast<Device&>(deviceBase);
             auto& physicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
@@ -247,6 +248,10 @@ namespace AZ
         void RayTracingPipelineState::ShutdownInternal()
         {
             Device& device = static_cast<Device&>(GetDevice());
+
+            device.QueueForRelease(
+                new ReleaseContainer<VkPipeline>(device.GetNativeDevice(), m_pipeline, device.GetContext().DestroyPipeline));
+
             for (auto& shaderModule : m_shaderModules)
             {
                 device.GetContext().DestroyShaderModule(device.GetNativeDevice(), shaderModule, VkSystemAllocator::Get());

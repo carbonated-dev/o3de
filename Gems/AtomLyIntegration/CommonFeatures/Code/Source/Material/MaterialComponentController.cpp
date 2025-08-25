@@ -19,47 +19,6 @@ namespace AZ
 {
     namespace Render
     {
-        class MaterialComponentNotificationBusHandler
-            : public MaterialComponentNotificationBus::Handler
-            , public AZ::BehaviorEBusHandler
-        {
-        public:
-            AZ_EBUS_BEHAVIOR_BINDER(
-                MaterialComponentNotificationBusHandler,
-                "{1214402D-D4E7-4592-8D21-9FB92405E8B0}",
-                AZ::SystemAllocator,
-                OnMaterialsEdited,
-                OnMaterialSlotLayoutChanged,
-                OnMaterialsCreated,
-                OnMaterialsUpdated,
-                OnMaterialPropertiesUpdated);
-
-            void OnMaterialsEdited() override
-            {
-                Call(FN_OnMaterialsEdited);
-            }
-
-            void OnMaterialSlotLayoutChanged() override
-            {
-                Call(FN_OnMaterialSlotLayoutChanged);
-            }
-
-            void OnMaterialsCreated(const MaterialAssignmentMap& materials) override
-            {
-                Call(FN_OnMaterialsCreated, materials);
-            }
-
-            void OnMaterialsUpdated(const MaterialAssignmentMap& materials) override
-            {
-                Call(FN_OnMaterialsUpdated, materials);
-            }
-
-            void OnMaterialPropertiesUpdated(const MaterialAssignmentMap& materials) override
-            {
-                Call(FN_OnMaterialPropertiesUpdated, materials);
-            }
-        };
-
         void MaterialComponentController::Reflect(ReflectContext* context)
         {
             MaterialComponentConfig::Reflect(context);
@@ -82,6 +41,7 @@ namespace AZ
                     ->Event("FindMaterialAssignmentId", &MaterialComponentRequestBus::Events::FindMaterialAssignmentId)
                     ->Event("GetActiveMaterialAssetId", &MaterialComponentRequestBus::Events::GetMaterialAssetId) // This function is now redundant but cannot be marked deprecated or removed in case it's still referenced in script
                     ->Event("GetDefaultMaterialAssetId", &MaterialComponentRequestBus::Events::GetDefaultMaterialAssetId)
+                    ->Event("IsDefaultMaterialAssetReady", &MaterialComponentRequestBus::Events::IsDefaultMaterialAssetReady)
                     ->Event("GetMaterialLabel", &MaterialComponentRequestBus::Events::GetMaterialLabel, "GetMaterialSlotLabel")
                     ->Event("SetMaterialMap", &MaterialComponentRequestBus::Events::SetMaterialMap, "SetMaterialOverrides")
                     ->Event("GetMaterialMap", &MaterialComponentRequestBus::Events::GetMaterialMap, "GetMaterialOverrides")
@@ -98,6 +58,7 @@ namespace AZ
                     ->Event("RepairMaterialsWithRenamedProperties", &MaterialComponentRequestBus::Events::RepairMaterialsWithRenamedProperties, "ApplyAutomaticPropertyUpdates")
                     ->Event("SetMaterialAssetId", &MaterialComponentRequestBus::Events::SetMaterialAssetId, "SetMaterialOverride")
                     ->Event("GetMaterialAssetId", &MaterialComponentRequestBus::Events::GetMaterialAssetId, "GetMaterialOverride")
+                    ->Event("IsMaterialAssetReady", &MaterialComponentRequestBus::Events::IsMaterialAssetReady)
                     ->Event("ClearMaterialAssetId", &MaterialComponentRequestBus::Events::ClearMaterialAssetId, "ClearMaterialOverride")
                     ->Event("IsMaterialAssetIdOverridden", &MaterialComponentRequestBus::Events::IsMaterialAssetIdOverridden)
                     ->Event("HasPropertiesOverridden", &MaterialComponentRequestBus::Events::HasPropertiesOverridden)
@@ -133,9 +94,6 @@ namespace AZ
                     ->Event("SetPropertyValues", &MaterialComponentRequestBus::Events::SetPropertyValues, "SetPropertyOverrides")
                     ->Event("GetPropertyValues", &MaterialComponentRequestBus::Events::GetPropertyValues, "GetPropertyOverrides")
                     ;
-
-                  behaviorContext->EBus<MaterialComponentNotificationBus>("MaterialComponentNotificationBus")
-                    ->Handler<MaterialComponentNotificationBusHandler>();
             }
         }
 
@@ -438,6 +396,12 @@ namespace AZ
             return materialIt != m_defaultMaterialMap.end() ? materialIt->second.m_materialAsset.GetId() : AZ::Data::AssetId();
         }
 
+        bool MaterialComponentController::IsDefaultMaterialAssetReady(const MaterialAssignmentId& materialAssignmentId) const
+        {
+            const auto materialIt = m_defaultMaterialMap.find(materialAssignmentId);
+            return (materialIt != m_defaultMaterialMap.end()) && materialIt->second.m_materialAsset.IsReady();
+        }
+
         AZStd::string MaterialComponentController::GetMaterialLabel(const MaterialAssignmentId& materialAssignmentId) const
         {
             MaterialAssignmentLabelMap labels;
@@ -638,6 +602,12 @@ namespace AZ
 
             // Otherwise return the cached default material asset ID
             return GetDefaultMaterialAssetId(materialAssignmentId);
+        }
+
+        bool MaterialComponentController::IsMaterialAssetReady(const MaterialAssignmentId& materialAssignmentId) const
+        {
+            const auto materialIt = m_configuration.m_materials.find(materialAssignmentId);
+            return (materialIt != m_configuration.m_materials.end()) && materialIt->second.m_materialAsset.IsReady();
         }
 
         void MaterialComponentController::ClearMaterialAssetId(const MaterialAssignmentId& materialAssignmentId)

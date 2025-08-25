@@ -151,11 +151,7 @@ namespace AZ::AtomBridge
     }
 
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
     void AtomDebugDisplayViewportInterface::OnViewportDefaultViewChanged([[maybe_unused]] AZ::RPI::ViewPtr view)
-#else
-    void AtomDebugDisplayViewportInterface::OnViewportDefaultViewChanged(AZ::RPI::ViewPtr view)
-#endif // defined(CARBONATED)
     {
         ResetRenderState();
         if (!m_defaultInstance)

@@ -34,12 +34,11 @@ Surface EvaluateSurface_StandardPBR(
     Surface surface = EvaluateSurface_BasePBR(positionWS, vertexNormal, tangents, bitangents, uvs, isFrontFace, uvDxDy, customDerivatives, vertexColor);
 
     // ------- Parallax Clipping -------
-#if ENABLE_PARALLAX
+
     if(o_parallax_highlightClipping && isDisplacementClipped)
     {
         ApplyParallaxClippingHighlight(surface.albedo);
     }
-#endif
 
     // ------- Alpha & Clip -------
 
@@ -147,11 +146,6 @@ Surface EvaluateSurface_StandardPBR(VsOutput IN, PixelGeometryData geoData, floa
 
 Surface EvaluateSurface_StandardPBR(VsOutput IN, PixelGeometryData geoData)
 {
-#if ENABLE_VERTEX_COLOR
-    float4 color0 = IN.color0;
-#else
-    float4 color0 = float4(1.0f, 1.0f, 1.0f, 1.0f);
-#endif
     return EvaluateSurface_StandardPBR(
         geoData.positionWS,
         geoData.vertexNormal,
