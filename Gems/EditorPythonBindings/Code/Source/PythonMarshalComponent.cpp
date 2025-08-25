@@ -263,11 +263,7 @@ namespace EditorPythonBindings
             return aznew AZStd::any(address, valueInfo);
         }
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
-        AZStd::optional<PythonMarshalTypeRequests::BehaviorValueResult> PythonToParameterWithProxy(EditorPythonBindings::PythonProxyObject* proxyObj, [[maybe_unused]] pybind11::object pyObj, AZ::BehaviorArgument& outValue)
-#else
-        AZStd::optional<PythonMarshalTypeRequests::BehaviorValueResult> PythonToParameterWithProxy(EditorPythonBindings::PythonProxyObject* proxyObj, pybind11::object pyObj, AZ::BehaviorArgument& outValue)
-#endif // defined(CARBONATED)
+        AZStd::optional<PythonMarshalTypeRequests::BehaviorValueResult> PythonToParameterWithProxy(EditorPythonBindings::PythonProxyObject* proxyObj,[[maybe_unused]] pybind11::object pyObj, AZ::BehaviorArgument& outValue)
         {
             auto behaviorObject = proxyObj->GetBehaviorObject();
             if (!behaviorObject)
