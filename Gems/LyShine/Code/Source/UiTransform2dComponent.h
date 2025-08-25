@@ -54,12 +54,8 @@ public: // member functions
     ScaleToDeviceMode GetScaleToDeviceMode() override;
     void SetScaleToDeviceMode(ScaleToDeviceMode scaleToDeviceMode) override;
 
-    // carbonated begin (alukyanov/lyshine-related)
-#if defined(CARBONATED)
     bool GetIsFlooringOffsets() override;
     void SetIsFlooringOffsets(bool isFlooringOffsets) override;
-#endif
-    // carbonated end
 
     void GetViewportSpacePoints(RectPoints& points) final;
     AZ::Vector2 GetViewportSpacePivot() final;
@@ -133,12 +129,12 @@ public:  // static member functions
 
     static void GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided)
     {
-        provided.push_back(AZ_CRC("UiTransformService", 0x3a838e34));
+        provided.push_back(AZ_CRC_CE("UiTransformService"));
     }
 
     static void GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType& incompatible)
     {
-        incompatible.push_back(AZ_CRC("UiTransformService", 0x3a838e34));
+        incompatible.push_back(AZ_CRC_CE("UiTransformService"));
     }
 
     static void GetRequiredServices([[maybe_unused]] AZ::ComponentDescriptor::DependencyArrayType& required)

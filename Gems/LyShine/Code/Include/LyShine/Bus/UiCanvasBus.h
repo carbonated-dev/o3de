@@ -162,10 +162,8 @@ public: // member functions
     //! Get the transformation from viewport space to canvas space
     virtual void GetViewportToCanvasMatrix(AZ::Matrix4x4& matrix) = 0;
 
-#if defined(CARBONATED)
     // Returns the authoered size of the canvas
     virtual AZ::Vector2 GetAuthoredCanvasSize() = 0;
-#endif
 
     //! Returns the "target" size of the canvas (in pixels)
     //

@@ -35,7 +35,7 @@ ly_add_target(
             AZ::AzTestShared
             Legacy::CryCommon
             AZ::AzFramework
-            AZ::AzToolsFramework
+            AZ::AzToolsFramework   # Carbonated for PrefabSpawnerComponentTest
             Gem::LmbrCentral.Static
             Gem::LmbrCentral.Mocks
 )

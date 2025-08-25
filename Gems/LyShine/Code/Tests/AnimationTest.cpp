@@ -55,11 +55,7 @@ namespace UnitTest
             UiAnimationNotificationBus::Handler::BusDisconnect(m_busId);
         }
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         void OnUiAnimationEvent([[maybe_unused]] IUiAnimationListener::EUiAnimationEvent uiAnimationEvent, [[maybe_unused]] AZStd::string animSequenceName) {};
-#else
-        void OnUiAnimationEvent([[maybe_unused]] IUiAnimationListener::EUiAnimationEvent uiAnimationEvent, AZStd::string animSequenceName) {};
-#endif // defined(CARBONATED)
         void OnUiTrackEvent(AZStd::string eventName, AZStd::string valueName, AZStd::string animSequenceName)
         {
             m_recievedEvents.push_back(EventInfo{ eventName, valueName, animSequenceName });
