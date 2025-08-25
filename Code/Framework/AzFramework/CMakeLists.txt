@@ -16,6 +16,10 @@ set(azframeworkaddon_dependency AZ::AzFrameworkAddon.Static)
 set(gridmate_dependency AZ::GridMate)
 endif()
 
+if(LY_PIX_ENABLED)
+    set(AZ_FRAMEWORK_NATIVEUI_PIX_BUILD_DEPENDENCIES 3rdParty::pix)
+endif()
+
 ly_add_target(
     NAME AzFramework STATIC
     NAMESPACE AZ
@@ -59,6 +63,7 @@ ly_add_target(
         PRIVATE
             AZ::AzCore
             AZ::AzFramework
+            ${AZ_FRAMEWORK_NATIVEUI_PIX_BUILD_DEPENDENCIES}
 )
 
 set(LY_SEARCH_MODE_DEFINE $<$<BOOL:"${LY_ARCHIVE_FILE_SEARCH_MODE}">:LY_ARCHIVE_FILE_SEARCH_MODE=${LY_ARCHIVE_FILE_SEARCH_MODE}>)
