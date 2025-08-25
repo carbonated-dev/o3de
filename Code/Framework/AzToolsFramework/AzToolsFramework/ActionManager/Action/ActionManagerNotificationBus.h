@@ -23,11 +23,7 @@ namespace AzToolsFramework
         //////////////////////////////////////////////////////////////////////////
 
         //! Triggered when an action's enabled or checked state changes.
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         virtual void OnActionStateChanged([[maybe_unused]] AZStd::string actionIdentifier) {}
-#else
-        virtual void OnActionStateChanged(AZStd::string actionIdentifier) {}
-#endif // defined(CARBONATED)
 
     protected:
         ~ActionManagerNotifications() = default;

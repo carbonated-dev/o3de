@@ -422,7 +422,7 @@ namespace AzToolsFramework
             AZ_Assert(mainWindow != nullptr, "PrefabSaveHandler - Editor MainWindow is not available.");
 
             m_prefabToastNotificationsView =
-                AZStd::make_unique<AzToolsFramework::ToastNotificationsView>(mainWindow, AZ_CRC("PrefabToastNotificationsView"));
+                AZStd::make_unique<AzToolsFramework::ToastNotificationsView>(mainWindow, AZ_CRC_CE("PrefabToastNotificationsView"));
 
             m_prefabToastNotificationsView->SetRejectDuplicates(false);
             m_prefabToastNotificationsView->SetAnchorPoint(QPoint(1, 1));

@@ -114,8 +114,11 @@ namespace AzToolsFramework
             AZ::Quaternion GetLocalRotationQuaternion() override;
 
             // Scale Modifiers
-            // AZ::Vector3 GetLocalScale() override;    // Gruber patch. GetLocalScale is deprecated
-
+#if defined(CARBONATED)
+            // Gruber patch. GetLocalScale is deprecated
+#else
+            AZ::Vector3 GetLocalScale() override;
+#endif
             void SetLocalUniformScale(float scale) override;
             float GetLocalUniformScale() override;
             float GetWorldUniformScale() override;
@@ -164,6 +167,11 @@ namespace AzToolsFramework
             // SliceEntityHierarchyRequestBus
             AZ::EntityId GetSliceEntityParentId() override;
             AZStd::vector<AZ::EntityId> GetSliceEntityChildren() override;
+
+            // For tools
+            // Returns false if the component did not exist and failed to be added.
+            // Returns true otherwise, and always updates the non-uniform scale value.
+            bool AddNonUniformScaleComponent(const AZ::Vector3& nonUniformScale);
 
         private:
             // AZ::TransformNotificationBus - Connected to parent's ID

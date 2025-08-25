@@ -1029,11 +1029,7 @@ namespace AzToolsFramework
         }
 
         //=========================================================================
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         SliceTransaction::Result SlicePreSaveCallbackForWorldEntities([[maybe_unused]] SliceTransaction::TransactionPtr transaction, const char* fullPath, SliceTransaction::SliceAssetPtr& asset)
-#else
-        SliceTransaction::Result SlicePreSaveCallbackForWorldEntities(SliceTransaction::TransactionPtr transaction, const char* fullPath, SliceTransaction::SliceAssetPtr& asset)
-#endif // defined(CARBONATED)
         {
             AZ_PROFILE_SCOPE(AzToolsFramework, "SliceUtilities::SlicePreSaveCallbackForWorldEntities");
 
@@ -2218,7 +2214,7 @@ namespace AzToolsFramework
                     }
                 }
 
-                auto settings = AZ::UserSettings::CreateFind<SliceUserSettings>(AZ_CRC("SliceUserSettings", 0x055b32eb), AZ::UserSettings::CT_LOCAL);
+                auto settings = AZ::UserSettings::CreateFind<SliceUserSettings>(AZ_CRC_CE("SliceUserSettings"), AZ::UserSettings::CT_LOCAL);
                 if (settings->m_autoNumber)
                 {
                     AZ::IO::FileIOBase* fileIO = AZ::IO::FileIOBase::GetInstance();
