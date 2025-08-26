@@ -536,6 +536,11 @@ extern DWORD g_idDebugThreads[];
 extern int g_nDebugThreads;
 int prev_sys_float_exceptions = -1;
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && defined(AZ_PLATFORM_WINDOWS)
+AZ_CVAR_EXTERNED(uint32_t, vsync_interval);
+AZ_CVAR_EXTERNED(int32_t, sys_MaxFPS);
+#endif
+
 //////////////////////////////////////////////////////////////////////
 bool CSystem::UpdatePreTickBus(int updateFlags, int nPauseMode)
 {
@@ -629,6 +634,12 @@ bool CSystem::UpdatePreTickBus(int updateFlags, int nPauseMode)
     //limit frame rate if vsync is turned off
     //for consoles this is done inside renderthread to be vsync dependent
     {
+
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && defined(AZ_PLATFORM_WINDOWS)
+        {
+            int32 maxFPS = sys_MaxFPS;
+            uint32 vSync = vsync_interval;
+#else
         static ICVar* pSysMaxFPS = NULL;
         static ICVar* pVSync = NULL;
 
@@ -652,14 +663,13 @@ bool CSystem::UpdatePreTickBus(int updateFlags, int nPauseMode)
                 const bool inLevel = pLvlSys && pLvlSys->IsLevelLoaded();
                 maxFPS = !inLevel || IsPaused() ? 60 : 0;
             }
+#endif
 
             if (maxFPS > 0 && vSync == 0)
             {
-                const float safeMarginFPS = 0.5f;//save margin to not drop below 30 fps
+                const float safeMarginFPS = 0.5f; // save margin to not drop below 30 fps
                 static AZ::TimeMs sTimeLast = AZ::GetRealElapsedTimeMs();
-                const AZ::TimeMs timeFrameMax(static_cast<AZ::TimeMs>(
-                    (int64)(1000.f / ((float)maxFPS + safeMarginFPS))
-                    ));
+                const AZ::TimeMs timeFrameMax(static_cast<AZ::TimeMs>((int64)(1000.f / ((float)maxFPS + safeMarginFPS))));
                 const AZ::TimeMs timeLast = timeFrameMax + sTimeLast;
                 while (timeLast > AZ::GetRealElapsedTimeMs())
                 {

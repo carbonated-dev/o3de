@@ -1227,7 +1227,6 @@ namespace Legacy::System::CVars
         "__debugbreak() if a VALIDATOR_ERROR_DBGBREAK message is hit");
 }
 #endif
-
 //////////////////////////////////////////////////////////////////////////
 void CSystem::CreateSystemVars()
 {
@@ -1417,6 +1416,9 @@ void CSystem::CreateSystemVars()
     REGISTER_CVAR2(
         "sys_dump_aux_threads", &g_cvars.sys_dump_aux_threads, 1, VF_NULL, "Dumps callstacks of other threads in case of a crash");
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && defined(AZ_PLATFORM_WINDOWS)
+    // Declaration of "sys_MaxFPS" moved to NativeWidow.cpp (next to "desired_fps" and "vsync_interval") and modern AZ_CVAR is used
+ #else
 #if (defined(WIN32) || defined(WIN64)) && defined(_RELEASE)
     const int DEFAULT_SYS_MAX_FPS = 0;
 #else
@@ -1430,6 +1432,7 @@ void CSystem::CreateSystemVars()
         "Limits the frame rate to specified number n (if n>0 and if vsync is disabled).\n"
         " 0 = on PC if vsync is off auto throttles fps while in menu or game is paused (default)\n"
         "-1 = off");
+#endif
 
     REGISTER_CVAR2(
         "sys_maxTimeStepForMovieSystem",

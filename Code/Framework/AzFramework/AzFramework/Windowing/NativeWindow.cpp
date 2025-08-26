@@ -22,6 +22,19 @@ void OnVsyncIntervalChanged(uint32_t const& interval)
 AZ_CVAR(uint32_t, vsync_interval, 1, OnVsyncIntervalChanged, AZ::ConsoleFunctorFlags::Null, "Set swapchain vsync interval");
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+
+#if defined(AZ_PLATFORM_WINDOWS)
+AZ_CVAR(
+    int32_t,
+    sys_MaxFPS,
+    -1,
+    nullptr,
+    AZ::ConsoleFunctorFlags::Null,
+    "Limits the frame rate to specified number n (if n>0 and if vsync is disabled).\n"
+    " 0 = on PC if vsync is off auto throttles fps while in menu or game is paused (default)\n"
+    "-1 = off");
+#endif
+
 void OnDesiredFPSChanged(uint32_t const& desiredFPS)
 {
     AzFramework::WindowNotificationBus::Broadcast(
