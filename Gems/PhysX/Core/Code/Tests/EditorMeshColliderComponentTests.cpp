@@ -139,7 +139,7 @@ namespace PhysXEditorTests
     TEST_F(PhysXEditorFixture, EditorMeshColliderComponent_ColliderWithBox_CorrectRuntimeComponents)
     {
 #if defined(CARBONATED)
-        AZ_TEST_START_TRACE_SUPPRESSION;    //Ignore the error ‘EditorMeshColliderComponent::BuildGameEntity. No asset assigned to Collider Component’ (commit 59f572198917940ca22fd31090155b6131915723)
+        AZ_TEST_START_TRACE_SUPPRESSION;    //Ignore the error "EditorMeshColliderComponent::BuildGameEntity. No asset assigned to Collider Component" (commit 59f572198917940ca22fd31090155b6131915723)
 #endif
         // create an editor entity with a collider component
         EntityPtr editorEntity = CreateInactiveEditorEntity("MeshColliderComponentEditorEntity");
@@ -160,7 +160,7 @@ namespace PhysXEditorTests
     TEST_F(PhysXEditorFixture, EditorMeshColliderComponent_ColliderWithBoxAndRigidBody_CorrectRuntimeComponents)
     {
 #if defined(CARBONATED)
-        AZ_TEST_START_TRACE_SUPPRESSION;    //Ignore the error ‘EditorMeshColliderComponent::BuildGameEntity. No asset assigned to Collider Component’ (commit 59f572198917940ca22fd31090155b6131915723)
+        AZ_TEST_START_TRACE_SUPPRESSION;    //Ignore the error "EditorMeshColliderComponent::BuildGameEntity. No asset assigned to Collider Component" (commit 59f572198917940ca22fd31090155b6131915723)
 #endif
         // create an editor entity with a collider component
         EntityPtr editorEntity = CreateInactiveEditorEntity("MeshColliderComponentEditorEntity");
@@ -181,7 +181,7 @@ namespace PhysXEditorTests
     TEST_F(PhysXEditorFixture, EditorMeshColliderComponent_ColliderWithNoMesh_GeneratesNoShapes)
     {
 #if defined(CARBONATED)
-        AZ_TEST_START_TRACE_SUPPRESSION;    //Ignore the error ‘EditorMeshColliderComponent::BuildGameEntity. No asset assigned to Collider Component’ (commit 59f572198917940ca22fd31090155b6131915723)
+        AZ_TEST_START_TRACE_SUPPRESSION;    //Ignore the error "EditorMeshColliderComponent::BuildGameEntity. No asset assigned to Collider Component" (commit 59f572198917940ca22fd31090155b6131915723)
 #endif
         // create an editor entity with a collider component
         EntityPtr editorEntity = CreateInactiveEditorEntity("MeshColliderComponentEditorEntity");
