@@ -330,7 +330,7 @@ namespace AzFramework
             {
                 // get ticket id from Entity (when SpawnableInstanceDescriptor is absent)
 #if defined(CARBONATED)
-                AZ::Entity* entity;
+                AZ::Entity* entity; // Carbonated patch 2025/08/27: remove undesired dependency on external Add-On
                 AZ::ComponentApplicationBus::BroadcastResult(entity, &AZ::ComponentApplicationBus::Events::FindEntity, entityId);
 #else
                 const AZ::Entity* entity = EntityHelpers::GetEntity(entityId);
