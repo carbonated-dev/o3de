@@ -171,7 +171,7 @@ namespace AzFramework
         // carbonated begin (akostin/mp226): Add NetworkContext to ReflectionManager instance
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         NetSystemRequestBus::Handler::BusConnect();
-        #endif
+#endif
         // carbonated end
     }
 
@@ -185,7 +185,7 @@ namespace AzFramework
         // carbonated begin (akostin/mp226): Add NetworkContext to ReflectionManager instance
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         NetSystemRequestBus::Handler::BusDisconnect();
-        #endif
+#endif
         // carbonated end
 
         AZ::UserSettingsFileLocatorBus::Handler::BusDisconnect();

@@ -480,7 +480,7 @@ namespace AzFramework
         // carbonated begin (akostin/mp226-2): Add NetBindable to ScriptComponent
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         delete m_netBindingTable;
-        #endif
+#endif
         // carbonated end
     }
 

@@ -493,7 +493,7 @@ namespace AZ::Data
         AZStd::atomic_bool m_loadCompleted{ false };
 #if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
         unsigned int m_timeoutMillis;
-#endif    
+#endif
     };
 
 

@@ -673,7 +673,7 @@ bool CSystem::UpdatePreTickBus(int updateFlags, int nPauseMode)
     // carbonated begin (akostin/onframebeginend): Allow custom actions on begin/end frame
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
     CrySystemPreTickBus::Broadcast(&CrySystemPreTick::OnFrameBegin);
-    #endif
+#endif
     // carbonated end
 
     //////////////////////////////////////////////////////////////////////
@@ -753,7 +753,7 @@ bool CSystem::UpdatePostTickBus(int updateFlags, int /*nPauseMode*/)
     // carbonated begin (akostin/onframebeginend): Allow custom actions on begin/end frame
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
     CrySystemPostTickBus::Broadcast(&CrySystemPostTick::OnFrameEnd);
-    #endif
+#endif
     // carbonated end
 
     // Also broadcast for anyone else that needs to draw global debug to do so now
