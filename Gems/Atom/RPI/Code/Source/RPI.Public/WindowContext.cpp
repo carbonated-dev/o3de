@@ -176,18 +176,13 @@ namespace AZ
                 }
                 else if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::DX12))
                 {
-                    // Assume that on Windows DX12 we have:
-                    // vsync_interval = 0 : no restrictions
-                    // vsync_interval = 1 : 60 FPS
-                    // vsync_interval = 2 : 30 FPS
-                    if (desiredFPS >= 60)
-                    {
-                        console->PerformCommand("vsync_interval 1");
-                    }
-                    else if (desiredFPS <= 30)
-                    {
-                        console->PerformCommand("vsync_interval 2");
-                    }
+                    const RHI::WindowHandle windowHandle = RHI::WindowHandle(reinterpret_cast<uintptr_t>(m_windowHandle));
+
+                    uint32_t displayRefreshRate = 0;
+                    AzFramework::WindowRequestBus::EventResult(
+                        displayRefreshRate, m_windowHandle, &AzFramework::WindowRequestBus::Events::GetDisplayRefreshRate);
+                    int vsyncInterval = std::max(1, static_cast<int>(std::round(static_cast<float>(displayRefreshRate) / desiredFPS)));
+                    console->PerformCommand(AZStd::string::format("vsync_interval %i", vsyncInterval).c_str());
                 }
             }
 #else

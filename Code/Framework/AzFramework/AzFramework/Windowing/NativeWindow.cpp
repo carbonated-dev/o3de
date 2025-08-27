@@ -46,8 +46,8 @@ void OnDesiredFPSChanged(uint32_t const& desiredFPS)
 // It takes effect immediately.
 // The value of the desired FPS is constrained to be greater than 0.
 // It takes into an account the device refresh rate and sets the interval accordingly to set desired FPS.
-// The default is 59, so any changes will take place.
-AZ_CVAR(uint32_t, desired_fps, 59, OnDesiredFPSChanged, AZ::ConsoleFunctorFlags::Null, "Set desired frames per second rate");
+// The default is 55, so any changes will take place.
+AZ_CVAR(uint32_t, desired_fps, 55, OnDesiredFPSChanged, AZ::ConsoleFunctorFlags::Null, "Set desired frames per second rate");
 #endif
 
 namespace AzFramework
