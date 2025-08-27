@@ -75,7 +75,7 @@ ${OVERRIDE_JAVA_SOURCESET}
 
     // CARBONATED -- begin: assetPacks = [...]
     ${AAB_ASSET_PACK_LIST}
-    // CARBONATED -- Enable Prefab feature (for Swappy integration)
+    // Enable Prefab feature (for Swappy integration)
     buildFeatures {
         prefab true
     }	
