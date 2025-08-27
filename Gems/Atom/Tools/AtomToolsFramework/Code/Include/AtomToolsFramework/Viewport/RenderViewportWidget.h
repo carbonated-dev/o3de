@@ -124,11 +124,6 @@ namespace AtomToolsFramework
         bool SetSyncInterval(uint32_t newSyncInterval) override;
         uint32_t GetDisplayRefreshRate() const override;
 
-#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
-        uint32_t GetDesiredFPS() const override;
-        void SetDesiredFPS(uint32_t desiredFPS) override;
-#endif
-
     protected:
         // AzFramework::InputChannelEventListener overrides ...
         bool OnInputChannelEventFiltered(const AzFramework::InputChannel& inputChannel) override;

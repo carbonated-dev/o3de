@@ -490,22 +490,4 @@ namespace AtomToolsFramework
     {
         return false;
     }
-
-#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
-    uint32_t RenderViewportWidget::GetDesiredFPS() const
-    {
-        uint32_t desiredFPS = 60;
-        if (auto* console = AZ::Interface<AZ::IConsole>::Get())
-        {
-            console->GetCvarValue("desired_fps", desiredFPS);
-        }
-        return desiredFPS;
-    }
-
-    // Editor ignores requests to change the DesiredFPS
-    void RenderViewportWidget::SetDesiredFPS([[maybe_unused]] uint32_t desiredFPS)
-    {
-    }
-#endif
-
 } //namespace AtomToolsFramework

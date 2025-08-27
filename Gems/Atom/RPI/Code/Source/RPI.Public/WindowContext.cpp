@@ -165,8 +165,35 @@ namespace AZ
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         void WindowContext::OnDesiredFPSChanged(uint32_t desiredFPS)
         {
+#if defined(AZ_PLATFORM_WINDOWS)
+            auto console = AZ::Interface<AZ::IConsole>::Get();
+            if (console && AZ::RHI::Factory::IsReady())
+            {
+                if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::Vulkan))
+                {
+                    console->PerformCommand("vsync_interval 0");
+                    console->PerformCommand(AZStd::string::format("sys_MaxFPS %i", desiredFPS).c_str());
+                }
+                else if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::DX12))
+                {
+                    // Assume that on Windows DX12 we have:
+                    // vsync_interval = 0 : no restrictions
+                    // vsync_interval = 1 : 60 FPS
+                    // vsync_interval = 2 : 30 FPS
+                    if (desiredFPS >= 60)
+                    {
+                        console->PerformCommand("vsync_interval 1");
+                    }
+                    else if (desiredFPS <= 30)
+                    {
+                        console->PerformCommand("vsync_interval 2");
+                    }
+                }
+            }
+#else
             RHI::Ptr<RHI::SwapChain> defaultSwapChain = GetSwapChain(ViewType::Default);
             defaultSwapChain->SetDesiredFPS(desiredFPS);
+#endif
         };
 #endif
 

@@ -40,12 +40,14 @@ void OnDesiredFPSChanged(uint32_t const& desiredFPS)
     AzFramework::WindowNotificationBus::Broadcast(
         &AzFramework::WindowNotificationBus::Events::OnDesiredFPSChanged, AZ::GetClamp(desiredFPS, 1u, 240u));
 }
+ 
 // NOTE: On change, broadcasts the new desired FPS to all windows.
 // Currently it is supported on Android platform using Swappy
 // It takes effect immediately.
 // The value of the desired FPS is constrained to be greater than 0.
 // It takes into an account the device refresh rate and sets the interval accordingly to set desired FPS.
-AZ_CVAR(uint32_t, desired_fps, 60, OnDesiredFPSChanged, AZ::ConsoleFunctorFlags::Null, "Set desired frames per second rate");
+// The default is 59, so any changes will take place.
+AZ_CVAR(uint32_t, desired_fps, 59, OnDesiredFPSChanged, AZ::ConsoleFunctorFlags::Null, "Set desired frames per second rate");
 #endif
 
 namespace AzFramework
@@ -215,18 +217,6 @@ namespace AzFramework
         vsync_interval = newSyncInterval;
         return true;
     }
-
-#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
-    uint32_t NativeWindow::GetDesiredFPS() const
-    {
-        return desired_fps;
-    }
-
-    void NativeWindow::SetDesiredFPS(uint32_t desiredFPS)
-    {
-        desired_fps = desiredFPS;
-    }
-#endif
 
     /*static*/ bool NativeWindow::SupportsClientAreaResizeOfDefaultWindow()
     {

@@ -664,12 +664,13 @@ bool CSystem::UpdatePreTickBus(int updateFlags, int nPauseMode)
                 maxFPS = !inLevel || IsPaused() ? 60 : 0;
             }
 #endif
-
             if (maxFPS > 0 && vSync == 0)
             {
                 const float safeMarginFPS = 0.5f; // save margin to not drop below 30 fps
                 static AZ::TimeMs sTimeLast = AZ::GetRealElapsedTimeMs();
-                const AZ::TimeMs timeFrameMax(static_cast<AZ::TimeMs>((int64)(1000.f / ((float)maxFPS + safeMarginFPS))));
+                const AZ::TimeMs timeFrameMax(static_cast<AZ::TimeMs>(
+                    (int64)(1000.f / ((float)maxFPS + safeMarginFPS))
+                    ));
                 const AZ::TimeMs timeLast = timeFrameMax + sTimeLast;
                 while (timeLast > AZ::GetRealElapsedTimeMs())
                 {

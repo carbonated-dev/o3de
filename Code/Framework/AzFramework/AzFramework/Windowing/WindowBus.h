@@ -134,14 +134,6 @@ namespace AzFramework
         //! Returns if the sync interval was successfully set
         virtual bool SetSyncInterval(uint32_t newSyncInterval) = 0;
 
-#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
-        //! Returns the desired frames per second.
-        virtual uint32_t GetDesiredFPS() const = 0;
-
-        //! Sets the desired frames per second.
-        virtual void SetDesiredFPS(uint32_t desiredFPS) = 0;
-#endif
-
         //! Returns the refresh rate of the main display
         virtual uint32_t GetDisplayRefreshRate() const = 0;
     };
@@ -178,7 +170,7 @@ namespace AzFramework
         //! This is called when vsync interval is changed.
         virtual void OnVsyncIntervalChanged(uint32_t interval) { AZ_UNUSED(interval); };
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         virtual void OnDesiredFPSChanged(uint32_t desiredFPS) { AZ_UNUSED(desiredFPS); };
 #endif
 
