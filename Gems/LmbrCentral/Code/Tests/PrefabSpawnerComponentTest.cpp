@@ -278,7 +278,7 @@ TEST_F(PrefabSpawnerComponentTest, DISABLED_OnSpawnedPrefabDestroyed_FiresAfterE
 }
 
 
-TEST_F(PrefabSpawnerComponentTest, DISABLED_OnSpawnedPrefabDestroyed_FiresWhenSpawningBadAssets) // disabled because AZ_TEST_START_TRACE_SUPPRESSION isn't currently suppressing DISABLED_the asserts
+TEST_F(PrefabSpawnerComponentTest, DISABLED_OnSpawnedPrefabDestroyed_FiresWhenSpawningBadAssets) // disabled because AZ_TEST_START_TRACE_SUPPRESSION isn't currently suppressing the asserts
 {
     // ID is made up and not registered with asset manager
     auto nonexistentAsset = AZ::Data::Asset<AzFramework::Spawnable>(
