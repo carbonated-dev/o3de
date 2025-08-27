@@ -587,8 +587,8 @@ namespace ConsoleSettingsRegistryTests
         // The 11 scoped cvars above should have all been deferred for execution
         // Each of them should have executed resulting in the expected return value below
 #else
-      // The scoped cvars just above should have all been deferred for execution
-      // Each of them should have executed resulting in the expected return value
+        // The scoped cvars just above should have all been deferred for execution
+        // Each of them should have executed resulting in the expected return value
         EXPECT_TRUE(testConsole.ExecuteDeferredConsoleCommands());
 #endif
 
