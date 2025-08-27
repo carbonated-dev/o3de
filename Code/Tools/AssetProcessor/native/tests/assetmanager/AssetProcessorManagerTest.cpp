@@ -2506,16 +2506,13 @@ void PathDependencyTest::RunWildcardDependencyTestOnPaths(
 TEST_F(PathDependencyTest, WildcardDependencies_WildcardWithPath_ResolveCorrectly)
 {
     RunWildcardDependencyTestOnPaths(
-        "root/path/*.txt", // target wildcardDependency
-        { // expectedMatchingPaths
-            // Should match - this file is in the matching subfolder
-            "root/path/file1.txt",
-            // Should match - This is in a subfolder, and wildcards do cross directory markers down.
-            "root/path/subfolder/file3.txt",
+        "root/path/*.txt",                  // target wildcardDependency
+        {              // expectedMatchingPaths
+            "root/path/file1.txt",          // Should match - this file is in the matching subfolder
+            "root/path/subfolder/file3.txt",// Should match - This is in a subfolder, and wildcards do cross directory markers down.
         },
-        { // expectedNotMatchingPaths
-          // Should not match - This is in the root folder, and wildcards do not cross directory markers up.
-          "root/file4.txt"
+        {           // expectedNotMatchingPaths
+            "root/file4.txt"                // Should not match - This is in the root folder, and wildcards do not cross directory markers up.
         }
     );
 }
