@@ -124,10 +124,10 @@ namespace AZ
                 bool m_isValid = false;
             } m_swapChainBarrier;
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
             // Display refresh rate in nanoseconds, assigned when SwappyVk is initialized.
             uint64_t m_refreshNs = 0;
-#endif // defined(CARBONATED)
+#endif // CARBONATED && CARBONATED_DESIRED_FPS
         };
     }
 }
