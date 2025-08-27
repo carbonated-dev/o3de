@@ -21,7 +21,7 @@
 #include <AzCore/Serialization/SerializeContext.h>
 
 // carbonated begin (akostin/mp226-2): Add NetBindable to ScriptComponent
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <AzFramework/Script/ScriptNetBindings.h>
 #include <AzFramework/Network/NetworkContext.h>
 #include <GridMate/Replica/ReplicaChunk.h>
@@ -478,7 +478,7 @@ namespace AzFramework
         m_properties.Clear();
 
         // carbonated begin (akostin/mp226-2): Add NetBindable to ScriptComponent
-        #if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         delete m_netBindingTable;
         #endif
         // carbonated end
@@ -940,7 +940,7 @@ namespace AzFramework
                 };
 
 // carbonated begin (akostin/mp226-5): Add NetBindable to ScriptComponent
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
                 serializeContext->Class<ScriptComponent, AZ::Component, NetBindable>()
                     ->Version(3, converter)
                     ->Field("ContextID", &ScriptComponent::m_contextId)
@@ -969,7 +969,7 @@ namespace AzFramework
         }
 
         // carbonated begin (akostin/mp226-2): Add NetBindable to ScriptComponent
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         ScriptNetBindingTable::Reflect(reflection);
 #endif
         // carbonated end
@@ -1039,7 +1039,7 @@ namespace AzFramework
     }
 
     // carbonated begin (akostin/mp226-2): Add NetBindable to ScriptComponent
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 
     const char* ScriptComponent::NetRPCFieldName = "NetRPCs";
 

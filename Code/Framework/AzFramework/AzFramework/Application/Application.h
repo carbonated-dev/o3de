@@ -22,7 +22,7 @@
 #include <AzFramework/API/ApplicationAPI.h>
 
 // carbonated begin (akostin/mp226): Add NetworkContext to ReflectionManager instance
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <AzFramework/Network/NetSystemBus.h>
 #endif
 // carbonated end
@@ -51,7 +51,7 @@ namespace AzFramework
         , public AZ::UserSettingsFileLocatorBus::Handler
         , public ApplicationRequests::Bus::Handler
         // carbonated begin (akostin/mp226): Add NetworkContext to ReflectionManager instance
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         , public NetSystemRequestBus::Handler
 #endif
         // carbonated end
@@ -153,7 +153,7 @@ namespace AzFramework
         static void Exit(int errorCode) { ApplicationRequests::Bus::Broadcast(&ApplicationRequests::TerminateOnError, errorCode); }
 
         // carbonated begin (akostin/mp226): Add NetworkContext to ReflectionManager instance
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         //////////////////////////////////////////////////////////////////////////
         //! NetSystemEventBus::Handler
         //////////////////////////////////////////////////////////////////////////

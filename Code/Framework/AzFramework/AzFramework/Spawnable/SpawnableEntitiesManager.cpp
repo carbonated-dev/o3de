@@ -15,8 +15,7 @@
 #include <AzCore/std/smart_ptr/make_shared.h>
 // Gruber patch begin // VMED
 #ifdef CARBONATED
-#include <AzCore/std/sort.h> 
-#include <AzFramework/Helpers/EntityHelpers.h> // Helper methods to evaluate Entities moved here
+#include <AzCore/std/sort.h>
 #include <AzFramework/StringFunc/StringFunc.h>
 #include <AzCore/Memory/MemoryMarker.h>
 #endif
@@ -329,12 +328,8 @@ namespace AzFramework
             else
             {
                 // get ticket id from Entity (when SpawnableInstanceDescriptor is absent)
-#if defined(CARBONATED)
                 AZ::Entity* entity; // Carbonated patch 2025/08/27: remove undesired dependency on external Add-On
                 AZ::ComponentApplicationBus::BroadcastResult(entity, &AZ::ComponentApplicationBus::Events::FindEntity, entityId);
-#else
-                const AZ::Entity* entity = EntityHelpers::GetEntity(entityId);
-#endif
                 if (entity) // "entity is NULL" if entity with this entityId is missed or already removed
                 {
                     ticketId = entity->GetEntitySpawnTicketId();

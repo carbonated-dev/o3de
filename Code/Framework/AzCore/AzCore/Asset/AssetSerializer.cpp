@@ -248,7 +248,9 @@ namespace AZ {
 
     bool AssetSerializer::PostSerializeAssetReference(AZ::Data::Asset<AZ::Data::AssetData>& asset, const Data::AssetFilterCB& assetFilterCallback)
     {
+#if defined(CARBONATED)
         ASSET_TAG(asset.GetHint().c_str());
+#endif
 
         if (!asset.GetId().IsValid())
         {

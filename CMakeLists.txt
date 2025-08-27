@@ -22,6 +22,12 @@ if(CARBONATED)
     add_compile_definitions(CARBONATED)
 endif(CARBONATED)
 
+OPTION(AUTOMATED_TESTING_ON "Enable fixes for automated testing" OFF)
+
+if(AUTOMATED_TESTING_ON)
+    add_compile_definitions(AUTOMATED_TESTING_ON)
+endif(AUTOMATED_TESTING_ON)
+
 # memory and performance tracking options
 OPTION(MEMORY_TAG_TRACING "Enable asset and mmeory tags" OFF)
 OPTION(START_MEMORY_TRACING "Start memory tracing from app start" OFF)

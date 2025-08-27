@@ -35,7 +35,7 @@
 #include <AzCore/Interface/Interface.h>
 
 // carbonated begin (akostin/onframebeginend): Allow custom actions on begin/end frame
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <CryCommon/CrySystemPostTickBus.h>
 #include <CryCommon/CrySystemPreTickBus.h>
 #include "CryNetwork/CryNetwork.h"
@@ -382,7 +382,7 @@ void CSystem::ShutDown()
     SAFE_RELEASE(m_env.pCryFont);
 
     // carbonated begin (akostin/mp-402-1): Revert pNetwork in SSystemGlobalEnvironment
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
     CryNetwork::NetworkInstance::Release();
 #endif
     // carbonated end
@@ -671,7 +671,7 @@ bool CSystem::UpdatePreTickBus(int updateFlags, int nPauseMode)
     }
 
     // carbonated begin (akostin/onframebeginend): Allow custom actions on begin/end frame
-    #if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
     CrySystemPreTickBus::Broadcast(&CrySystemPreTick::OnFrameBegin);
     #endif
     // carbonated end
@@ -751,7 +751,7 @@ bool CSystem::UpdatePostTickBus(int updateFlags, int /*nPauseMode*/)
     }
 
     // carbonated begin (akostin/onframebeginend): Allow custom actions on begin/end frame
-    #if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
     CrySystemPostTickBus::Broadcast(&CrySystemPostTick::OnFrameEnd);
     #endif
     // carbonated end

@@ -88,7 +88,7 @@
 #include <CrySystemBus.h>
 
 // carbonated begin (akostin/mp-402-1): Revert pNetwork in SSystemGlobalEnvironment
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include "CryNetwork/CryNetwork.h"
 #endif
 // carbonated end
@@ -1068,7 +1068,7 @@ bool CSystem::Init(const SSystemInitParams& startupParams)
         }
 
         // carbonated begin (akostin/mp-402-1): Revert pNetwork in SSystemGlobalEnvironment
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         //////////////////////////////////////////////////////////////////////////
         // NETWORK
         //////////////////////////////////////////////////////////////////////////
