@@ -55,7 +55,6 @@ namespace UnitTest
                 m_console = aznew AZ::Console();
                 m_console->LinkDeferredFunctors(AZ::ConsoleFunctorBase::GetDeferredHead());
                 AZ::Interface<AZ::IConsole>::Register(m_console);
-// commit 0f6633b678d826beacb5f4c222556e97fe94e816
 #if defined(CARBONATED)
                 m_console->EnableToDispatchConsoleCommands();
 #endif

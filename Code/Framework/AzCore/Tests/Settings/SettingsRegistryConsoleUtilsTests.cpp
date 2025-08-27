@@ -69,7 +69,6 @@ namespace SettingsRegistryConsoleUtilsTests
         constexpr const char* settingsKey = "/TestKey";
         constexpr const char* expectedValue = "TestValue";
         AZ::Console testConsole(*m_registry);
-// commit 0f6633b678d826beacb5f4c222556e97fe94e816
 #if defined(CARBONATED)
         testConsole.EnableToDispatchConsoleCommands();
 #endif
