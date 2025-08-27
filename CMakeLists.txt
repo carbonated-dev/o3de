@@ -16,14 +16,14 @@ if(NOT ${CMAKE_VERSION} VERSION_LESS "3.24")
     cmake_policy(SET CMP0135 NEW) 
 endif()
 
-# Certain changes under CARBONATED option / compile definition may interfere with tests in AutomatedTesting project.
-# The next option helps fixing such issues.
 OPTION(CARBONATED "Enable Carbonated patches" OFF)
 
 if(CARBONATED)
     add_compile_definitions(CARBONATED)
 endif(CARBONATED)
 
+# Certain changes under CARBONATED option / compile definition may interfere with tests in AutomatedTesting project.
+# The next option helps fixing such issues.
 OPTION(AUTOMATED_TESTING_ON "Enable fixes for automated testing" OFF)
 
 if(AUTOMATED_TESTING_ON)
