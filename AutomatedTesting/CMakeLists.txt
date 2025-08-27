@@ -24,6 +24,15 @@ if(NOT PROJECT_NAME)
             endif()
         endif()
     endfunction()
+
+    if(CARBONATED)
+      # Certain changes under CARBONATED option / compile definition may interfere with tests in AutomatedTesting project.
+      # The next option helps fixing such issues.
+      OPTION(AUTOMATED_TESTING_ON "Enable fixes for automated testing" ON)
+      if(AUTOMATED_TESTING_ON)
+          add_compile_definitions(AUTOMATED_TESTING_ON)
+      endif(AUTOMATED_TESTING_ON)
+    endif(CARBONATED)
     
     # Check for optional 'engine_finder_cmake_path' in order of preference
     # We support per-project customization to make it easier to upgrade 
