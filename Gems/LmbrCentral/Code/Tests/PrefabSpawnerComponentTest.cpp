@@ -233,38 +233,62 @@ public:
 
 const size_t kEntitiesInPrefab = 2; // number of entities in asset we're testing with
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_SanityCheck)    //tests disabled due to malfunction
+#else
+TEST_F(PrefabSpawnerComponentTest, SanityCheck)
+#endif
 {
     // Tests that Setup/TearDown work as expected
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_SpawnPrefab_OnSpawnEnd_Fires)
+#else
+TEST_F(PrefabSpawnerComponentTest, SpawnPrefab_OnSpawnEnd_Fires)
+#endif
 {
     // First test the helper function, which checks for OnSpawnEnd
     SpawnDefaultPrefab();
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_SpawnPrefab_OnSpawnBegin_Fires)
+#else
+TEST_F(PrefabSpawnerComponentTest, SpawnPrefab_OnSpawnBegin_Fires)
+#endif
 {
     const AzFramework::EntitySpawnTicket ticket = SpawnDefaultPrefab();
     EXPECT_TRUE(m_PrefabSpawnWatcher->m_tickets[ticket].m_onSpawnBegin);
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_SpawnPrefab_OnEntitySpawned_FiresOncePerEntity)
+#else
+TEST_F(PrefabSpawnerComponentTest, SpawnPrefab_OnEntitySpawned_FiresOncePerEntity)
+#endif
 {
     const AzFramework::EntitySpawnTicket ticket = SpawnDefaultPrefab();
 
     EXPECT_EQ(kEntitiesInPrefab, m_PrefabSpawnWatcher->m_tickets[ticket].m_onEntitySpawned.size());
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_SpawnPrefab_OnEntitiesSpawned_FiresWithAllEntities)
+#else
+TEST_F(PrefabSpawnerComponentTest, SpawnPrefab_OnEntitiesSpawned_FiresWithAllEntities)
+#endif
 {
     const AzFramework::EntitySpawnTicket ticket = SpawnDefaultPrefab();
 
     EXPECT_EQ(kEntitiesInPrefab, m_PrefabSpawnWatcher->m_tickets[ticket].m_onEntitiesSpawned.size());
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_OnSpawnedPrefabDestroyed_FiresAfterEntitiesDeleted)
+#else
+TEST_F(PrefabSpawnerComponentTest, OnSpawnedPrefabDestroyed_FiresAfterEntitiesDeleted)
+#endif
 {
     const AzFramework::EntitySpawnTicket ticket = SpawnDefaultPrefab();
 
@@ -291,7 +315,11 @@ TEST_F(PrefabSpawnerComponentTest, DISABLED_OnSpawnedPrefabDestroyed_FiresWhenSp
     EXPECT_TRUE(spawnDestructionFired);
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroySpawnedPrefab_EntitiesFromSpawn_AreDeleted)
+#else
+TEST_F(PrefabSpawnerComponentTest, DestroySpawnedPrefab_EntitiesFromSpawn_AreDeleted)
+#endif
 {
     AzFramework::EntitySpawnTicket ticket = SpawnDefaultPrefab();
 
@@ -312,7 +340,11 @@ TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroySpawnedPrefab_EntitiesFromSpa
     EXPECT_TRUE(entitiesRemoved);
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroySpawnedPrefab_OnSpawnedPrefabDestroyed_Fires)
+#else
+TEST_F(PrefabSpawnerComponentTest, DestroySpawnedPrefab_OnSpawnedPrefabDestroyed_Fires)
+#endif
 {
     AzFramework::EntitySpawnTicket ticket = SpawnDefaultPrefab();
 
@@ -322,7 +354,11 @@ TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroySpawnedPrefab_OnSpawnedPrefab
     EXPECT_TRUE(onSpawnedPrefabDestroyed);
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroySpawnedPrefab_BeforeOnSpawnBegin_PreventsInstantiation)
+#else
+TEST_F(PrefabSpawnerComponentTest, DestroySpawnedPrefab_BeforeOnSpawnBegin_PreventsInstantiation)
+#endif
 {
     AzFramework::EntitySpawnTicket ticket = m_PrefabSpawnerComponent->SpawnPrefab(m_prefabAssetRef);
     m_PrefabSpawnerComponent->DestroySpawnedPrefab(ticket);
@@ -337,7 +373,11 @@ TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroySpawnedPrefab_BeforeOnSpawnBe
     EXPECT_TRUE(m_PrefabSpawnWatcher->m_tickets[ticket].m_onSpawnedPrefabDestroyed);
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroySpawnedPrefab_WhenManySpawnsInProgress_DoesntAffectOtherSpawns)
+#else
+TEST_F(PrefabSpawnerComponentTest, DestroySpawnedPrefab_WhenManySpawnsInProgress_DoesntAffectOtherSpawns)
+#endif
 {
     AZStd::vector<AzFramework::EntitySpawnTicket> tickets;
     for (int i = 0; i < 10; ++i)
@@ -382,7 +422,11 @@ TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroySpawnedPrefab_WhenManySpawnsI
     EXPECT_FALSE(anyOtherPrefabDestroyed);
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroyAllSpawnedPrefabs_AllSpawnedEntities_AreDestroyed)
+#else
+TEST_F(PrefabSpawnerComponentTest, DestroyAllSpawnedPrefabs_AllSpawnedEntities_AreDestroyed)
+#endif
 {
     AZStd::vector<AzFramework::EntitySpawnTicket> tickets = SpawnManyDefaultPrefabs();
 
@@ -406,7 +450,11 @@ TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroyAllSpawnedPrefabs_AllSpawnedE
     EXPECT_TRUE(allEntitiesDestroyed);
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroyAllSpawnedPrefabs_OnSpawnedPrefabDestroyed_FiresForAll)
+#else
+TEST_F(PrefabSpawnerComponentTest, DestroyAllSpawnedPrefabs_OnSpawnedPrefabDestroyed_FiresForAll)
+#endif
 {
     AZStd::vector<AzFramework::EntitySpawnTicket> tickets = SpawnManyDefaultPrefabs();
 
@@ -427,7 +475,11 @@ TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroyAllSpawnedPrefabs_OnSpawnedPr
     EXPECT_TRUE(onSpawnedPrefabDestroyedFiresForAll);
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroyAllSpawnedPrefabs_BeforeOnSpawnBegin_PreventsInstantiation)
+#else
+TEST_F(PrefabSpawnerComponentTest, DestroyAllSpawnedPrefabs_BeforeOnSpawnBegin_PreventsInstantiation)
+#endif
 {
     AZStd::vector<AzFramework::EntitySpawnTicket> tickets;
     for (int i = 0; i < 10; ++i)
@@ -455,7 +507,11 @@ TEST_F(PrefabSpawnerComponentTest, DISABLED_DestroyAllSpawnedPrefabs_BeforeOnSpa
     EXPECT_TRUE(allOnSpawnedPrefabDestroyed);
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_GetCurrentEntitiesFromSpawnedPrefab_ReturnsEntities)
+#else
+TEST_F(PrefabSpawnerComponentTest, GetCurrentEntitiesFromSpawnedPrefab_ReturnsEntities)
+#endif
 {
     const AzFramework::EntitySpawnTicket ticket = SpawnDefaultPrefab();
     AZStd::vector<AZ::EntityId> entities = m_PrefabSpawnerComponent->GetCurrentEntitiesFromSpawnedPrefab(ticket);
@@ -463,7 +519,11 @@ TEST_F(PrefabSpawnerComponentTest, DISABLED_GetCurrentEntitiesFromSpawnedPrefab_
     EXPECT_EQ(m_PrefabSpawnWatcher->m_tickets[ticket].m_onEntitiesSpawned.size(), entities.size());
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_GetCurrentEntitiesFromSpawnedPrefab_WithEntityDeleted_DoesNotReturnDeletedEntity)
+#else
+TEST_F(PrefabSpawnerComponentTest, GetCurrentEntitiesFromSpawnedPrefab_WithEntityDeleted_DoesNotReturnDeletedEntity)
+#endif
 {
     const AzFramework::EntitySpawnTicket ticket = SpawnDefaultPrefab();
 
@@ -480,7 +540,11 @@ TEST_F(PrefabSpawnerComponentTest, DISABLED_GetCurrentEntitiesFromSpawnedPrefab_
     EXPECT_FALSE(deletedEntityPresent);
 }
 
+#if defined(CARBONATED)
 TEST_F(PrefabSpawnerComponentTest, DISABLED_GetAllCurrentlySpawnedEntities_ReturnsEntities)
+#else
+TEST_F(PrefabSpawnerComponentTest, GetAllCurrentlySpawnedEntities_ReturnsEntities)
+#endif
 {
     AZStd::vector<AzFramework::EntitySpawnTicket> tickets = SpawnManyDefaultPrefabs();
 
@@ -542,32 +606,62 @@ public:
     bool m_readConfigSuccess = false;
 };
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, DISABLED_Fixture_SanityCheck)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, Fixture_SanityCheck)
+#endif
 {
     EXPECT_NE(nullptr, GetApplication());
 }
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, DISABLED_PrefabSpawnerComponent_LoadsFromData)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, PrefabSpawnerComponent_LoadsFromData)
+#endif
 {
     EXPECT_NE(nullptr, m_object.get());
 }
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, DISABLED_ComponentId_ValuePreserved)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, ComponentId_ValuePreserved)
+#endif
 {
     EXPECT_EQ(AZ::ComponentId(8317941343245109563ULL), m_object->GetId());
 }
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, DISABLED_PrefabAsset_ValuePreserved)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, PrefabAsset_ValuePreserved)
+#endif
 {
     EXPECT_EQ(AZ::Uuid("{753CF94D-1A6B-53B5-ADF7-BF8BB222230D}"), m_spawnerConfig.m_prefabAsset.GetId().m_guid);
 }
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, DISABLED_SpawnOnActivate_ValuePreserved)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, SpawnOnActivate_ValuePreserved)
+#endif
 {
     EXPECT_TRUE(m_spawnerConfig.m_spawnOnActivate);
 }
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, DISABLED_DestroyOnDeactivate_ValuePreserved)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyGameData, DestroyOnDeactivate_ValuePreserved)
+#endif
 {
     EXPECT_TRUE(m_spawnerConfig.m_destroyOnDeactivate);
 }
@@ -621,37 +715,72 @@ public:
 
 };
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, DISABLED_Fixture_SanityCheck)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, Fixture_SanityCheck)
+#endif
 {
     EXPECT_NE(nullptr, GetApplication());
 }
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, DISABLED_ObjectStream_LoadsComponents)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, ObjectStream_LoadsComponents)
+#endif
 {
     EXPECT_NE(nullptr, m_object.get());
 }
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, DISABLED_LegacyPrefabSpawnerComponent_TurnedIntoEditorPrefabSpawnerComponent)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, LegacyPrefabSpawnerComponent_TurnedIntoEditorPrefabSpawnerComponent)
+#endif
 {
     EXPECT_NE(nullptr, m_editorPrefabSpawnerComponent);
 }
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, DISABLED_SpawnerConfig_SuccessfullyRead)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, SpawnerConfig_SuccessfullyRead)
+#endif
 {
     EXPECT_TRUE(m_readConfigSuccess);
 }
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, DISABLED_PrefabAsset_ValuePreserved)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, PrefabAsset_ValuePreserved)
+#endif
 {
     EXPECT_EQ(AZ::Uuid("{753CF94D-1A6B-53B5-ADF7-BF8BB222230D}"), m_spawnerConfig.m_prefabAsset.GetId().m_guid);
 }
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, DISABLED_SpawnOnActivate_ValuePreserved)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, SpawnOnActivate_ValuePreserved)
+#endif
 {
     EXPECT_TRUE(m_spawnerConfig.m_spawnOnActivate);
 }
 
+
+#if defined(CARBONATED)
 TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, DISABLED_DestroyOnDeactivate_ValuePreserved)
+#else
+TEST_F(LoadPrefabSpawnerComponentFromLegacyEditorData, DestroyOnDeactivate_ValuePreserved)
+#endif
 {
     EXPECT_TRUE(m_spawnerConfig.m_destroyOnDeactivate);
 }
