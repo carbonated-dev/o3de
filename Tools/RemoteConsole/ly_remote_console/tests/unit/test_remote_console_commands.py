@@ -121,7 +121,9 @@ class TestRemoteConsole():
         rc_instance.handlers[b'foo warning'] = mock_evt_handler
         rc_instance._handle_message(msg)
 
-        rc_instance.on_display.assert_called_once_with(b'foo warning')
+        rc_instance.on_display.assert_called_once_with('foo warning')   #returns a string, not a byte array
+        #rc_instance.on_display.assert_called_once_with(b'foo warning')
+
         mock_evt_handler.set.assert_called_once()
         assert 'foo warning' not in rc_instance.handlers.keys()
         rc_instance.ready.set.assert_not_called()

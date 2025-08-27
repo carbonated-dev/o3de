@@ -80,11 +80,41 @@ namespace JsonSerializationTests
             result->m_visibility = AZ::RPI::MaterialPropertyVisibility::Hidden;
             result->m_outputConnections.emplace_back(AZ::RPI::MaterialPropertyOutputType::ShaderOption, "o_foo");
 
+#if defined(CARBONATED)
+            // member "bool m_optional = false" added 6/18/2024 in commit to Carbonated repo by Akio Gaule,
+            // "Add support for small SRGs to be able to run on A10 devices", SHA-1: 9f4da2c8423925a85bd8cc6c558c1188ebaa560f
+            result->m_optional = true;
+#endif
             return result;
         }
 
         AZStd::string_view GetJsonForFullySetInstance() override
         {
+#if defined(CARBONATED)
+            // member "bool m_optional = false" added 6/18/2024 in commit to Carbonated repo by Akio Gaule,
+            // "Add support for small SRGs to be able to run on A10 devices", SHA-1: 9f4da2c8423925a85bd8cc6c558c1188ebaa560f
+            return R"(
+            {
+                "name": "testProperty",
+                "displayName": "display_name",
+                "description": "description",
+                "type": "Float",
+                "defaultValue": 2.0,
+                "min": 1.0,
+                "max": 10.0,
+                "softMin": 2.0,
+                "softMax": 9.0,
+                "step": 1.5,
+                "visibility": "Hidden",
+                "connection":
+                {
+                    "type": "ShaderOption",
+                    "name": "o_foo"
+                },
+                "enumIsUv": true,
+                "optional": true
+            })";
+#else
             return R"(
             {
                 "name": "testProperty",
@@ -105,6 +135,7 @@ namespace JsonSerializationTests
                 },
                 "enumIsUv": true
             })";
+#endif
         }
 
         void ConfigureFeatures(JsonSerializerConformityTestDescriptorFeatures& features) override

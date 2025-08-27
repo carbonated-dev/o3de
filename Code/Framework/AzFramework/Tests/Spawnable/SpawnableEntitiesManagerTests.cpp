@@ -123,6 +123,13 @@ namespace UnitTest
             
             m_spawnable = aznew AzFramework::Spawnable(
                 AZ::Data::AssetId::CreateString("{EB2E8A2B-F253-4A90-BBF4-55F2EED786B8}:0"), AZ::Data::AssetData::AssetStatus::Ready);
+
+            // Support for unified spawnable IDs for Entities spawned with GridMade, with separation of "static" spawnables existing in a Level, and "dynamic" spawnables created over network, added by CORBANATED in numerous PRs
+            // (major is https://github.com/carbonated-dev/o3de/pull/61), broke 19 tests for spawnables.
+#if defined(CARBONATED)
+            m_spawnable->SetIsDynamic(true); // Allow spawning Entities missing asset path hints
+#endif
+
             m_spawnableAsset = new AZ::Data::Asset<AzFramework::Spawnable>(m_spawnable, AZ::Data::AssetLoadBehavior::Default);
             m_ticket = aznew AzFramework::EntitySpawnTicket(*m_spawnableAsset);
 

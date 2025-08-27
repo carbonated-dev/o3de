@@ -118,9 +118,13 @@ namespace AssetValidation::AssetSeed
         AddPlatformsDirectorySeeds(engineSourceAssetsDirectory.Native(), defaultSeedLists, platformFlag);
 
         // Add the current project default seed list file
-        AZStd::string projectName;
-
+#if defined(CARBONATED)
+        // Project path should be concatenated of engineRoot + projectName + EngineSeedFileName + SeedFileExtension
+        // Using projectPath instead of projectName ruined concatenation in Integration Test "DefaultSeedList_ReturnsExpectedSeedLists"
+        AZ::IO::FixedMaxPathString projectPath = AZ::Utils::GetProjectName();
+#else
         AZ::IO::FixedMaxPathString projectPath = AZ::Utils::GetProjectPath();
+#endif
         if (!projectPath.empty())
         {
             AZ::IO::FixedMaxPath absoluteProjectDefaultSeedFilePath{ engineRoot };

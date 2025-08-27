@@ -69,6 +69,10 @@ namespace SettingsRegistryConsoleUtilsTests
         constexpr const char* settingsKey = "/TestKey";
         constexpr const char* expectedValue = "TestValue";
         AZ::Console testConsole(*m_registry);
+// commit 0f6633b678d826beacb5f4c222556e97fe94e816
+#if defined(CARBONATED)
+        testConsole.EnableToDispatchConsoleCommands();
+#endif
         AZ::SettingsRegistryConsoleUtils::ConsoleFunctorHandle handle{
             AZ::SettingsRegistryConsoleUtils::RegisterAzConsoleCommands(*m_registry, testConsole) };
         EXPECT_TRUE(testConsole.PerformCommand(AZ::SettingsRegistryConsoleUtils::SettingsRegistrySet, { settingsKey, expectedValue }));
@@ -103,6 +107,9 @@ namespace SettingsRegistryConsoleUtilsTests
         constexpr const char* expectedValue = R"(TestValue)";
         constexpr const char* expectedValue2 = R"(Hello World)";
         AZ::Console testConsole(*m_registry);
+#if defined(CARBONATED)
+        testConsole.EnableToDispatchConsoleCommands();
+#endif
         AZ::SettingsRegistryConsoleUtils::ConsoleFunctorHandle handle{
             AZ::SettingsRegistryConsoleUtils::RegisterAzConsoleCommands(*m_registry, testConsole) };
 
@@ -123,6 +130,9 @@ namespace SettingsRegistryConsoleUtilsTests
         constexpr const char* expectedValue = R"(TestValue)";
         constexpr const char* expectedValue2 = R"(Hello World)";
         AZ::Console testConsole(*m_registry);
+#if defined(CARBONATED)
+        testConsole.EnableToDispatchConsoleCommands();
+#endif
 
         // Add settings to settings registry
         EXPECT_TRUE(m_registry->Set(settingsKey, expectedValue));
@@ -151,6 +161,9 @@ namespace SettingsRegistryConsoleUtilsTests
         constexpr const char* expectedValue = R"(TestValue)";
         constexpr const char* expectedValue2 = R"(Hello World)";
         AZ::Console testConsole(*m_registry);
+#if defined(CARBONATED)
+        testConsole.EnableToDispatchConsoleCommands();
+#endif
 
         AZ::SettingsRegistryConsoleUtils::ConsoleFunctorHandle handle{
             AZ::SettingsRegistryConsoleUtils::RegisterAzConsoleCommands(*m_registry, testConsole) };
@@ -209,6 +222,9 @@ namespace SettingsRegistryConsoleUtilsTests
         constexpr const char* ExpectedValue = R"(TestValue)";
         constexpr const char* ExpectedValue2 = R"(Hello World)";
         AZ::Console testConsole(*m_registry);
+#if defined(CARBONATED)
+        testConsole.EnableToDispatchConsoleCommands();
+#endif
 
         AZ::SettingsRegistryConsoleUtils::ConsoleFunctorHandle handle{
             AZ::SettingsRegistryConsoleUtils::RegisterAzConsoleCommands(*m_registry, testConsole) };
@@ -275,6 +291,9 @@ namespace SettingsRegistryConsoleUtilsTests
         constexpr const char* ExpectedValue = R"(TestValue)";
         constexpr const char* ExpectedValue2 = R"(Hello World)";
         AZ::Console testConsole(*m_registry);
+#if defined(CARBONATED)
+        testConsole.EnableToDispatchConsoleCommands();
+#endif
 
         AZ::SettingsRegistryConsoleUtils::ConsoleFunctorHandle handle{ AZ::SettingsRegistryConsoleUtils::RegisterAzConsoleCommands(
             *m_originTracker, testConsole) };

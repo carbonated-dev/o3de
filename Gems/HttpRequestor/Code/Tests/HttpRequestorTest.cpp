@@ -12,6 +12,9 @@
 #include <AzCore/std/parallel/condition_variable.h>
 
 #include "HttpRequestManager.h"
+#if defined(CARBONATED)
+#include "AzCore/Utils/Utils.h"
+#endif
 
 class HttpTest
     : public UnitTest::LeakDetectionFixture
@@ -34,6 +37,9 @@ TEST_F(HttpTest, HttpRequesterTest)
         requestConditionVar.wait_for(lock, AZStd::chrono::milliseconds(10));
     }
 
+#if defined(CARBONATED)
+    AZ::Utils::SetEnv("AWS_EC2_METADATA_DISABLED", "true", true);   //to disable attempts to retrieve EC2 metadata
+#endif
     httpRequestManager.AddTextRequest(HttpRequestor::TextParameters(
         "https://httpbin.org/ip",
         Aws::Http::HttpMethod::HTTP_GET,

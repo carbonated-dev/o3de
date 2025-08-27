@@ -629,6 +629,9 @@ namespace UnitTest
 
     TEST_F(String, Algorithms)
     {
+#if defined(CARBONATED)
+        AZ::Locale::ScopedSerializationLocale scopedLocale; // use the "C" locale for reading/writing floats with "." in them
+#endif
         AZStd::string str = AZStd::string::format("%s %d", "BlaBla", 5);
         AZ_TEST_VALIDATE_STRING(str, 8);
 

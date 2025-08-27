@@ -138,6 +138,9 @@ namespace PhysXEditorTests
 
     TEST_F(PhysXEditorFixture, EditorMeshColliderComponent_ColliderWithBox_CorrectRuntimeComponents)
     {
+#if defined(CARBONATED)
+        AZ_TEST_START_TRACE_SUPPRESSION;    //Ignore the error ‘EditorMeshColliderComponent::BuildGameEntity. No asset assigned to Collider Component’ (commit 59f572198917940ca22fd31090155b6131915723)
+#endif
         // create an editor entity with a collider component
         EntityPtr editorEntity = CreateInactiveEditorEntity("MeshColliderComponentEditorEntity");
         editorEntity->CreateComponent<PhysX::EditorMeshColliderComponent>();
@@ -146,6 +149,9 @@ namespace PhysXEditorTests
 
         EntityPtr gameEntity = CreateActiveGameEntityFromEditorEntity(editorEntity.get());
 
+#if defined(CARBONATED)
+        AZ_TEST_STOP_TRACE_SUPPRESSION(1);
+#endif
         // check that the runtime entity has the expected components
         EXPECT_TRUE(gameEntity->FindComponent<PhysX::MeshColliderComponent>() != nullptr);
         EXPECT_TRUE(gameEntity->FindComponent<PhysX::StaticRigidBodyComponent>() != nullptr);
@@ -153,6 +159,9 @@ namespace PhysXEditorTests
 
     TEST_F(PhysXEditorFixture, EditorMeshColliderComponent_ColliderWithBoxAndRigidBody_CorrectRuntimeComponents)
     {
+#if defined(CARBONATED)
+        AZ_TEST_START_TRACE_SUPPRESSION;    //Ignore the error ‘EditorMeshColliderComponent::BuildGameEntity. No asset assigned to Collider Component’ (commit 59f572198917940ca22fd31090155b6131915723)
+#endif
         // create an editor entity with a collider component
         EntityPtr editorEntity = CreateInactiveEditorEntity("MeshColliderComponentEditorEntity");
         editorEntity->CreateComponent<PhysX::EditorMeshColliderComponent>();
@@ -161,6 +170,9 @@ namespace PhysXEditorTests
 
         EntityPtr gameEntity = CreateActiveGameEntityFromEditorEntity(editorEntity.get());
 
+#if defined(CARBONATED)
+        AZ_TEST_STOP_TRACE_SUPPRESSION(1);
+#endif
         // check that the runtime entity has the expected components
         EXPECT_TRUE(gameEntity->FindComponent<PhysX::MeshColliderComponent>() != nullptr);
         EXPECT_TRUE(gameEntity->FindComponent<PhysX::RigidBodyComponent>() != nullptr);
@@ -168,6 +180,9 @@ namespace PhysXEditorTests
 
     TEST_F(PhysXEditorFixture, EditorMeshColliderComponent_ColliderWithNoMesh_GeneratesNoShapes)
     {
+#if defined(CARBONATED)
+        AZ_TEST_START_TRACE_SUPPRESSION;    //Ignore the error ‘EditorMeshColliderComponent::BuildGameEntity. No asset assigned to Collider Component’ (commit 59f572198917940ca22fd31090155b6131915723)
+#endif
         // create an editor entity with a collider component
         EntityPtr editorEntity = CreateInactiveEditorEntity("MeshColliderComponentEditorEntity");
         editorEntity->CreateComponent<PhysX::EditorMeshColliderComponent>();
@@ -180,6 +195,9 @@ namespace PhysXEditorTests
         const auto* rigidBody = gameEntity->FindComponent<PhysX::RigidBodyComponent>()->GetRigidBody();
         const auto* pxRigidDynamic = static_cast<const physx::PxRigidDynamic*>(rigidBody->GetNativePointer());
 
+#if defined(CARBONATED)
+        AZ_TEST_STOP_TRACE_SUPPRESSION(1);
+#endif
         PHYSX_SCENE_READ_LOCK(pxRigidDynamic->getScene());
 
         // there should be no shapes

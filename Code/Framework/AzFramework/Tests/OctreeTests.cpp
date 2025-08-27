@@ -29,6 +29,14 @@ namespace UnitTest
             AZ::Interface<AZ::IConsole>::Register(m_console);
             m_console->LinkDeferredFunctors(AZ::ConsoleFunctorBase::GetDeferredHead());
 
+            // Console commands execution was delayed (within #if defined (CARBONATED) fence) until
+            //   Console::EnableToDispatchConsoleCommands()
+            // is called after ComponentApplication finishes loading all modules and registering all their commands,
+            // in commit 0f6633b678d826beacb5f4c222556e97fe94e816 to Carbonated repo. This patch fixes Unit Test execution.
+#if defined(CARBONATED)
+            m_console->EnableToDispatchConsoleCommands(); // Enable dispatching console commands.
+            // m_console->ExecuteDeferredConsoleCommands();  // not needed, as no deferred commands are stored in this new Console
+#endif
             m_console->GetCvarValue("bg_octreeNodeMaxEntries", m_savedMaxEntries);
             m_console->GetCvarValue("bg_octreeNodeMinEntries", m_savedMinEntries);
             m_console->GetCvarValue("bg_octreeMaxWorldExtents", m_savedBounds);

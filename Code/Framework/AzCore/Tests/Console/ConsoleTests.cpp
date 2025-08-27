@@ -58,6 +58,16 @@ namespace AZ
         {
             m_console = AZStd::make_unique<AZ::Console>();
             m_console->LinkDeferredFunctors(AZ::ConsoleFunctorBase::GetDeferredHead());
+
+            // Console commands execution was delayed (within #if defined (CARBONATED) fence) until
+            //   Console::EnableToDispatchConsoleCommands()
+            // is called after ComponentApplication finishes loading all modules and registering all their commands,
+            // in commit 0f6633b678d826beacb5f4c222556e97fe94e816 to Carbonated repo. This patch fixes Unit Test execution.
+#if defined(CARBONATED)
+            m_console->EnableToDispatchConsoleCommands(); // Enable dispatching console commands.
+            // m_console->ExecuteDeferredConsoleCommands();  // not needed, as no deferred commands are stored in this new Console
+#endif
+
             AZ::Interface<AZ::IConsole>::Register(m_console.get());
         }
 
@@ -469,6 +479,16 @@ namespace ConsoleSettingsRegistryTests
     {
         AZ::Console testConsole(*m_registry);
         testConsole.LinkDeferredFunctors(AZ::ConsoleFunctorBase::GetDeferredHead());
+
+        // Console commands execution was delayed (within #if defined (CARBONATED) fence) until
+        //   Console::EnableToDispatchConsoleCommands()
+        // is called after ComponentApplication finishes loading all modules and registering all their commands,
+        // in commit 0f6633b678d826beacb5f4c222556e97fe94e816 to Carbonated repo. This patch fixes Unit Test execution.
+#if defined(CARBONATED)
+        testConsole.EnableToDispatchConsoleCommands(); // Enable dispatching console commands.
+        // testConsole.ExecuteDeferredConsoleCommands(); // not needed, as no deferred commands are stored in this new Console
+#endif
+
         AZ::Interface<AZ::IConsole>::Register(&testConsole);
         AZ_CVAR_SCOPED(int32_t, testInit, 0, nullptr, AZ::ConsoleFunctorFlags::Null, "");
         s_consoleFreeFunctionInvoked = false;
@@ -533,9 +553,18 @@ namespace ConsoleSettingsRegistryTests
         EXPECT_TRUE(AZ::IO::SystemFile::Exists(testFilePath.c_str()));
         testConsole.ExecuteConfigFile(testFilePath.Native());
 
+        // Console commands execution was delayed (within #if defined (CARBONATED) fence) until
+        // Console::EnableToDispatchConsoleCommands()
+        // is called after ComponentApplication finishes loading all modules and registering all their commands,
+        // in commit 0f6633b678d826beacb5f4c222556e97fe94e816 to Carbonated repo.
+        // Then, PR https://github.com/carbonated-dev/o3de/pull/362 disabled caching unregistered commands after enabling console commands
+        // execution. This and the following patches fix Unit Test execution. The 3 commands from a config / registry file should have been
+        // deferred, so values will be checked after executing deferred commands.
+#if !defined(CARBONATED)
         EXPECT_EQ(3, localTestInit);
         EXPECT_TRUE(static_cast<bool>(localTestBool));
         EXPECT_EQ('Q', localTestChar);
+#endif
 
         // The following commands from the config files should have been deferred
         ConsoleDataWrapper<int8_t> localTestInt8{ {}, nullptr, "testInt8", "", AZ::ConsoleFunctorFlags::Null };
@@ -550,10 +579,20 @@ namespace ConsoleSettingsRegistryTests
         ConsoleDataWrapper<double> localTestDouble{ {}, nullptr, "testDouble", "", AZ::ConsoleFunctorFlags::Null };
         ConsoleDataWrapper<AZ::CVarFixedString> localTestString{ {}, nullptr, "testString", "", AZ::ConsoleFunctorFlags::Null };
 
-
-        // The scoped cvars just above should have all been deferred for execution
-        // Each of them should have executed resulting in the expected return value
+#if defined(CARBONATED)
+        testConsole.EnableToDispatchConsoleCommands(); // Enable dispatching console commands.
+        EXPECT_TRUE(testConsole.ExecuteDeferredConsoleCommands()); // Execute deferred commands stored in this Console
+        // Now as deferred commands are executed, this CVars are to have correct values
+        EXPECT_EQ(3, localTestInit);
+        EXPECT_TRUE(static_cast<bool>(localTestBool));
+        EXPECT_EQ('Q', localTestChar);
+        // The 11 scoped cvars above should have all been deferred for execution
+        // Each of them should have executed resulting in the expected return value below
+#else
+      // The scoped cvars just above should have all been deferred for execution
+      // Each of them should have executed resulting in the expected return value
         EXPECT_TRUE(testConsole.ExecuteDeferredConsoleCommands());
+#endif
 
         EXPECT_EQ(24, localTestInt8);
         EXPECT_EQ(-32, localTestInt16);
