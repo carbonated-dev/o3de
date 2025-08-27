@@ -2591,7 +2591,6 @@ namespace UnitTest
             m_console->EnableToDispatchConsoleCommands(); // Enable dispatching console commands.
             // m_console->ExecuteDeferredConsoleCommands();  // not needed, as no deferred commands are stored in this new Console
 #endif
-            // wAI patch 06/19/2025 end
 
             // create the database
             AssetManager::Descriptor desc;
