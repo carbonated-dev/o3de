@@ -68,6 +68,9 @@ namespace AZ
             RHI::ResultCode ResizeInternal(const RHI::SwapChainDimensions& dimensions, RHI::SwapChainDimensions* nativeDimensions) override;
             uint32_t PresentInternal() override;
             void SetVerticalSyncIntervalInternal(uint32_t previousVsyncInterval) override;
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+            virtual void SetDesiredFPSInternal(uint32_t desiredFPS) override;
+#endif
             //////////////////////////////////////////////////////////////////////
 
             RHI::ResultCode BuildSurface(const RHI::SwapChainDescriptor& descriptor);
@@ -120,6 +123,11 @@ namespace AZ
                 VkImageMemoryBarrier m_barrier = {};
                 bool m_isValid = false;
             } m_swapChainBarrier;
+
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+            // Display refresh rate in nanoseconds, assigned when SwappyVk is initialized.
+            uint64_t m_refreshNs = 0;
+#endif // CARBONATED && CARBONATED_DESIRED_FPS
         };
     }
 }

@@ -52,6 +52,11 @@ namespace AZ::RHI
         //! A value of 1 syncs to the refresh rate of the monitor.
         void SetVerticalSyncInterval(uint32_t verticalSyncInterval);
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+        //! Sets the desired frames per second.
+        void SetDesiredFPS(uint32_t desiredFPS);
+#endif
+
         //! Resizes the display resolution of the swap chain. Ideally, this matches the platform window
         //! resolution. Typically, the resize operation will occur in reaction to a platform window size
         //! change. Takes effect immediately and results in a GPU pipeline flush.

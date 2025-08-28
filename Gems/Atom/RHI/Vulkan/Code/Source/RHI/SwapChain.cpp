@@ -28,6 +28,12 @@
 #include <RHI/ReleaseContainer.h>
 #include <Atom/RHI.Reflect/VkAllocator.h>
 
+#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS)
+#include <AzCore/Android/JNI/Object.h>
+#include <AzCore/Android/Utils.h>
+#include <swappy/swappyVk.h>
+#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS
+
 namespace AZ
 {
     namespace Vulkan
@@ -98,6 +104,36 @@ namespace AZ
             }
         }
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+        void SwapChain::SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS)
+        {
+#if defined(AZ_PLATFORM_ANDROID)
+            if (m_refreshNs == 0 || desiredFPS <= 0)
+            {
+                AZ_Error("SwapChain", false, "Swappy not initialized or invalid FPS");
+                return;
+            }
+
+            // 1. Target frame time for desired FPS
+            uint64_t targetNs = static_cast<uint64_t>(1000000000ull / desiredFPS);
+
+            // 2. How many vsync intervals does this correspond to?
+            uint64_t interval = (targetNs + m_refreshNs / 2) / m_refreshNs;
+            if (interval < 1)
+            {
+                interval = 1;
+            }
+
+            // 3. Real target we give to Swappy
+            uint64_t swappyTargetNs = interval * m_refreshNs;
+
+            // Set SwapIntervalNS
+            auto& device = static_cast<Device&>(GetDevice());
+            SwappyVk_setSwapIntervalNS(device.GetNativeDevice(), m_nativeSwapChain, swappyTargetNs);
+#endif // AZ_PLATFORM_ANDROID
+        }
+#endif // CARBONATED && CARBONATED_DESIRED_FPS
+
         void SwapChain::SetNameInternal([[maybe_unused]] const AZStd::string_view& name)
         {
             // On some GPUs, like the Adreno 740, setting the name of the swapchain causes a crash, so we don't do it.
@@ -138,7 +174,7 @@ namespace AZ
                     *nativeDimensions = m_dimensions;
                     nativeDimensions->m_imageFormat = ConvertFormat(m_surfaceFormat.format);
                 }
-            }    
+            }
 
             SetName(GetName());
             return result;
@@ -294,7 +330,11 @@ namespace AZ
                 info.pImageIndices = &imageIndex;
                 info.pResults = nullptr;
 
+#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS)
+                const VkResult result = SwappyVk_queuePresent(vulkanQueue->GetNativeQueue(), &info);
+#else
                 const VkResult result = device.GetContext().QueuePresentKHR(vulkanQueue->GetNativeQueue(), &info);
+#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS
 
                 // Vulkan's definition of the two types of errors.
                 // VK_ERROR_OUT_OF_DATE_KHR: "A surface has changed in such a way that it is no longer compatible with the swapchain,
@@ -570,10 +610,17 @@ namespace AZ
             auto presentCommand = [&device, swapchain]([[maybe_unused]] void* queue)
             {
                 device.GetContext().DeviceWaitIdle(device.GetNativeDevice());
+#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS)
+                if (swapchain != VK_NULL_HANDLE)
+                {
+                    SwappyVk_destroySwapchain(device.GetNativeDevice(), swapchain);
+                }
+#else
                 if (swapchain != VK_NULL_HANDLE)
                 {
                     device.GetContext().DestroySwapchainKHR(device.GetNativeDevice(), swapchain, VkSystemAllocator::Get());
                 }
+#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS
             };
 
             m_presentationQueue->QueueCommand(AZStd::move(presentCommand));
@@ -587,7 +634,7 @@ namespace AZ
             m_surfaceCapabilities = GetSurfaceCapabilities();
             m_surfaceFormat = GetSupportedSurfaceFormat(m_dimensions.m_imageFormat);
             m_presentMode = GetSupportedPresentMode(GetDescriptor().m_verticalSyncInterval);
-            m_compositeAlphaFlagBits = GetSupportedCompositeAlpha(); 
+            m_compositeAlphaFlagBits = GetSupportedCompositeAlpha();
 
             if (!ValidateSurfaceDimensions(m_dimensions))
             {
@@ -642,6 +689,37 @@ namespace AZ
             RETURN_RESULT_IF_UNSUCCESSFUL(result);
             AZLOG_DEBUG("Acquired the first image.\n");
 
+#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS)
+            auto presentCommand = [this, &device](void* queue)
+            {
+                Queue* vulkanQueue = static_cast<Queue*>(queue);
+
+                if (auto* androidEnv = AZ::Android::AndroidEnv::Get())
+                {
+                    JNIEnv* env = androidEnv->GetJniEnv();
+                    jobject activity = androidEnv->GetActivityRef();
+
+                    const AZ::Vulkan::PhysicalDevice& vulkanPhysicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
+
+                    // Initializing Swappy for the current VkSwapchainKHR and get m_refreshNs
+                    SwappyVk_initAndGetRefreshCycleDuration(
+                        env,
+                        activity,
+                        vulkanPhysicalDevice.GetNativePhysicalDevice(),
+                        device.GetNativeDevice(),
+                        m_nativeSwapChain,
+                        &m_refreshNs);
+
+                    // Inform Swappy the window and presentation queue
+                    SwappyVk_setWindow(device.GetNativeDevice(), m_nativeSwapChain, androidEnv->GetWindow());
+
+                    SwappyVk_setQueueFamilyIndex(
+                        device.GetNativeDevice(), vulkanQueue->GetNativeQueue(), m_presentationQueue->GetId().m_familyIndex);
+                }
+            };
+            m_presentationQueue->QueueCommand(AZStd::move(presentCommand));
+            m_presentationQueue->FlushCommands();
+#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS
             return RHI::ResultCode::Success;
         }
     }

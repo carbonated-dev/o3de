@@ -190,6 +190,16 @@ namespace AZ::RHI
         m_descriptor.m_verticalSyncInterval = verticalSyncInterval;
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+    void MultiDeviceSwapChain::SetDesiredFPS(uint32_t desiredFPS)
+    {
+        IterateObjects<SwapChain>([desiredFPS]([[maybe_unused]] auto deviceIndex, auto deviceSwapChain)
+        {
+            deviceSwapChain->SetDesiredFPS(desiredFPS);
+        });
+    }
+#endif
+
     const AttachmentId& MultiDeviceSwapChain::GetAttachmentId() const
     {
         return m_descriptor.m_attachmentId;

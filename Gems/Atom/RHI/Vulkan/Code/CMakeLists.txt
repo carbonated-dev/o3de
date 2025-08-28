@@ -30,6 +30,30 @@ if(ANDROID_USE_OCULUS_OPENXR)
     set(DISABLE_TIMELINE_SEMAPHORES_DEFINE "DISABLE_TIMELINE_SEMAPHORES") # Disables Timeline Semaphores even if the device claims to support them. 
 endif()
 
+# CARBONATED -- begin: Swappy integration
+
+set(IS_ANDROID FALSE)
+
+if(${PAL_PLATFORM_NAME_LOWERCASE} STREQUAL "android")
+    set(IS_ANDROID TRUE)
+endif()
+
+if(IS_ANDROID)
+    message(STATUS "Android ABI: ${ANDROID_ABI}")
+
+    # Let's find Swappy via Prefab
+    find_package(games-frame-pacing CONFIG REQUIRED)
+
+    if (TARGET games-frame-pacing::swappy_static)
+        message(STATUS "games-frame-pacing::swappy_static target found")
+    else()
+        message(FATAL_ERROR "games-frame-pacing::swappy_static target NOT found. Check Prefab setup.")
+    endif()
+    get_target_property(SWAPPY_INCLUDE_DIRS games-frame-pacing::swappy_static INTERFACE_INCLUDE_DIRECTORIES)
+    message(STATUS "SWAPPY_INCLUDE_DIRS: ${SWAPPY_INCLUDE_DIRS}")
+endif()
+# CARBONATED -- end
+
 ly_add_target(
     NAME ${gem_name}.Glad.Static STATIC
     NAMESPACE Gem
@@ -123,8 +147,6 @@ if(NOT PAL_TRAIT_ATOM_RHI_VULKAN_SUPPORTED)
 
 endif()
 
-
-
 ly_add_target(
     NAME ${gem_name}.Private.Static STATIC
     NAMESPACE Gem
@@ -138,6 +160,9 @@ ly_add_target(
         PRIVATE
             Source
             ${pal_source_dir}
+# CARBONATED -- begin: Swappy integration
+            $<$<BOOL:${IS_ANDROID}>:${SWAPPY_INCLUDE_DIRS}>
+# CARBONATED -- end
         PUBLIC
             Include
             ${pal_include_dir}
@@ -156,6 +181,12 @@ ly_add_target(
             ${USE_NSIGHT_AFTERMATH_DEFINE}
             ${DISABLE_TIMELINE_SEMAPHORES_DEFINE}
 )
+
+# CARBONATED -- begin: Swappy integration
+if(IS_ANDROID)
+    target_link_libraries(${gem_name}.Private.Static PRIVATE games-frame-pacing::swappy_static)
+endif()
+# CARBONATED -- end
 
 ly_add_target(
     NAME ${gem_name}.Private ${PAL_TRAIT_MONOLITHIC_DRIVEN_MODULE_TYPE}
