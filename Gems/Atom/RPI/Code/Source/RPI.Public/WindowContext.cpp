@@ -185,7 +185,7 @@ namespace AZ
                 else // if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::Vulkan))
                 {
 #if !defined(AZ_PLATFORM_WINDOWS)
-                    AZ_Error("WindowContext::OnDesiredFPSChanged", false, "desired_fps command is not implemented for this platform yet");
+                    AZ_Warning("WindowContext::OnDesiredFPSChanged", false, "desired_fps not tested for this platform\n");
 #endif
                     console->PerformCommand("vsync_interval 0");
                     console->PerformCommand(AZStd::string::format("sys_MaxFPS %i", desiredFPS).c_str());
