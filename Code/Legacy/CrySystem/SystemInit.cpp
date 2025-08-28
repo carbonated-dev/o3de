@@ -1416,7 +1416,7 @@ void CSystem::CreateSystemVars()
     REGISTER_CVAR2(
         "sys_dump_aux_threads", &g_cvars.sys_dump_aux_threads, 1, VF_NULL, "Dumps callstacks of other threads in case of a crash");
 
-#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && defined(AZ_PLATFORM_WINDOWS)
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
     // Declaration of "sys_MaxFPS" moved to NativeWidow.cpp (next to "desired_fps" and "vsync_interval") and modern AZ_CVAR is used
  #else
 #if (defined(WIN32) || defined(WIN64)) && defined(_RELEASE)

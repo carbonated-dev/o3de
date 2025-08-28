@@ -22,8 +22,6 @@ void OnVsyncIntervalChanged(uint32_t const& interval)
 AZ_CVAR(uint32_t, vsync_interval, 1, OnVsyncIntervalChanged, AZ::ConsoleFunctorFlags::Null, "Set swapchain vsync interval");
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
-
-#if defined(AZ_PLATFORM_WINDOWS)
 AZ_CVAR(
     int32_t,
     sys_MaxFPS,
@@ -33,7 +31,6 @@ AZ_CVAR(
     "Limits the frame rate to specified number n (if n>0 and if vsync is disabled).\n"
     " 0 = on PC if vsync is off auto throttles fps while in menu or game is paused (default)\n"
     "-1 = off");
-#endif
 
 void OnDesiredFPSChanged(uint32_t const& desiredFPS)
 {
@@ -42,11 +39,10 @@ void OnDesiredFPSChanged(uint32_t const& desiredFPS)
 }
  
 // NOTE: On change, broadcasts the new desired FPS to all windows.
-// Currently it is supported on Android platform using Swappy
 // It takes effect immediately.
 // The value of the desired FPS is constrained to be greater than 0.
 // It takes into an account the device refresh rate and sets the interval accordingly to set desired FPS.
-// The default is 55, so any changes will take place.
+// The default is 55, so any changes (for example to 30 or 60) will take place.
 AZ_CVAR(uint32_t, desired_fps, 55, OnDesiredFPSChanged, AZ::ConsoleFunctorFlags::Null, "Set desired frames per second rate");
 #endif
 

@@ -165,16 +165,14 @@ namespace AZ
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         void WindowContext::OnDesiredFPSChanged(uint32_t desiredFPS)
         {
-#if defined(AZ_PLATFORM_WINDOWS)
+#if defined(AZ_PLATFORM_ANDROID) || defined(AZ_PLATFORM_IOS)
+            RHI::Ptr<RHI::SwapChain> defaultSwapChain = GetSwapChain(ViewType::Default);
+            defaultSwapChain->SetDesiredFPS(desiredFPS);
+#else
             auto console = AZ::Interface<AZ::IConsole>::Get();
             if (console && AZ::RHI::Factory::IsReady())
             {
-                if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::Vulkan))
-                {
-                    console->PerformCommand("vsync_interval 0");
-                    console->PerformCommand(AZStd::string::format("sys_MaxFPS %i", desiredFPS).c_str());
-                }
-                else if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::DX12))
+                if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::DX12))
                 {
                     const RHI::WindowHandle windowHandle = RHI::WindowHandle(reinterpret_cast<uintptr_t>(m_windowHandle));
 
@@ -184,10 +182,15 @@ namespace AZ
                     int vsyncInterval = std::max(1, static_cast<int>(std::round(static_cast<float>(displayRefreshRate) / desiredFPS)));
                     console->PerformCommand(AZStd::string::format("vsync_interval %i", vsyncInterval).c_str());
                 }
+                else // if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::Vulkan))
+                {
+#if !defined(AZ_PLATFORM_WINDOWS)
+                    AZ_Error("WindowContext::OnDesiredFPSChanged", false, "'desired_fps' is not investigated/implemented for Mac and Linux yet. Will be used 'Sleep' method like for Windows+Vulkan");
+#endif
+                    console->PerformCommand("vsync_interval 0");
+                    console->PerformCommand(AZStd::string::format("sys_MaxFPS %i", desiredFPS).c_str());
+                }
             }
-#else
-            RHI::Ptr<RHI::SwapChain> defaultSwapChain = GetSwapChain(ViewType::Default);
-            defaultSwapChain->SetDesiredFPS(desiredFPS);
 #endif
         };
 #endif
