@@ -14,7 +14,7 @@
 #include <AzCore/Component/TickBus.h>
 #include <AzCore/EBus/Event.h>
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <AzFramework/Network/NetBindable.h>
 #endif
 
@@ -44,7 +44,7 @@ namespace AzFramework
         , public AZ::TransformBus::Handler
         , public AZ::TransformNotificationBus::Handler
         , private AZ::TransformHierarchyInformationBus::Handler
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         , public AZ::TickBus::Handler
         , public NetBindable
 #endif
@@ -54,7 +54,7 @@ namespace AzFramework
 #endif
 
     public:
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         AZ_COMPONENT(TransformComponent, AZ::TransformComponentTypeId, NetBindable, AZ::TransformInterface);
 #else
         AZ_COMPONENT(TransformComponent, AZ::TransformComponentTypeId, AZ::TransformInterface);
@@ -211,7 +211,7 @@ namespace AzFramework
         /// Behavior for this entity's transform when its parent's transform changes.
         AZ::OnParentChangedBehavior m_onParentChangedBehavior = AZ::OnParentChangedBehavior::Update;
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
     public:
         //Ignore network updates... currently
         void SetClientSimulated(bool clientSim) override;

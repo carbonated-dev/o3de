@@ -22,6 +22,16 @@ if(CARBONATED)
     add_compile_definitions(CARBONATED)
 endif(CARBONATED)
 
+if(CARBONATED)
+    # Certain changes under CARBONATED option / compile definition may interfere with tests in AutomatedTesting project.
+    # The next option helps fixing such issues.
+    OPTION(AUTOMATED_TESTING_ON "Enable fixes for automated testing" OFF)
+    
+    if(AUTOMATED_TESTING_ON)
+        add_compile_definitions(AUTOMATED_TESTING_ON)
+    endif(AUTOMATED_TESTING_ON)
+endif(CARBONATED)
+
 # memory and performance tracking options
 OPTION(MEMORY_TAG_TRACING "Enable asset and mmeory tags" OFF)
 OPTION(START_MEMORY_TRACING "Start memory tracing from app start" OFF)

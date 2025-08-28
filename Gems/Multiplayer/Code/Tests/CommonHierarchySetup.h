@@ -145,6 +145,14 @@ namespace Multiplayer
             AZ::Interface<AZ::IConsole>::Register(m_console.get());
             m_console->LinkDeferredFunctors(AZ::ConsoleFunctorBase::GetDeferredHead());
 
+#if defined(CARBONATED)
+            // Console commands execution was delayed (within #if defined (CARBONATED) fence) until
+            //   Console::EnableToDispatchConsoleCommands()
+            // is called after ComponentApplication finishes loading all modules and registering all their commands,
+            // in commit 0f6633b678d826beacb5f4c222556e97fe94e816 to Carbonated repo. This patch fixes Unit Test execution.
+            m_console->EnableToDispatchConsoleCommands(); // Enable dispatching console commands.
+#endif
+
             m_multiplayerComponentRegistry = AZStd::make_unique<MultiplayerComponentRegistry>();
             ON_CALL(*m_mockNetworkEntityManager, GetMultiplayerComponentRegistry()).WillByDefault(Return(m_multiplayerComponentRegistry.get()));
             RegisterMultiplayerComponents();

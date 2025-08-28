@@ -462,6 +462,38 @@ namespace O3DE::ProjectManager
             if (projectDirectory.exists())
             {
                 // Check if there is an actual project here or just force it
+#if defined(CARBONATED)
+                auto pythonBindingsPtr = PythonBindingsInterface::Get();
+                if (pythonBindingsPtr)
+                {
+                    // if we can obtain the python interface, then we will ONLY delete the folder
+                    // if it's a real project, unless force is specified.
+
+                    AZ::Outcome<ProjectInfo> pInfo = pythonBindingsPtr->GetProject(path);
+                    if (force || pInfo.IsSuccess())
+                    {
+                        if (pInfo.IsSuccess())
+                        {
+                            //determine if we have a restricted directory to worry about
+                            if (!pInfo.GetValue().m_restricted.isEmpty())
+                            {
+                                QDir restrictedDirectory(QStandardPaths::standardLocations(QStandardPaths::HomeLocation).first());
+
+                                if (restrictedDirectory.cd("O3DE/Restricted/Projects") &&
+                                    restrictedDirectory.cd(pInfo.GetValue().m_restricted) &&
+                                    !restrictedDirectory.isEmpty())
+                                {
+                                    restrictedDirectory.removeRecursively();
+                                }
+                            }
+                        }
+                        return projectDirectory.removeRecursively();
+                    }
+                }
+                else
+                {
+                    // we don't have any python bindings available, we're likely in test mode.
+#else
                 AZ::Outcome<ProjectInfo> pInfo = PythonBindingsInterface::Get()->GetProject(path);
                 if (force || pInfo.IsSuccess())
                 {
@@ -477,6 +509,7 @@ namespace O3DE::ProjectManager
                             restrictedDirectory.removeRecursively();
                         }
                     }
+#endif
                     return projectDirectory.removeRecursively();
                 }
             }

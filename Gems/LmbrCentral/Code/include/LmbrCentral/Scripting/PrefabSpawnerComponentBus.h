@@ -11,7 +11,6 @@
 
 #include <AzCore/Component/ComponentBus.h>
 #include <AzCore/Math/Transform.h>
-#include <AzFramework/Helpers/AssetHelpers.h>
 #include <AzFramework/Entity/EntityContextBus.h>
 #include <AzFramework/Spawnable/SpawnableEntitiesInterface.h>
 

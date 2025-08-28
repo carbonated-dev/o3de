@@ -18,7 +18,7 @@
 #include <AzToolsFramework/Thumbnails/ThumbnailerComponent.h>
 #include <AzToolsFramework/AssetBrowser/AssetBrowserComponent.h>
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <AzFramework/Network/NetworkContext.h>
 #endif
 
@@ -134,7 +134,7 @@ namespace EditorInternal
     void EditorToolsApplication::CreateReflectionManager()
     {
         ToolsApplication::CreateReflectionManager();
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         // Setup NetworkContext
         AZ::ReflectionEnvironment::GetReflectionManager()->AddReflectContext<AzFramework::NetworkContext>();
 #endif

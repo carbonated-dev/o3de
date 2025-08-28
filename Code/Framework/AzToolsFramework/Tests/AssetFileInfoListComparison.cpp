@@ -515,10 +515,27 @@ namespace UnitTest
             AssetFileInfoListComparison::ComparisonData comparisonData(AssetFileInfoListComparison::ComparisonType::FilePattern, TempFiles[FileIndex::ResultAssetFileInfoList], "Foo*.txt", AssetFileInfoListComparison::FilePatternType::Wildcard);
             comparisonData.m_firstInput = TempFiles[FileIndex::FirstAssetFileInfoList];
             assetFileInfoListComparison.AddComparisonStep(comparisonData);
+
+            // PR https://github.com/carbonated-dev/o3de/pull/106 removed failure cases
+            // for empty assetlists & bundles, which broke this test.
+#if defined(CARBONATED)
+            // Saving empty "assetFileInfoList.assetlist" should succed
+            ASSERT_TRUE(assetFileInfoListComparison.CompareAndSaveResults().IsSuccess()) << "File pattern match should have produced empty output.\n";
+
+            // AssetFileInfo should exist on-disk
+            ASSERT_TRUE(AZ::IO::FileIOBase::GetInstance()->Exists(TempFiles[FileIndex::ResultAssetFileInfoList])) << "Empty Asset List file should exist on-disk.\n";
+
+            // AssetFileInfo should be empty
+            AssetFileInfoList assetFileInfoList;
+            ASSERT_TRUE(AZ::Utils::LoadObjectFromFileInPlace(TempFiles[FileIndex::ResultAssetFileInfoList], assetFileInfoList)) << "Unable to read the asset file info list.\n";
+            EXPECT_EQ(assetFileInfoList.m_fileInfoList.size(), 0);
+#else
+            // Attempt to save empty "assetFileInfoList.assetlist" should fail
             ASSERT_FALSE(assetFileInfoListComparison.CompareAndSaveResults().IsSuccess()) << "File pattern match should not have produced any output.\n";
 
             // AssetFileInfo should not exist on-disk
             ASSERT_FALSE(AZ::IO::FileIOBase::GetInstance()->Exists(TempFiles[FileIndex::ResultAssetFileInfoList])) << "Asset List file should not exist on-disk.\n";
+#endif
         }
 
         void AssetFileInfoValidation_FilePatternRegexComparisonPartial_Valid()

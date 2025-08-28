@@ -2498,6 +2498,25 @@ void PathDependencyTest::RunWildcardDependencyTestOnPaths(
     VerifyDependencies(dependencyContainer, expectedMatchingProducts, { wildcardDependency.c_str() });
 }
 
+// PR https://github.com/carbonated-dev/o3de/pull/246 fixed updating dependency lists from wildcards,
+// allowing recursive searches down, which broke this test.
+#if defined(CARBONATED)
+// Wildcard matching does extend past directory markers.
+// So a dependency on "Root/Path/*.txt" will match text files in Root/Path and subfolders.
+TEST_F(PathDependencyTest, WildcardDependencies_WildcardWithPath_ResolveCorrectly)
+{
+    RunWildcardDependencyTestOnPaths(
+        "root/path/*.txt",                  // target wildcardDependency
+        {              // expectedMatchingPaths
+            "root/path/file1.txt",          // Should match - this file is in the matching subfolder
+            "root/path/subfolder/file3.txt",// Should match - This is in a subfolder, and wildcards do cross directory markers down.
+        },
+        {           // expectedNotMatchingPaths
+            "root/file4.txt"                // Should not match - This is in the root folder, and wildcards do not cross directory markers up.
+        }
+    );
+}
+#else
 // Wildcard matching does not extend past directory markers.
 // So a dependency on "Root/Path/*.txt" will only match text files in Root/Path, and not subfolders.
 // For example, "Root/Path/Subfolder/file.txt" would not be matched.
@@ -2513,6 +2532,7 @@ TEST_F(PathDependencyTest, WildcardDependencies_WildcardWithPath_ResolveCorrectl
           // Should not match - This is in the root folder, and wildcards don't cross directory markers.
           "root/file4.txt" });
 }
+#endif
 
 TEST_F(PathDependencyTest, WildcardDependencies_WildcardWithSecondExtension_MatchesFile)
 {

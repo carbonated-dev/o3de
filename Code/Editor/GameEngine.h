@@ -24,7 +24,7 @@ struct IInitializeUIInfo;
 
 #include <AzCore/Module/DynamicModuleHandle.h>
 
-#if defined(CARBONATED) // (akostin/mp226): IEditorGame* to dispatch notifications to NetContext
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON) // (akostin/mp226): IEditorGame* to dispatch notifications to NetContext
 #include <CryCommon/IEditorGame.h>
 #endif
 
@@ -141,7 +141,7 @@ private:
     bool m_bJustCreated;
     bool m_bIgnoreUpdates;
     ISystem* m_pISystem;
-#if defined(CARBONATED) // (akostin/mp226): IEditorGame* to dispatch notifications to NetContext
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON) // (akostin/mp226): IEditorGame* to dispatch notifications to NetContext
     IEditorGame* m_pEditorGame;
 #endif
     AZ_PUSH_DISABLE_DLL_EXPORT_MEMBER_WARNING

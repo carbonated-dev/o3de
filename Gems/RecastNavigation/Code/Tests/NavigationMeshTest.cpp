@@ -64,6 +64,14 @@ namespace RecastNavigationTests
             m_console.reset(aznew AZ::Console());
             AZ::Interface<AZ::IConsole>::Register(m_console.get());
 
+#if defined(CARBONATED)
+            // Console commands execution was delayed (within #if defined (CARBONATED) fence) until
+            //   Console::EnableToDispatchConsoleCommands()
+            // is called after ComponentApplication finishes loading all modules and registering all their commands,
+            // in commit 0f6633b678d826beacb5f4c222556e97fe94e816 to Carbonated repo. This patch fixes Unit Test execution.
+            m_console->EnableToDispatchConsoleCommands(); // Enable dispatching console commands.
+#endif
+
             m_nameDictionary = AZStd::make_unique<AZ::NameDictionary>();
             AZ::Interface<AZ::NameDictionary>::Register(m_nameDictionary.get());
 

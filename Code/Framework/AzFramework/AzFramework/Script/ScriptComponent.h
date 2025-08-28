@@ -17,7 +17,7 @@
 #include <AzCore/std/smart_ptr/intrusive_ptr.h>
 
 // carbonated begin (akostin/mp226-2): Add NetBindable to ScriptComponent
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <AzFramework/Network/NetBindable.h>
 #endif
 // carbonated end
@@ -93,7 +93,7 @@ namespace AzFramework
         : public AZ::Component
         , private AZ::Data::AssetBus::Handler
         , private AZ::TickBus::Handler
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         , public AzFramework::NetBindable
 #endif
     {
@@ -108,7 +108,7 @@ namespace AzFramework
         static const char* DefaultFieldName;
 
         // carbonated begin (akostin/mp226-2): Add NetBindable to ScriptComponent
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         AZ_COMPONENT(AzFramework::ScriptComponent, "{8D1BC97E-C55D-4D34-A460-E63C57CD0D4B}", NetBindable);
 #else
         AZ_COMPONENT(AzFramework::ScriptComponent, "{8D1BC97E-C55D-4D34-A460-E63C57CD0D4B}", AZ::Component);
@@ -144,7 +144,7 @@ namespace AzFramework
         void OnTick(float deltaTime, AZ::ScriptTimePoint time) override;
         //////////////////////////////////////////////////////////////////////////
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         //////////////////////////////////////////////////////////////////////////
         // NetBindable
         GridMate::ReplicaChunkPtr GetNetworkBinding() override;

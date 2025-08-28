@@ -353,8 +353,6 @@ namespace AZ::Data
         void Wait()
         {
             AZ_PROFILE_SCOPE(AzCore, "WaitForAsset - %s", m_assetData.GetHint().c_str());
-            constexpr int MaxWaitForAssetUpdateMs = 20;
-            int currentWaitForAssetUpdate = MaxWaitForAssetUpdateMs;
 #if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
             const int64_t startTime = m_timeoutMillis ? static_cast<int64_t>(AZ::GetRealElapsedTimeMs()) : 0;
             int jobCount = 0;
@@ -372,6 +370,8 @@ namespace AZ::Data
                     {
 #if defined(CARBONATED)  // update log while waiting for assets
                         // if we are here then it is the main thread, let deliver the log messages
+                        constexpr int MaxWaitForAssetUpdateMs = 20;
+                        int currentWaitForAssetUpdate = MaxWaitForAssetUpdateMs;
                         AZ::LogNotification::LogNotificationBus::Broadcast(&AZ::LogNotification::LogNotificationBus::Events::Update);
                         // update subscribers while waiting for assets
                         currentWaitForAssetUpdate += MaxWaitBetweenDispatchMs;
@@ -493,7 +493,7 @@ namespace AZ::Data
         AZStd::atomic_bool m_loadCompleted{ false };
 #if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
         unsigned int m_timeoutMillis;
-#endif    
+#endif
     };
 
 

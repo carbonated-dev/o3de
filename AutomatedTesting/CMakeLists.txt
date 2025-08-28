@@ -6,6 +6,15 @@
 #
 #
 
+if(CARBONATED)
+  # Certain changes under CARBONATED option / compile definition may interfere with tests in AutomatedTesting project.
+  # The next option helps fixing such issues.
+  OPTION(AUTOMATED_TESTING_ON "Enable fixes for automated testing" ON)
+  if(AUTOMATED_TESTING_ON)
+      add_compile_definitions(AUTOMATED_TESTING_ON)
+  endif(AUTOMATED_TESTING_ON)
+endif(CARBONATED)
+
 if(NOT PROJECT_NAME)
     cmake_minimum_required(VERSION 3.22)
 
