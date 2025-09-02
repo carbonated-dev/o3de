@@ -174,8 +174,6 @@ namespace AZ
             {
                 if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::DX12))
                 {
-                    const RHI::WindowHandle windowHandle = RHI::WindowHandle(reinterpret_cast<uintptr_t>(m_windowHandle));
-
                     uint32_t displayRefreshRate = 0;
                     AzFramework::WindowRequestBus::EventResult(
                         displayRefreshRate, m_windowHandle, &AzFramework::WindowRequestBus::Events::GetDisplayRefreshRate);
