@@ -219,6 +219,7 @@ namespace AZ::RHI
             return ResultCode::Fail;
         }
 #if defined(CARBONATED)
+        // This code snippet is available in the latest version of the engine and is taken from there.
         // Register device GPUs attributes
         if (auto deviceRegistrar = AzFramework::DeviceAttributeRegistrar::Get())
         {

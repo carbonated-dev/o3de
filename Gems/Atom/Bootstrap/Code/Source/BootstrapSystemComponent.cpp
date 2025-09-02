@@ -136,7 +136,7 @@ AZ_CVAR(uint32_t, r_height, 1080, cvar_r_resolution_Changed, AZ::ConsoleFunctorF
 #if defined(CARBONATED)
 AZ_CVAR(uint32_t, r_maxwidth, 0, cvar_r_resolution_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "Max Width in pixels.  0 = disabled.");
 AZ_CVAR(uint32_t, r_maxheight, 0, cvar_r_resolution_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "Max Height in pixels. 0 = disabled");
-AZ_CVAR(uint32_t, r_reduced_maxheight, 0, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Reduced Max Height of canvas in pixels to increase FPS");
+AZ_CVAR(uint32_t, r_reduced_maxheight, 0, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Reduced Max Height in pixels to increase FPS for game-specific modes. 0 = disabled");
 #endif
 AZ_CVAR(uint32_t, r_fullscreen, false, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Starting fullscreen state.");
 AZ_CVAR(uint32_t, r_resolutionMode, 0, cvar_r_resolution_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "0: render resolution same as window client area size, 1: render resolution use the values specified by r_width and r_height");
