@@ -42,12 +42,6 @@
                 // Device rule groups can have whatever name makes sense to you
                 "DeviceLow": {
                     "Rules": {
-                        // Device rules are regular expressions
-                        "Adreno500SeriesGPU" : { "GPUModel": "^Adreno \\(TM\\) (5\\d{2,})\\D*$" },
-                        "Adreno600-629GPU" : { "GPUModel": "^Adreno \\(TM\\) (6[0-2][0-9])\\D*$" },
-                        "MaliMidgard4thGenGPU" : { "GPUModel": "^Mali-T8[2368]0\\D*$" },
-                        "MaliBifrost1stGenGPU" : { "GPUModel": "^Mali-G[357]1\\D*$" },
-                        "MaliBifrost2ndGenGPU" : { "GPUModel": "^Mali-G[57]2\\D*$" }
                     },
                     "Settings": {
                         // Device cvar quality overrides go here for this rule
@@ -57,12 +51,6 @@
                 },
                 "DeviceMedium": {
                     "Rules": {
-                        // Device rules are regular expressions
-                        "Adreno630-649GPU" : { "GPUModel": "^Adreno \\(TM\\) (6[3-4][0-9])\\D*$" },
-                        "MaliG310-610GPU" : { "GPUModel": "^Mali-G[356]10\\D*$" },
-                        "MaliG68GPU" : { "GPUModel": "^Mali-G68\\D*$" },
-                        "MaliG57GPU" : { "GPUModel": "^Mali-G57\\D*$" },
-                        "MaliBifrost3rdGenGPU" : { "GPUModel": "^Mali-G76\\D*$" }
                     },
                     "Settings": {
                         // Device cvar quality overrides go here for this rule
@@ -72,12 +60,6 @@
                 },
                 "DeviceHigh": {
                     "Rules": {
-                        // Device rules are regular expressions
-                        "Adreno650-699GPU" : { "GPUModel": "^Adreno \\(TM\\) (6[5-9][0-9])\\D*$" },
-                        "Adreno700-729GPU" : { "GPUModel": "^Adreno \\(TM\\) (7[0-2][0-9])\\D*$" },
-                        "MaliG710GPU" : { "GPUModel": "^Mali-G710\\D*$" },
-                        "MaliG78GPU" : { "GPUModel": "^Mali-G78\\D*$" },
-                        "MaliG77GPU" : { "GPUModel": "^Mali-G77\\D*$" }
                     },
                     "Settings": {
                         // Device cvar quality overrides go here for this rule
@@ -87,11 +69,6 @@
                 },
                 "DeviceVeryHigh": {
                     "Rules": {
-                        // Device rules are regular expressions, only one of these rules needs to match
-                        "Adreno730OrHigherGPU" : { "GPUModel": "^Adreno \\(TM\\) ((7[3-9]|[8-9][0-9])[0-9]|\\d{4,})\\D*$" },                        
-                        "MaliValhall4thGenGPU" : { "GPUModel": "^Mali-G[67]15\\D*$" },
-                        // Mali-G720, Malig-G620 or a future Mali-G625 or similar
-                        "MaliValhall5thGenGPUOrHigherGPU" : { "GPUModel": "^Mali-G([6-9][2-9][0-9]|\\d{4,})\\D*$" }
                     },
                     "Settings": {
                         // Device cvar quality overrides go here for this rule
