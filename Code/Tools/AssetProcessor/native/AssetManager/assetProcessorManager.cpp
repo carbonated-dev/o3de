@@ -3624,8 +3624,11 @@ namespace AssetProcessor
         QStringList processedEngineFilesArguments = AssetUtilities::ReadProcessedAssetsFilesFromCommandLine(false);
         if (!processedProjectFilesArguments.isEmpty() || !processedEngineFilesArguments.isEmpty())
         {
-            QStringList filesToProcess = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(AssetUtilities::ComputeProjectPath(), processedProjectFilesArguments);
-            QStringList filesToProcessInEngine = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(QString(AZ::Utils::GetEnginePath().c_str()), processedEngineFilesArguments);
+            auto projectPath = AssetUtilities::ComputeProjectPath();
+            auto enginePath = QString(AZ::Utils::GetEnginePath().c_str());
+            QStringList filesToProcess = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(projectPath, processedProjectFilesArguments);
+            QStringList filesToProcessInEngine = AssetUtilities::ResolveAbsolutePathsWithExistingFiles(enginePath, processedEngineFilesArguments);
+            auto engineJsonPath = enginePath + "\\engine.json";
             filesToProcess << filesToProcessInEngine;
             if (!filesToProcess.isEmpty())
             {
@@ -3637,7 +3640,7 @@ namespace AssetProcessor
                     {
                         if (!fileInProject.m_isDirectory)
                         {
-                            if (AssetUtilities::ArePathsEqual(file, fileInProject.m_filePath))
+                            if (AssetUtilities::ArePathsEqual(file, fileInProject.m_filePath) || AssetUtilities::ArePathsEqual(engineJsonPath, fileInProject.m_filePath))
                             {
                                 filteredFiles.insert(fileInProject);
                                 m_filesToProcess.insert(fileInProject);
