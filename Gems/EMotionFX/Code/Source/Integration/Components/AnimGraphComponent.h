@@ -146,6 +146,7 @@ namespace EMotionFX
 
             // carbonated begin EMotionFX_port
 #if defined(CARBONATED)
+            void ResetMotionSet() override;
             AZ::Data::Asset<AZ::Data::AssetData> GetAnimGraphAsset()
             {
                 return m_configuration.m_animGraphAsset;
