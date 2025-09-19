@@ -98,22 +98,25 @@ public class LumberyardNativeUI
                 }
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-                builder.setTitle(title);
-                builder.setMessage(message);
-                builder.setItems(options, (dialog, index) ->
-                {
-                    try
-                    {
-                        selection.set(options[index]);
-                    }
-                    catch (Exception e)
-                    {
-                        Log.e(TAG, "Error in item callback", e);
-                        selection.set("");
-                    }
-                    finally
-                    {
-                        latchUserSelection.countDown();
+                TextView textView = new TextView(activity);
+                textView.setText(title + "\n" + message);
+                builder.setCustomTitle(textView);
+                builder.setItems(options, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int index) {
+                        try
+                        {
+                            selection.set(options[index]);
+                            Log.d(TAG, "Selected option: " + selection.get());
+                        }
+                        catch (Exception e)
+                        {
+                            Log.e(TAG, "Error in item callback", e);
+                            selection.set("");
+                        }
+                        finally
+                        {
+                            latchUserSelection.countDown();
+                        }
                     }
                 });
 
