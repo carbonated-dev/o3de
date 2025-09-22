@@ -158,17 +158,15 @@ namespace AZ
             RHI::Ptr<RHI::SwapChain> defaultSwapChain = GetSwapChain(ViewType::Default);
             if (defaultSwapChain->GetDescriptor().m_verticalSyncInterval != interval)
             {
-#if !defined(AZ_PLATFORM_ANDROID) && !defined(AZ_PLATFORM_IOS)
                 if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::Vulkan))
                 {
                     uint32_t currentInterval = defaultSwapChain->GetDescriptor().m_verticalSyncInterval;
                     if (currentInterval * interval == 0 && currentInterval + interval != 0)
                     {
-                        AZ_Error("WindowContext", false, "It is impossible to change vsync_interval to or from 0 'on the fly' in Vulkan RHI");
+                        AZ_Error("WindowContext", false, "It is impossible to change vsync_interval to zero or from zero after engine initialization with Vulkan render");
                         return;
                     }
                 }
-#endif
                 defaultSwapChain->SetVerticalSyncInterval(interval);
             }
         }
