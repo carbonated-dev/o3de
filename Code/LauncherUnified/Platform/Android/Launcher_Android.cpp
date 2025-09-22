@@ -136,7 +136,12 @@ namespace
             {
                 AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::ExitMainLoop);
             }
-
+#if defined(CARBONATED)
+            if (!androidEnv->IsRunning())
+            {
+                return true;
+            }
+#endif
             return (validIdentifier && !destroyRequested);
         }
 
@@ -264,6 +269,9 @@ namespace
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowDestroy);
 
                 androidEnv->SetWindow(nullptr);
+#if defined(CARBONATED)
+                androidEnv->SetIsRunning(false);
+#endif
             }
             break;
 
