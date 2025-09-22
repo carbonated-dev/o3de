@@ -87,7 +87,7 @@ namespace
         void PumpAllEvents() override
         {
             bool continueRunning = true;
-            while (continueRunning) 
+            while (continueRunning)
             {
                 continueRunning = PumpEvents(&ALooper_pollOnce);
             }
@@ -105,7 +105,7 @@ namespace
 
     private:
         // signature of ALooper_pollOnce and ALooper_pollAll -> int timeoutMillis, int* outFd, int* outEvents, void** outData
-        typedef int (*EventPumpFunc)(int, int*, int*, void**); 
+        typedef int (*EventPumpFunc)(int, int*, int*, void**);
 
         bool PumpEvents(EventPumpFunc looperFunc)
         {
@@ -123,7 +123,7 @@ namespace
 
             // the value returned from the looper poll func is either:
             // 1. the identifier associated with the event source (>= 0) and has event data that needs to be processed manually
-            // 2. an ALOOPER_POLL_* enum (< 0) indicating there is no data to be processed due to error or callback(s) registered 
+            // 2. an ALOOPER_POLL_* enum (< 0) indicating there is no data to be processed due to error or callback(s) registered
             //    with the event source were called
             const bool validIdentifier = (result >= 0);
             if (validIdentifier && source)
@@ -144,16 +144,16 @@ namespace
 
             // approximate call sequence for clarity
             // Launcher.MainLoop
-            // ├─ gameApplication.PumpSystemEventLoopUntilEmpty
-            // │  ├─ PumpAllEvents [event loop]
-            // │  │  ├─ PumpEvents [event]
-            // │  │  │  ├─ looperFunc [block]
-            // │  │  │  │   (The main thread is blocked when androidEnv->IsRunning == false,
-            // │  │  │  │    until a message arrives from Android)
-            // │  │  │  └─ source->process(m_appState, source);
-            // │  │  │     └─ HandleApplicationLifecycleEvents
-            // │  │  │        └─ androidEnv->SetIsRunning(true/false)
-            // └─ gameApplication.Tick [update]
+            // |- gameApplication.PumpSystemEventLoopUntilEmpty
+            // |  |- PumpAllEvents [event loop]
+            // |  |  |- PumpEvents [event]
+            // |  |  |  |- looperFunc [block]
+            // |  |  |  |   (The main thread is blocked when androidEnv->IsRunning == false,
+            // |  |  |  |    until a message arrives from Android)
+            // |  |  |  |- source->process(m_appState, source);
+            // |  |  |  |   \- HandleApplicationLifecycleEvents
+            // |  |  |  |      \- androidEnv->SetIsRunning(true/false)
+            // \- gameApplication.Tick [update]
 
             if (destroyRequested)
             {
@@ -389,7 +389,7 @@ void android_main(android_app* appState)
 
     // run the Lumberyard application
     using namespace O3DELauncher;
-    
+
     PlatformMainInfo mainInfo;
     mainInfo.m_updateResourceLimits = IncreaseResourceLimits;
     mainInfo.m_onPostAppStart = OnPostAppStart;
@@ -449,7 +449,7 @@ void android_main(android_app* appState)
 #else
     mainInfo.m_appWriteStoragePath = AZ::Android::Utils::GetAppPublicStoragePath();
 #endif // defined(_RELEASE)
-    
+
 #if defined(ENABLE_LOGGING)
     mainInfo.m_printSink = &g_androidPrintSink;
 #endif // defined(ENABLE_LOGGING)
