@@ -117,28 +117,9 @@ namespace
             int events = 0;
             android_poll_source* source = nullptr;
             const AZ::Android::AndroidEnv* androidEnv = AZ::Android::AndroidEnv::Get();
-
-            // when timeout is negative, the function will block until an event is received
-            const int result = looperFunc(androidEnv->IsRunning() ? 0 : -1, nullptr, &events, reinterpret_cast<void**>(&source));
-
-            // the value returned from the looper poll func is either:
-            // 1. the identifier associated with the event source (>= 0) and has event data that needs to be processed manually
-            // 2. an ALOOPER_POLL_* enum (< 0) indicating there is no data to be processed due to error or callback(s) registered
-            //    with the event source were called
-            const bool validIdentifier = (result >= 0);
-            if (validIdentifier && source)
-            {
-                source->process(m_appState, source);
-            }
-
-            const bool destroyRequested = (m_appState->destroyRequested != 0);
-            if (destroyRequested)
-            {
-                AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::ExitMainLoop);
-            }
 #if defined(CARBONATED)
             // On some devices, when the application is in the background,
-            // an invalid message may arrive (usually when opening another application),
+            // ALOOPER_POLL_WAKE message may arrive (usually when opening another application),
             // which will lead to an exit from the wait in looperFunc and the continuation
             // of the execution of MainLoop and the execution of gameApplication.Tick().
 
@@ -155,12 +136,39 @@ namespace
             // |  |  |  |      \- androidEnv->SetIsRunning(true/false)
             // \- gameApplication.Tick [update]
 
+            int result;
+            if (androidEnv->IsRunning())
+            {
+                result = looperFunc(0, nullptr, &events, reinterpret_cast<void**>(&source));
+            }
+            else
+            {
+                do
+                {
+                    result = looperFunc(-1, nullptr, &events, reinterpret_cast<void**>(&source));
+                }
+                while (result == ALOOPER_POLL_WAKE);
+            }
+#else
+            // when timeout is negative, the function will block until an event is received
+            const int result = looperFunc(androidEnv->IsRunning() ? 0 : -1, nullptr, &events, reinterpret_cast<void**>(&source));
+#endif
+            // the value returned from the looper poll func is either:
+            // 1. the identifier associated with the event source (>= 0) and has event data that needs to be processed manually
+            // 2. an ALOOPER_POLL_* enum (< 0) indicating there is no data to be processed due to error or callback(s) registered
+            //    with the event source were called
+            const bool validIdentifier = (result >= 0);
+            if (validIdentifier && source)
+            {
+                source->process(m_appState, source);
+            }
+
+            const bool destroyRequested = (m_appState->destroyRequested != 0);
             if (destroyRequested)
             {
-                return false;
+                AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::ExitMainLoop);
             }
-            return !androidEnv->IsRunning() || validIdentifier;
-#endif
+
             return (validIdentifier && !destroyRequested);
         }
 
