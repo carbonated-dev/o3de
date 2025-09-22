@@ -137,10 +137,29 @@ namespace
                 AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::ExitMainLoop);
             }
 #if defined(CARBONATED)
-            if (!androidEnv->IsRunning())
+            // On some devices, when the application is in the background,
+            // an invalid message may arrive (usually when opening another application),
+            // which will lead to an exit from the wait in looperFunc and the continuation
+            // of the execution of MainLoop and the execution of gameApplication.Tick().
+
+            // approximate call sequence for clarity
+            // Launcher.MainLoop
+            // ├─ gameApplication.PumpSystemEventLoopUntilEmpty
+            // │  ├─ PumpAllEvents [event loop]
+            // │  │  ├─ PumpEvents [event]
+            // │  │  │  ├─ looperFunc [block]
+            // │  │  │  │   (The main thread is blocked when androidEnv->IsRunning == false,
+            // │  │  │  │    until a message arrives from Android)
+            // │  │  │  └─ source->process(m_appState, source);
+            // │  │  │     └─ HandleApplicationLifecycleEvents
+            // │  │  │        └─ androidEnv->SetIsRunning(true/false)
+            // └─ gameApplication.Tick [update]
+
+            if (destroyRequested)
             {
-                return true;
+                return false;
             }
+            return !androidEnv->IsRunning() || validIdentifier;
 #endif
             return (validIdentifier && !destroyRequested);
         }
@@ -270,6 +289,8 @@ namespace
 
                 androidEnv->SetWindow(nullptr);
 #if defined(CARBONATED)
+                // On some devices, in some cases, the APP_CMD_TERM_WINDOW
+                // message may arrive before APP_CMD_PAUSE
                 androidEnv->SetIsRunning(false);
 #endif
             }
