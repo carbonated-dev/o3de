@@ -146,7 +146,7 @@ public class LumberyardNativeUI
             }
             latchUserSelection.await();
         }
-        catch (InterruptedException e)
+        catch (Exception e)
         {
             Log.e(TAG, "Interrupted while waiting for dialog", e);
             return "";
