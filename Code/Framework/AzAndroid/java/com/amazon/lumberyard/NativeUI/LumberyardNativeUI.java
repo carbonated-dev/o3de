@@ -14,6 +14,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.util.Log;
 import android.widget.TextView;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleOwner;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -71,17 +73,16 @@ public class LumberyardNativeUI
         final CountDownLatch latchUserSelection = new CountDownLatch(1);
         final CountDownLatch latchShow = new CountDownLatch(1);
 
+        if (IsActivityResumed(activity) && IsDialogShowing())
+        {
+            Log.e(TAG, "Can't show dialog");
+            return "";
+        }
+
         Runnable uiDialog = () ->
         {
             try
             {
-                if (IsDialogShowing())
-                {
-                    latchShow.countDown();
-                    latchUserSelection.countDown();
-                    return;
-                }
-
                 AlertDialog.Builder builder = new AlertDialog.Builder(activity);
                 TextView textView = new TextView(activity);
                 textView.setText(title + "\n" + message);
@@ -128,11 +129,15 @@ public class LumberyardNativeUI
         try
         {
             boolean completed = latchShow.await(TIMEOUT, TimeUnit.SECONDS);
-            if (!completed)
+            if (completed && currentDialog != null && currentDialog.isShowing() && IsActivityResumed(activity))
             {
+                latchUserSelection.await();
+            }
+            else
+            {
+                Log.e(TAG, "Can't show dialog");
                 return "";
             }
-            latchUserSelection.await();
         }
         catch (Exception e)
         {
@@ -141,6 +146,29 @@ public class LumberyardNativeUI
         }
 
         return selection.get();
+    }
+
+    private static boolean IsActivityResumed(Activity activity)
+    {
+        if (activity == null)
+        {
+            return false;
+        }
+
+        if (activity instanceof LifecycleOwner)
+        {
+            LifecycleOwner lifecycleOwner = (LifecycleOwner) activity;
+            return lifecycleOwner.getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED);
+        }
+
+        try
+        {
+            return activity.hasWindowFocus() && !activity.isFinishing() && !activity.isDestroyed();
+        }
+        catch (Exception e)
+        {
+            return false;
+        }
     }
 
     public static void OnDeadlock(final Activity activity, final String title, final String message)
