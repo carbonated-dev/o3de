@@ -13,11 +13,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.util.Log;
-import android.view.View;
-import android.view.Window;
 import android.widget.TextView;
-import androidx.lifecycle.Lifecycle;
-import androidx.lifecycle.LifecycleOwner;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -31,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class LumberyardNativeUI
 {
     private static final String TAG = "LMBR";
+    private static final int TIMEOUT = 3;
     private static AlertDialog currentDialog;
     private static AtomicReference<String> userSelection;
 
@@ -71,11 +68,6 @@ public class LumberyardNativeUI
     public static String DisplayDialogCarbonated(final Activity activity, final String title, final String message, final String[] options)
     {
         AtomicReference<String> selection = new AtomicReference<String>("");
-        if (!CanShowDialog(activity))
-        {
-            return selection.get();
-        }
-
         final CountDownLatch latchUserSelection = new CountDownLatch(1);
         final CountDownLatch latchShow = new CountDownLatch(1);
 
@@ -83,13 +75,6 @@ public class LumberyardNativeUI
         {
             try
             {
-                if (!CanShowDialog(activity))
-                {
-                    latchShow.countDown();
-                    latchUserSelection.countDown();
-                    return;
-                }
-
                 if (IsDialogShowing())
                 {
                     latchShow.countDown();
@@ -122,8 +107,12 @@ public class LumberyardNativeUI
 
                 currentDialog = builder.create();
                 currentDialog.setOnShowListener(dialog -> latchShow.countDown());
-                currentDialog.setOnDismissListener(dialog -> currentDialog = null);
+                currentDialog.setOnDismissListener(dialog -> {
+                    currentDialog = null;
+                    latchUserSelection.countDown();
+                });
 
+                currentDialog.setCancelable(false);
                 currentDialog.show();
             }
             catch (Exception e)
@@ -138,10 +127,9 @@ public class LumberyardNativeUI
 
         try
         {
-            boolean completed = latchShow.await(5, TimeUnit.SECONDS);
+            boolean completed = latchShow.await(TIMEOUT, TimeUnit.SECONDS);
             if (!completed)
             {
-                latchUserSelection.countDown();
                 return "";
             }
             latchUserSelection.await();
@@ -164,7 +152,8 @@ public class LumberyardNativeUI
 
         try (FileWriter writer = new FileWriter(logFile, true))
         {
-            writer.write("Main thread is locked (likely waiting for semaphore) while another thread requests a blocking popup at " + dateStr + ".\n");
+            writer.write("At the moment, there is no way to show a native dialog (the application is in the background or for some other reason)");
+            writer.write("Date: " + dateStr + "\n");
             writer.write("Dialog title: " + title + "\n");
             writer.write("Dialog message: " + message + "\n\n");
             writer.flush();
@@ -185,41 +174,5 @@ public class LumberyardNativeUI
     public static boolean IsDialogShowing()
     {
         return currentDialog != null && currentDialog.isShowing();
-    }
-
-    public static boolean CanShowDialog(final Activity activity)
-    {
-        if (activity == null)
-        {
-            return false;
-        }
-
-        if (activity.isFinishing() || activity.isDestroyed())
-        {
-            return false;
-        }
-
-        if (activity instanceof LifecycleOwner)
-        {
-            Lifecycle.State state = ((LifecycleOwner) activity).getLifecycle().getCurrentState();
-            if (!state.isAtLeast(Lifecycle.State.RESUMED))
-            {
-                return false;
-            }
-        }
-
-        Window window = activity.getWindow();
-        if (window == null)
-        {
-            return false;
-        }
-
-        View decorView = window.getDecorView();
-        if (!decorView.isShown())
-        {
-            return false;
-        }
-
-        return decorView.hasWindowFocus();
     }
 }
