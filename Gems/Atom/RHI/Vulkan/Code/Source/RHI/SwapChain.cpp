@@ -615,12 +615,11 @@ namespace AZ
                 {
                     SwappyVk_destroySwapchain(device.GetNativeDevice(), swapchain);
                 }
-#else
+#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS
                 if (swapchain != VK_NULL_HANDLE)
                 {
                     device.GetContext().DestroySwapchainKHR(device.GetNativeDevice(), swapchain, VkSystemAllocator::Get());
                 }
-#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS
             };
 
             m_presentationQueue->QueueCommand(AZStd::move(presentCommand));

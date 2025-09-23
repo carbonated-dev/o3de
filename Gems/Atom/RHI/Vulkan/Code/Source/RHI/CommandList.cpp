@@ -140,6 +140,12 @@ namespace AZ
                 copy.bufferOffset = sourceBufferMemoryView->GetOffset() + descriptor.m_sourceOffset;
                 copy.bufferRowLength = descriptor.m_sourceBytesPerRow / GetFormatSize(format) * formatDimensionAlignment.m_width;
                 copy.bufferImageHeight = RHI::AlignUp(descriptor.m_sourceSize.m_height, formatDimensionAlignment.m_height);
+#if defined(CARBONATED)
+                // VkBufferImageCopy::bufferImageHeight should be multiple to formatDimensionAlignment.m_height otherwise Validation Layer will issue an error.
+                copy.bufferImageHeight =
+                    ((copy.bufferImageHeight + formatDimensionAlignment.m_height - 1) / formatDimensionAlignment.m_height) *
+                    formatDimensionAlignment.m_height;
+#endif
                 copy.imageSubresource.aspectMask = destinationImage->GetImageAspectFlags();
                 copy.imageSubresource.mipLevel = descriptor.m_destinationSubresource.m_mipSlice;
                 copy.imageSubresource.baseArrayLayer = descriptor.m_destinationSubresource.m_arraySlice;
@@ -214,6 +220,12 @@ namespace AZ
                 copy.bufferOffset = destinationBufferMemoryView->GetOffset() + descriptor.m_destinationOffset;
                 copy.bufferRowLength = descriptor.m_destinationBytesPerRow / GetFormatSize(format) * formatDimensionAlignment.m_width;
                 copy.bufferImageHeight = RHI::AlignUp(descriptor.m_sourceSize.m_height, formatDimensionAlignment.m_height);
+#if defined(CARBONATED)
+                // VkBufferImageCopy::bufferImageHeight should be multiple to formatDimensionAlignment.m_height otherwise Validation Layer will issue an error.
+                copy.bufferImageHeight =
+                    ((copy.bufferImageHeight + formatDimensionAlignment.m_height - 1) / formatDimensionAlignment.m_height) *
+                    formatDimensionAlignment.m_height;
+#endif
                 copy.imageSubresource.aspectMask = ConvertImageAspect(descriptor.m_sourceSubresource.m_aspect);
                 copy.imageSubresource.mipLevel = descriptor.m_sourceSubresource.m_mipSlice;
                 copy.imageSubresource.baseArrayLayer = descriptor.m_sourceSubresource.m_arraySlice;
