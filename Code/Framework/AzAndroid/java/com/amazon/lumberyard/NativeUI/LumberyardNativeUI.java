@@ -73,9 +73,15 @@ public class LumberyardNativeUI
         final CountDownLatch latchUserSelection = new CountDownLatch(1);
         final CountDownLatch latchShow = new CountDownLatch(1);
 
-        if (IsActivityResumed(activity) && IsDialogShowing())
+        if (IsActivityResumed(activity))
         {
-            Log.e(TAG, "Can't show dialog");
+            Log.e(TAG, "The dialog cannot be shown because the application is in the background.");
+            return "";
+        }
+
+        if (IsDialogShowing())
+        {
+            Log.e(TAG, "The dialog cannot be shown because another window is already shown.");
             return "";
         }
 
