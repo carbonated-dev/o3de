@@ -250,18 +250,18 @@ namespace LyShine
 
         if (m_usingMaliG715Workaround)
         {
-            float maxX = 0, maxY = 0, minX = 100000.0f, minY = 100000.0f;
-            float maxWidth, maxHeight;
+            const UiPrimitiveVertex& first = primitive->m_vertices[0];
+            float maxX = first.xy.x, minX = first.xy.x, maxY = first.xy.y, minY = first.xy.y;
             bool bigPrimitive = false;
-            for (int i = 0; i < primitive->m_numVertices; ++i)
+            for (int i = 1; i < primitive->m_numVertices; ++i)
             {
                 UiPrimitiveVertex& v = primitive->m_vertices[i];
                 maxX = AZ::GetMax(maxX, v.xy.x);
                 maxY = AZ::GetMax(maxY, v.xy.y);
                 minX = AZ::GetMin(minX, v.xy.x);
                 minY = AZ::GetMin(minY, v.xy.y);
-                maxWidth = maxX - minX;
-                maxHeight = maxY - minY;
+                const float maxWidth = maxX - minX;
+                const float maxHeight = maxY - minY;
                 if (maxWidth >= MinSizeOfSideOfBigPrimitive && maxHeight >= MinSizeOfSideOfBigPrimitive)
                 {
                     bigPrimitive = true;
