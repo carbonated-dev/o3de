@@ -53,8 +53,8 @@ namespace LyShine
         m_textures[0].m_isClampTextureMode = isClampTextureMode;
 
 #if defined(CARBONATED)
-        m_combinedVertices.reserve(672);  // typically we have 1.5+ times more indices than vertices, sometimes it is even 2 times more
-        m_combinedIndices.reserve(1024);
+        m_combinedVertices.reserve(1200);  // typically we have 1.5+ times more indices than vertices, sometimes it is even 2 times more
+        m_combinedIndices.reserve(2400);
 #if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         m_drawCommands.reserve(128);
 #endif
@@ -80,8 +80,8 @@ namespace LyShine
         m_textures[1].m_isClampTextureMode = isClampTextureMode;
 
 #if defined(CARBONATED)
-        m_combinedVertices.reserve(672);
-        m_combinedIndices.reserve(1024);
+        m_combinedVertices.reserve(1200);
+        m_combinedIndices.reserve(2400);
 #if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         m_drawCommands.reserve(128);
 #endif
