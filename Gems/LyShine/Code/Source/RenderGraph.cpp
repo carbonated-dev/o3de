@@ -55,7 +55,7 @@ namespace LyShine
 #if defined(CARBONATED)
         m_combinedVertices.reserve(672);  // typically we have 1.5+ times more indices than vertices, sometimes it is even 2 times more
         m_combinedIndices.reserve(1024);
-#if defined(CARBONATED_USE_PIXEL_WORKAROUND)
+#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         m_drawCommands.reserve(128);
 #endif
 #endif
@@ -82,7 +82,7 @@ namespace LyShine
 #if defined(CARBONATED)
         m_combinedVertices.reserve(1024);
         m_combinedIndices.reserve(1024);
-#if defined(CARBONATED_USE_PIXEL_WORKAROUND)
+#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         m_drawCommands.reserve(128);
 #endif
 #endif
@@ -94,7 +94,7 @@ namespace LyShine
         m_primitives.clear();
 
 #if defined(CARBONATED)
-#if defined(CARBONATED_USE_PIXEL_WORKAROUND)
+#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         m_drawCommands.clear();
 #endif
         m_combinedVertices.clear();
@@ -102,10 +102,10 @@ namespace LyShine
 #endif
     }
 
-#if defined(CARBONATED) && defined(CARBONATED_USE_PIXEL_WORKAROUND)
-    void PrimitiveListRenderNode::SetPixelWorkaround(bool useWorkaround)
+#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
+    void PrimitiveListRenderNode::SetMaliG715Workaround(bool useWorkaround)
     {
-        m_usingPixelWorkaround = useWorkaround;
+        m_usingMaliG715Workaround = useWorkaround;
     }
 #endif
 
@@ -181,8 +181,8 @@ namespace LyShine
         drawSrg->Compile();
 
 #if defined(CARBONATED)
-#if defined(CARBONATED_USE_PIXEL_WORKAROUND)
-        if (m_usingPixelWorkaround)
+#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
+        if (m_usingMaliG715Workaround)
         {
             for (const DrawCommand& cmd : m_drawCommands)
             {
@@ -197,19 +197,15 @@ namespace LyShine
                         AZ::RHI::IndexFormat::Uint16,
                         drawSrg);
                 }
-                else // SinglePrimitive
+                else if (LyShine::UiPrimitive* prim = cmd.m_primitive) // SinglePrimitive
                 {
-                    LyShine::UiPrimitive* prim = cmd.m_primitive;
-                    if (prim)
-                    {
-                        dynamicDraw->DrawIndexed(
-                            prim->m_vertices,
-                            static_cast<uint32_t>(prim->m_numVertices),
-                            prim->m_indices,
-                            static_cast<uint32_t>(prim->m_numIndices),
-                            AZ::RHI::IndexFormat::Uint16,
-                            drawSrg);
-                    }
+                    dynamicDraw->DrawIndexed(
+                        prim->m_vertices,
+                        static_cast<uint32_t>(prim->m_numVertices),
+                        prim->m_indices,
+                        static_cast<uint32_t>(prim->m_numIndices),
+                        AZ::RHI::IndexFormat::Uint16,
+                        drawSrg);
                 }
             }
         }
@@ -222,7 +218,7 @@ namespace LyShine
         {
             dynamicDraw->DrawIndexed(&m_combinedVertices[0], (uint32_t)m_combinedVertices.size(), &m_combinedIndices[0],  (uint32_t)m_combinedIndices.size(), AZ::RHI::IndexFormat::Uint16, drawSrg);
         }
-#endif // CARBONATED_USE_PIXEL_WORKAROUND
+#endif // CARBONATED_USE_MALI_G715_WORKAROUND
 #else // CARBONATED
         // Add the indexed primitives to the dynamic draw context for drawing
         //
@@ -242,14 +238,17 @@ namespace LyShine
     void PrimitiveListRenderNode::AddPrimitive(LyShine::UiPrimitive* primitive)
     {
 #if defined(CARBONATED)
-#if defined(CARBONATED_USE_PIXEL_WORKAROUND)
+#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
+        // This is a certain "magic" number, determined experimentally on Google Pixel 9.
+        // In some menus containing small square and rectangular "cards" with a side size greater than 24 pixels, we almost always see a "snow glitch".
+        // The "snow glitch" does not occur on smaller UI elements (text strings, thin borders, horizontal margins, etc.)
         constexpr float MinSizeOfSideOfBigPrimitive = 24.0f;
 
         // always clear the next pointer before adding to list
         primitive->m_next = nullptr;
         m_primitives.push_back(*primitive);
 
-        if (m_usingPixelWorkaround)
+        if (m_usingMaliG715Workaround)
         {
             float maxX = 0, maxY = 0, minX = 100000.0f, minY = 100000.0f;
             float maxWidth, maxHeight;
@@ -343,7 +342,7 @@ namespace LyShine
         {
             m_combinedIndices[index_start + i] = vertex_start + primitive->m_indices[i];
         }
-#endif // CARBONATED_USE_PIXEL_WORKAROUND
+#endif // CARBONATED_USE_MALI_G715_WORKAROUND
 #endif // CARBONATED
 
         m_totalNumVertices += primitive->m_numVertices;
@@ -753,14 +752,14 @@ namespace LyShine
         // then it becomes the node list for that render node.
         m_renderNodeListStack.push(&m_renderNodes);
 
-#if defined(CARBONATED) && defined(CARBONATED_USE_PIXEL_WORKAROUND)
+#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         const AZ::RHI::Ptr<AZ::RHI::Device> rhiDevice = AZ::RHI::RHISystemInterface::Get()->GetDevice();
         if (rhiDevice)
         {
             const auto& descriptor = rhiDevice->GetPhysicalDevice().GetDescriptor();
-            // Currently (September 2025) we 100% know that Google Pixel 9 has glitch with sparkling white/color snow on the UI elements
-            // The workaround is to not combine rectangular/square primitives with size > 30 into big batches
-            m_usingPixelWorkaround = descriptor.m_description.contains("Mali-G715");
+            // At this time (September 2025) we know 100% that Google Pixel 8 and Pixel 9 have an issue with sparkling white/colored snow on UI elements.
+            // A workaround is to not combine rectangular/square primitives of size > 24 into large batches.
+            m_usingMaliG715Workaround = descriptor.m_description.contains("Mali-G715");
         }
         else
         {
@@ -979,8 +978,8 @@ namespace LyShine
                 // this uses a pool allocator for fast allocation
                 renderNodeToAddTo = new PrimitiveListRenderNode(texture, isClampTextureMode, isTextureSRGB, isPreMultiplyAlpha, blendModeState);
 
-#if defined(CARBONATED) && defined(CARBONATED_USE_PIXEL_WORKAROUND)
-                renderNodeToAddTo->SetPixelWorkaround(m_usingPixelWorkaround);
+#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
+                renderNodeToAddTo->SetMaliG715Workaround(m_usingMaliG715Workaround);
 #endif
                 renderNodeList->push_back(renderNodeToAddTo);
                 texUnit = 0;
@@ -1064,8 +1063,8 @@ namespace LyShine
                 renderNodeToAddTo = new PrimitiveListRenderNode(contentAttachmentImage, maskAttachmentImage,
                     isClampTextureMode, isTextureSRGB, isPreMultiplyAlpha, alphaMaskType, blendModeState);
 
-#if defined(CARBONATED) && defined(CARBONATED_USE_PIXEL_WORKAROUND)
-                renderNodeToAddTo->SetPixelWorkaround(m_usingPixelWorkaround);
+#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
+                renderNodeToAddTo->SetMaliG715Workaround(m_usingMaliG715Workaround);
 #endif
                 renderNodeList->push_back(renderNodeToAddTo);
                 texUnit0 = 0;

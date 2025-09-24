@@ -610,14 +610,11 @@ namespace AZ
             auto presentCommand = [&device, swapchain]([[maybe_unused]] void* queue)
             {
                 device.GetContext().DeviceWaitIdle(device.GetNativeDevice());
+                if (swapchain != VK_NULL_HANDLE)
+                {
 #if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS)
-                if (swapchain != VK_NULL_HANDLE)
-                {
                     SwappyVk_destroySwapchain(device.GetNativeDevice(), swapchain);
-                }
 #endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS
-                if (swapchain != VK_NULL_HANDLE)
-                {
                     device.GetContext().DestroySwapchainKHR(device.GetNativeDevice(), swapchain, VkSystemAllocator::Get());
                 }
             };
