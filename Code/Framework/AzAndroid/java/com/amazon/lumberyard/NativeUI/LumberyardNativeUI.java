@@ -207,6 +207,9 @@ public class LumberyardNativeUI
         Log.e(TAG, "Deadlock detected at " + dateStr + "\nfile path '" + logFile.getAbsolutePath() + "'");
         Log.e(TAG, "Dialog title: " + title);
         Log.e(TAG, "Dialog message: " + message);
+
+        android.os.Process.killProcess(android.os.Process.myPid());
+        System.exit(10);
     }
 
     public static boolean IsDialogShowing()
