@@ -73,7 +73,7 @@ public class LumberyardNativeUI
         final CountDownLatch latchUserSelection = new CountDownLatch(1);
         final CountDownLatch latchShow = new CountDownLatch(1);
 
-        if (IsActivityResumed(activity))
+        if (!IsActivityResumed(activity))
         {
             Log.e(TAG, "The dialog cannot be shown because the application is in the background.");
             return "";
@@ -182,7 +182,14 @@ public class LumberyardNativeUI
         Context context = activity.getApplicationContext();
         String dateStr = new SimpleDateFormat("MM-dd-yyyy hh.mma", Locale.US).format(new Date());
         String fileName = "BlockingDialogDeadlock " + dateStr + ".txt";
-        File logFile = new File(context.getFilesDir(), fileName);
+
+        File logDir = context.getExternalFilesDir("deadlock_logs");
+        if (logDir == null) {
+            Log.e(TAG, "External files dir is null, fallback to internal");
+            logDir = new File(context.getFilesDir(), "deadlock_logs");
+        }
+
+        File logFile = new File(logDir, fileName);
 
         try (FileWriter writer = new FileWriter(logFile, true))
         {
