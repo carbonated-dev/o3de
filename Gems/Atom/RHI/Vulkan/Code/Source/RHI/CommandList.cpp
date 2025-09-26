@@ -36,6 +36,10 @@
 #include <Atom/RHI.Reflect/IndirectBufferLayout.h>
 #include <Atom/RHI/DispatchRaysItem.h>
 
+#if defined(CARBONATED)
+#include <RHI/ReleaseContainer.h>
+#include <AzCore/Time/ITime.h>
+#endif
 namespace AZ
 {
     namespace Vulkan
@@ -59,6 +63,13 @@ namespace AZ
             const auto& physicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
             m_supportsPredication = physicalDevice.IsFeatureSupported(DeviceFeature::Predication);
             m_supportsDrawIndirectCount = physicalDevice.IsFeatureSupported(DeviceFeature::DrawIndirectCount);
+#if defined(CARBONATED)
+            VkQueryPoolCreateInfo queryPoolInfo = {};
+            queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+            queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+            queryPoolInfo.queryCount = 2; // start + end
+            static_cast<Device&>(GetDevice()).GetContext().CreateQueryPool(device.GetNativeDevice(), &queryPoolInfo, nullptr, &m_queryPool);
+#endif						
             return result;
         }
 
@@ -643,6 +654,15 @@ namespace AZ
 
         void CommandList::Shutdown()
         {
+#if defined(CARBONATED)
+            if (m_queryPool)
+            {
+                auto& device = static_cast<Device&>(GetDevice());
+                device.QueueForRelease(
+                    new ReleaseContainer<VkQueryPool>(device.GetNativeDevice(), m_queryPool, device.GetContext().DestroyQueryPool));
+                m_queryPool = VK_NULL_HANDLE;
+            }
+#endif
             m_nativeCommandBuffer = VK_NULL_HANDLE; // do not call vkFreeCommanBuffers().
             DeviceObject::Shutdown();
         }
@@ -681,17 +701,102 @@ namespace AZ
 
             VkResult vkResult = static_cast<Device&>(GetDevice()).GetContext().BeginCommandBuffer(m_nativeCommandBuffer, &beginInfo);
             AssertSuccess(vkResult);
+#if defined(CARBONATED)
+            if (m_queryPool)
+            {
+                // Reset both queries before using them
+                static_cast<Device&>(GetDevice())
+                    .GetContext()
+                    .CmdResetQueryPool(m_nativeCommandBuffer, m_queryPool, m_timestampStartIndex, 2);
+
+                // Write timestamp at beginning
+                static_cast<Device&>(GetDevice())
+                    .GetContext()
+                    .CmdWriteTimestamp(m_nativeCommandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_queryPool, m_timestampStartIndex);
+            }
+#endif
         }
 
         void CommandList::EndCommandBuffer()
         {
             AZ_Assert(m_isUpdating, "Not in updating state");
 
+#if defined(CARBONATED)
+            if (m_queryPool)
+            {
+                // Write timestamp at the end
+                static_cast<Device&>(GetDevice())
+                    .GetContext()
+                    .CmdWriteTimestamp(m_nativeCommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_queryPool, m_timestampEndIndex);
+            }
+#endif
             m_state.m_framebuffer = nullptr;
             m_state.m_subpassIndex = 0;
             AssertSuccess(static_cast<Device&>(GetDevice()).GetContext().EndCommandBuffer(m_nativeCommandBuffer));
             m_isUpdating = false;
         }
+
+#if defined(CARBONATED)
+        void CommandList::StartGPUStatistics()
+        {
+            GetDevice().RegisterCommandBuffer(m_nativeCommandBuffer);
+            GetDevice().MarkCommandBufferCommit(m_nativeCommandBuffer);
+        }
+
+        void CommandList::CollectGPUStatistics()
+        {
+            const auto& device = static_cast<Device&>(GetDevice());
+            const auto& context = device.GetContext();
+
+            uint64_t timestamps[2] = {};
+
+            const auto& physicalDevice = static_cast<const PhysicalDevice&>(GetDevice().GetPhysicalDevice());
+            double timestampPeriod = physicalDevice.GetDeviceLimits().timestampPeriod; // ns per tick
+
+            VkResult result = context.GetQueryPoolResults(
+                device.GetNativeDevice(),
+                m_queryPool,
+                m_timestampStartIndex,
+                2,
+                sizeof(timestamps),
+                timestamps,
+                sizeof(uint64_t),
+                VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+
+            if (result == VK_SUCCESS)
+            {
+                uint64_t gpuStart = timestamps[0];
+                uint64_t gpuEnd = timestamps[1];
+
+                // Convert raw ticks → seconds
+                double gpuStartSec = (gpuStart * timestampPeriod) / 1e9;
+                double gpuEndSec = (gpuEnd * timestampPeriod) / 1e9;
+
+                // Align GPU timeline to CPU timeline
+                static bool s_hasBase = false;
+                static double s_gpuToCpuOffset = 0.0;
+
+                if (!s_hasBase)
+                {
+                    // Current time (CPU) in seconds since app start
+                    double currentTime = static_cast<double>(AZ::GetRealElapsedTimeUs()) / 1'000'000.0;
+
+                    // First time we establish offset
+                    s_gpuToCpuOffset = currentTime - gpuStartSec;
+                    s_hasBase = true;
+                }
+
+                gpuStartSec += s_gpuToCpuOffset;
+                gpuEndSec += s_gpuToCpuOffset;
+
+                GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartSec, gpuEndSec);
+            }
+            else
+            {
+                GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, 0, 0);
+            }
+        }
+#endif
 
         void CommandList::BeginRenderPass(const BeginRenderPassInfo& beginInfo)
         {
