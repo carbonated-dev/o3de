@@ -528,10 +528,7 @@ namespace LegacyLevelSystem
 
 #if AZ_LOADSCREENCOMPONENT_ENABLED
     #if defined(CARBONATED)
-        if (gEnv->pConsole->GetCVar("level_load_screen_manual_stop")->GetIVal() != 0)
-            EBUS_EVENT(LoadScreenBus, Pause); //We will manually stop the loading screen to ensure it times well
-        else
-            EBUS_EVENT(LoadScreenBus, Stop);
+        EBUS_EVENT(LoadScreenBus, Pause); //We will manually stop the loading screen to ensure it times well
     #else
         EBUS_EVENT(LoadScreenBus, Stop);
     #endif
