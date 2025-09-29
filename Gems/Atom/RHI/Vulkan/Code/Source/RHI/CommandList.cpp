@@ -750,9 +750,6 @@ namespace AZ
 
             uint64_t timestamps[2] = {};
 
-            const auto& physicalDevice = static_cast<const PhysicalDevice&>(GetDevice().GetPhysicalDevice());
-            double timestampPeriod = physicalDevice.GetDeviceLimits().timestampPeriod; // ns per tick
-
             VkResult result = context.GetQueryPoolResults(
                 device.GetNativeDevice(),
                 m_queryPool,
@@ -763,38 +760,39 @@ namespace AZ
                 sizeof(uint64_t),
                 VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
 
-            if (result == VK_SUCCESS)
-            {
-                uint64_t gpuStart = timestamps[0];
-                uint64_t gpuEnd = timestamps[1];
-
-                // Convert raw ticks → seconds
-                double gpuStartSec = (gpuStart * timestampPeriod) / 1e9;
-                double gpuEndSec = (gpuEnd * timestampPeriod) / 1e9;
-
-                // Align GPU timeline to CPU timeline
-                static bool s_hasBase = false;
-                static double s_gpuToCpuOffset = 0.0;
-
-                if (!s_hasBase)
-                {
-                    // Current time (CPU) in seconds since app start
-                    double currentTime = static_cast<double>(AZ::GetRealElapsedTimeUs()) / 1'000'000.0;
-
-                    // First time we establish offset
-                    s_gpuToCpuOffset = currentTime - gpuStartSec;
-                    s_hasBase = true;
-                }
-
-                gpuStartSec += s_gpuToCpuOffset;
-                gpuEndSec += s_gpuToCpuOffset;
-
-                GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartSec, gpuEndSec);
-            }
-            else
+            if (result != VK_SUCCESS)
             {
                 GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, 0, 0);
+                return;
             }
+
+            const auto& physicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
+            double timestampPeriod = physicalDevice.GetDeviceLimits().timestampPeriod; // ns per tick
+
+            uint64_t gpuStart = timestamps[0];
+            uint64_t gpuEnd = timestamps[1];
+
+            // Convert GPU ticks to seconds
+            double gpuStartSec = (gpuStart * timestampPeriod) / 1e9;
+            double gpuEndSec = (gpuEnd * timestampPeriod) / 1e9;
+
+            // GPU->CPU offset, computed once
+            static bool s_hasBase = false;
+            static double s_gpuToCpuOffset = 0.0;
+
+            if (!s_hasBase)
+            {
+                double currentTime = static_cast<double>(AZ::GetRealElapsedTimeUs()) / 1'000'000.0;
+                s_gpuToCpuOffset = currentTime - gpuEndSec;
+                s_hasBase = true;
+            }
+
+            // Apply offset once
+            gpuStartSec += s_gpuToCpuOffset;
+            gpuEndSec += s_gpuToCpuOffset;
+
+            // Report results
+            GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartSec, gpuEndSec);
         }
 #endif
 
