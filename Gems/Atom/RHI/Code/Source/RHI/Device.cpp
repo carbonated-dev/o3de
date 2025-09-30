@@ -211,7 +211,7 @@ namespace AZ::RHI
 #if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
                         fc.m_commands[ib].m_commitTime = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
 #else
-                        fc.m_commands[ib].m_commitTime = static_cast<double>(AZ::GetRealElapsedTimeUs()) / 1000000.0;
+                        fc.m_commands[ib].m_commitTime = AZStd::GetTimeNowTicks() / 1e9;    // Use time since system start like all Vulkan timestamps
 #endif
                         break;
                     }

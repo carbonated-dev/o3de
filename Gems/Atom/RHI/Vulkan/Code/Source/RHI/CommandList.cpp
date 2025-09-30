@@ -776,23 +776,42 @@ namespace AZ
             double gpuStartSec = (gpuStart * timestampPeriod) / 1e9;
             double gpuEndSec = (gpuEnd * timestampPeriod) / 1e9;
 
-            // GPU->CPU offset, computed once
-            static bool s_hasBase = false;
-            static double s_gpuToCpuOffset = 0.0;
+            // Calibration
+            VkCalibratedTimestampInfoEXT timestampInfos[2] = {};
+            timestampInfos[0].sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT;
+            timestampInfos[0].timeDomain = VK_TIME_DOMAIN_DEVICE_EXT; // GPU
 
-            if (!s_hasBase)
+            timestampInfos[1].sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT;
+            timestampInfos[1].timeDomain = VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT; // CPU
+
+            uint64_t timestampsCalibration[2] = {};
+            uint64_t maxDeviation = 0;
+
+            result = context.GetCalibratedTimestampsEXT(device.GetNativeDevice(), 2, timestampInfos, timestampsCalibration, &maxDeviation);
+
+            if (result == VK_SUCCESS)
             {
-                double currentTime = static_cast<double>(AZ::GetRealElapsedTimeUs()) / 1'000'000.0;
-                s_gpuToCpuOffset = currentTime - gpuEndSec;
-                s_hasBase = true;
+                uint64_t gpuCalibTicks = timestampsCalibration[0];
+                uint64_t cpuCalibNs = timestampsCalibration[1];
+
+                // Calculate calibration in Seconds
+                double gpuCalibSec = (gpuCalibTicks * timestampPeriod) / 1e9;
+                double cpuCalibSec = cpuCalibNs / 1e9;
+
+                // Calculation time shift
+                double timeShiftSec = cpuCalibSec - gpuCalibSec;
+
+                // Apply calibration
+                double gpuStartCpuSec = gpuStartSec + timeShiftSec;
+                double gpuEndCpuSec = gpuEndSec + timeShiftSec;
+
+                GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartCpuSec, gpuEndCpuSec);
             }
-
-            // Apply offset once
-            gpuStartSec += s_gpuToCpuOffset;
-            gpuEndSec += s_gpuToCpuOffset;
-
-            // Report results
-            GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartSec, gpuEndSec);
+            else
+            {
+                // Fallback to not corrected values
+                GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartSec, gpuEndSec);
+            }
         }
 #endif
 

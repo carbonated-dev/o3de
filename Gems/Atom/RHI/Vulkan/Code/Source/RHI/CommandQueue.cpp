@@ -87,7 +87,9 @@ namespace AZ
                    const auto& fence = request.m_fencesToSignal[i];
                    Signal(*fence);
                 }
-
+#if defined(CARBONATED)
+                request.m_commandList->CollectGPUStatistics();
+#endif
                 {
                     AZ::Debug::ScopedTimer presentTimer(m_lastPresentDuration);
 
@@ -102,10 +104,6 @@ namespace AZ
                 {
                     vulkanQueue->EndDebugLabel();
                 }
-
-#if defined(CARBONATED)
-                request.m_commandList->CollectGPUStatistics();
-#endif
             });
         }
         
