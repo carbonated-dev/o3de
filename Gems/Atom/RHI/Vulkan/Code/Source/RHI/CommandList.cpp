@@ -69,7 +69,7 @@ namespace AZ
             queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
             queryPoolInfo.queryCount = 2; // start + end
             static_cast<Device&>(GetDevice()).GetContext().CreateQueryPool(device.GetNativeDevice(), &queryPoolInfo, nullptr, &m_queryPool);
-#endif						
+#endif
             return result;
         }
 
