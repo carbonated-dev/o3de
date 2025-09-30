@@ -36,6 +36,10 @@
 #include <Atom/RHI.Reflect/IndirectBufferLayout.h>
 #include <Atom/RHI/DispatchRaysItem.h>
 
+#if defined(CARBONATED)
+#include <RHI/ReleaseContainer.h>
+#include <AzCore/Time/ITime.h>
+#endif
 namespace AZ
 {
     namespace Vulkan
@@ -59,6 +63,13 @@ namespace AZ
             const auto& physicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
             m_supportsPredication = physicalDevice.IsFeatureSupported(DeviceFeature::Predication);
             m_supportsDrawIndirectCount = physicalDevice.IsFeatureSupported(DeviceFeature::DrawIndirectCount);
+#if defined(CARBONATED)
+            VkQueryPoolCreateInfo queryPoolInfo = {};
+            queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+            queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+            queryPoolInfo.queryCount = 2; // start + end
+            static_cast<Device&>(GetDevice()).GetContext().CreateQueryPool(device.GetNativeDevice(), &queryPoolInfo, nullptr, &m_queryPool);
+#endif
             return result;
         }
 
@@ -643,6 +654,15 @@ namespace AZ
 
         void CommandList::Shutdown()
         {
+#if defined(CARBONATED)
+            if (m_queryPool)
+            {
+                auto& device = static_cast<Device&>(GetDevice());
+                device.QueueForRelease(
+                    new ReleaseContainer<VkQueryPool>(device.GetNativeDevice(), m_queryPool, device.GetContext().DestroyQueryPool));
+                m_queryPool = VK_NULL_HANDLE;
+            }
+#endif
             m_nativeCommandBuffer = VK_NULL_HANDLE; // do not call vkFreeCommanBuffers().
             DeviceObject::Shutdown();
         }
@@ -681,17 +701,119 @@ namespace AZ
 
             VkResult vkResult = static_cast<Device&>(GetDevice()).GetContext().BeginCommandBuffer(m_nativeCommandBuffer, &beginInfo);
             AssertSuccess(vkResult);
+#if defined(CARBONATED)
+            if (m_queryPool)
+            {
+                // Reset both queries before using them
+                static_cast<Device&>(GetDevice())
+                    .GetContext()
+                    .CmdResetQueryPool(m_nativeCommandBuffer, m_queryPool, m_timestampStartIndex, 2);
+
+                // Write timestamp at beginning
+                static_cast<Device&>(GetDevice())
+                    .GetContext()
+                    .CmdWriteTimestamp(m_nativeCommandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_queryPool, m_timestampStartIndex);
+            }
+#endif
         }
 
         void CommandList::EndCommandBuffer()
         {
             AZ_Assert(m_isUpdating, "Not in updating state");
 
+#if defined(CARBONATED)
+            if (m_queryPool)
+            {
+                // Write timestamp at the end
+                static_cast<Device&>(GetDevice())
+                    .GetContext()
+                    .CmdWriteTimestamp(m_nativeCommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_queryPool, m_timestampEndIndex);
+            }
+#endif
             m_state.m_framebuffer = nullptr;
             m_state.m_subpassIndex = 0;
             AssertSuccess(static_cast<Device&>(GetDevice()).GetContext().EndCommandBuffer(m_nativeCommandBuffer));
             m_isUpdating = false;
         }
+
+#if defined(CARBONATED)
+        void CommandList::StartGPUStatistics()
+        {
+            GetDevice().RegisterCommandBuffer(m_nativeCommandBuffer);
+            GetDevice().MarkCommandBufferCommit(m_nativeCommandBuffer);
+        }
+
+        void CommandList::CollectGPUStatistics()
+        {
+            const auto& device = static_cast<Device&>(GetDevice());
+            const auto& context = device.GetContext();
+
+            uint64_t timestamps[2] = {};
+
+            VkResult result = context.GetQueryPoolResults(
+                device.GetNativeDevice(),
+                m_queryPool,
+                m_timestampStartIndex,
+                2,
+                sizeof(timestamps),
+                timestamps,
+                sizeof(uint64_t),
+                VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+
+            if (result != VK_SUCCESS)
+            {
+                GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, 0, 0);
+                return;
+            }
+
+            const auto& physicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
+            double timestampPeriod = physicalDevice.GetDeviceLimits().timestampPeriod; // ns per tick
+
+            const uint64_t gpuStart = timestamps[0];
+            const uint64_t gpuEnd = timestamps[1];
+
+            // Convert GPU ticks to seconds
+            const double gpuStartSec = (gpuStart * timestampPeriod) / 1e9;
+            const double gpuEndSec = (gpuEnd * timestampPeriod) / 1e9;
+
+            // Calibration
+            VkCalibratedTimestampInfoEXT timestampInfos[2] = {};
+            timestampInfos[0].sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT;
+            timestampInfos[0].timeDomain = VK_TIME_DOMAIN_DEVICE_EXT; // GPU
+
+            timestampInfos[1].sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT;
+            timestampInfos[1].timeDomain = VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT; // CPU
+
+            uint64_t timestampsCalibration[2] = {};
+            uint64_t maxDeviation = 0;
+
+            result = context.GetCalibratedTimestampsEXT(device.GetNativeDevice(), 2, timestampInfos, timestampsCalibration, &maxDeviation);
+
+            if (result == VK_SUCCESS)
+            {
+                const uint64_t gpuCalibTicks = timestampsCalibration[0];
+                const uint64_t cpuCalibNs = timestampsCalibration[1];
+
+                // Calculate calibration in Seconds
+                const double gpuCalibSec = (gpuCalibTicks * timestampPeriod) / 1e9;
+                const double cpuCalibSec = cpuCalibNs / 1e9;
+
+                // Calculation time shift
+                const double timeShiftSec = cpuCalibSec - gpuCalibSec;
+
+                // Apply calibration
+                const double gpuStartCpuSec = gpuStartSec + timeShiftSec;
+                const double gpuEndCpuSec = gpuEndSec + timeShiftSec;
+
+                GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartCpuSec, gpuEndCpuSec);
+            }
+            else
+            {
+                // Fallback to not corrected values
+                GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartSec, gpuEndSec);
+            }
+        }
+#endif
 
         void CommandList::BeginRenderPass(const BeginRenderPassInfo& beginInfo)
         {
