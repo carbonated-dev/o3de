@@ -769,12 +769,12 @@ namespace AZ
             const auto& physicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
             double timestampPeriod = physicalDevice.GetDeviceLimits().timestampPeriod; // ns per tick
 
-            uint64_t gpuStart = timestamps[0];
-            uint64_t gpuEnd = timestamps[1];
+            const uint64_t gpuStart = timestamps[0];
+            const uint64_t gpuEnd = timestamps[1];
 
             // Convert GPU ticks to seconds
-            double gpuStartSec = (gpuStart * timestampPeriod) / 1e9;
-            double gpuEndSec = (gpuEnd * timestampPeriod) / 1e9;
+            const double gpuStartSec = (gpuStart * timestampPeriod) / 1e9;
+            const double gpuEndSec = (gpuEnd * timestampPeriod) / 1e9;
 
             // Calibration
             VkCalibratedTimestampInfoEXT timestampInfos[2] = {};
@@ -791,19 +791,19 @@ namespace AZ
 
             if (result == VK_SUCCESS)
             {
-                uint64_t gpuCalibTicks = timestampsCalibration[0];
-                uint64_t cpuCalibNs = timestampsCalibration[1];
+                const uint64_t gpuCalibTicks = timestampsCalibration[0];
+                const uint64_t cpuCalibNs = timestampsCalibration[1];
 
                 // Calculate calibration in Seconds
-                double gpuCalibSec = (gpuCalibTicks * timestampPeriod) / 1e9;
-                double cpuCalibSec = cpuCalibNs / 1e9;
+                const double gpuCalibSec = (gpuCalibTicks * timestampPeriod) / 1e9;
+                const double cpuCalibSec = cpuCalibNs / 1e9;
 
                 // Calculation time shift
-                double timeShiftSec = cpuCalibSec - gpuCalibSec;
+                const double timeShiftSec = cpuCalibSec - gpuCalibSec;
 
                 // Apply calibration
-                double gpuStartCpuSec = gpuStartSec + timeShiftSec;
-                double gpuEndCpuSec = gpuEndSec + timeShiftSec;
+                const double gpuStartCpuSec = gpuStartSec + timeShiftSec;
+                const double gpuEndCpuSec = gpuEndSec + timeShiftSec;
 
                 GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartCpuSec, gpuEndCpuSec);
             }
