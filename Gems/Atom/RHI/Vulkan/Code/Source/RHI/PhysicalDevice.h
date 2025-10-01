@@ -41,6 +41,9 @@ namespace AZ
         enum class OptionalDeviceExtension : uint32_t
         {
             SampleLocation = 0,
+#if defined(CARBONATED)
+            CalibratedTimestamps,
+#endif
             ConditionalRendering,
             MemoryBudget,
             DepthClipEnable,
