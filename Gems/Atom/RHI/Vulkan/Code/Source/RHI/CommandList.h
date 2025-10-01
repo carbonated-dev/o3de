@@ -120,6 +120,10 @@ namespace AZ
 
             RHI::CommandListValidator& GetValidator();
 
+#if defined(CARBONATED)
+            void StartGPUStatistics();
+            void CollectGPUStatistics();
+#endif
         private:
             struct Descriptor
             {
@@ -186,6 +190,11 @@ namespace AZ
             bool m_supportsPredication = false;
             bool m_supportsDrawIndirectCount = false;
             RHI::CommandListValidator m_validator;
+#if defined(CARBONATED)
+            VkQueryPool m_queryPool = VK_NULL_HANDLE;
+            const uint32_t m_timestampStartIndex = 0;
+            const uint32_t m_timestampEndIndex = 1;
+#endif
         };
 
         template<class Item>

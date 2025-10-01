@@ -51,6 +51,9 @@ namespace AZ
 
                 Queue* vulkanQueue = static_cast<Queue*>(queue);
 
+#if defined(CARBONATED)
+                request.m_commandList->StartGPUStatistics();
+#endif
                 if (!request.m_debugLabel.empty())
                 {
                     vulkanQueue->BeginDebugLabel(request.m_debugLabel.c_str());
@@ -84,7 +87,9 @@ namespace AZ
                    const auto& fence = request.m_fencesToSignal[i];
                    Signal(*fence);
                 }
-
+#if defined(CARBONATED)
+                request.m_commandList->CollectGPUStatistics();
+#endif
                 {
                     AZ::Debug::ScopedTimer presentTimer(m_lastPresentDuration);
 
