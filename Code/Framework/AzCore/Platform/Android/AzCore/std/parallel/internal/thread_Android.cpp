@@ -12,9 +12,11 @@
 #include <errno.h>
 
 #if defined(CARBONATED)
-#include <unordered_map>
-#include <mutex>
-#include <string>
+#include <AzCore/std/containers/unordered_map.h>
+#include <AzCore/std/string/string.h>
+#include <AzCore/std/parallel/mutex.h>
+//#include <AzCore/std/parallel/thread.h>
+#include <AzCore/std/parallel/lock.h>
 #endif
 
 namespace AZStd
@@ -51,24 +53,24 @@ namespace AZStd
 #if defined(CARBONATED)
 
         // Global table  tid -> thread name
-        static std::unordered_map<pid_t, std::string> g_tidToName;
-        static std::mutex g_tidToNameMutex;
+        static AZStd::unordered_map<pid_t, AZStd::string> g_tidToName;
+        static AZStd::mutex g_tidToNameMutex;
 
         void RegisterThreadName(pid_t tid, const char* name)
         {
-            std::lock_guard<std::mutex> lock(g_tidToNameMutex);
+            AZStd::lock_guard<AZStd::mutex> lock(g_tidToNameMutex);
             g_tidToName[tid] = name;
         }
 
         void UnregisterThreadName(pid_t tid)
         {
-            std::lock_guard<std::mutex> lock(g_tidToNameMutex);
+            AZStd::lock_guard<AZStd::mutex> lock(g_tidToNameMutex);
             g_tidToName.erase(tid);
         }
 
-        std::string GetThreadName(pid_t tid)
+        AZStd::string GetThreadName(pid_t tid)
         {
-            std::lock_guard<std::mutex> lock(g_tidToNameMutex);
+            AZStd::lock_guard<AZStd::mutex> lock(g_tidToNameMutex);
             auto it = g_tidToName.find(tid);
             return it != g_tidToName.end() ? it->second : "";
         }
