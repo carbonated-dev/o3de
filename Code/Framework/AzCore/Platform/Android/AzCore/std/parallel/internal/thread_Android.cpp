@@ -15,7 +15,6 @@
 #include <AzCore/std/containers/unordered_map.h>
 #include <AzCore/std/string/string.h>
 #include <AzCore/std/parallel/mutex.h>
-//#include <AzCore/std/parallel/thread.h>
 #include <AzCore/std/parallel/lock.h>
 #endif
 
