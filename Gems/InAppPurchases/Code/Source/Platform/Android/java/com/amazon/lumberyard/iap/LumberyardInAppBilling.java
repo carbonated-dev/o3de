@@ -29,6 +29,7 @@ import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.android.billingclient.api.QueryProductDetailsParams;
 import com.android.billingclient.api.QueryPurchasesParams;
 
+//patched by CARBONATED 03.10.2025
 /** @noinspection JavaJniMissingFunction*/
 public class LumberyardInAppBilling implements PurchasesUpdatedListener
 {
