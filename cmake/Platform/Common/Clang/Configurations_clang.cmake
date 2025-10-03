@@ -60,7 +60,7 @@ ly_append_configurations_options(
         -fstack-check
 
     COMPILATION_RELEASE
-        -Ofast
+        -O3 -ffast-math
 )
 
 if(LY_BUILD_WITH_ADDRESS_SANITIZER)
