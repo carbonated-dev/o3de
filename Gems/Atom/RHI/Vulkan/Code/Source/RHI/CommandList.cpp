@@ -36,7 +36,7 @@
 #include <Atom/RHI.Reflect/IndirectBufferLayout.h>
 #include <Atom/RHI/DispatchRaysItem.h>
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(_RELEASE)
 #include <RHI/ReleaseContainer.h>
 #include <AzCore/Time/ITime.h>
 #endif
@@ -63,7 +63,7 @@ namespace AZ
             const auto& physicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
             m_supportsPredication = physicalDevice.IsFeatureSupported(DeviceFeature::Predication);
             m_supportsDrawIndirectCount = physicalDevice.IsFeatureSupported(DeviceFeature::DrawIndirectCount);
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(_RELEASE)
             VkQueryPoolCreateInfo queryPoolInfo = {};
             queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
             queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
@@ -654,7 +654,7 @@ namespace AZ
 
         void CommandList::Shutdown()
         {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(_RELEASE)
             if (m_queryPool)
             {
                 auto& device = static_cast<Device&>(GetDevice());
@@ -701,18 +701,23 @@ namespace AZ
 
             VkResult vkResult = static_cast<Device&>(GetDevice()).GetContext().BeginCommandBuffer(m_nativeCommandBuffer, &beginInfo);
             AssertSuccess(vkResult);
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(_RELEASE)
             if (m_queryPool)
             {
-                // Reset both queries before using them
-                static_cast<Device&>(GetDevice())
-                    .GetContext()
-                    .CmdResetQueryPool(m_nativeCommandBuffer, m_queryPool, m_timestampStartIndex, 2);
-
-                // Write timestamp at beginning
-                static_cast<Device&>(GetDevice())
-                    .GetContext()
-                    .CmdWriteTimestamp(m_nativeCommandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_queryPool, m_timestampStartIndex);
+                if (m_collectingGPUStats = GetDevice().GatheringStatsEnabled())
+                {
+                    // Register and mark CommandBuffer
+                    GetDevice().RegisterCommandBuffer(m_nativeCommandBuffer);
+                    GetDevice().MarkCommandBufferCommit(m_nativeCommandBuffer);
+                    // Reset both queries before using them
+                    static_cast<Device&>(GetDevice())
+                        .GetContext()
+                        .CmdResetQueryPool(m_nativeCommandBuffer, m_queryPool, m_timestampStartIndex, 2);
+                    // Write timestamp at beginning
+                    static_cast<Device&>(GetDevice())
+                        .GetContext()
+                        .CmdWriteTimestamp(m_nativeCommandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_queryPool, m_timestampStartIndex);
+                }
             }
 #endif
         }
@@ -721,13 +726,11 @@ namespace AZ
         {
             AZ_Assert(m_isUpdating, "Not in updating state");
 
-#if defined(CARBONATED)
-            if (m_queryPool)
+#if defined(CARBONATED) && !defined(_RELEASE)
+            if (m_queryPool && m_collectingGPUStats)
             {
                 // Write timestamp at the end
-                static_cast<Device&>(GetDevice())
-                    .GetContext()
-                    .CmdWriteTimestamp(m_nativeCommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_queryPool, m_timestampEndIndex);
+                static_cast<Device&>(GetDevice()).GetContext().CmdWriteTimestamp(m_nativeCommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_queryPool, m_timestampEndIndex);
             }
 #endif
             m_state.m_framebuffer = nullptr;
@@ -736,15 +739,13 @@ namespace AZ
             m_isUpdating = false;
         }
 
-#if defined(CARBONATED)
-        void CommandList::StartGPUStatistics()
-        {
-            GetDevice().RegisterCommandBuffer(m_nativeCommandBuffer);
-            GetDevice().MarkCommandBufferCommit(m_nativeCommandBuffer);
-        }
-
+#if defined(CARBONATED) && !defined(_RELEASE)
         void CommandList::CollectGPUStatistics()
         {
+            if (!m_collectingGPUStats)
+            {
+                return;
+            }
             const auto& device = static_cast<Device&>(GetDevice());
             const auto& context = device.GetContext();
 
@@ -758,8 +759,7 @@ namespace AZ
                 sizeof(timestamps),
                 timestamps,
                 sizeof(uint64_t),
-                VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-
+                VK_QUERY_RESULT_64_BIT);
             if (result != VK_SUCCESS)
             {
                 GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, 0, 0);
@@ -785,11 +785,11 @@ namespace AZ
             timestampInfos[1].timeDomain = VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT; // CPU
 
             uint64_t timestampsCalibration[2] = {};
-            uint64_t maxDeviation = 0;
 
             result = VK_NOT_READY;
             if (context.GetCalibratedTimestampsEXT)
             {
+                uint64_t maxDeviation = 0;
                 result = context.GetCalibratedTimestampsEXT(device.GetNativeDevice(), 2, timestampInfos, timestampsCalibration, &maxDeviation);
             }
 

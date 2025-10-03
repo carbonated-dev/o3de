@@ -179,6 +179,7 @@ namespace AZ::RHI
         void RegisterCommandBuffer(const void* buffer);
         void MarkCommandBufferCommit(const void* buffer);
         void CommandBufferCompleted(const void* buffer, double begin, double end);
+        bool GatheringStatsEnabled();
         void EnableGatheringStats();
         void DisableGatheringStats();
 #endif

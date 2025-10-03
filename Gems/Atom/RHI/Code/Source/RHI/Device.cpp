@@ -167,6 +167,11 @@ namespace AZ::RHI
     }
 
 #if defined(CARBONATED)
+    bool Device::GatheringStatsEnabled()
+    {
+        return m_statsEnabled;
+    }
+
     void Device::RegisterCommandBuffer(const void* buffer)
     {
         if (!m_statsEnabled)

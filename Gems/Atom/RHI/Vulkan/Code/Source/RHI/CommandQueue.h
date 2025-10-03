@@ -97,6 +97,26 @@ namespace AZ
 
             AZStd::sys_time_t m_lastExecuteDuration{};
             AZStd::sys_time_t m_lastPresentDuration{};
+
+#if defined(CARBONATED) && !defined(_RELEASE)
+            // pending callback entry
+            struct PendingFenceCallback
+            {
+                RHI::Ptr<Fence> fencePtr;  // keeps temporary fence alive; for external fences can be nullptr
+                Fence* fenceRaw = nullptr; // raw pointer to fence (external or temp)
+                bool isTemp = false;
+                AZStd::function<void()> callback;
+            };
+
+            AZStd::mutex m_pendingFenceMutex;
+            AZStd::vector<PendingFenceCallback> m_pendingFenceCallbacks;
+
+
+            // Register a fence + callback that will be invoked once the fence is signaled.
+            // fencePtr may be non-nullptr if we created a temp fence and want to keep it alive here.
+            void RegisterFenceCallback(RHI::Ptr<Fence> fencePtr, Fence* fenceRaw, bool isTemp, AZStd::function<void()> cb);
+            void ProcessPendingFenceCallbacks();
+#endif
         };
     }
 }
