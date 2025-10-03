@@ -37,6 +37,7 @@ namespace InAppPurchases
 
     static PurchasedProductDetailsAndroid* ParseReceiptDetails(JNIEnv* env, jobjectArray jpurchasedProductDetails, int index)
     {
+        AZ_TracePrintf("IAP", "ParseReceiptDetails");
         jobject jpurchasedProduct = env->GetObjectArrayElement(jpurchasedProductDetails, index);
 
         const int NUM_FIELDS_PURCHASED_PRODUCTS = 7;
@@ -74,6 +75,7 @@ namespace InAppPurchases
 
     void ProductInfoRetrieved(JNIEnv* env, jobject obj, jobjectArray jproductDetails)
     {
+        AZ_TracePrintf("IAP", "ProductInfoRetrieved");
         int numProducts = env->GetArrayLength(jproductDetails);
 
         InAppPurchasesInterface::GetInstance()->GetCache()->ClearCachedProductDetails();
@@ -115,6 +117,7 @@ namespace InAppPurchases
             productDetails->SetProductTitle(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[4]))));
             productDetails->SetProductDescription(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[5]))));
             productDetails->SetProductPriceMicro(env->GetLongField(jproduct, fid[6]));
+            AZ_TracePrintf("IAP", "AddProductDetailsToCache productDetails.Id = %s", productDetails->GetProductId().c_str());
             InAppPurchasesInterface::GetInstance()->GetCache()->AddProductDetailsToCache(productDetails);
         }
         EBUS_EVENT(InAppPurchasesResponseBus, ProductInfoRetrieved, InAppPurchasesInterface::GetInstance()->GetCache()->GetCachedProductDetails());
@@ -422,7 +425,6 @@ namespace InAppPurchases
 
     InAppPurchasesCache* InAppPurchasesAndroid::GetCache()
     {
-        AZ_TracePrintf("IAP", "GetCache");
         return &m_cache;
     }
 }
