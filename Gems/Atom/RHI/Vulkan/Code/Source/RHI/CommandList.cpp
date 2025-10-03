@@ -787,7 +787,11 @@ namespace AZ
             uint64_t timestampsCalibration[2] = {};
             uint64_t maxDeviation = 0;
 
-            result = context.GetCalibratedTimestampsEXT(device.GetNativeDevice(), 2, timestampInfos, timestampsCalibration, &maxDeviation);
+            result = VK_NOT_READY;
+            if (context.GetCalibratedTimestampsEXT)
+            {
+                result = context.GetCalibratedTimestampsEXT(device.GetNativeDevice(), 2, timestampInfos, timestampsCalibration, &maxDeviation);
+            }
 
             if (result == VK_SUCCESS)
             {
