@@ -160,7 +160,7 @@ namespace AZ::RHI
                 AZ_Info("GPUtime", "begin frame at %f, frame num %u", t, m_frameCounter);
             }*/
 
-            if (m_framesToPutToLog > m_frameCounter)
+            if (m_framesToPutToLog >= m_frameCounter)
             {
 #if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
                 const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
@@ -267,7 +267,7 @@ namespace AZ::RHI
                         found = true;
                         if (end - begin > 0.0000005)  // there are zero execution time buffers, which we ignore
                         {
-                            if (m_framesToPutToLog > m_frameCounter)
+                            if (m_framesToPutToLog >= m_frameCounter)
                             {
                                 AZ_Info(
                                     "GPUtime", "Frame: %u. Buffer=%p. FrameNumber: %u. Commit: %f. Begin: %f. End: %f (%f)\n",
