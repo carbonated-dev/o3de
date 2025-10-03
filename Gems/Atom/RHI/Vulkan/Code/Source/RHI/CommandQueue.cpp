@@ -86,6 +86,14 @@ namespace AZ
                     isTempFence = true;
                 }
 #endif
+#if defined(CARBONATED) && !defined(_RELEASE)
+                if (GetDevice().GatheringStatsEnabled())
+                {
+                    // Register and mark CommandBuffer
+                    GetDevice().RegisterCommandBuffer(request.m_commandList->GetNativeCommandBuffer());
+                    GetDevice().MarkCommandBufferCommit(request.m_commandList->GetNativeCommandBuffer());
+                }
+#endif
                 // Submit commands to queue for the current frame.
                 vulkanQueue->SubmitCommandBuffers(
                     { request.m_commandList },
@@ -116,7 +124,7 @@ namespace AZ
 #if defined(CARBONATED) && !defined(_RELEASE)
                 if (GetDevice().GatheringStatsEnabled())
                 {
-                    // Register callback — store tempFenceCapture in the pending entry to keep it alive
+                    // Register callback - store tempFenceCapture in the pending entry to keep it alive
                     RegisterFenceCallback(
                         AZStd::move(tempFenceCapture),
                         fenceToSignal,

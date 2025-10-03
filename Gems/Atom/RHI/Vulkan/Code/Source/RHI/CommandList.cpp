@@ -706,9 +706,6 @@ namespace AZ
             {
                 if (m_collectingGPUStats = GetDevice().GatheringStatsEnabled())
                 {
-                    // Register and mark CommandBuffer
-                    GetDevice().RegisterCommandBuffer(m_nativeCommandBuffer);
-                    GetDevice().MarkCommandBufferCommit(m_nativeCommandBuffer);
                     // Reset both queries before using them
                     static_cast<Device&>(GetDevice())
                         .GetContext()
