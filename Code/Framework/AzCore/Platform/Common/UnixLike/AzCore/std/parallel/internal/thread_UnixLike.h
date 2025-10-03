@@ -22,6 +22,13 @@ namespace AZStd
         pthread_t create_thread(const thread_desc* desc, thread_info* ti);
     }
 
+#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID)
+    namespace Platform
+    {
+        void RegisterThreadName(pid_t tid, const char* name);
+        void UnregisterThreadName(pid_t tid);
+    }
+#endif
     //////////////////////////////////////////////////////////////////////////
     // thread
     template<class F, class... Args, typename>
@@ -32,10 +39,22 @@ namespace AZStd
     template<class F, class... Args>
     thread::thread(const thread_desc& desc, F&& f, Args&&... args)
     {
+#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID)
+        auto threadfunc = [fn = AZStd::forward<F>(f), argsTuple = AZStd::make_tuple(AZStd::forward<Args>(args)...), name = std::string(desc.m_name)]() mutable -> void
+        {
+            pid_t tid = gettid();
+            AZStd::Platform::RegisterThreadName(tid, name.c_str());
+
+            AZStd::apply(AZStd::move(fn), AZStd::move(argsTuple));
+
+            AZStd::Platform::UnregisterThreadName(tid);
+        };
+#else
         auto threadfunc = [fn = AZStd::forward<F>(f), argsTuple = AZStd::make_tuple(AZStd::forward<Args>(args)...)]() mutable -> void
         {
             AZStd::apply(AZStd::move(fn), AZStd::move(argsTuple));
         };
+#endif
         Internal::thread_info* ti = Internal::create_thread_info(AZStd::move(threadfunc));
         m_thread = Internal::create_thread(&desc, ti);
     }
