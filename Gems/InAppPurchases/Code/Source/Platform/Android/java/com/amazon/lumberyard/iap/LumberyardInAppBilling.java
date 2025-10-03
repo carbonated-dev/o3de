@@ -33,7 +33,8 @@ import com.android.billingclient.api.QueryPurchasesParams;
 /** @noinspection JavaJniMissingFunction*/
 public class LumberyardInAppBilling implements PurchasesUpdatedListener
 {
-    public static class ProductDetails {
+    public static class ProductDetails
+    {
         public String m_title;
         public String m_description;
         public String m_productId;
@@ -43,7 +44,8 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
         public long m_priceMicro;
     }
 
-    public static class PurchasedProductDetails {
+    public static class PurchasedProductDetails
+    {
         public String m_productId;
         public String m_orderId;
         public String m_packageName;
@@ -74,7 +76,8 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
     public native void nativePurchaseCancelled();
     public native void nativePurchaseFailed(int responseCode);
 
-    public LumberyardInAppBilling(Activity activity) {
+    public LumberyardInAppBilling(Activity activity)
+    {
         m_setupDone = false;
         m_activity = activity;
         PendingPurchasesParams params = PendingPurchasesParams.newBuilder()
@@ -86,28 +89,35 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
                 .enablePendingPurchases(params)
                 .build();
 
-        if (!IsKindleDevice()) {
-            (new Thread(() -> {
+        if (!IsKindleDevice())
+        {
+            (new Thread(() ->
+            {
                 Looper.prepare();
 
-                m_billingClient.startConnection(new BillingClientStateListener() {
+                m_billingClient.startConnection(new BillingClientStateListener()
+                {
                     @Override
-                    public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
+                    public void onBillingSetupFinished(@NonNull BillingResult billingResult)
+                    {
                         Log.d(s_tag, s_subTag + "Service connected.");
 
-                        if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
+                        if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK)
+                        {
                             Log.d(s_tag, s_subTag + "Billing setup failed with response code: " + billingResult.getResponseCode());
                             return;
                         }
 
                         BillingResult subscriptionsSupportedResult = m_billingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS);
-                        if (subscriptionsSupportedResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
+                        if (subscriptionsSupportedResult.getResponseCode() != BillingClient.BillingResponseCode.OK)
+                        {
                             Log.d(s_tag, s_subTag + "Subscriptions not supported.");
                             return;
                         }
 
                         BillingResult subscriptionsUpdateSupportedResult = m_billingClient.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS_UPDATE);
-                        if (subscriptionsUpdateSupportedResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
+                        if (subscriptionsUpdateSupportedResult.getResponseCode() != BillingClient.BillingResponseCode.OK)
+                        {
                             Log.d(s_tag, s_subTag + "Subscriptions update not supported.");
                             return;
                         }
@@ -116,7 +126,8 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
                     }
 
                     @Override
-                    public void onBillingServiceDisconnected() {
+                    public void onBillingServiceDisconnected()
+                    {
                         Log.d(s_tag, s_subTag + "Service disconnected");
                     }
                 });
@@ -143,24 +154,35 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
     }
 
     @Override
-    public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases) {
+    public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases)
+    {
         final int responseCode = billingResult.getResponseCode();
 
-        if (responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
+        if (responseCode == BillingClient.BillingResponseCode.OK && purchases != null)
+        {
             ArrayList<PurchasedProductDetails> purchasedProducts = new ArrayList<>();
             ParsePurchasedProducts(purchases, purchasedProducts);
             nativeNewProductPurchased(purchasedProducts.toArray());
-        } else if (responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
-            Log.d(s_tag, s_subTag + "Purchase was cancelled by the user.");
-            nativePurchaseCancelled();
-        } else {
-            Log.e(s_tag, s_subTag + "Purchase failed with error: " + billingResult.getDebugMessage());
-            nativePurchaseFailed(responseCode);
+        }
+        else
+        {
+            if (responseCode == BillingClient.BillingResponseCode.USER_CANCELED)
+            {
+                Log.d(s_tag, s_subTag + "Purchase was cancelled by the user.");
+                nativePurchaseCancelled();
+            }
+            else
+            {
+                Log.e(s_tag, s_subTag + "Purchase failed with error: " + billingResult.getDebugMessage());
+                nativePurchaseFailed(responseCode);
+            }
         }
     }
 
-    public void QueryProductInfo(final String[] skuListArray) {
-        if (!m_setupDone) {
+    public void QueryProductInfo(final String[] skuListArray)
+    {
+        if (!m_setupDone)
+        {
             Log.e(s_tag, s_subTag + "Not initialized!");
             return;
         }
@@ -168,93 +190,116 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
         m_numResponses = 0;
         final ArrayList<ProductDetails> responseList = new ArrayList<>();
 
-        ProductDetailsResponseListener responseListener = (billingResult, productDetailsResult) -> {
+        ProductDetailsResponseListener responseListener = (billingResult, productDetailsResult) ->
+        {
             m_numResponses++;
-            if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
+            if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK)
+            {
                 Log.e(s_tag, s_subTag + "Failed to query product details: " + billingResult.getDebugMessage());
-                if (m_numResponses == 2) {
+                if (m_numResponses == 2)
+                {
                     nativeProductInfoRetrieved(responseList.toArray());
                 }
                 return;
             }
 
-            if (m_productDetailsList == null) {
+            if (m_productDetailsList == null)
+            {
                 m_productDetailsList = new ArrayList<>();
             }
             List<com.android.billingclient.api.ProductDetails> productDetailsList = productDetailsResult.getProductDetailsList();
             m_productDetailsList.addAll(productDetailsList);
 
-            for (com.android.billingclient.api.ProductDetails details : productDetailsList) {
+            for (com.android.billingclient.api.ProductDetails details : productDetailsList)
+            {
                 ProductDetails productDetails = new ProductDetails();
                 productDetails.m_productId = details.getProductId();
                 productDetails.m_title = details.getTitle();
                 productDetails.m_description = details.getDescription();
                 productDetails.m_type = details.getProductType();
 
-                if (productDetails.m_type.equals(BillingClient.ProductType.INAPP)) {
+                if (productDetails.m_type.equals(BillingClient.ProductType.INAPP))
+                {
                     com.android.billingclient.api.ProductDetails.OneTimePurchaseOfferDetails offerDetails = details.getOneTimePurchaseOfferDetails();
-                    if (offerDetails != null) {
+                    if (offerDetails != null)
+                    {
                         productDetails.m_price = offerDetails.getFormattedPrice();
                         productDetails.m_priceMicro = offerDetails.getPriceAmountMicros();
                         productDetails.m_currencyCode = offerDetails.getPriceCurrencyCode();
                     }
-                } else if (productDetails.m_type.equals(BillingClient.ProductType.SUBS)) {
-                    List<com.android.billingclient.api.ProductDetails.SubscriptionOfferDetails> subDetailsList = details.getSubscriptionOfferDetails();
-                    if (subDetailsList != null && !subDetailsList.isEmpty()) {
-                        com.android.billingclient.api.ProductDetails.SubscriptionOfferDetails subDetails = subDetailsList.get(0);
-                        com.android.billingclient.api.ProductDetails.PricingPhase pricingPhase = subDetails.getPricingPhases().getPricingPhaseList().get(0);
-                        productDetails.m_price = pricingPhase.getFormattedPrice();
-                        productDetails.m_priceMicro = pricingPhase.getPriceAmountMicros();
-                        productDetails.m_currencyCode = pricingPhase.getPriceCurrencyCode();
+                }
+                else
+                {
+                    if (productDetails.m_type.equals(BillingClient.ProductType.SUBS))
+                    {
+                        List<com.android.billingclient.api.ProductDetails.SubscriptionOfferDetails> subDetailsList = details.getSubscriptionOfferDetails();
+                        if (subDetailsList != null && !subDetailsList.isEmpty())
+                        {
+                            com.android.billingclient.api.ProductDetails.SubscriptionOfferDetails subDetails = subDetailsList.get(0);
+                            com.android.billingclient.api.ProductDetails.PricingPhase pricingPhase = subDetails.getPricingPhases().getPricingPhaseList().get(0);
+                            productDetails.m_price = pricingPhase.getFormattedPrice();
+                            productDetails.m_priceMicro = pricingPhase.getPriceAmountMicros();
+                            productDetails.m_currencyCode = pricingPhase.getPriceCurrencyCode();
+                        }
                     }
                 }
                 responseList.add(productDetails);
             }
 
-            if (m_numResponses == 2) {
+            if (m_numResponses == 2)
+            {
                 nativeProductInfoRetrieved(responseList.toArray());
             }
         };
 
         List<QueryProductDetailsParams.Product> inAppProductList = new ArrayList<>();
-        for(String sku : skuListArray) {
+        for(String sku : skuListArray)
+        {
             inAppProductList.add(QueryProductDetailsParams.Product.newBuilder().setProductId(sku).setProductType(BillingClient.ProductType.INAPP).build());
         }
         QueryProductDetailsParams inAppParams = QueryProductDetailsParams.newBuilder().setProductList(inAppProductList).build();
         m_billingClient.queryProductDetailsAsync(inAppParams, responseListener);
 
         List<QueryProductDetailsParams.Product> subsProductList = new ArrayList<>();
-        for(String sku : skuListArray) {
+        for(String sku : skuListArray)
+        {
             subsProductList.add(QueryProductDetailsParams.Product.newBuilder().setProductId(sku).setProductType(BillingClient.ProductType.SUBS).build());
         }
         QueryProductDetailsParams subsParams = QueryProductDetailsParams.newBuilder().setProductList(subsProductList).build();
         m_billingClient.queryProductDetailsAsync(subsParams, responseListener);
     }
 
-    public void PurchaseProduct(String productSku, String developerPayload, String productType) {
-        if (!m_setupDone) {
+    public void PurchaseProduct(String productSku, String developerPayload, String productType)
+    {
+        if (!m_setupDone)
+        {
             Log.e(s_tag, s_subTag + "Not initialized!");
             return;
         }
 
         com.android.billingclient.api.ProductDetails productDetailsToPurchase = null;
-        if (m_productDetailsList != null) {
-            for (com.android.billingclient.api.ProductDetails details : m_productDetailsList) {
-                if (details.getProductId().equals(productSku)) {
+        if (m_productDetailsList != null)
+        {
+            for (com.android.billingclient.api.ProductDetails details : m_productDetailsList)
+            {
+                if (details.getProductId().equals(productSku))
+                {
                     productDetailsToPurchase = details;
                     break;
                 }
             }
         }
 
-        if (productDetailsToPurchase == null) {
+        if (productDetailsToPurchase == null)
+        {
             Log.e(s_tag, s_subTag + "Product not found. Details may not be cached for SKU: " + productSku);
             return;
         }
 
         BillingFlowParams.Builder flowParamsBuilder = BillingFlowParams.newBuilder();
 
-        if (developerPayload != null && !developerPayload.isEmpty()) {
+        if (developerPayload != null && !developerPayload.isEmpty())
+        {
             flowParamsBuilder.setObfuscatedAccountId(developerPayload);
         }
 
@@ -262,12 +307,16 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
                 BillingFlowParams.ProductDetailsParams.newBuilder()
                         .setProductDetails(productDetailsToPurchase);
 
-        if (BillingClient.ProductType.SUBS.equals(productDetailsToPurchase.getProductType())) {
+        if (BillingClient.ProductType.SUBS.equals(productDetailsToPurchase.getProductType()))
+        {
             List<com.android.billingclient.api.ProductDetails.SubscriptionOfferDetails> offerDetailsList = productDetailsToPurchase.getSubscriptionOfferDetails();
-            if (offerDetailsList != null && !offerDetailsList.isEmpty()) {
+            if (offerDetailsList != null && !offerDetailsList.isEmpty())
+            {
                 String offerToken = offerDetailsList.get(0).getOfferToken();
                 productDetailsParamsBuilder.setOfferToken(offerToken);
-            } else {
+            }
+            else
+            {
                 Log.e(s_tag, s_subTag + "No subscription offers found for SKU: " + productSku);
                 return;
             }
@@ -278,7 +327,8 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
         BillingFlowParams flowParams = flowParamsBuilder.build();
         BillingResult billingResult = m_billingClient.launchBillingFlow(m_activity, flowParams);
 
-        if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
+        if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK)
+        {
             Log.e(s_tag, s_subTag + "Failed to launch billing flow: " + billingResult.getDebugMessage());
             return;
         }
@@ -286,28 +336,37 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
         Log.d(s_tag, s_subTag + "Purchase flow initiated.");
     }
 
-    public void QueryPurchasedProducts() {
-        if (!m_setupDone) {
+    public void QueryPurchasedProducts()
+    {
+        if (!m_setupDone)
+        {
             Log.e(s_tag, s_subTag + "Not initialized!");
             return;
         }
 
-        synchronized (m_queryLock) {
+        synchronized (m_queryLock)
+        {
             m_queryPurchasesResponseCount = 0;
             m_queriedProductsList.clear();
         }
 
-        PurchasesResponseListener listener = (billingResult, purchases) -> {
-            synchronized (m_queryLock) {
-                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+        PurchasesResponseListener listener = (billingResult, purchases) ->
+        {
+            synchronized (m_queryLock)
+            {
+                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK)
+                {
                     ParsePurchasedProducts(purchases, m_queriedProductsList);
-                } else {
+                }
+                else
+                {
                     Log.e(s_tag, s_subTag + "Failed to query purchases: " + billingResult.getDebugMessage());
                 }
 
                 m_queryPurchasesResponseCount++;
 
-                if (m_queryPurchasesResponseCount == 2) {
+                if (m_queryPurchasesResponseCount == 2)
+                {
                     nativePurchasedProductsRetrieved(m_queriedProductsList.toArray());
                 }
             }
@@ -317,17 +376,23 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
         m_billingClient.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build(), listener);
     }
 
-    public void ConsumePurchase(final String purchaseToken) {
-        if (!m_setupDone) {
+    public void ConsumePurchase(final String purchaseToken)
+    {
+        if (!m_setupDone)
+        {
             Log.e(s_tag, s_subTag + "Not initialized!");
             return;
         }
 
-        ConsumeResponseListener listener = (billingResult, token) -> {
-            if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+        ConsumeResponseListener listener = (billingResult, token) ->
+        {
+            if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK)
+            {
                 Log.d(s_tag, s_subTag + "Purchase consumed successfully: " + token);
                 nativePurchaseConsumed(token);
-            } else {
+            }
+            else
+            {
                 Log.e(s_tag, s_subTag + "Error consuming purchase: " + billingResult.getDebugMessage());
             }
         };
@@ -336,13 +401,17 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
         m_billingClient.consumeAsync(consumeParams, listener);
     }
 
-    private void ParsePurchasedProducts(List<Purchase> purchases, ArrayList<PurchasedProductDetails> purchasedProducts) {
-        if (purchases == null) {
+    private void ParsePurchasedProducts(List<Purchase> purchases, ArrayList<PurchasedProductDetails> purchasedProducts)
+    {
+        if (purchases == null)
+        {
             return;
         }
 
-        for (Purchase purchase : purchases) {
-            for (String productId : purchase.getProducts()) {
+        for (Purchase purchase : purchases)
+        {
+            for (String productId : purchase.getProducts())
+            {
                 PurchasedProductDetails purchasedProductDetails = new PurchasedProductDetails();
                 purchasedProductDetails.m_productId = productId;
                 purchasedProductDetails.m_orderId = purchase.getOrderId();
@@ -356,7 +425,8 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
         }
     }
 
-    private boolean IsKindleDevice() {
+    private boolean IsKindleDevice()
+    {
         return android.os.Build.MANUFACTURER.equals("Amazon");
     }
 }
