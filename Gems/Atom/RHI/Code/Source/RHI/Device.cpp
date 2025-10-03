@@ -159,6 +159,16 @@ namespace AZ::RHI
                 const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
                 AZ_Info("GPUtime", "begin frame at %f, frame num %u", t, m_frameCounter);
             }*/
+
+            if (m_framesToPutToLog > m_frameCounter)
+            {
+#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
+                const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
+#else
+                const double t = AZStd::GetTimeNowTicks() / 1e9; // Use time since system start like all Vulkan timestamps
+#endif
+                AZ_Info("GPUtime", "Begin Frame at %f. Frame num=%u\n", t, m_frameCounter);
+            }
             m_FrameTimeLock.unlock();
 #endif
             return BeginFrameInternal();
@@ -167,9 +177,9 @@ namespace AZ::RHI
     }
 
 #if defined(CARBONATED)
-    bool Device::GatheringStatsEnabled()
+    void Device::PerformShortGPUGathering(int count)
     {
-        return m_statsEnabled;
+        m_framesToPutToLog = m_frameCounter + count;
     }
 
     void Device::RegisterCommandBuffer(const void* buffer)
@@ -257,6 +267,18 @@ namespace AZ::RHI
                         found = true;
                         if (end - begin > 0.0000005)  // there are zero execution time buffers, which we ignore
                         {
+                            if (m_framesToPutToLog > m_frameCounter)
+                            {
+                                AZ_Info(
+                                    "GPUtime", "Frame: %u. Buffer=%p. FrameNumber: %u. Commit: %f. Begin: %f. End: %f (%f)\n",
+                                    m_frameCounter,
+                                    buffer,
+                                    fc.m_frameNumber,
+                                    fc.m_commands[ib].m_commitTime,
+                                    begin,
+                                    end,
+                                    end - begin);
+                            }
                             //AZ_Info("GPUtime", "Add interval %f %f (%f) to frame %u", begin, end, end - begin, fc.m_frameNumber);
                             fc.RegisterInterval(fc.m_commands[ib].m_commitTime, begin, end);
                         }
@@ -400,6 +422,7 @@ namespace AZ::RHI
         m_FrameGPUWaitTime = 0.0;
         m_FrameGPUWaitAvgTime = 0.0;
         m_FrameGPUEndMaxTime = 0.0;
+        m_framesToPutToLog = 0;
     }
 #endif
 

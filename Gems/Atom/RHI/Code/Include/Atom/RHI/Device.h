@@ -179,7 +179,8 @@ namespace AZ::RHI
         void RegisterCommandBuffer(const void* buffer);
         void MarkCommandBufferCommit(const void* buffer);
         void CommandBufferCompleted(const void* buffer, double begin, double end);
-        bool GatheringStatsEnabled();
+        bool GatheringStatsEnabled() const { return m_statsEnabled; }
+        void PerformShortGPUGathering(int count);
         void EnableGatheringStats();
         void DisableGatheringStats();
 #endif
@@ -272,6 +273,7 @@ namespace AZ::RHI
         double m_FrameGPUWaitAvgTime = 0.0;
         double m_FrameGPUEndMaxTime = 0.0;
         bool m_statsEnabled = false;
+        unsigned int m_framesToPutToLog = 0;
 #endif
     };
 }
