@@ -27,7 +27,6 @@ namespace AZStd
     {
         void RegisterThreadName(pid_t tid, const char* name);
         void UnregisterThreadName(pid_t tid);
-        void AZStd::string GetThreadName(pid_t tid);
     }
 #endif
     //////////////////////////////////////////////////////////////////////////
