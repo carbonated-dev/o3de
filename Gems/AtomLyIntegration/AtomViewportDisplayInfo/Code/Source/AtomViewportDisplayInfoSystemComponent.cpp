@@ -73,7 +73,7 @@ namespace AZ::Render
             AZ::RHI::Device* pDevice = AZ::RHI::RHISystemInterface::Get()->GetDevice();
             if (pDevice && count >= 0)
             {
-                pDevice->PerformShortGPUGathering(count);
+                pDevice->LogGPUSnapshot(count);
             }
         },
         AZ::ConsoleFunctorFlags::DontReplicate,
