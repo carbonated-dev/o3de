@@ -167,7 +167,7 @@ namespace AZ::RHI
 #else
                 const double t = AZStd::GetTimeNowTicks() / 1e9; // Use time since system start like all Vulkan timestamps
 #endif
-                AZ_Info("GPUtime", "Begin Frame at %f. Frame num=%u\n", t, m_frameCounter);
+                AZ_Info("GPUtime", "Begin Frame at %f. Frame num=%u\n", (t - m_startLogTime), m_frameCounter);
             }
             m_FrameTimeLock.unlock();
 #endif
@@ -180,6 +180,11 @@ namespace AZ::RHI
     void Device::LogGPUSnapshot(int nFrames)
     {
         m_lastFrameToLog = m_frameCounter + nFrames;
+#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
+        m_startLogTime = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
+#else
+        m_startLogTime = AZStd::GetTimeNowTicks() / 1e9; // Use time since system start like all Vulkan timestamps
+#endif
     }
 
     void Device::RegisterCommandBuffer(const void* buffer)
@@ -269,7 +274,13 @@ namespace AZ::RHI
                         {
                             if (m_lastFrameToLog >= m_frameCounter)
                             {
-                                AZ_Info("GPUtime", "frame %u, commit %f, begin: %f, end: %f\n", fc.m_frameNumber, fc.m_commands[ib].m_commitTime, begin, end);
+                                AZ_Info(
+                                    "GPUtime",
+                                    "frame %u, commit %f, begin: %f, end: %f\n",
+                                    fc.m_frameNumber,
+                                    fc.m_commands[ib].m_commitTime - m_startLogTime,
+                                    begin - m_startLogTime,
+                                    end - m_startLogTime);
                             }
                             //AZ_Info("GPUtime", "Add interval %f %f (%f) to frame %u", begin, end, end - begin, fc.m_frameNumber);
                             fc.RegisterInterval(fc.m_commands[ib].m_commitTime, begin, end);
@@ -415,6 +426,7 @@ namespace AZ::RHI
         m_FrameGPUWaitAvgTime = 0.0;
         m_FrameGPUEndMaxTime = 0.0;
         m_lastFrameToLog = 0;
+        m_startLogTime = 0;
     }
 #endif
 

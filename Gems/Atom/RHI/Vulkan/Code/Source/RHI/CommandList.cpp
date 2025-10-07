@@ -704,7 +704,8 @@ namespace AZ
 #if defined(CARBONATED) && !defined(_RELEASE)
             if (m_queryPool)
             {
-                if (m_collectingGPUStats = GetDevice().GatheringStatsEnabled())
+                m_collectingGPUStats = GetDevice().GatheringStatsEnabled();
+                if (m_collectingGPUStats)
                 {
                     // Reset both queries before using them
                     static_cast<Device&>(GetDevice())

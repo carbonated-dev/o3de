@@ -759,7 +759,7 @@ namespace LyShine
             const auto& descriptor = rhiDevice->GetPhysicalDevice().GetDescriptor();
             // At this time (September 2025) we know 100% that Google Pixel 8 and Pixel 9 have an issue with sparkling white/colored snow on UI elements.
             // A workaround is to not combine rectangular/square primitives of size > 24 into large batches.
-            m_usingMaliG715Workaround = descriptor.m_description.contains("Mali-G715");
+            m_usingMaliG715Workaround = descriptor.m_description.contains("Mali-G715") || descriptor.m_description.starts_with("Samsung Xclipse 9");
         }
         else
         {

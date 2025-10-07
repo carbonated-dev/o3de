@@ -274,6 +274,7 @@ namespace AZ::RHI
         double m_FrameGPUEndMaxTime = 0.0;
         bool m_statsEnabled = false;
         unsigned int m_lastFrameToLog = 0;
+        double m_startLogTime = 0;
 #endif
     };
 }
