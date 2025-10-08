@@ -120,8 +120,7 @@ namespace AZ
 
             RHI::CommandListValidator& GetValidator();
 
-#if defined(CARBONATED)
-            void StartGPUStatistics();
+#if defined(CARBONATED) && !defined(_RELEASE)
             void CollectGPUStatistics();
 #endif
         private:
@@ -190,7 +189,8 @@ namespace AZ
             bool m_supportsPredication = false;
             bool m_supportsDrawIndirectCount = false;
             RHI::CommandListValidator m_validator;
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(_RELEASE)
+            bool m_collectingGPUStats = false;
             VkQueryPool m_queryPool = VK_NULL_HANDLE;
             const uint32_t m_timestampStartIndex = 0;
             const uint32_t m_timestampEndIndex = 1;
