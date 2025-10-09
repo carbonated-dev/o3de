@@ -612,11 +612,19 @@ namespace EMotionFX
 
                 if (dependencyAsset && dependencyAsset.GetType() == azrtti_typeid<AZ::RPI::ModelAsset>())
                 {
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+                    m_modelReloadedEventHandler = AZ::Render::ModelReloadedEvent::Handler(
+                        [this]([[maybe_unused]] AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset)
+                        {
+                            m_actorAsset.QueueLoad();
+                        });
+#else
                      m_modelReloadedEventHandler = AZ::Render::ModelReloadedEvent::Handler(
                         [this]([[maybe_unused]] AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset)
                         {
                             m_actorAsset.QueueLoad();
                         });
+#endif // defined(CARBONATED)
 
                     // Now that the ModelAsset has been found, request a reload.
                     // When this finishes, the callback will trigger a QueueLoad on m_actorAsset.

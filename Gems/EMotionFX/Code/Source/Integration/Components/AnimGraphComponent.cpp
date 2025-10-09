@@ -1257,5 +1257,18 @@ namespace EMotionFX
             m_configuration.m_activeMotionSetName = activeMotionSetName;
             CheckCreateAnimGraphInstance();
         }
+
+#if defined(CARBONATED)
+        void AnimGraphComponent::ResetMotionSet()
+        {
+            AnimGraphInstance* pInstance = GetAnimGraphInstance();
+            if (!pInstance)
+                return;
+
+            MotionSet* pMotionSet = m_configuration.m_motionSetAsset.Get()->m_emfxMotionSet.get();
+            if (pMotionSet)
+                pInstance->SetMotionSet(pMotionSet);
+        }
+#endif
     } // namespace Integration
 } // namespace EMotionFXAnimation

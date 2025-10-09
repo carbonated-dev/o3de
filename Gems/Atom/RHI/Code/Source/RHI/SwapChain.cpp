@@ -197,6 +197,13 @@ namespace AZ::RHI
         m_descriptor.m_verticalSyncInterval = verticalSyncInterval;
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+    void SwapChain::SetDesiredFPS(uint32_t desiredFPS)
+    {
+        SetDesiredFPSInternal(desiredFPS);
+    }
+#endif
+
     const AttachmentId& SwapChain::GetAttachmentId() const
     {
         return m_descriptor.m_attachmentId;

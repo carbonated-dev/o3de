@@ -47,6 +47,9 @@ namespace InAppPurchases
 #if defined(CARBONATED)  // PR375
         virtual AZStd::string GetTransactionReceipt() const { return ""; }
 #endif
+#if defined(CARBONATED) && defined(CARBONATED_CHECK_PURCHASE_SUPPORT)
+        virtual bool IsInAppPurchaseSupported() const { return false; }
+#endif
         
         // This should be called when a user buys any consumable product(like virtual currency). Otherwise, the user will not be able to buy this product again.
         virtual void ConsumePurchase(const AZStd::string& purchaseToken) const = 0;

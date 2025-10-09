@@ -87,7 +87,7 @@ namespace
         void PumpAllEvents() override
         {
             bool continueRunning = true;
-            while (continueRunning) 
+            while (continueRunning)
             {
                 continueRunning = PumpEvents(&ALooper_pollOnce);
             }
@@ -105,7 +105,7 @@ namespace
 
     private:
         // signature of ALooper_pollOnce and ALooper_pollAll -> int timeoutMillis, int* outFd, int* outEvents, void** outData
-        typedef int (*EventPumpFunc)(int, int*, int*, void**); 
+        typedef int (*EventPumpFunc)(int, int*, int*, void**);
 
         bool PumpEvents(EventPumpFunc looperFunc)
         {
@@ -117,13 +117,45 @@ namespace
             int events = 0;
             android_poll_source* source = nullptr;
             const AZ::Android::AndroidEnv* androidEnv = AZ::Android::AndroidEnv::Get();
+#if defined(CARBONATED)
+            // On some devices, when the application is in the background,
+            // ALOOPER_POLL_WAKE message may arrive (usually when opening another application),
+            // which will lead to an exit from the wait in looperFunc and the continuation
+            // of the execution of MainLoop and the execution of gameApplication.Tick().
 
+            // approximate call sequence for clarity
+            // Launcher.MainLoop
+            // |- gameApplication.PumpSystemEventLoopUntilEmpty
+            // |  |- PumpAllEvents [event loop]
+            // |  |  |- PumpEvents [event]
+            // |  |  |  |- looperFunc [block]
+            // |  |  |  |   (The main thread is blocked when androidEnv->IsRunning == false,
+            // |  |  |  |    until a message arrives from Android)
+            // |  |  |  |- source->process(m_appState, source);
+            // |  |  |  |   \- HandleApplicationLifecycleEvents
+            // |  |  |  |      \- androidEnv->SetIsRunning(true/false)
+            // \- gameApplication.Tick [update]
+
+            int result;
+            if (androidEnv->IsRunning())
+            {
+                result = looperFunc(0, nullptr, &events, reinterpret_cast<void**>(&source));
+            }
+            else
+            {
+                do
+                {
+                    result = looperFunc(-1, nullptr, &events, reinterpret_cast<void**>(&source));
+                }
+                while (result == ALOOPER_POLL_WAKE);
+            }
+#else
             // when timeout is negative, the function will block until an event is received
             const int result = looperFunc(androidEnv->IsRunning() ? 0 : -1, nullptr, &events, reinterpret_cast<void**>(&source));
-
+#endif
             // the value returned from the looper poll func is either:
             // 1. the identifier associated with the event source (>= 0) and has event data that needs to be processed manually
-            // 2. an ALOOPER_POLL_* enum (< 0) indicating there is no data to be processed due to error or callback(s) registered 
+            // 2. an ALOOPER_POLL_* enum (< 0) indicating there is no data to be processed due to error or callback(s) registered
             //    with the event source were called
             const bool validIdentifier = (result >= 0);
             if (validIdentifier && source)
@@ -206,6 +238,9 @@ namespace
         {
             case APP_CMD_GAINED_FOCUS:
             {
+#if defined(CARBONATED)
+                androidEnv->SetIsRunning(true);
+#endif
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnGainedFocus);
             }
@@ -228,7 +263,11 @@ namespace
 
             case APP_CMD_RESUME:
             {
+#if defined(CARBONATED)
+                // moved to APP_CMD_GAINED_FOCUS
+#else
                 androidEnv->SetIsRunning(true);
+#endif
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnResume);
             }
@@ -257,6 +296,11 @@ namespace
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowDestroy);
 
                 androidEnv->SetWindow(nullptr);
+#if defined(CARBONATED)
+                // On some devices, in some cases, the APP_CMD_TERM_WINDOW
+                // message may arrive before APP_CMD_PAUSE
+                androidEnv->SetIsRunning(false);
+#endif
             }
             break;
 
@@ -353,7 +397,7 @@ void android_main(android_app* appState)
 
     // run the Lumberyard application
     using namespace O3DELauncher;
-    
+
     PlatformMainInfo mainInfo;
     mainInfo.m_updateResourceLimits = IncreaseResourceLimits;
     mainInfo.m_onPostAppStart = OnPostAppStart;
@@ -413,7 +457,7 @@ void android_main(android_app* appState)
 #else
     mainInfo.m_appWriteStoragePath = AZ::Android::Utils::GetAppPublicStoragePath();
 #endif // defined(_RELEASE)
-    
+
 #if defined(ENABLE_LOGGING)
     mainInfo.m_printSink = &g_androidPrintSink;
 #endif // defined(ENABLE_LOGGING)

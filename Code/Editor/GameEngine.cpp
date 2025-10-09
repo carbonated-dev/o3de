@@ -37,7 +37,7 @@
 
 // CryCommon
 #include <CryCommon/MainThreadRenderRequestBus.h>
-#if defined(CARBONATED) // (akostin/mp226): IEditorGame* to dispatch notifications to NetContext
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON) // (akostin/mp226): IEditorGame* to dispatch notifications to NetContext
 #include <CryCommon/IEditorGameEvents.h>
 #endif
 
@@ -230,7 +230,7 @@ CGameEngine::CGameEngine()
     : m_bIgnoreUpdates(false)
     , m_ePendingGameMode(ePGM_NotPending)
     , m_modalWindowDismisser(nullptr)
-#if defined(CARBONATED) // (akostin/mp226): IEditorGame* to dispatch notifications to NetContext
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON) // (akostin/mp226): IEditorGame* to dispatch notifications to NetContext
     , m_pEditorGame(nullptr)
 #endif
 
@@ -841,7 +841,7 @@ void CGameEngine::OnEditorNotifyEvent(EEditorNotifyEvent event)
     break;
     }
 
-#if defined(CARBONATED) // (akostin/mp226): IEditorGame* to dispatch notifications to NetContext
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON) // (akostin/mp226): IEditorGame* to dispatch notifications to NetContext
     if (!m_pEditorGame)
     {
         EditorGameRequestBus::BroadcastResult(m_pEditorGame, &EditorGameRequestBus::Events::GetEditorGame);

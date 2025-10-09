@@ -624,6 +624,10 @@ namespace AZ
                     QueueLoadMaterials();
                     return;
                 }
+
+#if defined(CARBONATED)
+                return;
+#endif
             }
 
             m_configuration.m_materials[materialAssignmentId].m_materialAsset =

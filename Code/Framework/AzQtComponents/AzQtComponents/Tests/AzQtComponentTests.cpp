@@ -40,13 +40,21 @@ AZ_UNIT_TEST_HOOK(new AzQtComponentsTestEnvironment);
 TEST(AzQtComponents, ToStringReturnsTruncatedString)
 {
     double testVal = 1.2399999;
+#if defined(CARBONATED)
+    QString result = AzQtComponents::toString(testVal, 3, QLocale("En"), false, false);
+#else
     QString result = AzQtComponents::toString(testVal, 3, QLocale(), false, false);
+#endif
     EXPECT_TRUE(result == "1.239");
 }
 
 TEST(AzQtComponents, ToStringReturnsRoundedString)
 {
     double testVal = 1.2399999;
+#if defined(CARBONATED)
+    QString result = AzQtComponents::toString(testVal, 3, QLocale("En"), false, true);
+#else
     QString result = AzQtComponents::toString(testVal, 3, QLocale(), false, true);
+#endif
     EXPECT_TRUE(result == "1.24");
 }

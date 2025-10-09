@@ -16,7 +16,7 @@
 #include <AzCore/Serialization/EditContextConstants.inl>
 
 #include <AzFramework/Components/ConsoleBus.h>
-#if defined (CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <Atom/RHI/RHISystemInterface.h>
 #include <Atom/RHI/Device.h>
 #endif
@@ -107,7 +107,7 @@ namespace Profiler
     void ProfilerImGuiSystemComponent::ShowCpuProfilerWindow(bool& keepDrawing)
     {
         m_imguiCpuProfiler.Draw(keepDrawing);
-#if defined (CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         if (!keepDrawing)
         {
             AZ::RHI::Device* pDevice = AZ::RHI::RHISystemInterface::Get()->GetDevice();
@@ -140,7 +140,7 @@ namespace Profiler
             if (ImGui::MenuItem("CPU", "", &m_showCpuProfiler))
             {
                 AZ::Debug::ProfilerSystemInterface::Get()->SetActive(m_showCpuProfiler);
-#if defined (CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
                 if (m_showCpuProfiler)
                 {
                     AZ::RHI::Device* pDevice = AZ::RHI::RHISystemInterface::Get()->GetDevice();

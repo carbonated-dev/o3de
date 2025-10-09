@@ -165,10 +165,17 @@ namespace UnitTests
         }
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
+    void MockMultiBuilderInfoHandler::ProcessJob(
+        [[maybe_unused]] AssetBuilderExtraInfo extraInfo,
+        [[maybe_unused]] const AssetBuilderSDK::ProcessJobRequest& request,
+        [[maybe_unused]] AssetBuilderSDK::ProcessJobResponse& response)
+#else
     void MockMultiBuilderInfoHandler::ProcessJob(
         [[maybe_unused]] AssetBuilderExtraInfo extraInfo,
         [[maybe_unused]] const AssetBuilderSDK::ProcessJobRequest& request,
         AssetBuilderSDK::ProcessJobResponse& response)
+#endif // defined(CARBONATED)
     {
         response.m_resultCode = AssetBuilderSDK::ProcessJobResultCode::ProcessJobResult_Success;
     }

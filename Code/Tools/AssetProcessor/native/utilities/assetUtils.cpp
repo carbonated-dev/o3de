@@ -60,6 +60,10 @@
 
 #include <sstream>
 
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
+#include <QDirIterator>
+#endif
+
 namespace AssetUtilsInternal
 {
     static const unsigned int g_RetryWaitInterval = 250; // The amount of time that we are waiting for retry.
@@ -693,6 +697,105 @@ namespace AssetUtilities
         return QStringList();
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_APB_FILE_MASK)
+    QStringList ReadProcessedAssetsFilesFromCommandLine(bool projectOrEnginePath)
+    {
+        QStringList args = QCoreApplication::arguments();
+        for (QString arg : args)
+        {
+            if (projectOrEnginePath && (arg.contains("--process-project-assets=", Qt::CaseInsensitive) || arg.contains("/process-project-assets=", Qt::CaseInsensitive)) ||
+            !projectOrEnginePath && (arg.contains("--process-engine-assets=", Qt::CaseInsensitive) || arg.contains("/process-engine-assets=", Qt::CaseInsensitive))
+            )
+            {
+                QString rawPlatformString = arg.split("=")[1];
+                return rawPlatformString.split(",");
+            }
+        }
+
+        return QStringList();
+    }
+
+    QStringList ResolveAbsolutePathsWithExistingFiles(const QString& rootPath, const QStringList& inputPaths)
+    {
+        QStringList result;
+
+        for (const QString& path : inputPaths)
+        {
+            QFileInfo fileInfo(path);
+
+            // Case 1: If it's an absolute path and exists
+            if (fileInfo.isAbsolute())
+            {
+                if (fileInfo.exists())
+                {
+                    result.append(QDir::toNativeSeparators(fileInfo.absoluteFilePath()));
+                }
+                continue;
+            }
+
+            // Case 2: Handle relative paths/masks
+            QDir baseDir(rootPath);
+            QString combinedPath = baseDir.absoluteFilePath(path);
+            QFileInfo combinedInfo(combinedPath);
+
+            // Check if combined path is a valid existing file or folder
+            if (combinedInfo.exists())
+            {
+                if (combinedInfo.isFile())
+                {
+                    // Just add the file directly
+                    result.append(QDir::toNativeSeparators(combinedInfo.absoluteFilePath()));
+                }
+                else if (combinedInfo.isDir())
+                {
+                    // Search recursively in this directory
+                    QDirIterator dirIt(combinedInfo.absoluteFilePath(), QDir::NoDotAndDotDot | QDir::Files, QDirIterator::Subdirectories);
+                    while (dirIt.hasNext())
+                    {
+                        QString fullPath = QDir::toNativeSeparators(dirIt.next());
+                        result.append(fullPath);
+                    }
+                }
+            }
+            else
+            {
+                // Path doesn't exist directly - treat as a mask
+                // Extract directory part and pattern from the input path
+                QString dirPart = QFileInfo(path).path();
+                QString filePattern = QFileInfo(path).fileName();
+
+                // Combine directory with project path
+                QString searchDirPath = baseDir.absoluteFilePath(dirPart);
+                QDir searchDir(searchDirPath);
+
+                if (!searchDir.exists())
+                {
+                    continue;
+                }
+
+                // Use QDirIterator to find all matching files recursively
+                QDirIterator dirIt(
+                    searchDirPath, QStringList() << filePattern, QDir::NoDotAndDotDot | QDir::Files, QDirIterator::Subdirectories);
+
+                while (dirIt.hasNext())
+                {
+                    QString fullPath = QDir::toNativeSeparators(dirIt.next());
+                    result.append(fullPath);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    bool ArePathsEqual(const QString& path1, const QString& path2)
+    {
+        QString normalized1 = QDir::fromNativeSeparators(path1).toLower();
+        QString normalized2 = QDir::fromNativeSeparators(path2).toLower();
+
+        return normalized1 == normalized2;
+    }
+#endif
     bool CopyFileWithTimeout(QString sourceFile, QString outputFile, unsigned int waitTimeInSeconds)
     {
         return AssetUtilsInternal::FileCopyMoveWithTimeout(sourceFile, outputFile, true, waitTimeInSeconds);

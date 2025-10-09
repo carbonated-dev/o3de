@@ -18,13 +18,17 @@ namespace AZ
 {
     namespace NativeUI
     {
-
-#if defined(CARBONATED) // TODO : implement for platform
+#if defined(CARBONATED)
         bool NativeUISystem::IsDisplayingBlockingDialog() const
         {
-            return false;
+            AZ::Android::JNI::Object object("com/amazon/lumberyard/NativeUI$LumberyardNativeUI");
+            object.RegisterStaticMethod("IsDialogShowing", "()Z");
+
+            auto isDialogShowing = object.InvokeStaticBooleanMethod("IsDialogShowing");
+            return isDialogShowing;
         }
 #endif
+
         AZStd::string NativeUISystem::DisplayBlockingDialog(const AZStd::string& title, const AZStd::string& message, const AZStd::vector<AZStd::string>& options) const
         {
             if (m_mode == NativeUI::Mode::DISABLED)
@@ -33,9 +37,13 @@ namespace AZ
             }
 
             AZ::Android::JNI::Object object("com/amazon/lumberyard/NativeUI/LumberyardNativeUI");
+#if defined(CARBONATED)
+            object.RegisterStaticMethod("DisplayDialogCarbonated", "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/String;");
+            object.RegisterStaticMethod("OnDeadlock", "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;)V");
+#else
             object.RegisterStaticMethod("DisplayDialog", "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)V");
             object.RegisterStaticMethod("GetUserSelection", "()Ljava/lang/String;");
-
+#endif
             JNIEnv* env = AZ::Android::JNI::GetEnv();
             AZ::Android::JNI::scoped_ref<jobjectArray> joptions(static_cast<jobjectArray>(env->NewObjectArray(options.size(), env->FindClass("java/lang/String"), env->NewStringUTF(""))));
             for (int i = 0; i < options.size(); i++)
@@ -45,7 +53,9 @@ namespace AZ
 
             AZ::Android::JNI::scoped_ref<jstring> jtitle(AZ::Android::JNI::ConvertStringToJstring(title));
             AZ::Android::JNI::scoped_ref<jstring> jmessage(AZ::Android::JNI::ConvertStringToJstring(message));
-
+#if defined(CARBONATED)
+            AZStd::string userSelection = object.InvokeStaticStringMethod("DisplayDialogCarbonated", AZ::Android::Utils::GetActivityRef(), jtitle.get(), jmessage.get(), joptions.get());
+#else
             object.InvokeStaticVoidMethod("DisplayDialog", AZ::Android::Utils::GetActivityRef(), jtitle.get(), jmessage.get(), joptions.get());
 
             AZStd::string userSelection = "";
@@ -53,13 +63,18 @@ namespace AZ
             {
                 userSelection = object.InvokeStaticStringMethod("GetUserSelection");
             }
-
+#endif
             for (int i = 0; i < options.size(); i++)
             {
                 jstring str = static_cast<jstring>(env->GetObjectArrayElement(joptions.get(), i));
                 env->DeleteLocalRef(str);
             }
-
+#if defined(CARBONATED)
+            if (userSelection.empty())
+            {
+                object.InvokeStaticVoidMethod("OnDeadlock", AZ::Android::Utils::GetActivityRef(), jtitle.get(), jmessage.get());
+            }
+#endif
             return userSelection;
         }
     }

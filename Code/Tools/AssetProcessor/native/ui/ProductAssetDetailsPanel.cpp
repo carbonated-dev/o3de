@@ -260,10 +260,17 @@ namespace AssetProcessor
         m_ui->outgoingUnmetPathProductDependenciesList->adjustSize();
     }
 
+#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
     void ProductAssetDetailsPanel::BuildIncomingProductDependencies(
         [[maybe_unused]] const AZStd::shared_ptr<const ProductAssetTreeItemData> productItemData,
         const AZ::Data::AssetId& assetId,
         const AZStd::string& platform)
+#else
+    void ProductAssetDetailsPanel::BuildIncomingProductDependencies(
+        [[maybe_unused]] const AZStd::shared_ptr<const ProductAssetTreeItemData> productItemData,
+        const AZ::Data::AssetId& assetId,
+        const AZStd::string& platform)
+#endif // defined(CARBONATED)
     {
 
         int incomingProductDependencyCount = 0;

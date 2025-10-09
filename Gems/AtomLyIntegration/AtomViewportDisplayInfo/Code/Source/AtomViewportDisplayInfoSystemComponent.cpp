@@ -63,6 +63,23 @@ namespace AZ::Render
         AZ::Vector2, r_topRightBorderPadding, AZ::Vector2(-40.0f, 22.0f), nullptr, AZ::ConsoleFunctorFlags::DontReplicate,
         "The top right border padding for the viewport debug display text");
 
+#if defined(CARBONATED)
+    AZ_CVAR(
+        int,
+        r_logGPUStats,
+        0,
+        [](const int& count) -> void
+        {
+            AZ::RHI::Device* pDevice = AZ::RHI::RHISystemInterface::Get()->GetDevice();
+            if (pDevice && count >= 0)
+            {
+                pDevice->LogGPUSnapshot(count);
+            }
+        },
+        AZ::ConsoleFunctorFlags::DontReplicate,
+        "Usage: r_logGPUStats N (N - number of frames to put info into the log)\n");
+#endif
+
     void AtomViewportDisplayInfoSystemComponent::Reflect(AZ::ReflectContext* context)
     {
         if (AZ::SerializeContext* serialize = azrtti_cast<AZ::SerializeContext*>(context))

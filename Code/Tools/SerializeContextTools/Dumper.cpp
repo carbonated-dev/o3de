@@ -34,7 +34,6 @@
 #include <AzCore/Asset/AssetManager.h>
 #include <AzCore/Asset/AssetManagerBus.h>
 #include <AzFramework/Asset/AssetSystemBus.h>
-#include <AzFramework/Helpers/AssetHelpers.h>
 #endif
 
 namespace AZ::SerializeContextTools

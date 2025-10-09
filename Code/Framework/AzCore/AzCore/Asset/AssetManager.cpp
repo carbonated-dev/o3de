@@ -34,6 +34,9 @@
 #include <AzCore/Utils/LogNotification.h> // AE -- update log while waiting for assets
 #include <AzCore/Utils/AssetLoadNotification.h> // update subscribers while waiting for assets
 #include <AzCore/Memory/MemoryMarker.h>
+#if defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+#include <AzCore/Time/ITime.h>
+#endif
 #endif
 
 // Set this to 1 to enable debug logging for asset loads/unloads
@@ -260,11 +263,24 @@ namespace AZ::Data
     public:
         AZ_CLASS_ALLOCATOR(WaitForAsset, ThreadPoolAllocator);
 
-
+#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+        WaitForAsset(const Asset<AssetData>& assetToWaitFor, bool shouldDispatchEvents, unsigned int timeoutMillis)
+            : m_assetData(assetToWaitFor)
+            , m_shouldDispatchEvents(shouldDispatchEvents)
+            , m_timeoutMillis(timeoutMillis)
+#else
         WaitForAsset(const Asset<AssetData>& assetToWaitFor, bool shouldDispatchEvents)
             : m_assetData(assetToWaitFor)
             , m_shouldDispatchEvents(shouldDispatchEvents)
+#endif
         {
+#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT) && (defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_ANDROID))
+            // exclude desktop platforms because AssetProcessor might interfere
+            if (m_timeoutMillis == 0)
+            {
+                m_timeoutMillis = 10001; // 10 sec wait time by default if loading is blocked, +1 to detect the default value by the log
+            }
+#endif
             // Track all blocking requests with the AssetManager.  This enables load jobs to potentially get routed
             // to the thread that's currently blocking waiting on the load job to complete.
             AssetManager::Instance().AddBlockingRequest(m_assetData.GetId(), this);
@@ -337,8 +353,10 @@ namespace AZ::Data
         void Wait()
         {
             AZ_PROFILE_SCOPE(AzCore, "WaitForAsset - %s", m_assetData.GetHint().c_str());
-            constexpr int MaxWaitForAssetUpdateMs = 20;
-            int currentWaitForAssetUpdate = MaxWaitForAssetUpdateMs;
+#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+            const int64_t startTime = m_timeoutMillis ? static_cast<int64_t>(AZ::GetRealElapsedTimeMs()) : 0;
+            int jobCount = 0;
+#endif
 
             // Continue to loop until the load completes.  (Most of the time in the loop will be spent in a thread-blocking state)
             while (!m_loadCompleted)
@@ -352,6 +370,8 @@ namespace AZ::Data
                     {
 #if defined(CARBONATED)  // update log while waiting for assets
                         // if we are here then it is the main thread, let deliver the log messages
+                        constexpr int MaxWaitForAssetUpdateMs = 20;
+                        int currentWaitForAssetUpdate = MaxWaitForAssetUpdateMs;
                         AZ::LogNotification::LogNotificationBus::Broadcast(&AZ::LogNotification::LogNotificationBus::Events::Update);
                         // update subscribers while waiting for assets
                         currentWaitForAssetUpdate += MaxWaitBetweenDispatchMs;
@@ -362,18 +382,72 @@ namespace AZ::Data
                         }
 #endif
                         AssetManager::Instance().DispatchEvents();
+#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+                        if (m_timeoutMillis)
+                        {
+                            const int64_t curTime = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+                            if ((unsigned int)(curTime - startTime) > m_timeoutMillis)
+                            {
+                                AZ_Info("AssetManager", "Main thread blocking loading wait timeout %d exceeded for %s, time %u",
+                                        m_timeoutMillis, m_assetData.GetHint().c_str(), (unsigned int)(curTime - startTime));
+                                break;
+                            }
+                        }
+#endif
                     }
                 }
                 else
                 {
-
+#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+                    if (m_timeoutMillis)
+                    {
+                        if (!m_waitEvent.try_acquire_for(AZStd::chrono::milliseconds(m_timeoutMillis)))
+                        {
+                            AZ_Info("AssetManager", "Non-main thread blocking loading wait timeout %d exceeded for %s",
+                                    m_timeoutMillis, m_assetData.GetHint().c_str());
+                        }
+                    }
+                    else
+                    {
+                        m_waitEvent.acquire();
+                    }
+#else
                     // Don't wake up until a load job is queued for processing or the load is entirely finished.
                     m_waitEvent.acquire();
+#endif
                 }
 
                 // Check to see if any load jobs have been provided for this thread to process.
                 // (Load jobs will attempt to reuse blocked threads before spinning off new job threads)
                 ProcessLoadJob();
+
+#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+                if (m_timeoutMillis)
+                {
+                    if (m_shouldDispatchEvents)
+                    {
+                        if (jobCount++ > 0)  // do not check after the first job, most cases it is loaded
+                        {
+                            const int64_t curTime = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+                            if ((unsigned int)(curTime - startTime) > m_timeoutMillis)
+                            {
+                                AZ_Info("AssetManager", "Timeout %d exceeded for %s, job count %d, time %u",
+                                        m_timeoutMillis, m_assetData.GetHint().c_str(), jobCount, (unsigned int)(curTime - startTime));
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // next cycle can double the timeout, so let check immediatelly
+                        const int64_t curTime = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+                        if ((unsigned int)(curTime - startTime) > m_timeoutMillis)
+                        {
+                            break;
+                        }
+                    }
+                }
+#endif
             }
 
             // Pump the AssetBus function queue once more after the load has completed in case additional
@@ -417,6 +491,9 @@ namespace AZ::Data
         LoadAssetJob* m_loadJob{ nullptr };
         AZStd::mutex m_loadJobMutex;
         AZStd::atomic_bool m_loadCompleted{ false };
+#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+        unsigned int m_timeoutMillis;
+#endif
     };
 
 
@@ -852,7 +929,11 @@ namespace AZ::Data
         }
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+    AssetData::AssetStatus AssetManager::BlockUntilLoadComplete(const Asset<AssetData>& asset, unsigned int timeoutMillis)
+#else
     AssetData::AssetStatus AssetManager::BlockUntilLoadComplete(const Asset<AssetData>& asset)
+#endif
     {
         if(asset.GetStatus() == AssetData::AssetStatus::NotLoaded)
         {
@@ -866,8 +947,11 @@ namespace AZ::Data
             const bool shouldDispatch = AZStd::this_thread::get_id() == m_mainThreadId;
 
             // Wait for the asset and all queued dependencies to finish loading.
+#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+            WaitForAsset blockingWait(asset, shouldDispatch, timeoutMillis);
+#else
             WaitForAsset blockingWait(asset, shouldDispatch);
-
+#endif
             blockingWait.WaitUntilReady();
         }
 

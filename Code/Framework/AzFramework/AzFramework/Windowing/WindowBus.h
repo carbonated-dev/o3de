@@ -170,6 +170,10 @@ namespace AzFramework
         //! This is called when vsync interval is changed.
         virtual void OnVsyncIntervalChanged(uint32_t interval) { AZ_UNUSED(interval); };
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+        virtual void OnDesiredFPSChanged(uint32_t desiredFPS) { AZ_UNUSED(desiredFPS); };
+#endif
+
         //! This is called if the main display's refresh rate changes
         virtual void OnRefreshRateChanged([[maybe_unused]] uint32_t refreshRate) {}
     };

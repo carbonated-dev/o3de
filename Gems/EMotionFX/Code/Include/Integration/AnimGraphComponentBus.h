@@ -197,6 +197,7 @@ namespace EMotionFX
 
             // carbonated begin EMotionFX_port
 #if defined(CARBONATED)
+            virtual void ResetMotionSet() = 0;
             virtual AZ::Data::Asset<AZ::Data::AssetData> GetAnimGraphAsset() = 0;
             virtual AZ::Data::Asset<AZ::Data::AssetData> GetMotionSetAsset() = 0;
 #endif

@@ -1249,7 +1249,9 @@ namespace AZ::IO
             m_archivesWithCatalogsToLoad.push_back(
                 ArchivesWithCatalogsToLoad(szFullPath, szBindRoot, flags, nextBundle, desc.m_strFileName));
         }
-
+#if defined(CARBONATED) && defined(CARBONATED_SIMPLE_PAK)
+        desc.m_isSimplePack = !(bundleManifest && bundleCatalog);  // there'll be no BundleOpened(...) call below
+#endif
         m_arrZips.insert(revItZip.base(), desc);
 
         if (bundleManifest && bundleCatalog)
@@ -1288,11 +1290,20 @@ namespace AZ::IO
                 //
                 // the pZip (cache) can be referenced from stream engine and pseudo-files.
                 // the archive can be referenced from outside
+#if defined(CARBONATED) && defined(CARBONATED_SIMPLE_PAK)
+                AZ::IO::ArchiveNotificationBus::Broadcast([isSimple = it->m_isSimplePack](AZ::IO::ArchiveNotifications* archiveNotifications, const AZ::IO::FixedMaxPath& bundleName)
+                {
+                    if (!isSimple)  // call BundleClosed if BundleOpened was called on the opening
+                    {
+                        archiveNotifications->BundleClosed(bundleName.c_str());
+                    }
+                }, it->GetFullPath());
+#else
                 AZ::IO::ArchiveNotificationBus::Broadcast([](AZ::IO::ArchiveNotifications* archiveNotifications, const AZ::IO::FixedMaxPath& bundleName)
                 {
                     archiveNotifications->BundleClosed(bundleName.c_str());
                 }, it->GetFullPath());
-
+#endif
                 it = m_arrZips.erase(it);
             }
             else

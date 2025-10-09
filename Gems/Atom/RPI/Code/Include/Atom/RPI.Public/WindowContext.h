@@ -86,6 +86,10 @@ namespace AZ
             void OnWindowClosed() override;
             void OnVsyncIntervalChanged(uint32_t interval) override;
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+            void OnDesiredFPSChanged(uint32_t desiredFPS) override;
+#endif
+
             // ExclusiveFullScreenRequestBus::Handler overrides ...
             bool IsExclusiveFullScreenPreferred() const override;
             bool GetExclusiveFullScreenState() const override;

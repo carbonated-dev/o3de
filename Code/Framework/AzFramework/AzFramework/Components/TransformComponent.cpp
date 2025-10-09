@@ -16,7 +16,7 @@
 #include <AzCore/Math/Transform.h>
 #include <AzCore/Math/Quaternion.h>
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <AzFramework/Network/NetBindingHandlerBus.h>
 #include <AzFramework/Network/NetBindingSystemBus.h>
 #include <AzFramework/Network/NetworkContext.h>
@@ -92,7 +92,7 @@ namespace AZ
 
 namespace AzFramework
 {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
     //=========================================================================
     // TransformReplicaChunk
     // [3/9/2016]
@@ -233,7 +233,7 @@ namespace AzFramework
         , m_onNewParentKeepWorldTM(copy.m_onNewParentKeepWorldTM)
         , m_parentActivationTransformMode(copy.m_parentActivationTransformMode)
         , m_isStatic(copy.m_isStatic)
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         , m_replicaChunk(nullptr)
         , m_interpolatePosition(copy.m_interpolatePosition)
         , m_interpolateRotation(copy.m_interpolateRotation)
@@ -242,7 +242,7 @@ namespace AzFramework
         , m_netTargetScale(copy.m_netTargetScale)
 #endif
     {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         CreateSamples();
         if (copy.m_netTargetTranslation)
         {
@@ -259,7 +259,7 @@ namespace AzFramework
 #endif
     }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
     void TransformComponent::CreateTranslationSample()
     {
         switch(m_interpolatePosition)
@@ -329,7 +329,7 @@ namespace AzFramework
             m_parentId = config->m_parentId;
             m_parentActivationTransformMode = config->m_parentActivationTransformMode;
             m_isStatic = config->m_isStatic;
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
             SetSyncEnabled(config->m_netSyncEnabled);
             m_interpolatePosition = config->m_interpolatePosition;
             m_interpolateRotation = config->m_interpolateRotation;
@@ -348,7 +348,7 @@ namespace AzFramework
             config->m_parentId = m_parentId;
             config->m_parentActivationTransformMode = m_parentActivationTransformMode;
             config->m_isStatic = m_isStatic;
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
             config->m_netSyncEnabled = IsSyncEnabled();
             config->m_interpolatePosition = m_interpolatePosition;
             config->m_interpolateRotation = m_interpolateRotation;
@@ -377,7 +377,7 @@ namespace AzFramework
             parentTransform->NotifyChildChangedEvent(AZ::ChildChangeType::Removed, GetEntityId());
         }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         UnbindFromNetwork();
 #endif
 
@@ -418,7 +418,7 @@ namespace AzFramework
         {
             SetLocalTMImpl(tm);
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
             UpdateReplicaChunk();
 #endif
         }
@@ -430,7 +430,7 @@ namespace AzFramework
         {
             SetWorldTMImpl(tm);
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
             UpdateReplicaChunk();
 #endif
         }
@@ -438,7 +438,7 @@ namespace AzFramework
 
     void TransformComponent::SetParent(AZ::EntityId id)
     {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         if (!IsNetworkControlled())
         {
             SetParentImpl(id, true);
@@ -452,7 +452,7 @@ namespace AzFramework
 
     void TransformComponent::SetParentRelative(AZ::EntityId id)
     {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         if (!IsNetworkControlled())
         {
             SetParentImpl(id, m_isStatic);
@@ -782,7 +782,7 @@ namespace AzFramework
             }
         }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         UpdateReplicaChunk();
 #endif
     }
@@ -793,7 +793,7 @@ namespace AzFramework
         m_parentTM = nullptr;
         m_parentActive = false;
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         if (!IsNetworkControlled())
         {
             ComputeLocalTM();            
@@ -810,7 +810,7 @@ namespace AzFramework
 #endif
     }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
     GridMate::ReplicaChunkPtr TransformComponent::GetNetworkBinding()
     {
         TransformReplicaChunk* replicaChunk = GridMate::CreateReplicaChunk<TransformReplicaChunk>();
@@ -1131,7 +1131,7 @@ namespace AzFramework
 
     bool TransformComponent::AreMoveRequestsAllowed() const
     {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         if (IsNetworkControlled())
         {
             return false;
@@ -1158,7 +1158,7 @@ namespace AzFramework
         AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(reflection);
         if (serializeContext)
         {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
             serializeContext->Class<TransformComponent, AZ::Component, NetBindable>()
                 ->Version(5, &TransformComponentVersionConverter)
 #else
@@ -1172,7 +1172,7 @@ namespace AzFramework
                 ->Field("LocalTransform", &TransformComponent::m_localTM)
                 ->Field("ParentActivationTransformMode", &TransformComponent::m_parentActivationTransformMode)
                 ->Field("IsStatic", &TransformComponent::m_isStatic)
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
                 ->Field("InterpolatePosition", &TransformComponent::m_interpolatePosition)
                 ->Field("InterpolateRotation", &TransformComponent::m_interpolateRotation)
 #endif
@@ -1280,7 +1280,7 @@ namespace AzFramework
                 ;
         }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
         NetworkContext* netContext = azrtti_cast<NetworkContext*>(reflection);
         if (netContext)
         {

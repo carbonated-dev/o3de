@@ -1798,7 +1798,7 @@ namespace AZ
 #if defined(CARBONATED)
             MEMORY_TAG(Mesh);
             ASSET_TAG(m_modelAsset.GetHint().c_str());
-#endif        	
+#endif
             SystemTickBus::Handler::BusDisconnect();
 
             // Assign the fully loaded asset back to the mesh handle to not only hold asset id, but the actual data as well.
@@ -3037,7 +3037,8 @@ namespace AZ
                     }
                     else
                     {
-                        AZ_Error("BuildCullable", false, "Lod index %lu out of range, m_postCullingInstanceDataByLod %lu lods, lodCount %lu, asset %s",
+                        //  the mesh is not fully initialized, ModelDataInstance::Init that sets m_postCullingInstanceDataByLod.resize was not called yet
+                        AZ_Warning("BuildCullable", false, "Lod index %lu out of range, m_postCullingInstanceDataByLod %lu lods, lodCount %lu, asset %s",
                                         static_cast<unsigned int>(index), static_cast<unsigned int>(m_postCullingInstanceDataByLod.size()),
                                         static_cast<unsigned int>(lodCount), GetAssetHint().c_str());
                     }

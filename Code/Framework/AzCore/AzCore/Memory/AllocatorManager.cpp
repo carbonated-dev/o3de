@@ -474,7 +474,7 @@ namespace AZ
 #endif
     m_activeBreaks = 0;  // bug - not initialized in the original code
 #else  // CARBONATED
-    m_defaultTrackingRecordMode = Debug::AllocationRecords::RECORD_NO_RECORDS;
+    m_defaultTrackingRecordMode = Debug::AllocationRecords::Mode::RECORD_NO_RECORDS;
 #endif // CARBONATED
     }
 
