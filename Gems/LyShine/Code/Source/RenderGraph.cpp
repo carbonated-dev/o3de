@@ -767,7 +767,7 @@ namespace LyShine
             }
             else
             {
-                AZ_Error("RenderGraph", false, "RHI::Device is not created yet");
+                AZ_Warning("RenderGraph", false, "RHI::Device is not created yet");
             }
         }
 #endif
