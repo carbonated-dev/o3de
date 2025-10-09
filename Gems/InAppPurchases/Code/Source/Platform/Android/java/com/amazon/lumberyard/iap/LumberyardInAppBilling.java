@@ -166,10 +166,18 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
         {
             purchases.forEach(purchase ->
             {
-                String productType = purchase.getProducts().get(0);
                 ArrayList<PurchasedProductDetails> purchasedProducts = new ArrayList<>();
                 ParsePurchasedProduct(purchase, purchasedProducts);
-                nativeNewProductPurchased(purchasedProducts.toArray());
+                if (!purchasedProducts.isEmpty())
+                {
+                    m_lastPurchasedProductDetails = purchasedProducts.get(0);
+                    nativeNewProductPurchased(purchasedProducts.toArray());
+                }
+                else
+                {
+                    Log.e(s_tag, s_subTag + "Unable to parse product");
+                    nativePurchaseFailed(-1);
+                }
             });
         }
         else
@@ -469,7 +477,6 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
                 Log.e(s_tag, s_subTag + "Can't find product '" + productId + "' details");
             }
 
-            m_lastPurchasedProductDetails = purchasedProductDetails;
             purchasedProducts.add(purchasedProductDetails);
         }
     }
