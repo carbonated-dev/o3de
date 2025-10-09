@@ -753,18 +753,22 @@ namespace LyShine
         m_renderNodeListStack.push(&m_renderNodes);
 
 #if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-        const AZ::RHI::Ptr<AZ::RHI::Device> rhiDevice = AZ::RHI::RHISystemInterface::Get()->GetDevice();
-        if (rhiDevice)
+        const auto rhiInterface = AZ::RHI::RHISystemInterface::Get();   // This is used in AssetProcessor and it can be "nullptr"
+        if (rhiInterface)
         {
-            const auto& descriptor = rhiDevice->GetPhysicalDevice().GetDescriptor();
-            // At this time (September 2025) we know 100% that Google Pixel 8 and Pixel 9 have an issue with sparkling white/colored snow on UI elements.
-            // October 2025: Samsung S24 (with GPU "Samsung Xclipse 940") also affected.
-            // A workaround is to not combine rectangular/square primitives of size > 24 into large batches.
-            m_usingMaliG715Workaround = descriptor.m_description.contains("Mali-G715") || descriptor.m_description.starts_with("Samsung Xclipse 9");
-        }
-        else
-        {
-            AZ_Error("RenderGraph", false, "RHI::Device is not created yet");
+            const AZ::RHI::Ptr<AZ::RHI::Device> rhiDevice = rhiInterface->GetDevice();
+            if (rhiDevice)
+            {
+                const auto& descriptor = rhiDevice->GetPhysicalDevice().GetDescriptor();
+                // At this time (September 2025) we know 100% that Google Pixel 8 and Pixel 9 have an issue with sparkling white/colored
+                // snow on UI elements. October 2025: Samsung S24 (with GPU "Samsung Xclipse 940") also affected. A workaround is to not
+                // combine rectangular/square primitives of size > 24 into large batches.
+                m_usingMaliG715Workaround = descriptor.m_description.contains("Mali-G715") || descriptor.m_description.starts_with("Samsung Xclipse 9");
+            }
+            else
+            {
+                AZ_Error("RenderGraph", false, "RHI::Device is not created yet");
+            }
         }
 #endif
     }
