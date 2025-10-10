@@ -139,21 +139,16 @@ namespace LyShine
 
 #if defined(CARBONATED)
 #if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
+        // Each draw command represents one continuous range in the combined vertex/index buffers
+        // that uses a single texture (texIndex).
         struct DrawCommand
         {
-            enum class Type
-            {
-                CombinedBatch,
-                SinglePrimitive
-            };
+            int m_combinedVertexStart = 0; // Start offset in m_combinedVertices
+            int m_combinedVertexCount = 0; // Number of vertices in this draw batch
+            int m_combinedIndexStart = 0; // Start offset in m_combinedIndices
+            int m_combinedIndexCount = 0; // Number of indices in this draw batch
 
-            Type m_type;
-            int m_combinedVertexStart = 0;
-            int m_combinedVertexCount = 0;
-            int m_combinedIndexStart = 0;
-            int m_combinedIndexCount = 0;
-
-            LyShine::UiPrimitive* m_primitive = nullptr;
+            uint8 m_usedTexIndex = 255; // Texture index used by all vertices in this batch
         };
 
         AZStd::vector<DrawCommand> m_drawCommands;
