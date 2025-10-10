@@ -158,6 +158,15 @@ namespace AZ
             RHI::Ptr<RHI::SwapChain> defaultSwapChain = GetSwapChain(ViewType::Default);
             if (defaultSwapChain->GetDescriptor().m_verticalSyncInterval != interval)
             {
+                if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::Vulkan))
+                {
+                    uint32_t currentInterval = defaultSwapChain->GetDescriptor().m_verticalSyncInterval;
+                    if (currentInterval * interval == 0 && currentInterval + interval != 0)
+                    {
+                        AZ_Error("WindowContext", false, "It is impossible to change vsync_interval to zero or from zero after engine initialization with Vulkan render");
+                        return;
+                    }
+                }
                 defaultSwapChain->SetVerticalSyncInterval(interval);
             }
         }
@@ -165,7 +174,7 @@ namespace AZ
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         void WindowContext::OnDesiredFPSChanged(uint32_t desiredFPS)
         {
-#if defined(AZ_PLATFORM_ANDROID) || defined(AZ_PLATFORM_IOS)
+#if (defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_USE_SWAPPY)) || defined(AZ_PLATFORM_IOS)
             RHI::Ptr<RHI::SwapChain> defaultSwapChain = GetSwapChain(ViewType::Default);
             defaultSwapChain->SetDesiredFPS(desiredFPS);
 #else
@@ -182,7 +191,7 @@ namespace AZ
                 }
                 else // if (AZ::RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(AZ::RHI::APIIndex::Vulkan))
                 {
-#if !defined(AZ_PLATFORM_WINDOWS)
+#if !defined(AZ_PLATFORM_WINDOWS) && !defined(AZ_PLATFORM_ANDROID)
                     AZ_Warning("WindowContext::OnDesiredFPSChanged", false, "desired_fps not tested for this platform\n");
 #endif
                     console->PerformCommand("vsync_interval 0");

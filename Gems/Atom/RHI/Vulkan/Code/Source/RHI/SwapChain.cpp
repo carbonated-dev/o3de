@@ -28,11 +28,11 @@
 #include <RHI/ReleaseContainer.h>
 #include <Atom/RHI.Reflect/VkAllocator.h>
 
-#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS)
+#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS) && defined(CARBONATED_USE_SWAPPY)
 #include <AzCore/Android/JNI/Object.h>
 #include <AzCore/Android/Utils.h>
 #include <swappy/swappyVk.h>
-#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS
+#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS && CARBONATED_USE_SWAPPY
 
 namespace AZ
 {
@@ -107,7 +107,7 @@ namespace AZ
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         void SwapChain::SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS)
         {
-#if defined(AZ_PLATFORM_ANDROID)
+#if defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_USE_SWAPPY)
             if (m_refreshNs == 0 || desiredFPS <= 0)
             {
                 AZ_Error("SwapChain", false, "Swappy not initialized or invalid FPS");
@@ -130,7 +130,7 @@ namespace AZ
             // Set SwapIntervalNS
             auto& device = static_cast<Device&>(GetDevice());
             SwappyVk_setSwapIntervalNS(device.GetNativeDevice(), m_nativeSwapChain, swappyTargetNs);
-#endif // AZ_PLATFORM_ANDROID
+#endif // AZ_PLATFORM_ANDROID && CARBONATED_USE_SWAPPY
         }
 #endif // CARBONATED && CARBONATED_DESIRED_FPS
 
@@ -330,11 +330,11 @@ namespace AZ
                 info.pImageIndices = &imageIndex;
                 info.pResults = nullptr;
 
-#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS)
+#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS) && defined(CARBONATED_USE_SWAPPY)
                 const VkResult result = SwappyVk_queuePresent(vulkanQueue->GetNativeQueue(), &info);
 #else
                 const VkResult result = device.GetContext().QueuePresentKHR(vulkanQueue->GetNativeQueue(), &info);
-#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS
+#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS && CARBONATED_USE_SWAPPY
 
                 // Vulkan's definition of the two types of errors.
                 // VK_ERROR_OUT_OF_DATE_KHR: "A surface has changed in such a way that it is no longer compatible with the swapchain,
@@ -610,17 +610,13 @@ namespace AZ
             auto presentCommand = [&device, swapchain]([[maybe_unused]] void* queue)
             {
                 device.GetContext().DeviceWaitIdle(device.GetNativeDevice());
-#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS)
                 if (swapchain != VK_NULL_HANDLE)
                 {
+#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS) && defined(CARBONATED_USE_SWAPPY)
                     SwappyVk_destroySwapchain(device.GetNativeDevice(), swapchain);
-                }
-#else
-                if (swapchain != VK_NULL_HANDLE)
-                {
+#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS && CARBONATED_USE_SWAPPY
                     device.GetContext().DestroySwapchainKHR(device.GetNativeDevice(), swapchain, VkSystemAllocator::Get());
                 }
-#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS
             };
 
             m_presentationQueue->QueueCommand(AZStd::move(presentCommand));
@@ -689,7 +685,7 @@ namespace AZ
             RETURN_RESULT_IF_UNSUCCESSFUL(result);
             AZLOG_DEBUG("Acquired the first image.\n");
 
-#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS)
+#if defined(CARBONATED) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_DESIRED_FPS) && defined(CARBONATED_USE_SWAPPY)
             auto presentCommand = [this, &device](void* queue)
             {
                 Queue* vulkanQueue = static_cast<Queue*>(queue);
@@ -719,7 +715,7 @@ namespace AZ
             };
             m_presentationQueue->QueueCommand(AZStd::move(presentCommand));
             m_presentationQueue->FlushCommands();
-#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS
+#endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS && CARBONATED_USE_SWAPPY
             return RHI::ResultCode::Success;
         }
     }

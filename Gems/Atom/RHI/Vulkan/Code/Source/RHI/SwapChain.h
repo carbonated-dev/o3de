@@ -124,10 +124,10 @@ namespace AZ
                 bool m_isValid = false;
             } m_swapChainBarrier;
 
-#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && defined(AZ_PLATFORM_ANDROID)
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_USE_SWAPPY)
             // Display refresh rate in nanoseconds, assigned when SwappyVk is initialized.
             uint64_t m_refreshNs = 0;
-#endif // CARBONATED && CARBONATED_DESIRED_FPS
+#endif // CARBONATED && CARBONATED_DESIRED_FPS && AZ_PLATFORM_ANDROID && CARBONATED_USE_SWAPPY
         };
     }
 }

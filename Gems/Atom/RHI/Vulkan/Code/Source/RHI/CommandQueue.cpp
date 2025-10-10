@@ -62,6 +62,12 @@ namespace AZ
                     semaphoresToSignal[index] = request.m_semaphoresToSignal[index]->GetNativeSemaphore();
                 }
 
+#if defined(CARBONATED) && !defined(_RELEASE)
+                // Create a temporary internal fence if no external fence was provided.
+                // Keep the RHI::Ptr alive by capturing it into the lambda (tempFenceCapture).
+                RHI::Ptr<Fence> tempFenceCapture = nullptr;
+                bool isTempFence = false;
+#endif
                 Fence* fenceToSignal = nullptr;
                 if (!request.m_fencesToSignal.empty())
                 {
@@ -70,7 +76,24 @@ namespace AZ
                     RHI::Ptr<Fence> fence = request.m_fencesToSignal.front();
                     fenceToSignal = fence.get();
                 }
-
+#if defined(CARBONATED) && !defined(_RELEASE)
+                else if (GetDevice().GatheringStatsEnabled())
+                {
+                    // Create a temporary internal fence for GPU statistics callback
+                    tempFenceCapture = Fence::Create();
+                    tempFenceCapture->Init(static_cast<Device&>(GetDevice()), AZ::RHI::FenceState::Reset);
+                    fenceToSignal = tempFenceCapture.get();
+                    isTempFence = true;
+                }
+#endif
+#if defined(CARBONATED) && !defined(_RELEASE)
+                if (GetDevice().GatheringStatsEnabled())
+                {
+                    // Register and mark CommandBuffer
+                    GetDevice().RegisterCommandBuffer(request.m_commandList->GetNativeCommandBuffer());
+                    GetDevice().MarkCommandBufferCommit(request.m_commandList->GetNativeCommandBuffer());
+                }
+#endif
                 // Submit commands to queue for the current frame.
                 vulkanQueue->SubmitCommandBuffers(
                     { request.m_commandList },
@@ -84,7 +107,6 @@ namespace AZ
                    const auto& fence = request.m_fencesToSignal[i];
                    Signal(*fence);
                 }
-
                 {
                     AZ::Debug::ScopedTimer presentTimer(m_lastPresentDuration);
 
@@ -99,8 +121,99 @@ namespace AZ
                 {
                     vulkanQueue->EndDebugLabel();
                 }
+#if defined(CARBONATED) && !defined(_RELEASE)
+                if (GetDevice().GatheringStatsEnabled())
+                {
+                    // Register callback - store tempFenceCapture in the pending entry to keep it alive
+                    RegisterFenceCallback(
+                        AZStd::move(tempFenceCapture),
+                        fenceToSignal,
+                        isTempFence,
+                        [cmdList = request.m_commandList, isTempFence, tempFenceCapture]()
+                        {
+                            // This callback will be called from ProcessPendingFenceCallbacks when fence signaled
+                            cmdList->CollectGPUStatistics();
+                            if (isTempFence && tempFenceCapture)
+                            {
+                                tempFenceCapture->Shutdown();
+                            }
+                        });
+                }
+#endif
             });
+
+#if defined(CARBONATED) && !defined(_RELEASE)
+            if (GetDevice().GatheringStatsEnabled())
+            {
+                ProcessPendingFenceCallbacks();
+            }
+#endif
         }
+
+#if defined(CARBONATED) && !defined(_RELEASE)
+        void CommandQueue::RegisterFenceCallback(RHI::Ptr<Fence> fencePtr, Fence* fenceRaw, bool isTemp, AZStd::function<void()> cb)
+        {
+            PendingFenceCallback entry;
+            entry.fencePtr = AZStd::move(fencePtr); // may be null for external fence
+            entry.fenceRaw = fenceRaw;
+            entry.isTemp = isTemp;
+            entry.callback = AZStd::move(cb);
+
+            AZStd::scoped_lock lock(m_pendingFenceMutex);
+            m_pendingFenceCallbacks.push_back(AZStd::move(entry));
+        }
+
+        void CommandQueue::ProcessPendingFenceCallbacks()
+        {
+            AZStd::scoped_lock lock(m_pendingFenceMutex);
+
+            if (m_pendingFenceCallbacks.empty())
+            {
+                return;
+            }
+
+            // iterate with index because we may erase entries
+            size_t i = 0;
+            while (i < m_pendingFenceCallbacks.size())
+            {
+                PendingFenceCallback& entry = m_pendingFenceCallbacks[i];
+                bool signaled = false;
+
+                if (entry.fenceRaw)
+                {
+                    // Non-blocking check: see if Fence is signaled
+                    signaled = (entry.fenceRaw->GetFenceState() == AZ::RHI::FenceState::Signaled);
+                }
+
+                if (signaled)
+                {
+                    // Move callback out before erasing to avoid dangling reference
+                    AZStd::function<void()> callback = AZStd::move(entry.callback);
+
+                    // Erase by swap+pop (fast removal)
+                    if (i + 1 < m_pendingFenceCallbacks.size())
+                    {
+                        m_pendingFenceCallbacks[i] = AZStd::move(m_pendingFenceCallbacks.back());
+                        m_pendingFenceCallbacks.pop_back();
+                    }
+                    else
+                    {
+                        m_pendingFenceCallbacks.pop_back();
+                    }
+
+                    if (callback)
+                    {
+                        callback();
+                    }
+                    // Do not increment i, since we swapped a new element into index i
+                }
+                else
+                {
+                    ++i;
+                }
+            }
+        }
+#endif
         
         void CommandQueue::Signal(Fence& fence)
         {
@@ -125,6 +238,23 @@ namespace AZ
 
         void CommandQueue::ShutdownInternal()
         {
+#if defined(CARBONATED) && !defined(_RELEASE)
+            // Acquire lock to safely clear pending fence callbacks
+            AZStd::scoped_lock lock(m_pendingFenceMutex);
+
+            for (auto& entry : m_pendingFenceCallbacks)
+            {
+                // If you have a flag for temp/internal fences, shutdown them safely
+                if (entry.isTemp && entry.fencePtr)
+                {
+                    entry.fencePtr->Shutdown();
+                }
+                // Clear callback to release captured references
+                entry.callback = nullptr;
+            }
+
+            m_pendingFenceCallbacks.clear();
+#endif
             if (m_queue)
             {
                 m_queue = nullptr;

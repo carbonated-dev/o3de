@@ -11,6 +11,13 @@
 #include <sched.h>
 #include <errno.h>
 
+#if defined(CARBONATED)
+#include <AzCore/std/containers/unordered_map.h>
+#include <AzCore/std/string/string.h>
+#include <AzCore/std/parallel/mutex.h>
+#include <AzCore/std/parallel/lock.h>
+#endif
+
 namespace AZStd
 {
     namespace Platform
@@ -41,5 +48,31 @@ namespace AZStd
             // Don't use a scheduling policy value (e.g. SCHED_OTHER or SCHED_FIFO) here.
             return 1;
         }
+
+#if defined(CARBONATED)
+
+        // Global table  tid -> thread name
+        static AZStd::unordered_map<pid_t, AZStd::string> g_tidToName;
+        static AZStd::mutex g_tidToNameMutex;
+
+        void RegisterThreadName(pid_t tid, const char* name)
+        {
+            AZStd::lock_guard<AZStd::mutex> lock(g_tidToNameMutex);
+            g_tidToName[tid] = name;
+        }
+
+        void UnregisterThreadName(pid_t tid)
+        {
+            AZStd::lock_guard<AZStd::mutex> lock(g_tidToNameMutex);
+            g_tidToName.erase(tid);
+        }
+
+        AZStd::string GetThreadName(pid_t tid)
+        {
+            AZStd::lock_guard<AZStd::mutex> lock(g_tidToNameMutex);
+            auto it = g_tidToName.find(tid);
+            return it != g_tidToName.end() ? it->second : "";
+        }
+#endif
     }
 }
