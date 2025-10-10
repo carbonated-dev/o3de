@@ -161,6 +161,7 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
     public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases)
     {
         final int responseCode = billingResult.getResponseCode();
+        Log.d(s_tag, s_subTag + "onPurchasesUpdated responseCode = " + responseCode);
 
         if (responseCode == BillingClient.BillingResponseCode.OK && purchases != null)
         {
@@ -170,13 +171,22 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
                 ParsePurchasedProduct(purchase, purchasedProducts);
                 if (!purchasedProducts.isEmpty())
                 {
-                    m_lastPurchasedProductDetails = purchasedProducts.get(0);
-                    nativeNewProductPurchased(purchasedProducts.toArray());
+                    PurchasedProductDetails purchasedProduct = purchasedProducts.get(0);
+                    if (purchasedProduct.m_orderId != null)
+                    {
+                        m_lastPurchasedProductDetails = purchasedProduct;
+                        nativeNewProductPurchased(purchasedProducts.toArray());
+                    }
+                    else
+                    {
+                        Log.e(s_tag, s_subTag + "Payment is delayed");
+                        nativePurchaseFailed(BillingClient.BillingResponseCode.SERVICE_TIMEOUT);
+                    }
                 }
                 else
                 {
                     Log.e(s_tag, s_subTag + "Unable to parse product");
-                    nativePurchaseFailed(-1);
+                    nativePurchaseFailed(BillingClient.BillingResponseCode.ITEM_UNAVAILABLE);
                 }
             });
         }

@@ -38,6 +38,18 @@ namespace InAppPurchases
         return true;
     }
 
+#if defined(CARBONATED)
+    static AZStd::string SafeGetStringField(JNIEnv* env, jobject obj, jfieldID fieldId)
+    {
+        auto jstr = static_cast<jstring>(env->GetObjectField(obj, fieldId));
+        if (jstr == nullptr)
+        {
+            return {};
+        }
+        return AZ::Android::JNI::ConvertJstringToString(jstr);
+    }
+#endif
+
     static PurchasedProductDetailsAndroid* ParseReceiptDetails(JNIEnv* env, jobjectArray jpurchasedProductDetails, int index)
     {
 #if defined(CARBONATED)
@@ -74,6 +86,18 @@ namespace InAppPurchases
 
         PurchasedProductDetailsAndroid* purchasedProductDetails = new PurchasedProductDetailsAndroid();
 
+#if defined(CARBONATED)
+        purchasedProductDetails->SetProductId(SafeGetStringField(env, jpurchasedProduct, fid[0]));
+        purchasedProductDetails->SetOrderId(SafeGetStringField(env, jpurchasedProduct, fid[1]));
+        purchasedProductDetails->SetPackageName(SafeGetStringField(env, jpurchasedProduct, fid[2]));
+        purchasedProductDetails->SetPurchaseToken(SafeGetStringField(env, jpurchasedProduct, fid[3]));
+        purchasedProductDetails->SetPurchaseSignature(SafeGetStringField(env, jpurchasedProduct, fid[4]));
+        purchasedProductDetails->SetPurchaseTime(env->GetLongField( jpurchasedProduct, fid[5]));
+        purchasedProductDetails->SetIsAutoRenewing(env->GetBooleanField( jpurchasedProduct, fid[6]));
+        purchasedProductDetails->SetProductPrice(SafeGetStringField(env, jpurchasedProduct, fid[7]));
+        purchasedProductDetails->SetProductCurrencyCode(SafeGetStringField(env, jpurchasedProduct, fid[8]));
+        purchasedProductDetails->SetProductPriceMicro(env->GetLongField( jpurchasedProduct, fid[9]));
+#else
         purchasedProductDetails->SetProductId(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[0]))));
         purchasedProductDetails->SetOrderId(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[1]))));
         purchasedProductDetails->SetPackageName(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[2]))));
@@ -84,7 +108,7 @@ namespace InAppPurchases
         purchasedProductDetails->SetProductPrice(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[7]))));
         purchasedProductDetails->SetProductCurrencyCode(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[8]))));
         purchasedProductDetails->SetProductPriceMicro(env->GetLongField(jpurchasedProduct, fid[9]));
-
+#endif
         return purchasedProductDetails;
     }
 
@@ -130,7 +154,15 @@ namespace InAppPurchases
             jobject jproduct = env->GetObjectArrayElement(jproductDetails, i);
 
             ProductDetailsAndroid* productDetails = new ProductDetailsAndroid();
-
+#if defined(CARBONATED)
+            productDetails->SetProductId(SafeGetStringField(env, jproduct, fid[0]));
+            productDetails->SetProductType(SafeGetStringField(env, jproduct, fid[1]));
+            productDetails->SetProductPrice(SafeGetStringField(env, jproduct, fid[2]));
+            productDetails->SetProductCurrencyCode(SafeGetStringField(env, jproduct, fid[3]));
+            productDetails->SetProductTitle(SafeGetStringField(env, jproduct, fid[4]));
+            productDetails->SetProductDescription(SafeGetStringField(env, jproduct, fid[5]));
+            productDetails->SetProductPriceMicro(env->GetLongField(jproduct, fid[6]));
+#else
             productDetails->SetProductId(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[0]))));
             productDetails->SetProductType(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[1]))));
             productDetails->SetProductPrice(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[2]))));
@@ -138,6 +170,7 @@ namespace InAppPurchases
             productDetails->SetProductTitle(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[4]))));
             productDetails->SetProductDescription(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[5]))));
             productDetails->SetProductPriceMicro(env->GetLongField(jproduct, fid[6]));
+#endif
 #if defined(CARBONATED)
             AZ_TracePrintf(s_tag, "AddProductDetailsToCache productDetails.Id = %s", productDetails->GetProductId().c_str());
 #endif
