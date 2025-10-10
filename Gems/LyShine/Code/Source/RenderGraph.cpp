@@ -184,29 +184,16 @@ namespace LyShine
 #if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         if (m_usingMaliG715Workaround)
         {
+            // Draw each batched group of primitives that share the same texture
             for (const DrawCommand& cmd : m_drawCommands)
             {
-                if (cmd.m_type == DrawCommand::Type::CombinedBatch)
-                {
-                    // draw subset of combined buffers
-                    dynamicDraw->DrawIndexed(
-                        &m_combinedVertices[cmd.m_combinedVertexStart],
-                        cmd.m_combinedVertexCount,
-                        &m_combinedIndices[cmd.m_combinedIndexStart],
-                        cmd.m_combinedIndexCount,
-                        AZ::RHI::IndexFormat::Uint16,
-                        drawSrg);
-                }
-                else if (LyShine::UiPrimitive* prim = cmd.m_primitive) // SinglePrimitive
-                {
-                    dynamicDraw->DrawIndexed(
-                        prim->m_vertices,
-                        static_cast<uint32_t>(prim->m_numVertices),
-                        prim->m_indices,
-                        static_cast<uint32_t>(prim->m_numIndices),
-                        AZ::RHI::IndexFormat::Uint16,
-                        drawSrg);
-                }
+                dynamicDraw->DrawIndexed(
+                    &m_combinedVertices[cmd.m_combinedVertexStart],
+                    cmd.m_combinedVertexCount,
+                    &m_combinedIndices[cmd.m_combinedIndexStart],
+                    cmd.m_combinedIndexCount,
+                    AZ::RHI::IndexFormat::Uint16,
+                    drawSrg);
             }
         }
         else if (m_combinedIndices.size() > 0 && m_combinedVertices.size() > 0)
@@ -239,10 +226,6 @@ namespace LyShine
     {
 #if defined(CARBONATED)
 #if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-        // This is a certain "magic" number, determined experimentally on Google Pixel 9.
-        // In some menus containing small square and rectangular "cards" with a side size greater than 24 pixels, we almost always see a "snow glitch".
-        // The "snow glitch" does not occur on smaller UI elements (text strings, thin borders, horizontal margins, etc.)
-        constexpr float MinSizeOfSideOfBigPrimitive = 24.0f;
 
         // always clear the next pointer before adding to list
         primitive->m_next = nullptr;
@@ -250,67 +233,49 @@ namespace LyShine
 
         if (m_usingMaliG715Workaround)
         {
-            const UiPrimitiveVertex& first = primitive->m_vertices[0];
-            float maxX = first.xy.x, minX = first.xy.x, maxY = first.xy.y, minY = first.xy.y;
-            bool bigPrimitive = false;
-            for (int i = 1; i < primitive->m_numVertices; ++i)
+            // Get the texture index used by this primitive
+            const uint8 currentTexIndex = primitive->m_vertices[0].texIndex;
+
+            // Check whether we can append to the last draw command
+            bool canAppendToLast = false;
+            if (!m_drawCommands.empty())
             {
-                UiPrimitiveVertex& v = primitive->m_vertices[i];
-                maxX = AZ::GetMax(maxX, v.xy.x);
-                maxY = AZ::GetMax(maxY, v.xy.y);
-                minX = AZ::GetMin(minX, v.xy.x);
-                minY = AZ::GetMin(minY, v.xy.y);
-                const float maxWidth = maxX - minX;
-                const float maxHeight = maxY - minY;
-                if (maxWidth >= MinSizeOfSideOfBigPrimitive && maxHeight >= MinSizeOfSideOfBigPrimitive)
-                {
-                    bigPrimitive = true;
-                    break;
-                }
+                const DrawCommand& lastCmd = m_drawCommands.back();
+                canAppendToLast = (lastCmd.m_usedTexIndex == currentTexIndex);
             }
-            if (!bigPrimitive)
+
+            // If the texture has changed or no active batch exists, start a new DrawCommand
+            if (!canAppendToLast)
             {
-                uint16 vertex_start = aznumeric_caster(m_combinedVertices.size());
-                uint16 index_start = aznumeric_caster(m_combinedIndices.size());
-
-                // Add the vertices at the end of the combined buffer.  We need to update the vertex indices with their new offset separately.
-                m_combinedVertices.insert(m_combinedVertices.end(), primitive->m_vertices, primitive->m_vertices + primitive->m_numVertices);
-                m_combinedIndices.resize_no_construct(m_combinedIndices.size() + primitive->m_numIndices);
-
-                int batchBaseVertex = static_cast<int>(vertex_start);
-
-                if (!m_drawCommands.empty() && m_drawCommands.back().m_type == DrawCommand::Type::CombinedBatch)
-                {
-                    DrawCommand& last = m_drawCommands.back();
-                    batchBaseVertex = last.m_combinedVertexStart;
-                    last.m_combinedVertexCount += primitive->m_numVertices;
-                    last.m_combinedIndexCount += primitive->m_numIndices;
-                }
-                else
-                {
-                    DrawCommand cmd;
-                    cmd.m_type = DrawCommand::Type::CombinedBatch;
-                    cmd.m_combinedVertexStart = vertex_start;
-                    cmd.m_combinedVertexCount = primitive->m_numVertices;
-                    cmd.m_combinedIndexStart = index_start;
-                    cmd.m_combinedIndexCount = primitive->m_numIndices;
-                    m_drawCommands.push_back(cmd);
-                }
-
-                for (int i = 0; i < primitive->m_numIndices; ++i)
-                {
-                    uint32_t rel = (vertex_start - batchBaseVertex) + primitive->m_indices[i];
-                    AZ_Assert(rel <= 0xFFFF, "Index overflow in CombinedBatch");
-                    m_combinedIndices[index_start + i] = static_cast<uint16>(rel);
-                }
+                DrawCommand newCmd;
+                newCmd.m_usedTexIndex = currentTexIndex;
+                newCmd.m_combinedVertexStart = static_cast<int>(m_combinedVertices.size());
+                newCmd.m_combinedIndexStart = static_cast<int>(m_combinedIndices.size());
+                m_drawCommands.push_back(newCmd);
             }
-            else
+
+            // Get the active draw command to append to
+            DrawCommand& activeCmd = m_drawCommands.back();
+
+            // Insert vertices and indices into the combined buffers
+            const uint16 vertexStart = aznumeric_caster(m_combinedVertices.size());
+            const uint16 indexStart = aznumeric_caster(m_combinedIndices.size());
+
+            m_combinedVertices.insert(m_combinedVertices.end(), primitive->m_vertices, primitive->m_vertices + primitive->m_numVertices);
+
+            m_combinedIndices.resize_no_construct(m_combinedIndices.size() + primitive->m_numIndices);
+
+            // Adjust the index values to account for the vertex offset in the combined buffer
+            for (int i = 0; i < primitive->m_numIndices; ++i)
             {
-                DrawCommand cmd;
-                cmd.m_type = DrawCommand::Type::SinglePrimitive;
-                cmd.m_primitive = primitive;
-                m_drawCommands.push_back(cmd);
+                const uint32_t rel = (vertexStart - activeCmd.m_combinedVertexStart) + primitive->m_indices[i];
+                AZ_Assert(rel <= 0xFFFF, "Index overflow in CombinedBatch");
+                m_combinedIndices[indexStart + i] = static_cast<uint16>(rel);
             }
+
+            // Update the vertex and index counts in the active draw command
+            activeCmd.m_combinedVertexCount += primitive->m_numVertices;
+            activeCmd.m_combinedIndexCount += primitive->m_numIndices;
         }
         else
         {
