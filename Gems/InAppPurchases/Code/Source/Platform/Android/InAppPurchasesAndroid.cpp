@@ -482,6 +482,7 @@ namespace InAppPurchases
 #else
             AZ_TracePrintf("LumberyardInAppBilling", "Failed to find product with id: %s", productId.c_str());
 #endif
+            InAppPurchasesResponseBus::Broadcast(&InAppPurchasesResponseBus::Events::PurchaseFailed, nullptr);
             return;
         }
 
