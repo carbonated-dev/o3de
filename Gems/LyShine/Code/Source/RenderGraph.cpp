@@ -192,7 +192,7 @@ namespace LyShine
             {
                 // Keep it for the future investigations
                 /*{
-                    int images[16];
+                    int images[MaxTextures];
                     memset(images, 0, sizeof(images));
                     for (int i = cmd.m_combinedVertexStart; i < cmd.m_combinedVertexStart + cmd.m_combinedVertexCount; ++i)
                     {
