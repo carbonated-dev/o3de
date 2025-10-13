@@ -162,6 +162,7 @@ namespace LyShine
 
             if (imageView)
             {
+                // Keep it for the future investigations together with commented code below when "r_vkTexUsageMode == 1"
                 //AZ_Info("RenderGraph", "i=%i, Name=%s, (%i, %i)\n", i, imageView->GetResource().GetName().GetCStr(), image->GetDescriptor().m_size.m_width, image->GetDescriptor().m_size.m_height);
                 drawSrg->SetImageView(uiShaderData.m_imageInputIndex, imageView, i);
                 if (m_textures[i].m_isClampTextureMode)
@@ -183,7 +184,7 @@ namespace LyShine
         drawSrg->Compile();
 
 #if defined(CARBONATED)
-        if (r_vkTexUsageMode > 0)
+        if (r_vkTexUsageMode == 1)
         {
             // Draw each batched group of primitives that share the same texture
             for (const DrawCommand& cmd : m_drawCommands)
