@@ -33,7 +33,7 @@ namespace LyShine
         0,
         nullptr,
         AZ::ConsoleFunctorFlags::DontReplicate,
-        "Usage : r_vkTexUsageMode [0 = standard / 1 = 1 texture per draw call / 2 = primitive size less 24 pixels]");
+        "Usage : r_vkTexUsageMode [0 = standard / 1 = 1 texture per draw call]");
 #endif
 
     enum UiColorOp
@@ -185,9 +185,7 @@ namespace LyShine
 #if defined(CARBONATED)
         if (r_vkTexUsageMode > 0)
         {
-            // Draw each batched group of primitives
-            // r_vkTexUsageMode == 1: that share the same texture
-            // r_vkTexUsageMode == 2: where primitive size in one batch doesn't exceed 24 pixels
+            // Draw each batched group of primitives that share the same texture
             for (const DrawCommand& cmd : m_drawCommands)
             {
                 // Keep it for the future investigations
@@ -208,11 +206,9 @@ namespace LyShine
                         }
                         indices += AZStd::to_string(images[i]);
                     }
-                    int usageMode = r_vkTexUsageMode;
                     AZ_Info(
                         "RenderGraph",
-                        "Draw (UsageMode=%i): VertexStart=%d, VertexCount=%d, UsedTexIndex=%d, NumPtimitives=%d, NumVertexPerUsedTex = %s\n",
-                        usageMode,
+                        "Draw: VertexStart=%d, VertexCount=%d, UsedTexIndex=%d, NumPtimitives=%d, NumVertexPerUsedTex = %s\n",
                         cmd.m_combinedVertexStart,
                         cmd.m_combinedVertexCount,
                         cmd.m_usedTexIndex,
@@ -263,41 +259,11 @@ namespace LyShine
             // Get the texture index used by this primitive
             const uint8 currentTexIndex = primitive->m_vertices[0].texIndex;
 
-            if (r_vkTexUsageMode == 1)
+            // Check whether we can append to the last draw command
+            if (!m_drawCommands.empty())
             {
-                // Check whether we can append to the last draw command
-                if (!m_drawCommands.empty())
-                {
-                    const DrawCommand& lastCmd = m_drawCommands.back();
-                    canAppendToLast = (lastCmd.m_usedTexIndex == currentTexIndex);
-                }
-            }
-            else // r_vkTexUsageMode == 2
-            {
-                // This is a certain "magic" number, determined experimentally on Google Pixel 9, Samsung S24
-                // In some menus containing small square and rectangular "cards" with a side size greater than 24 pixels, we almost always
-                // see a "snow glitch". The "snow glitch" does not occur on smaller UI elements (text strings, thin borders, horizontal
-                // margins, etc.)
-                constexpr float MinSizeOfSideOfBigPrimitive = 24.0f;
-                const UiPrimitiveVertex& first = primitive->m_vertices[0];
-                float maxX = first.xy.x, minX = first.xy.x, maxY = first.xy.y, minY = first.xy.y;
-                canAppendToLast = !m_drawCommands.empty();
-                for (int i = 1; i < primitive->m_numVertices; ++i)
-                {
-                    UiPrimitiveVertex& v = primitive->m_vertices[i];
-                    maxX = AZ::GetMax(maxX, v.xy.x);
-                    maxY = AZ::GetMax(maxY, v.xy.y);
-                    minX = AZ::GetMin(minX, v.xy.x);
-                    minY = AZ::GetMin(minY, v.xy.y);
-                    const float maxWidth = maxX - minX;
-                    const float maxHeight = maxY - minY;
-                    if (maxWidth >= MinSizeOfSideOfBigPrimitive && maxHeight >= MinSizeOfSideOfBigPrimitive)
-                    {
-                        canAppendToLast = false;
-                        break;
-                    }
-                }
-
+                const DrawCommand& lastCmd = m_drawCommands.back();
+                canAppendToLast = (lastCmd.m_usedTexIndex == currentTexIndex);
             }
 
             // If the texture has changed or no active batch exists, start a new DrawCommand
@@ -785,8 +751,7 @@ namespace LyShine
                 // At this time (September 2025) we know 100% that Google Pixel 8 and Pixel 9 have an issue with sparkling white/colored
                 // snow on UI elements.
                 // October 2025: Samsung S24 (with GPU "Samsung Xclipse 940") also affected.
-                // A workaround #1 is to not combine primitives which use different textures into one draw call.
-                // A workaround #2 is to not combine rectangular/square primitives of size > 24 into large batches.
+                // A workaround is to not combine primitives which use different textures into one draw call.
                 r_vkTexUsageMode = (descriptor.m_description.contains("Mali-G715") || descriptor.m_description.starts_with("Samsung Xclipse 9")) ? 1 : 0;
             }
             else
