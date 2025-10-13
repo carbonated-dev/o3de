@@ -26,7 +26,9 @@
 
 namespace InAppPurchases
 {
+#if defined(CARBONATED)
     const static char* s_tag = "O3DEInAppPurchases";
+#endif
 
     static bool IsFieldIdValid(jfieldID fid)
     {
