@@ -371,6 +371,11 @@ namespace LyShine
 
         void SetRttPassesEnabled(UiRenderer* uiRenderer, bool enabled);
 
+#if defined(CARBONATED)
+    private:
+        void CheckAndApplyVulkanTexWorkaround(const AZStd::string& gpuName);
+#endif
+
     protected:  // data
 
         AZStd::vector<RenderNode*>  m_renderNodes;

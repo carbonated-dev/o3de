@@ -22,6 +22,9 @@
 
 #if defined(CARBONATED)
 #include <AzCore/Console/IConsole.h>
+#include <AzCore/Settings/SettingsRegistry.h>
+#include <AzCore/Settings/SettingsRegistryVisitorUtils.h>
+#include <AzCore/std/string/regex.h>
 #endif
 
 namespace LyShine
@@ -753,7 +756,7 @@ namespace LyShine
                 // snow on UI elements.
                 // October 2025: Samsung S24 (with GPU "Samsung Xclipse 940") also affected.
                 // A workaround is to not combine primitives which use different textures into one draw call.
-                r_vkTexUsageMode = (descriptor.m_description.contains("Mali-G715") || descriptor.m_description.starts_with("Samsung Xclipse 9")) ? 1 : 0;
+                CheckAndApplyVulkanTexWorkaround(descriptor.m_description);
             }
             else
             {
@@ -768,6 +771,51 @@ namespace LyShine
     {
         ResetGraph();
     }
+
+#if defined(CARBONATED)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    void RenderGraph::CheckAndApplyVulkanTexWorkaround(const AZStd::string& gpuName)
+    {
+        auto registry = AZ::SettingsRegistry::Get();
+        if (!registry)
+        {
+            AZ_Warning("RenderGraph", false, "SettingsRegistry is not available");
+            return;
+        }
+
+        // Path to Vulkan1TexPerDrawCall section
+        constexpr const char* kRootKey = "/O3DE/Vulkan1TexPerDrawCall";
+
+        bool matched = false;
+
+        auto callback = [&](const AZ::SettingsRegistryInterface::VisitArgs& visitArgs)
+        {
+            if (visitArgs.m_type != AZ::SettingsRegistryInterface::Type::Object)
+            {
+                return AZ::SettingsRegistryInterface::VisitResponse::Skip;
+            }
+            AZ::SettingsRegistryInterface::FixedValueString regexString;
+            if (registry->Get(regexString, AZStd::string::format("%s/GPUModel", visitArgs.m_jsonKeyPath.cbegin())))
+            {
+                AZStd::regex regexPattern(regexString.c_str(), AZStd::regex::ECMAScript | AZStd::regex::icase);
+                if (AZStd::regex_match(gpuName.c_str(), regexPattern))
+                {
+                    AZ_Info("RenderGraph", "GPU \"%s\" matched workaround rule \"%s\"", gpuName.c_str(), regexString.c_str());
+                    matched = true;
+                    return AZ::SettingsRegistryInterface::VisitResponse::Done;
+                }
+            }
+
+            return AZ::SettingsRegistryInterface::VisitResponse::Continue;
+        };
+
+        AZ::SettingsRegistryVisitorUtils::VisitObject(*registry, callback, kRootKey);
+
+        // Apply workaround if matched
+        r_vkTexUsageMode = matched ? 1 : 0;
+        AZ_Info("RenderGraph", "r_vkTexUsageMode = %d", matched);
+    }
+#endif
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     void RenderGraph::ResetGraph()
