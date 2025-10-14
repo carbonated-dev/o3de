@@ -59,7 +59,11 @@ namespace InAppPurchases
 #endif
         jobject jpurchasedProduct = env->GetObjectArrayElement(jpurchasedProductDetails, index);
 
+#if defined(CARBONATED)
         const int NUM_FIELDS_PURCHASED_PRODUCTS = 10;
+#else
+        const int NUM_FIELDS_PURCHASED_PRODUCTS = 7;
+#endif
         jfieldID fid[NUM_FIELDS_PURCHASED_PRODUCTS];
         jclass cls = env->GetObjectClass(jpurchasedProduct);
         fid[0] = env->GetFieldID(cls, "m_productId", "Ljava/lang/String;");
@@ -69,9 +73,11 @@ namespace InAppPurchases
         fid[4] = env->GetFieldID(cls, "m_signature", "Ljava/lang/String;");
         fid[5] = env->GetFieldID(cls, "m_purchaseTime", "J");
         fid[6] = env->GetFieldID(cls, "m_isAutoRenewing", "Z");
+#if defined(CARBONATED)
         fid[7] = env->GetFieldID(cls, "m_price", "Ljava/lang/String;");
         fid[8] = env->GetFieldID(cls, "m_currencyCode", "Ljava/lang/String;");
         fid[9] = env->GetFieldID(cls, "m_priceMicro", "J");
+#endif
 
         for (int i = 0; i < NUM_FIELDS_PURCHASED_PRODUCTS; i++)
         {
@@ -107,9 +113,6 @@ namespace InAppPurchases
         purchasedProductDetails->SetPurchaseSignature(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[4]))));
         purchasedProductDetails->SetPurchaseTime(env->GetLongField(jpurchasedProduct, fid[5]));
         purchasedProductDetails->SetIsAutoRenewing(env->GetBooleanField(jpurchasedProduct, fid[6]));
-        purchasedProductDetails->SetProductPrice(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[7]))));
-        purchasedProductDetails->SetProductCurrencyCode(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[8]))));
-        purchasedProductDetails->SetProductPriceMicro(env->GetLongField(jpurchasedProduct, fid[9]));
 #endif
         return purchasedProductDetails;
     }
@@ -481,10 +484,10 @@ namespace InAppPurchases
         {
 #if defined(CARBONATED)
             AZ_TracePrintf(s_tag, "Failed to find product with id: %s", productId.c_str());
+            InAppPurchasesResponseBus::Broadcast(&InAppPurchasesResponseBus::Events::PurchaseFailed, nullptr);
 #else
             AZ_TracePrintf("LumberyardInAppBilling", "Failed to find product with id: %s", productId.c_str());
 #endif
-            InAppPurchasesResponseBus::Broadcast(&InAppPurchasesResponseBus::Events::PurchaseFailed, nullptr);
             return;
         }
 
