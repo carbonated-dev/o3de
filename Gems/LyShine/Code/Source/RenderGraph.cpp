@@ -20,8 +20,22 @@
 #include <AzFramework/IO/LocalFileIO.h>
 #endif
 
+#if defined(CARBONATED)
+#include <AzCore/Console/IConsole.h>
+#endif
+
 namespace LyShine
 {
+#if defined(CARBONATED)
+    AZ_CVAR(
+        int,
+        r_vkTexUsageMode,
+        0,
+        nullptr,
+        AZ::ConsoleFunctorFlags::DontReplicate,
+        "Usage : r_vkTexUsageMode [0 = standard / 1 = 1 texture per draw call]");
+#endif
+
     enum UiColorOp
     {
         ColorOp_Unused = 0,             // reusing shader flag value, FixedPipelineEmu shader uses 0 to mean eCO_NOSET
@@ -55,9 +69,7 @@ namespace LyShine
 #if defined(CARBONATED)
         m_combinedVertices.reserve(1200);  // typically we have 1.5+ times more indices than vertices, sometimes it is even 2 times more
         m_combinedIndices.reserve(2400);
-#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         m_drawCommands.reserve(128);
-#endif
 #endif
     }
 
@@ -82,9 +94,7 @@ namespace LyShine
 #if defined(CARBONATED)
         m_combinedVertices.reserve(1200);
         m_combinedIndices.reserve(2400);
-#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         m_drawCommands.reserve(128);
-#endif
 #endif
     }
 
@@ -94,20 +104,11 @@ namespace LyShine
         m_primitives.clear();
 
 #if defined(CARBONATED)
-#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         m_drawCommands.clear();
-#endif
         m_combinedVertices.clear();
         m_combinedIndices.clear();
 #endif
     }
-
-#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-    void PrimitiveListRenderNode::SetMaliG715Workaround(bool useWorkaround)
-    {
-        m_usingMaliG715Workaround = useWorkaround;
-    }
-#endif
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     void PrimitiveListRenderNode::Render(UiRenderer* uiRenderer
@@ -161,6 +162,8 @@ namespace LyShine
 
             if (imageView)
             {
+                // Keep it for the future investigations together with commented code below when "r_vkTexUsageMode == 1"
+                //AZ_Info("RenderGraph", "i=%i, Name=%s, (%i, %i)\n", i, imageView->GetResource().GetName().GetCStr(), image->GetDescriptor().m_size.m_width, image->GetDescriptor().m_size.m_height);
                 drawSrg->SetImageView(uiShaderData.m_imageInputIndex, imageView, i);
                 if (m_textures[i].m_isClampTextureMode)
                 {
@@ -181,12 +184,39 @@ namespace LyShine
         drawSrg->Compile();
 
 #if defined(CARBONATED)
-#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-        if (m_usingMaliG715Workaround)
+        if (r_vkTexUsageMode == 1)
         {
             // Draw each batched group of primitives that share the same texture
             for (const DrawCommand& cmd : m_drawCommands)
             {
+                // Keep it for the future investigations
+                /*{
+                    int images[MaxTextures];
+                    memset(images, 0, sizeof(images));
+                    for (int i = cmd.m_combinedVertexStart; i < cmd.m_combinedVertexStart + cmd.m_combinedVertexCount; ++i)
+                    {
+                        auto texIndex = m_combinedVertices[i].texIndex;
+                        images[texIndex]++;
+                    }
+                    AZStd::string indices;
+                    for (size_t i = 0; i < m_numTextures; ++i)
+                    {
+                        if (!indices.empty())
+                        {
+                            indices += ", ";
+                        }
+                        indices += AZStd::to_string(images[i]);
+                    }
+                    AZ_Info(
+                        "RenderGraph",
+                        "Draw: VertexStart=%d, VertexCount=%d, UsedTexIndex=%d, NumPtimitives=%d, NumVertexPerUsedTex = %s\n",
+                        cmd.m_combinedVertexStart,
+                        cmd.m_combinedVertexCount,
+                        cmd.m_usedTexIndex,
+                        cmd.m_numPrimitives,
+                        indices.c_str());
+                }*/
+
                 dynamicDraw->DrawIndexed(
                     &m_combinedVertices[cmd.m_combinedVertexStart],
                     cmd.m_combinedVertexCount,
@@ -200,12 +230,6 @@ namespace LyShine
         {
             dynamicDraw->DrawIndexed(&m_combinedVertices[0], (uint32_t)m_combinedVertices.size(), &m_combinedIndices[0], (uint32_t)m_combinedIndices.size(), AZ::RHI::IndexFormat::Uint16, drawSrg);
         }
-#else
-        if (m_combinedIndices.size() > 0 && m_combinedVertices.size() > 0)
-        {
-            dynamicDraw->DrawIndexed(&m_combinedVertices[0], (uint32_t)m_combinedVertices.size(), &m_combinedIndices[0],  (uint32_t)m_combinedIndices.size(), AZ::RHI::IndexFormat::Uint16, drawSrg);
-        }
-#endif // CARBONATED_USE_MALI_G715_WORKAROUND
 #else // CARBONATED
         // Add the indexed primitives to the dynamic draw context for drawing
         //
@@ -225,19 +249,18 @@ namespace LyShine
     void PrimitiveListRenderNode::AddPrimitive(LyShine::UiPrimitive* primitive)
     {
 #if defined(CARBONATED)
-#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-
         // always clear the next pointer before adding to list
         primitive->m_next = nullptr;
         m_primitives.push_back(*primitive);
 
-        if (m_usingMaliG715Workaround)
+        if (r_vkTexUsageMode > 0)
         {
+            bool canAppendToLast = false;
+
             // Get the texture index used by this primitive
             const uint8 currentTexIndex = primitive->m_vertices[0].texIndex;
 
             // Check whether we can append to the last draw command
-            bool canAppendToLast = false;
             if (!m_drawCommands.empty())
             {
                 const DrawCommand& lastCmd = m_drawCommands.back();
@@ -256,6 +279,8 @@ namespace LyShine
 
             // Get the active draw command to append to
             DrawCommand& activeCmd = m_drawCommands.back();
+
+            activeCmd.m_numPrimitives++;
 
             // Insert vertices and indices into the combined buffers
             const uint16 vertexStart = aznumeric_caster(m_combinedVertices.size());
@@ -307,7 +332,6 @@ namespace LyShine
         {
             m_combinedIndices[index_start + i] = vertex_start + primitive->m_indices[i];
         }
-#endif // CARBONATED_USE_MALI_G715_WORKAROUND
 #endif // CARBONATED
 
         m_totalNumVertices += primitive->m_numVertices;
@@ -717,7 +741,7 @@ namespace LyShine
         // then it becomes the node list for that render node.
         m_renderNodeListStack.push(&m_renderNodes);
 
-#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
+#if defined(CARBONATED)
         const auto rhiInterface = AZ::RHI::RHISystemInterface::Get();   // This is used in AssetProcessor and it can be "nullptr"
         if (rhiInterface)
         {
@@ -726,9 +750,10 @@ namespace LyShine
             {
                 const auto& descriptor = rhiDevice->GetPhysicalDevice().GetDescriptor();
                 // At this time (September 2025) we know 100% that Google Pixel 8 and Pixel 9 have an issue with sparkling white/colored
-                // snow on UI elements. October 2025: Samsung S24 (with GPU "Samsung Xclipse 940") also affected. A workaround is to not
-                // combine rectangular/square primitives of size > 24 into large batches.
-                m_usingMaliG715Workaround = descriptor.m_description.contains("Mali-G715") || descriptor.m_description.starts_with("Samsung Xclipse 9");
+                // snow on UI elements.
+                // October 2025: Samsung S24 (with GPU "Samsung Xclipse 940") also affected.
+                // A workaround is to not combine primitives which use different textures into one draw call.
+                r_vkTexUsageMode = (descriptor.m_description.contains("Mali-G715") || descriptor.m_description.starts_with("Samsung Xclipse 9")) ? 1 : 0;
             }
             else
             {
@@ -947,10 +972,6 @@ namespace LyShine
                 // We can't add this primitive to the existing render node, we need to create a new render node
                 // this uses a pool allocator for fast allocation
                 renderNodeToAddTo = new PrimitiveListRenderNode(texture, isClampTextureMode, isTextureSRGB, isPreMultiplyAlpha, blendModeState);
-
-#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-                renderNodeToAddTo->SetMaliG715Workaround(m_usingMaliG715Workaround);
-#endif
                 renderNodeList->push_back(renderNodeToAddTo);
                 texUnit = 0;
             }
@@ -1032,10 +1053,6 @@ namespace LyShine
                 // this uses a pool allocator for fast allocation
                 renderNodeToAddTo = new PrimitiveListRenderNode(contentAttachmentImage, maskAttachmentImage,
                     isClampTextureMode, isTextureSRGB, isPreMultiplyAlpha, alphaMaskType, blendModeState);
-
-#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-                renderNodeToAddTo->SetMaliG715Workaround(m_usingMaliG715Workaround);
-#endif
                 renderNodeList->push_back(renderNodeToAddTo);
                 texUnit0 = 0;
                 texUnit1 = 1;
