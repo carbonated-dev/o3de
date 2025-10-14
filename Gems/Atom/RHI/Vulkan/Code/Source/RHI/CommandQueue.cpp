@@ -67,7 +67,6 @@ namespace AZ
                 // Keep the RHI::Ptr alive by capturing it into the lambda (tempFenceCapture).
                 RHI::Ptr<Fence> tempFenceCapture = nullptr;
                 bool isTempFence = false;
-                double commitTime = 0;
 #endif
                 Fence* fenceToSignal = nullptr;
                 if (!request.m_fencesToSignal.empty())
@@ -93,11 +92,6 @@ namespace AZ
                     // Register and mark CommandBuffer
                     GetDevice().RegisterCommandBuffer(request.m_commandList->GetNativeCommandBuffer());
                     GetDevice().MarkCommandBufferCommit(request.m_commandList->GetNativeCommandBuffer());
-#if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
-                    commitTime = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
-#else
-                    commitTime = AZStd::GetTimeNowTicks() / 1e9; // Use time since system start like all Vulkan timestamps
-#endif
                 }
 #endif
                 // Submit commands to queue for the current frame.
@@ -135,10 +129,10 @@ namespace AZ
                         AZStd::move(tempFenceCapture),
                         fenceToSignal,
                         isTempFence,
-                        [cmdList = request.m_commandList, isTempFence, tempFenceCapture, commitTime]()
+                        [cmdList = request.m_commandList, isTempFence, tempFenceCapture]()
                         {
                             // This callback will be called from ProcessPendingFenceCallbacks when fence signaled
-                            cmdList->CollectGPUStatistics(commitTime);
+                            cmdList->CollectGPUStatistics();
                             if (isTempFence && tempFenceCapture)
                             {
                                 tempFenceCapture->Shutdown();

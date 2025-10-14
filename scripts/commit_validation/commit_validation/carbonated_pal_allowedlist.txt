@@ -10,7 +10,6 @@
 */Gems/Atom/RHI/Metal/Code/Source/RHI/MetalViewController.h
 */Gems/Atom/RHI/Vulkan/Code/Source/RHI/SwapChain.cpp
 */Gems/Atom/RHI/Vulkan/Code/Source/RHI/SwapChain.h
-*/Gems/Atom/RHI/Vulkan/Code/Source/RHI/CommandQueue.cpp
 */Gems/Atom/RPI/Code/Source/RPI.Public/WindowContext.cpp
 */Code/Framework/AzFramework/AzFramework/Windowing/NativeWindow.cpp
 */Code/Legacy/CrySystem/System.cpp
