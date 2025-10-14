@@ -788,27 +788,36 @@ namespace LyShine
 
         bool matched = false;
 
+        // Iterate over all key/value pairs in the section
         auto callback = [&](const AZ::SettingsRegistryInterface::VisitArgs& visitArgs)
         {
-            if (visitArgs.m_type != AZ::SettingsRegistryInterface::Type::Object)
+            if (visitArgs.m_type != AZ::SettingsRegistryInterface::Type::String)
             {
                 return AZ::SettingsRegistryInterface::VisitResponse::Skip;
             }
+
+            // Get regex string value
             AZ::SettingsRegistryInterface::FixedValueString regexString;
-            if (registry->Get(regexString, AZStd::string::format("%s/GPUModel", visitArgs.m_jsonKeyPath.cbegin())))
+            if (!registry->Get(regexString, visitArgs.m_jsonKeyPath))
             {
-                AZStd::regex regexPattern(regexString.c_str(), AZStd::regex::ECMAScript | AZStd::regex::icase);
-                if (AZStd::regex_match(gpuName.c_str(), regexPattern))
-                {
-                    AZ_Info("RenderGraph", "GPU \"%s\" matched workaround rule \"%s\"", gpuName.c_str(), regexString.c_str());
-                    matched = true;
-                    return AZ::SettingsRegistryInterface::VisitResponse::Done;
-                }
+                return AZ::SettingsRegistryInterface::VisitResponse::Continue;
+            }
+
+            // Compile regex pattern
+            AZStd::regex regexPattern(regexString.c_str(), AZStd::regex::ECMAScript | AZStd::regex::icase);
+
+            // Try to match GPU name
+            if (AZStd::regex_match(gpuName.c_str(), regexPattern))
+            {
+                AZ_Info("RenderGraph", "GPU \"%s\" matched workaround rule \"%s\"", gpuName.c_str(), visitArgs.m_fieldName.cbegin());
+                matched = true;
+                return AZ::SettingsRegistryInterface::VisitResponse::Done;
             }
 
             return AZ::SettingsRegistryInterface::VisitResponse::Continue;
         };
 
+        // Visit all entries under /O3DE/Vulkan1TexPerDrawCall
         AZ::SettingsRegistryVisitorUtils::VisitObject(*registry, callback, kRootKey);
 
         // Apply workaround if matched
