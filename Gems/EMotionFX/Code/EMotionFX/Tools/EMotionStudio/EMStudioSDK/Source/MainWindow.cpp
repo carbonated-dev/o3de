@@ -2800,6 +2800,7 @@ namespace EMStudio
 
     void MainWindow::OnTick(float delta, AZ::ScriptTimePoint timePoint)
     {
+        AZ_PROFILE_SCOPE(Animation, "EmotionFX::MainWindow::Tick:OnTick");
         AZ_UNUSED(timePoint);
 
         // Check if we are in game mode.

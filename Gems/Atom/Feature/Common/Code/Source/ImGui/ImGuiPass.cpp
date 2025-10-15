@@ -30,6 +30,9 @@
 #include <Atom_Feature_Traits_Platform.h>
 #include <Atom/Feature/ImGui/SystemBus.h>
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(AzRender);
+
 namespace AZ
 {
     namespace Render
@@ -124,6 +127,7 @@ namespace AZ
 
         void ImGuiPass::TickHandlerFrameStart::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint timePoint)
         {
+            AZ_PROFILE_SCOPE(AzRender, "ImGuiPass::TickHandlerFrameStart::Tick:OnTick");
             auto imguiContextScope = ImguiContextScope(m_imGuiPass.m_imguiContext);
             ImGui::NewFrame();
 

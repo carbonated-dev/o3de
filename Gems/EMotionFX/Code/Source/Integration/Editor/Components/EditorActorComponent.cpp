@@ -724,6 +724,8 @@ namespace EMotionFX
         //////////////////////////////////////////////////////////////////////////
         void EditorActorComponent::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
         {
+            AZ_PROFILE_SCOPE(Animation, "EmotionFX::EditorActorComponent::Tick:OnTick");
+
             // If we've got an asset that finished loading (denoted by an OnAssetReady() call), create the actor instance here.
             if (m_processLoadedAsset)
             {

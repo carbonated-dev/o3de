@@ -73,6 +73,8 @@
 #include "World/UiCanvasProxyRefComponent.h"
 #include "World/UiCanvasOnMeshComponent.h"
 
+AZ_DEFINE_BUDGET(LyShine);
+
 //! \brief Simple utility class for LyShine functionality in Lua.
 //!
 //! Functionality unrelated to UI, such as showing the mouse cursor, should
@@ -649,6 +651,7 @@ bool CLyShine::OnInputTextEventFiltered(const AZStd::string& textUTF8)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void CLyShine::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
 {
+    AZ_PROFILE_SCOPE(LyShine, "CLyShine::Tick:OnTick");
     // Update the loaded UI canvases
     Update(deltaTime);
 }

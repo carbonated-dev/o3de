@@ -59,6 +59,8 @@ namespace GraphCanvas
 
     void GlowOutlineGraphicsItem::OnTick(float delta, [[maybe_unused]] AZ::ScriptTimePoint timePoint)
     {
+        AZ_PROFILE_SCOPE(Animation, "GlowOutlineGraphicsItem::Tick:OnTick");
+
         m_currentTime += delta;
 
         while (m_currentTime >= m_pulseTime)

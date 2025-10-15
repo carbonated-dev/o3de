@@ -17,6 +17,9 @@
 #include <AzFramework/Spawnable/SpawnableSystemComponent.h>
 #include <AzFramework/Spawnable/Script/SpawnableScriptMediator.h>
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(AzFramework);
+
 namespace AzFramework
 {
     void SpawnableSystemComponent::Reflect(AZ::ReflectContext* context)
@@ -51,6 +54,8 @@ namespace AzFramework
 
     void SpawnableSystemComponent::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/)
     {
+        AZ_PROFILE_SCOPE(AzFramework, "SpawnableSystemComponent::Tick:OnTick");
+
         ProcessSpawnableQueue();
         RootSpawnableNotificationBus::ExecuteQueuedEvents();
     }

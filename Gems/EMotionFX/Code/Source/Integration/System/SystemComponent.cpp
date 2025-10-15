@@ -604,6 +604,8 @@ namespace EMotionFX
         //////////////////////////////////////////////////////////////////////////
         void SystemComponent::OnTick(float delta, [[maybe_unused]]AZ::ScriptTimePoint timePoint)
         {
+            AZ_PROFILE_SCOPE(Animation, "EmotionFX::SystemComponent::Tick:OnTick");
+
             // Flush events prior to updating EMotion FX.
             ActorNotificationBus::ExecuteQueuedEvents();
 

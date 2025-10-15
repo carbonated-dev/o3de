@@ -12,6 +12,8 @@
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/Math/Transform.h>
 
+#include <AzCore/Debug/Profiler.h>
+
 namespace LmbrCentral
 {
     //=========================================================================
@@ -154,6 +156,8 @@ namespace LmbrCentral
     //=========================================================================
     void EditorLookAtComponent::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/)
     {
+        AZ_PROFILE_SCOPE(Animation, "EditorLookAtComponent::Tick:OnTick");
+
         RecalculateTransform();
         AZ::TickBus::Handler::BusDisconnect();
     }

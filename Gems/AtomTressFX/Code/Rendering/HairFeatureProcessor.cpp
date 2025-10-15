@@ -36,6 +36,8 @@
 
 #include <Passes/HairSkinningComputePass.h>
 
+AZ_DEFINE_BUDGET(AtomTressFX);
+
 namespace AZ
 {
     namespace Render
@@ -113,6 +115,8 @@ namespace AZ
 
             void HairFeatureProcessor::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
             {
+                AZ_PROFILE_SCOPE(AtomTressFX, "HairFeatureProcessor::Tick:OnTick");
+
                 const float MAX_SIMULATION_TIME_STEP = 0.033f;  // Assuming minimal of 30 fps
                 m_currentDeltaTime = AZStd::min(deltaTime, MAX_SIMULATION_TIME_STEP);
                 for (auto& object : m_hairRenderObjects)

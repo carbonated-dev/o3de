@@ -33,6 +33,9 @@ AZ_PUSH_DISABLE_WARNING(4251, "-Wunknown-warning-option") // 'QRegularExpression
 #include <QRegularExpression>
 AZ_POP_DISABLE_WARNING
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(AzFramework);
+
 namespace AzToolsFramework
 {
     namespace AssetBrowser
@@ -585,6 +588,8 @@ namespace AzToolsFramework
 
         void AssetBrowserModel::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/) 
         {
+            AZ_PROFILE_SCOPE(AzFramework, "AssetBrowserModel::Tick:OnTick");
+
             // if any entries changed since last tick, notify the views
             EntryCache* cache = EntryCache::GetInstance();
             if (m_isTickBusEnabled && cache)

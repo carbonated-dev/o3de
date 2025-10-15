@@ -28,6 +28,8 @@
 #include <AzFramework/Components/ConsoleBus.h>
 #include <AzFramework/Script/ScriptComponent.h>
 
+AZ_DEFINE_BUDGET(ScriptAutomation);
+
 namespace AZ::ScriptAutomation
 {
     namespace
@@ -239,6 +241,8 @@ namespace AZ::ScriptAutomation
 
     void ScriptAutomationSystemComponent::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(ScriptAutomation, "ScriptAutomationSystemComponent::Tick:OnTick");
+
         if (!m_isStarted)
         {
             m_isStarted = true;

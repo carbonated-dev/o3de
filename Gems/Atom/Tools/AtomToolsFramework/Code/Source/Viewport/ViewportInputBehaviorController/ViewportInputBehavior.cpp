@@ -11,6 +11,9 @@
 #include <AzCore/Component/TransformBus.h>
 #include <AzCore/Math/Vector3.h>
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(AtomToolsFramework);
+
 namespace AtomToolsFramework
 {
     ViewportInputBehavior::ViewportInputBehavior(ViewportInputBehaviorControllerInterface* controller)
@@ -126,6 +129,8 @@ namespace AtomToolsFramework
 
     void ViewportInputBehavior::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AtomToolsFramework, "EntityPreviewViewportWidget::Tick:OnTick");
+
         // delta x and y values are accumulated in MoveX and MoveY functions (by dragging the mouse)
         // in the Tick function we then lerp them down to 0 over short time and apply delta transform to an entity
         if (HasDelta())

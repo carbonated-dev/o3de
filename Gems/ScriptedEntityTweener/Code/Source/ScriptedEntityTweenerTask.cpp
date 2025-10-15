@@ -10,6 +10,10 @@
 
 #include "ScriptedEntityTweenerTask.h"
 
+#include <AzCore/Debug/Budget.h>
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(ScriptedEntityTweener);
+
 namespace ScriptedEntityTweener
 {
     const AZStd::any ScriptedEntityTweenerTask::QueuedSubtaskInfo::m_emptyInitialValue;
@@ -122,6 +126,8 @@ namespace ScriptedEntityTweener
 
     void ScriptedEntityTweenerTask::Update(float deltaTime)
     {
+        AZ_PROFILE_SCOPE(ScriptedEntityTweener, "ScriptedEntityTweenerTask::Update");
+
         auto queuedIter = m_queuedSubtasks.begin();
         while (queuedIter != m_queuedSubtasks.end())
         {

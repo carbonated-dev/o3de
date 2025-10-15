@@ -29,6 +29,8 @@
 #include <Atom/RPI.Public/View.h>
 #include <AzFramework/Components/CameraBus.h>
 
+AZ_DEFINE_BUDGET(AtomLyIntegration);
+
 using namespace AzFramework;
 using namespace AZ::AtomBridge;
 
@@ -166,6 +168,7 @@ void FlyCameraInputComponent::Deactivate()
 //////////////////////////////////////////////////////////////////////////////
 void FlyCameraInputComponent::OnTick(float deltaTime, AZ::ScriptTimePoint /*time*/)
 {
+    AZ_PROFILE_SCOPE(AtomLyIntegration, "FlyCameraInputComponent::Tick:OnTick");
     if (!m_isEnabled)
     {
         return;

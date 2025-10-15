@@ -238,6 +238,7 @@ namespace SurfaceData
 
     void SurfaceDataShapeComponent::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/)
     {
+        AZ_PROFILE_SCOPE(SurfaceData, "SurfaceDataShapeComponent::Tick:OnTick");
         if (m_refresh)
         {
             UpdateShapeData();

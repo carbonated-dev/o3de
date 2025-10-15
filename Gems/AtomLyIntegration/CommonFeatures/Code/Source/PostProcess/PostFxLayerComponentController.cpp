@@ -16,6 +16,8 @@
 #include <Atom/RPI.Public/ViewProviderBus.h>
 #include <Atom/RPI.Public/ViewportContextBus.h>
 
+AZ_DECLARE_BUDGET(AtomLyIntegration);
+
 namespace AZ
 {
     namespace Render
@@ -48,6 +50,8 @@ namespace AZ
 
         void PostFxLayerComponentController::OnTick(float deltaTime, ScriptTimePoint time)
         {
+            AZ_PROFILE_SCOPE(AtomLyIntegration, "PostFxLayerComponentController::Tick:OnTick");
+
             AZ_UNUSED(deltaTime);
             AZ_UNUSED(time);
 

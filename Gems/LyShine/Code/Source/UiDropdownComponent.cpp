@@ -20,6 +20,8 @@
 #include <LyShine/UiSerializeHelpers.h>
 #include "UiNavigationHelpers.h"
 
+AZ_DECLARE_BUDGET(LyShine);
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //! UiDropdownNotificationBusBehaviorHandler  Behavior context handler class
 class UiDropdownNotificationBusBehaviorHandler
@@ -427,6 +429,8 @@ void UiDropdownComponent::OnCanvasHoverEnd(AZ::EntityId entityId)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void UiDropdownComponent::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
 {
+    AZ_PROFILE_SCOPE(LyShine, "UiDropdownComponent::Tick:OnTick");
+
     m_delayTimer += deltaTime;
 
     // If we went over the wait time

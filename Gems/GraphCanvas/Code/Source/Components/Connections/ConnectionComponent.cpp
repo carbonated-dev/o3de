@@ -487,6 +487,8 @@ namespace GraphCanvas
 
     void ConnectionComponent::OnTick(float deltaTime, AZ::ScriptTimePoint)
     {
+        AZ_PROFILE_SCOPE(Animation, "ConnectionComponent::Tick:OnTick");
+
         bool sourceAnimating = m_sourceAnimator.IsAnimating() && m_sourceAnimator.Tick(deltaTime);
         bool targetAnimating = m_targetAnimator.IsAnimating() && m_targetAnimator.Tick(deltaTime);
 

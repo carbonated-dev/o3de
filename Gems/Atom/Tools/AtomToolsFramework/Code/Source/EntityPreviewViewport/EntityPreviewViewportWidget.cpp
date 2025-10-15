@@ -22,6 +22,8 @@
 #include <AzFramework/Viewport/ViewportControllerList.h>
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
 
+AZ_DEFINE_BUDGET(AtomToolsFramework);
+
 namespace AtomToolsFramework
 {
     EntityPreviewViewportWidget::EntityPreviewViewportWidget(const AZ::Crc32& toolId, QWidget* parent)
@@ -105,6 +107,7 @@ namespace AtomToolsFramework
 
     void EntityPreviewViewportWidget::OnTick(float deltaTime, AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AtomToolsFramework, "EntityPreviewViewportWidget::Tick:OnTick");
         RenderViewportWidget::OnTick(deltaTime, time);
 
         const auto objectLocalBounds = m_viewportContent->GetObjectLocalBounds();

@@ -19,6 +19,8 @@
 #include <Atom/RPI.Public/ViewportContextBus.h>
 #include <Atom/RPI.Public/ViewProviderBus.h>
 
+AZ_DECLARE_BUDGET(AtomLyIntegration);
+
 namespace AZ
 {
     namespace Render
@@ -540,6 +542,8 @@ namespace AZ
         
         void DirectionalLightComponentController::OnTick(float, ScriptTimePoint)
         {
+            AZ_PROFILE_SCOPE(AtomLyIntegration, "DirectionalLightComponentController::Tick:OnTick");
+
             if (!m_configuration.m_cameraEntityId.IsValid())
             {
                 UpdateCameraTransform();

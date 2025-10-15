@@ -482,6 +482,8 @@ void ViewportWidget::EnableCanvasRender()
 
 void ViewportWidget::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
 {
+    AZ_PROFILE_SCOPE(AzToolsFramework, "ViewportWidget::Tick:OnTick");
+
     // Update
     UiEditorMode editorMode = m_editorWindow->GetEditorMode();
     if (editorMode == UiEditorMode::Edit)

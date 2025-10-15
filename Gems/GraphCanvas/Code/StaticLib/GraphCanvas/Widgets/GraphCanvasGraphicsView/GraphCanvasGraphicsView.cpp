@@ -861,6 +861,8 @@ namespace GraphCanvas
 
     void GraphCanvasGraphicsView::OnTick(float tick, [[maybe_unused]] AZ::ScriptTimePoint timePoint)
     {
+        AZ_PROFILE_SCOPE(Animation, "GraphCanvasGraphicsView::Tick:OnTick");
+
         if (m_panCountdown)
         {
             float deltaTime = tick;

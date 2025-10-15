@@ -221,6 +221,8 @@ namespace PhysX
 
     void RigidBodyComponent::OnTick(float deltaTime, AZ::ScriptTimePoint /*currentTime*/)
     {
+        AZ_PROFILE_SCOPE(Physics, "PhysX::RigidBodyComponent::Tick:OnTick");
+
         if (m_configuration.m_interpolateMotion)
         {
             if (AZ::TransformInterface* entityTransform = GetEntity()->GetTransform())

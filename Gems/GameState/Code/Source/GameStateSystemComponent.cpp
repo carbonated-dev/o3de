@@ -13,6 +13,8 @@
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/Serialization/EditContextConstants.inl>
 
+#include <AzCore/Debug/Profiler.h>
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace GameState
 {
@@ -69,6 +71,8 @@ namespace GameState
     ////////////////////////////////////////////////////////////////////////////////////////////////
     void GameStateSystemComponent::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*scriptTimePoint*/)
     {
+        AZ_PROFILE_SCOPE(Game, "GameStateSystemComponent::Tick:OnTick");
+
         UpdateActiveGameState();
     }
 

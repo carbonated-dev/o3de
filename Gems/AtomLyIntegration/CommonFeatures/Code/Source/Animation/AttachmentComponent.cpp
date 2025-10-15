@@ -13,6 +13,8 @@
 #include <LmbrCentral/Animation/AttachmentComponentBus.h>
 #include <LmbrCentral/Animation/SkeletalHierarchyRequestBus.h>
 
+AZ_DECLARE_BUDGET(AtomLyIntegration);
+
 namespace AZ
 {
     namespace Render
@@ -306,6 +308,8 @@ namespace AZ
 
         void BoneFollower::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/)
         {
+            AZ_PROFILE_SCOPE(AtomLyIntegration, "BoneFollower::Tick:OnTick");
+
             m_targetBoneTransform = QueryBoneTransform();
             UpdateOwnerTransformIfNecessary();
         }

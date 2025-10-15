@@ -18,6 +18,9 @@
 
 #include <DebugCameraUtils.h>
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(RPI);
+
 namespace AZ
 {
     namespace Debug
@@ -88,6 +91,8 @@ namespace AZ
 
         void NoClipControllerComponent::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
         {
+            AZ_PROFILE_SCOPE(RPI, "NoClipControllerComponent::Tick:OnTick");
+
             static const float normalSpeed = 3.0f;
             static const float sprintSpeed = 10.0f;
 

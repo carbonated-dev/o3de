@@ -24,6 +24,8 @@
 #include <LyShine/UiSerializeHelpers.h>
 #include "UiSerialize.h"
 
+AZ_DECLARE_BUDGET(LyShine);
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //! UiScrollBoxNotificationBus Behavior context handler class
 class BehaviorUiScrollBoxNotificationBusHandler
@@ -1255,6 +1257,8 @@ void UiScrollBoxComponent::OnCanvasSpaceRectChanged([[maybe_unused]] AZ::EntityI
 
 void UiScrollBoxComponent::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
 {
+    AZ_PROFILE_SCOPE(LyShine, "UiScrollBoxComponent::Tick:OnTick");
+
     if (!m_momentumIsActive && m_isDragging)
     {
         m_draggingTimeAccumulator += deltaTime;

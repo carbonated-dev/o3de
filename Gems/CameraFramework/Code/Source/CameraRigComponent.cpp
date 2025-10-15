@@ -15,6 +15,9 @@
 #include "CameraFramework/ICameraLookAtBehavior.h"
 #include "CameraFramework/ICameraTransformBehavior.h"
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DEFINE_BUDGET(CameraFramework);
+
 namespace Camera
 {
     // Clean up the behaviours instantiated for us by the editor/serialization system
@@ -158,6 +161,8 @@ namespace Camera
 
     void CameraRigComponent::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(CameraFramework, "CameraRigComponent::Tick:OnTick");
+
         // Step 1 Acquire a target
         AZ::Transform initialCameraTransform = AZ::Transform::Identity();
         AZ::TransformBus::EventResult(initialCameraTransform, GetEntityId(), &AZ::TransformBus::Events::GetWorldTM);

@@ -11,6 +11,10 @@
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/EBus/EBus.h>
 
+#include <AzCore/Debug/Budget.h>
+#include <AzCore/Debug/Profiler.h>
+AZ_DEFINE_BUDGET(MessagePopup);
+
 namespace MessagePopup
 {
     // Global dynamic unique identifier factory. One ID for each popup
@@ -89,6 +93,8 @@ namespace MessagePopup
    //-------------------------------------------------------------------------
    void MessagePopupManager::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint scriptTimePoint)
    {
+       AZ_PROFILE_SCOPE(MessagePopup, "MessagePopupManager::Tick:OnTick");
+
        for (CurrentPopupsMap::iterator iter = m_currentPopups.begin(); iter != m_currentPopups.end(); )
        {
            if ((*iter).second->m_showTime > 0.0f)

@@ -20,6 +20,8 @@
 #include <EMStudio/AnimViewportWidget.h>
 #include <EMStudio/AtomRenderPlugin.h>
 
+AZ_DECLARE_BUDGET(AtomLyIntegration);
+
 namespace EMStudio
 {
     AnimViewportWidget::AnimViewportWidget(AtomRenderPlugin* parentPlugin)
@@ -283,6 +285,8 @@ namespace EMStudio
 
     void AnimViewportWidget::OnTick(float deltaTime, AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AtomLyIntegration, "AnimViewportWidget::Tick:OnTick");
+
         RenderViewportWidget::OnTick(deltaTime, time);
         CalculateCameraProjection();
         RenderCustomPluginData();

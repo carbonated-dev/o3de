@@ -19,6 +19,8 @@ AZ_POP_DISABLE_WARNING
 #include <GraphCanvas/GraphicsItems/AnimatedPulse.h>
 #include <GraphCanvas/Utils/QtVectorMath.h>
 
+#include <AzCore/Debug/Profiler.h>
+
 namespace GraphCanvas
 {
     //////////////////////////////
@@ -124,6 +126,8 @@ namespace GraphCanvas
 
     void AnimatedPulse::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint timePoint)
     {
+        AZ_PROFILE_SCOPE(Animation, "AnimatedPulse::Tick:OnTick");
+
         m_elapsedDuration += deltaTime;
 
         if (m_elapsedDuration >= m_configuration.m_durationSec)

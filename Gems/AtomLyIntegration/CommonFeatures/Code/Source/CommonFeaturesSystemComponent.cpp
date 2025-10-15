@@ -16,6 +16,8 @@
 #include <AzCore/Serialization/SerializeContext.h>
 #include <CommonFeaturesSystemComponent.h>
 
+AZ_DECLARE_BUDGET(AtomLyIntegration);
+
 namespace AZ
 {
     namespace Render

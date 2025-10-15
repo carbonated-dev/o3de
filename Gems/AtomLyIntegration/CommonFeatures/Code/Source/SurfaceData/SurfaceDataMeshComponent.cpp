@@ -16,6 +16,8 @@
 #include <SurfaceData/SurfaceDataSystemRequestBus.h>
 #include <SurfaceData/Utility/SurfaceDataUtility.h>
 
+AZ_DECLARE_BUDGET(AtomLyIntegration);
+
 namespace SurfaceData
 {
     void SurfaceDataMeshConfig::Reflect(AZ::ReflectContext* context)
@@ -216,6 +218,8 @@ namespace SurfaceData
 
     void SurfaceDataMeshComponent::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/)
     {
+        AZ_PROFILE_SCOPE(Entity, "SurfaceDataMeshComponent::Tick:OnTick");
+
         if (m_refresh)
         {
             UpdateMeshData();

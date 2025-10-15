@@ -23,6 +23,9 @@
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/Settings/SettingsRegistry.h>
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(AzFramework);
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace AzFramework
 {
@@ -260,6 +263,7 @@ namespace AzFramework
     ////////////////////////////////////////////////////////////////////////////////////////////////
     void InputSystemComponent::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*scriptTimePoint*/)
     {
+        AZ_PROFILE_SCOPE(AzFramework, "InputSystemComponent::Tick:OnTick");
         TickInput();
     }
 

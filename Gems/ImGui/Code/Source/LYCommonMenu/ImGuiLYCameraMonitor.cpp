@@ -15,6 +15,7 @@
 
 #include "ImGuiColorDefines.h"
 
+#include <AzCore/Debug/Profiler.h>
 
 namespace ImGui
 {
@@ -143,6 +144,8 @@ namespace ImGui
 
     void ImGuiLYCameraMonitor::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Animation, "ImGuiLYCameraMonitor::Tick:OnTick");
+
         if (m_recordCameraData)
         {
             OnTick_GatherCameraData(deltaTime);

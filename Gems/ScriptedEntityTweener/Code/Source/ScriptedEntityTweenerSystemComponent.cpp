@@ -15,6 +15,10 @@
 
 #include "ScriptedEntityTweenerSystemComponent.h"
 
+#include <AzCore/Debug/Profiler.h>
+
+AZ_DEFINE_BUDGET(ScriptedEntityTweener);
+
 namespace ScriptedEntityTweener
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -270,6 +274,8 @@ namespace ScriptedEntityTweener
 
     void ScriptedEntityTweenerSystemComponent::OnTick(float deltaTime, AZ::ScriptTimePoint /*time*/)
     {
+        AZ_PROFILE_SCOPE(ScriptedEntityTweener, "ScriptedEntityTweenerSystemComponent::Tick:OnTick");
+
         for (auto& animTask : m_animationTasks)
         {
             animTask.Update(deltaTime);

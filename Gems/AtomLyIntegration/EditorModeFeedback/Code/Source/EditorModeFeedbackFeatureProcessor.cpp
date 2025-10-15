@@ -15,6 +15,8 @@
 #include <Atom/RPI.Reflect/Asset/AssetUtils.h>
 #include <Atom/Utils/Utils.h>
 
+AZ_DECLARE_BUDGET(AtomLyIntegration);
+
 namespace AZ
 {
     namespace Render
@@ -132,6 +134,8 @@ namespace AZ
 
         void EditorModeFeatureProcessor::OnTick(float, AZ::ScriptTimePoint)
         {
+            AZ_PROFILE_SCOPE(AtomLyIntegration, "EditorModeFeatureProcessor::Tick:OnTick");
+
             // Attempt deferred loading of mask material until the asset is ready
             if (!m_maskMaterial)
             {

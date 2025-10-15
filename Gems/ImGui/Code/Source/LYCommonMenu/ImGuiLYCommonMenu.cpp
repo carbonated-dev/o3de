@@ -27,6 +27,8 @@
 #include "ImGuiLYCameraMonitor.h"
 #include "ImGuiLYEntityOutliner.h"
 
+#include <AzCore/Debug/Profiler.h>
+
 namespace ImGui
 {
     // Resolution Widths to recommend for usage for both O3DE Rendering and/or ImGui Rendering
@@ -914,6 +916,8 @@ namespace ImGui
     // OnTick just used for telemetry captures.
     void ImGuiLYCommonMenu::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Animation, "ImGuiLYCommonMenu::Tick:OnTick");
+
         m_deltaTimeHistogram.PushValue(deltaTime*1000.0f); // convert to milliseconds
 
         if (m_telemetryCaptureTimeRemaining > 0.0f)

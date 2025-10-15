@@ -19,6 +19,9 @@
 
 #include <DebugCameraUtils.h>
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(RPI);
+
 namespace AZ
 {
     namespace Debug
@@ -107,6 +110,8 @@ namespace AZ
         
         void ArcBallControllerComponent::OnTick(float deltaTime, AZ::ScriptTimePoint time)
         {
+            AZ_PROFILE_SCOPE(RPI, "ArcBallControllerComponent::Tick:OnTick");
+
             AZ_UNUSED(time);
 
             if (m_distance < m_minDistance)

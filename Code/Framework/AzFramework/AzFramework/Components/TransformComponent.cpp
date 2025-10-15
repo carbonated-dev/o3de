@@ -27,6 +27,8 @@
 #include <GridMate/Serialize/CompressionMarshal.h>
 #endif
 
+AZ_DECLARE_BUDGET(AzFramework);
+
 namespace AZ
 {
     class BehaviorTransformNotificationBusHandler
@@ -921,6 +923,8 @@ namespace AzFramework
 
     void TransformComponent::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*currentTime*/)
     {
+        AZ_PROFILE_SCOPE(AzFramework, "TransformComponent::Tick:OnTick");
+
         if (GetEntity() && GetEntity()->GetState() == AZ::Entity::State::Active)
         {
             if (IsNetworkControlled())

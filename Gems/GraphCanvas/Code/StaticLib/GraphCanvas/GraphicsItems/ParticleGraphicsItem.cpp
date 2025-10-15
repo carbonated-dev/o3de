@@ -66,6 +66,8 @@ namespace GraphCanvas
     
     void ParticleGraphicsItem::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint timePoint)
     {
+        AZ_PROFILE_SCOPE(Animation, "ParticleGraphicsItem::Tick:OnTick");
+
         if (m_configuration.m_rotate)
         {
             float delta = m_configuration.m_rotationSpeed * deltaTime;

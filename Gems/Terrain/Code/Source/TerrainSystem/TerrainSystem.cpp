@@ -1767,6 +1767,7 @@ void TerrainSystem::RefreshRegion(
 
 void TerrainSystem::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/)
 {
+    AZ_PROFILE_SCOPE(Terrain, "TerrainSystem::Tick:OnTick");
     using Terrain = AzFramework::Terrain::TerrainDataNotifications;
 
     bool terrainSettingsChanged = false;

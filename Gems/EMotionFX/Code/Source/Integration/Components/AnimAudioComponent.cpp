@@ -20,6 +20,8 @@
 
 #include <MathConversion.h>
 
+#include <AzCore/Debug/Profiler.h>
+
 namespace EMotionFX
 {
     namespace Integration
@@ -405,6 +407,8 @@ namespace EMotionFX
 
         void AnimAudioComponent::OnTick(float deltaTime, AZ::ScriptTimePoint time)
         {
+            AZ_PROFILE_SCOPE(Animation, "EmotionFX::AnimAudioComponent::Tick:OnTick");
+
             AZ_UNUSED(deltaTime);
             AZ_UNUSED(time);
             for (auto& iter : m_jointProxies)

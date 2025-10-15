@@ -441,6 +441,8 @@ namespace PhysX
 
     void SystemComponent::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Physics, "PhysX::SystemComponent::Tick:OnTick");
+
         if (m_physXSystem)
         {
             m_physXSystem->Simulate(deltaTime);
