@@ -183,6 +183,7 @@ namespace AZ::RHI
         void LogGPUSnapshot(int nFrames);   // writes "commit+begin+end times" of nFrames into the Log
         void EnableGatheringStats();
         void DisableGatheringStats();
+        unsigned int GetLastFrameToLog() const { return m_lastFrameToLog; }
 #endif
     protected:
 
