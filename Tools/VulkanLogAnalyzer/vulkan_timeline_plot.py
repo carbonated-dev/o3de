@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import sys
 
+# This script creates vulkan_timeline.png file with the visual representation of how GPU and CPU threads work
+# Data for profiling is put into output log when "r_logGPUStats N" console command is performed
+
 def parse_log_file(filepath):
     frame_data_gpu = defaultdict(list)
     frame_data_cpu = defaultdict(dict)
@@ -164,14 +167,11 @@ def plot_timeline(frame_data_gpu, frame_data_cpu, frame_start_times, output_path
     ax.set_yticks(y_ticks)
     ax.set_yticklabels(y_labels, fontsize=8)
 
-    # ❌ Убираем нижнюю временную шкалу
-    ax.set_xticks([])  # ←←← ключевое изменение
+    ax.set_xticks([])
     ax.set_xlabel("")
 
     ax.set_title("GPU Submissions (dark green) and CPU Threads (colored) — Per-Frame View", fontsize=10)
-    # Убираем сетку по X
     ax.grid(False, axis='x')
-    # Оставляем только Y-сетку, если нужно
     ax.grid(True, axis='y', linestyle=':', alpha=0.4)
 
     plt.tight_layout()
