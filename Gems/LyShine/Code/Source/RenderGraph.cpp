@@ -20,8 +20,25 @@
 #include <AzFramework/IO/LocalFileIO.h>
 #endif
 
+#if defined(CARBONATED)
+#include <AzCore/Console/IConsole.h>
+#include <AzCore/Settings/SettingsRegistry.h>
+#include <AzCore/Settings/SettingsRegistryVisitorUtils.h>
+#include <AzCore/std/string/regex.h>
+#endif
+
 namespace LyShine
 {
+#if defined(CARBONATED)
+    AZ_CVAR(
+        int,
+        r_vkTexUsageMode,
+        0,
+        nullptr,
+        AZ::ConsoleFunctorFlags::DontReplicate,
+        "Usage : r_vkTexUsageMode [0 = standard / 1 = 1 texture per draw call]");
+#endif
+
     enum UiColorOp
     {
         ColorOp_Unused = 0,             // reusing shader flag value, FixedPipelineEmu shader uses 0 to mean eCO_NOSET
@@ -54,7 +71,8 @@ namespace LyShine
 
         m_combinedVertices.reserve(1024);
         m_combinedIndices.reserve(1024);
-#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
+
+#if defined(CARBONATED)
         m_drawCommands.reserve(128);
 #endif
     }
@@ -80,9 +98,7 @@ namespace LyShine
 #if defined(CARBONATED)
         m_combinedVertices.reserve(1200);
         m_combinedIndices.reserve(2400);
-#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         m_drawCommands.reserve(128);
-#endif
 #endif
     }
 
@@ -92,20 +108,11 @@ namespace LyShine
         m_primitives.clear();
 
 #if defined(CARBONATED)
-#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
         m_drawCommands.clear();
-#endif
         m_combinedVertices.clear();
         m_combinedIndices.clear();
 #endif
     }
-
-#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-    void PrimitiveListRenderNode::SetMaliG715Workaround(bool useWorkaround)
-    {
-        m_usingMaliG715Workaround = useWorkaround;
-    }
-#endif
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     void PrimitiveListRenderNode::Render(UiRenderer* uiRenderer
@@ -159,6 +166,8 @@ namespace LyShine
 
             if (imageView)
             {
+                // Keep it for the future investigations together with commented code below when "r_vkTexUsageMode == 1"
+                //AZ_Info("RenderGraph", "i=%i, Name=%s, (%i, %i)\n", i, imageView->GetResource().GetName().GetCStr(), image->GetDescriptor().m_size.m_width, image->GetDescriptor().m_size.m_height);
                 drawSrg->SetImageView(uiShaderData.m_imageInputIndex, imageView, i);
                 if (m_textures[i].m_isClampTextureMode)
                 {
@@ -177,47 +186,65 @@ namespace LyShine
         drawSrg->SetConstant(uiShaderData.m_viewProjInputIndex, modelViewProjMat);
 
         drawSrg->Compile();
-        
-#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-        if (m_usingMaliG715Workaround)
+
+#if defined(CARBONATED)
+        if (r_vkTexUsageMode == 1)
         {
+            // Draw each batched group of primitives that share the same texture
             for (const DrawCommand& cmd : m_drawCommands)
             {
-                if (cmd.m_type == DrawCommand::Type::CombinedBatch)
-                {
-                    // draw subset of combined buffers
-                    dynamicDraw->DrawIndexed(
-                        &m_combinedVertices[cmd.m_combinedVertexStart],
+                // Keep it for the future investigations
+                /*{
+                    int images[MaxTextures];
+                    memset(images, 0, sizeof(images));
+                    for (int i = cmd.m_combinedVertexStart; i < cmd.m_combinedVertexStart + cmd.m_combinedVertexCount; ++i)
+                    {
+                        auto texIndex = m_combinedVertices[i].texIndex;
+                        images[texIndex]++;
+                    }
+                    AZStd::string indices;
+                    for (size_t i = 0; i < m_numTextures; ++i)
+                    {
+                        if (!indices.empty())
+                        {
+                            indices += ", ";
+                        }
+                        indices += AZStd::to_string(images[i]);
+                    }
+                    AZ_Info(
+                        "RenderGraph",
+                        "Draw: VertexStart=%d, VertexCount=%d, UsedTexIndex=%d, NumPtimitives=%d, NumVertexPerUsedTex = %s\n",
+                        cmd.m_combinedVertexStart,
                         cmd.m_combinedVertexCount,
-                        &m_combinedIndices[cmd.m_combinedIndexStart],
-                        cmd.m_combinedIndexCount,
-                        AZ::RHI::IndexFormat::Uint16,
-                        drawSrg);
-                }
-                else if (LyShine::UiPrimitive* prim = cmd.m_primitive) // SinglePrimitive
-                {
-                    dynamicDraw->DrawIndexed(
-                        prim->m_vertices,
-                        static_cast<uint32_t>(prim->m_numVertices),
-                        prim->m_indices,
-                        static_cast<uint32_t>(prim->m_numIndices),
-                        AZ::RHI::IndexFormat::Uint16,
-                        drawSrg);
-                }
+                        cmd.m_usedTexIndex,
+                        cmd.m_numPrimitives,
+                        indices.c_str());
+                }*/
+
+                dynamicDraw->DrawIndexed(
+                    &m_combinedVertices[cmd.m_combinedVertexStart],
+                    cmd.m_combinedVertexCount,
+                    &m_combinedIndices[cmd.m_combinedIndexStart],
+                    cmd.m_combinedIndexCount,
+                    AZ::RHI::IndexFormat::Uint16,
+                    drawSrg);
             }
         }
         else if (m_combinedIndices.size() > 0 && m_combinedVertices.size() > 0)
         {
             dynamicDraw->DrawIndexed(&m_combinedVertices[0], (uint32_t)m_combinedVertices.size(), &m_combinedIndices[0], (uint32_t)m_combinedIndices.size(), AZ::RHI::IndexFormat::Uint16, drawSrg);
         }
-#else // CARBONATED_USE_MALI_G715_WORKAROUND
+#else // CARBONATED
         // Add the indexed primitives to the dynamic draw context for drawing
-        // TODO (GHI 17444): Vertex data for primitives is currently merged within AddPrimitive and then passed to 
-        // DynamicDrawContext. This can probably be further optimized whereby we dont waste extra memory and 
-        // provide the primitives directly to DynamicDrawContext to be added to its Ring buffer memory. 
-        dynamicDraw->DrawIndexed(&m_combinedVertices[0], (uint32_t)m_combinedVertices.size(), &m_combinedIndices[0],  (uint32_t)m_combinedIndices.size(), AZ::RHI::IndexFormat::Uint16, drawSrg);
+        //
+        // [LYSHINE_ATOM_TODO][ATOM-15073] Combine into a single DrawIndexed call to take advantage of the draw call
+        // optimization done by this RenderGraph. This option will be added to DynamicDrawContext. For
+        // now we could combine the vertices ourselves
+        for (const LyShine::UiPrimitive& primitive : m_primitives)
+        {
+            dynamicDraw->DrawIndexed(primitive.m_vertices, primitive.m_numVertices, primitive.m_indices, primitive.m_numIndices, AZ::RHI::IndexFormat::Uint16, drawSrg);
+        }
 #endif
-
 
         uiRenderer->SetBaseState(prevBaseState);
     }
@@ -226,79 +253,58 @@ namespace LyShine
     void PrimitiveListRenderNode::AddPrimitive(LyShine::UiPrimitive* primitive)
     {
 #if defined(CARBONATED)
-#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-        // This is a certain "magic" number, determined experimentally on Google Pixel 9.
-        // In some menus containing small square and rectangular "cards" with a side size greater than 24 pixels, we almost always see a "snow glitch".
-        // The "snow glitch" does not occur on smaller UI elements (text strings, thin borders, horizontal margins, etc.)
-        constexpr float MinSizeOfSideOfBigPrimitive = 24.0f;
-
         // always clear the next pointer before adding to list
         primitive->m_next = nullptr;
         m_primitives.push_back(*primitive);
 
-        if (m_usingMaliG715Workaround)
+        if (r_vkTexUsageMode > 0)
         {
-            const UiPrimitiveVertex& first = primitive->m_vertices[0];
-            float maxX = first.xy.x, minX = first.xy.x, maxY = first.xy.y, minY = first.xy.y;
-            bool bigPrimitive = false;
-            for (int i = 1; i < primitive->m_numVertices; ++i)
+            bool canAppendToLast = false;
+
+            // Get the texture index used by this primitive
+            const uint8 currentTexIndex = primitive->m_vertices[0].texIndex;
+
+            // Check whether we can append to the last draw command
+            if (!m_drawCommands.empty())
             {
-                UiPrimitiveVertex& v = primitive->m_vertices[i];
-                maxX = AZ::GetMax(maxX, v.xy.x);
-                maxY = AZ::GetMax(maxY, v.xy.y);
-                minX = AZ::GetMin(minX, v.xy.x);
-                minY = AZ::GetMin(minY, v.xy.y);
-                const float maxWidth = maxX - minX;
-                const float maxHeight = maxY - minY;
-                if (maxWidth >= MinSizeOfSideOfBigPrimitive && maxHeight >= MinSizeOfSideOfBigPrimitive)
-                {
-                    bigPrimitive = true;
-                    break;
-                }
+                const DrawCommand& lastCmd = m_drawCommands.back();
+                canAppendToLast = (lastCmd.m_usedTexIndex == currentTexIndex);
             }
-            if (!bigPrimitive)
+
+            // If the texture has changed or no active batch exists, start a new DrawCommand
+            if (!canAppendToLast)
             {
-                uint16 vertex_start = aznumeric_caster(m_combinedVertices.size());
-                uint16 index_start = aznumeric_caster(m_combinedIndices.size());
-
-                // Add the vertices at the end of the combined buffer.  We need to update the vertex indices with their new offset separately.
-                m_combinedVertices.insert(m_combinedVertices.end(), primitive->m_vertices, primitive->m_vertices + primitive->m_numVertices);
-                m_combinedIndices.resize_no_construct(m_combinedIndices.size() + primitive->m_numIndices);
-
-                int batchBaseVertex = static_cast<int>(vertex_start);
-
-                if (!m_drawCommands.empty() && m_drawCommands.back().m_type == DrawCommand::Type::CombinedBatch)
-                {
-                    DrawCommand& last = m_drawCommands.back();
-                    batchBaseVertex = last.m_combinedVertexStart;
-                    last.m_combinedVertexCount += primitive->m_numVertices;
-                    last.m_combinedIndexCount += primitive->m_numIndices;
-                }
-                else
-                {
-                    DrawCommand cmd;
-                    cmd.m_type = DrawCommand::Type::CombinedBatch;
-                    cmd.m_combinedVertexStart = vertex_start;
-                    cmd.m_combinedVertexCount = primitive->m_numVertices;
-                    cmd.m_combinedIndexStart = index_start;
-                    cmd.m_combinedIndexCount = primitive->m_numIndices;
-                    m_drawCommands.push_back(cmd);
-                }
-
-                for (int i = 0; i < primitive->m_numIndices; ++i)
-                {
-                    uint32_t rel = (vertex_start - batchBaseVertex) + primitive->m_indices[i];
-                    AZ_Assert(rel <= 0xFFFF, "Index overflow in CombinedBatch");
-                    m_combinedIndices[index_start + i] = static_cast<uint16>(rel);
-                }
+                DrawCommand newCmd;
+                newCmd.m_usedTexIndex = currentTexIndex;
+                newCmd.m_combinedVertexStart = static_cast<int>(m_combinedVertices.size());
+                newCmd.m_combinedIndexStart = static_cast<int>(m_combinedIndices.size());
+                m_drawCommands.push_back(newCmd);
             }
-            else
+
+            // Get the active draw command to append to
+            DrawCommand& activeCmd = m_drawCommands.back();
+
+            activeCmd.m_numPrimitives++;
+
+            // Insert vertices and indices into the combined buffers
+            const uint16 vertexStart = aznumeric_caster(m_combinedVertices.size());
+            const uint16 indexStart = aznumeric_caster(m_combinedIndices.size());
+
+            m_combinedVertices.insert(m_combinedVertices.end(), primitive->m_vertices, primitive->m_vertices + primitive->m_numVertices);
+
+            m_combinedIndices.resize_no_construct(m_combinedIndices.size() + primitive->m_numIndices);
+
+            // Adjust the index values to account for the vertex offset in the combined buffer
+            for (int i = 0; i < primitive->m_numIndices; ++i)
             {
-                DrawCommand cmd;
-                cmd.m_type = DrawCommand::Type::SinglePrimitive;
-                cmd.m_primitive = primitive;
-                m_drawCommands.push_back(cmd);
+                const uint32_t rel = (vertexStart - activeCmd.m_combinedVertexStart) + primitive->m_indices[i];
+                AZ_Assert(rel <= 0xFFFF, "Index overflow in CombinedBatch");
+                m_combinedIndices[indexStart + i] = static_cast<uint16>(rel);
             }
+
+            // Update the vertex and index counts in the active draw command
+            activeCmd.m_combinedVertexCount += primitive->m_numVertices;
+            activeCmd.m_combinedIndexCount += primitive->m_numIndices;
         }
         else
         {
@@ -330,7 +336,6 @@ namespace LyShine
         {
             m_combinedIndices[index_start + i] = vertex_start + primitive->m_indices[i];
         }
-#endif // CARBONATED_USE_MALI_G715_WORKAROUND
 #endif // CARBONATED
 
         m_totalNumVertices += primitive->m_numVertices;
@@ -740,19 +745,24 @@ namespace LyShine
         // then it becomes the node list for that render node.
         m_renderNodeListStack.push(&m_renderNodes);
 
-#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-        const AZ::RHI::Ptr<AZ::RHI::Device> rhiDevice = AZ::RHI::RHISystemInterface::Get()->GetDevice();
-        if (rhiDevice)
+#if defined(CARBONATED)
+        const auto rhiInterface = AZ::RHI::RHISystemInterface::Get();   // This is used in AssetProcessor and it can be "nullptr"
+        if (rhiInterface)
         {
-            const auto& descriptor = rhiDevice->GetPhysicalDevice().GetDescriptor();
-            // At this time (September 2025) we know 100% that Google Pixel 8 and Pixel 9 have an issue with sparkling white/colored snow on UI elements.
-            // October 2025: Samsung S24 (with GPU "Samsung Xclipse 940") also affected.
-            // A workaround is to not combine rectangular/square primitives of size > 24 into large batches.
-            m_usingMaliG715Workaround = descriptor.m_description.contains("Mali-G715") || descriptor.m_description.starts_with("Samsung Xclipse 9");
-        }
-        else
-        {
-            AZ_Error("RenderGraph", false, "RHI::Device is not created yet");
+            const AZ::RHI::Ptr<AZ::RHI::Device> rhiDevice = rhiInterface->GetDevice();
+            if (rhiDevice)
+            {
+                const auto& descriptor = rhiDevice->GetPhysicalDevice().GetDescriptor();
+                // At this time (September 2025) we know 100% that Google Pixel 8 and Pixel 9 have an issue with sparkling white/colored
+                // snow on UI elements.
+                // October 2025: Samsung S24 (with GPU "Samsung Xclipse 940") also affected.
+                // A workaround is to not combine primitives which use different textures into one draw call.
+                CheckAndApplyVulkanTexWorkaround(descriptor.m_description);
+            }
+            else
+            {
+                AZ_Warning("RenderGraph", false, "RHI::Device is not created yet");
+            }
         }
 #endif
     }
@@ -762,6 +772,60 @@ namespace LyShine
     {
         ResetGraph();
     }
+
+#if defined(CARBONATED)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    void RenderGraph::CheckAndApplyVulkanTexWorkaround(const AZStd::string& gpuName)
+    {
+        auto registry = AZ::SettingsRegistry::Get();
+        if (!registry)
+        {
+            AZ_Warning("RenderGraph", false, "SettingsRegistry is not available");
+            return;
+        }
+
+        // Path to Vulkan1TexPerDrawCall section
+        constexpr const char* kRootKey = "/O3DE/Vulkan1TexPerDrawCall";
+
+        bool matched = false;
+
+        // Iterate over all key/value pairs in the section
+        auto callback = [&](const AZ::SettingsRegistryInterface::VisitArgs& visitArgs)
+        {
+            if (visitArgs.m_type != AZ::SettingsRegistryInterface::Type::String)
+            {
+                return AZ::SettingsRegistryInterface::VisitResponse::Skip;
+            }
+
+            // Get regex string value
+            AZ::SettingsRegistryInterface::FixedValueString regexString;
+            if (!registry->Get(regexString, visitArgs.m_jsonKeyPath))
+            {
+                return AZ::SettingsRegistryInterface::VisitResponse::Continue;
+            }
+
+            // Compile regex pattern
+            AZStd::regex regexPattern(regexString.c_str(), AZStd::regex::ECMAScript | AZStd::regex::icase);
+
+            // Try to match GPU name
+            if (AZStd::regex_match(gpuName.c_str(), regexPattern))
+            {
+                AZ_Info("RenderGraph", "GPU \"%s\" matched workaround rule \"%s\"", gpuName.c_str(), visitArgs.m_fieldName.cbegin());
+                matched = true;
+                return AZ::SettingsRegistryInterface::VisitResponse::Done;
+            }
+
+            return AZ::SettingsRegistryInterface::VisitResponse::Continue;
+        };
+
+        // Visit all entries under /O3DE/Vulkan1TexPerDrawCall
+        AZ::SettingsRegistryVisitorUtils::VisitObject(*registry, callback, kRootKey);
+
+        // Apply workaround if matched
+        r_vkTexUsageMode = matched ? 1 : 0;
+        AZ_Info("RenderGraph", "r_vkTexUsageMode = %d", matched);
+    }
+#endif
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     void RenderGraph::ResetGraph()
@@ -966,10 +1030,6 @@ namespace LyShine
                 // We can't add this primitive to the existing render node, we need to create a new render node
                 // this uses a pool allocator for fast allocation
                 renderNodeToAddTo = new PrimitiveListRenderNode(texture, isClampTextureMode, isTextureSRGB, isPreMultiplyAlpha, blendModeState);
-
-#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-                renderNodeToAddTo->SetMaliG715Workaround(m_usingMaliG715Workaround);
-#endif
                 renderNodeList->push_back(renderNodeToAddTo);
                 texUnit = 0;
             }
@@ -1051,10 +1111,6 @@ namespace LyShine
                 // this uses a pool allocator for fast allocation
                 renderNodeToAddTo = new PrimitiveListRenderNode(contentAttachmentImage, maskAttachmentImage,
                     isClampTextureMode, isTextureSRGB, isPreMultiplyAlpha, alphaMaskType, blendModeState);
-
-#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-                renderNodeToAddTo->SetMaliG715Workaround(m_usingMaliG715Workaround);
-#endif
                 renderNodeList->push_back(renderNodeToAddTo);
                 texUnit0 = 0;
                 texUnit1 = 1;

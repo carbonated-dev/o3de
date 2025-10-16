@@ -73,6 +73,32 @@ namespace AZ
             queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
             queryPoolInfo.queryCount = 2; // start + end
             static_cast<Device&>(GetDevice()).GetContext().CreateQueryPool(device.GetNativeDevice(), &queryPoolInfo, nullptr, &m_queryPool);
+
+            { // Let's define supported "m_cpuTimeDomain" to use in GetCalibratedTimestampsEXT
+                uint32_t timeDomainCount = 0;
+                static_cast<Device&>(GetDevice())
+                    .GetContext()
+                    .GetPhysicalDeviceCalibrateableTimeDomainsEXT(physicalDevice.GetNativePhysicalDevice(), &timeDomainCount, nullptr);
+
+                AZStd::vector<VkTimeDomainEXT> timeDomains(timeDomainCount);
+                static_cast<Device&>(GetDevice())
+                    .GetContext()
+                    .GetPhysicalDeviceCalibrateableTimeDomainsEXT(
+                    physicalDevice.GetNativePhysicalDevice(), &timeDomainCount, timeDomains.data());
+
+                if (AZStd::find(timeDomains.begin(), timeDomains.end(), VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT) == timeDomains.end())
+                {
+                    if (AZStd::find(timeDomains.begin(), timeDomains.end(), VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT) !=
+                        timeDomains.end())
+                    {
+                        m_cpuTimeDomain = VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT;
+                    }
+                    else
+                    {
+                        m_cpuTimeDomain = VK_TIME_DOMAIN_DEVICE_EXT; // fallback
+                    }
+                }
+            }
 #endif
             return result;
         }
@@ -753,7 +779,7 @@ namespace AZ
         }
 
 #if defined(CARBONATED) && !defined(_RELEASE)
-        void CommandList::CollectGPUStatistics()
+        void CommandList::CollectGPUStatistics(double commitTime)
         {
             if (!m_collectingGPUStats)
             {
@@ -795,7 +821,7 @@ namespace AZ
             timestampInfos[0].timeDomain = VK_TIME_DOMAIN_DEVICE_EXT; // GPU
 
             timestampInfos[1].sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT;
-            timestampInfos[1].timeDomain = VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT; // CPU
+            timestampInfos[1].timeDomain = m_cpuTimeDomain; // CPU
 
             uint64_t timestampsCalibration[2] = {};
 
@@ -805,7 +831,6 @@ namespace AZ
                 uint64_t maxDeviation = 0;
                 result = context.GetCalibratedTimestampsEXT(device.GetNativeDevice(), 2, timestampInfos, timestampsCalibration, &maxDeviation);
             }
-
             if (result == VK_SUCCESS)
             {
                 const uint64_t gpuCalibTicks = timestampsCalibration[0];
@@ -819,8 +844,17 @@ namespace AZ
                 const double timeShiftSec = cpuCalibSec - gpuCalibSec;
 
                 // Apply calibration
-                const double gpuStartCpuSec = gpuStartSec + timeShiftSec;
-                const double gpuEndCpuSec = gpuEndSec + timeShiftSec;
+                double gpuStartCpuSec = gpuStartSec + timeShiftSec;
+                double gpuEndCpuSec = gpuEndSec + timeShiftSec;
+
+                // --- Clamp GPU time not to be earlier than commit time ---
+                // GPU cannot start rendering before we actually submitted the command buffer as it is reported on Windows by Radeon RX 480
+                if (gpuStartCpuSec < commitTime)
+                {
+                    const double offset = commitTime - gpuStartCpuSec;
+                    gpuStartCpuSec += offset;
+                    gpuEndCpuSec += offset;
+                }
 
                 GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartCpuSec, gpuEndCpuSec);
             }

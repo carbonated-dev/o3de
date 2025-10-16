@@ -106,10 +106,6 @@ namespace LyShine
         // Search to see if this texture is already used by this texture unit, returns -1 if not used
         int FindTexture(const AZ::Data::Instance<AZ::RPI::Image>& texture, bool isClampTextureMode) const;
 
-#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-        void SetMaliG715Workaround(bool useWorkaround);
-#endif
-
 #ifndef _RELEASE
         // A debug-only function useful for debugging
         void ValidateNode() override;
@@ -138,27 +134,20 @@ namespace LyShine
         LyShine::UiPrimitiveList   m_primitives;
 
 #if defined(CARBONATED)
-#if defined(CARBONATED_USE_MALI_G715_WORKAROUND)
+        // Each draw command represents one continuous range in the combined vertex/index buffers
+        // that uses a single texture (texIndex).
         struct DrawCommand
         {
-            enum class Type
-            {
-                CombinedBatch,
-                SinglePrimitive
-            };
+            int m_combinedVertexStart = 0; // Start offset in m_combinedVertices
+            int m_combinedVertexCount = 0; // Number of vertices in this draw batch
+            int m_combinedIndexStart = 0; // Start offset in m_combinedIndices
+            int m_combinedIndexCount = 0; // Number of indices in this draw batch
 
-            Type m_type;
-            int m_combinedVertexStart = 0;
-            int m_combinedVertexCount = 0;
-            int m_combinedIndexStart = 0;
-            int m_combinedIndexCount = 0;
-
-            LyShine::UiPrimitive* m_primitive = nullptr;
+            uint8 m_usedTexIndex = 255; // Texture index used by all vertices in this batch
+            int m_numPrimitives = 0;    // Number of primitives combined in this DrawCommand
         };
 
         AZStd::vector<DrawCommand> m_drawCommands;
-        bool m_usingMaliG715Workaround = false;
-#endif // CARBONATED_USE_MALI_G715_WORKAROUND
 
         // Per-frame combined vertex and index buffers
         AZStd::vector<UiPrimitiveVertex> m_combinedVertices;
@@ -382,6 +371,11 @@ namespace LyShine
 
         void SetRttPassesEnabled(UiRenderer* uiRenderer, bool enabled);
 
+#if defined(CARBONATED)
+    private:
+        void CheckAndApplyVulkanTexWorkaround(const AZStd::string& gpuName);
+#endif
+
     protected:  // data
 
         AZStd::vector<RenderNode*>  m_renderNodes;
@@ -403,9 +397,6 @@ namespace LyShine
 
 #if defined(CARBONATED) && defined(CARBONATED_DROP_LYSHINE_OFFSCREEN_PRIMITIVES)
         AZ::Vector2                  m_viewportSize = AZ::Vector2(0.0f, 0.0f);
-#endif
-#if defined(CARBONATED) && defined(CARBONATED_USE_MALI_G715_WORKAROUND)
-        bool m_usingMaliG715Workaround = false;
 #endif
 
 #ifndef _RELEASE
