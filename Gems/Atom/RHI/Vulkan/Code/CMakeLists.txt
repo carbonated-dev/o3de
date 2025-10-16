@@ -147,6 +147,8 @@ if(NOT PAL_TRAIT_ATOM_RHI_VULKAN_SUPPORTED)
 
 endif()
 
+
+
 ly_add_target(
     NAME ${gem_name}.Private.Static STATIC
     NAMESPACE Gem
@@ -187,23 +189,6 @@ if(IS_ANDROID)
     target_link_libraries(${gem_name}.Private.Static PRIVATE games-frame-pacing::swappy_static)
 endif()
 # CARBONATED -- end
-
-ly_add_target(
-    NAME ${gem_name}.Interface STATIC
-    NAMESPACE Gem
-    FILES_CMAKE
-        atom_rhi_vulkan_interface_files.cmake
-    INCLUDE_DIRECTORIES
-        PRIVATE
-            Source
-            ${pal_source_dir}
-        PUBLIC
-            Include
-            ${pal_include_dir}
-    BUILD_DEPENDENCIES
-        PUBLIC
-            Gem::${gem_name}.Private.Static
-)
 
 ly_add_target(
     NAME ${gem_name}.Interface STATIC
