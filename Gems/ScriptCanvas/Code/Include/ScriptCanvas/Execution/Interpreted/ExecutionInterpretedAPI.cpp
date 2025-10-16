@@ -472,8 +472,11 @@ namespace ScriptCanvas
         //////////////////////////////////////////////////////////////////////////
         // \todo ScriptCanvas will probably need its own version of all of these functions
         //////////////////////////////////////////////////////////////////////////
-// Gruber patch begin. // LVB. // Was "void". Now it returns "bool"
+#if defined(CARBONATED)
         bool StackPush(lua_State* lua, AZ::BehaviorContext* context, AZ::BehaviorArgument& argument)
+#else
+        void StackPush(lua_State* lua, AZ::BehaviorContext* context, AZ::BehaviorArgument& argument)
+#endif
         {
             using namespace ExecutionInterpretedAPICpp;
 
@@ -490,14 +493,21 @@ namespace ScriptCanvas
             {
                 lua_pushlstring(lua, valuePtr3->data(), valuePtr3->size());
             }
+#if defined(CARBONATED)
             else
             {
                 // \todo determine whether or not to adjust this for return results
-                return AZ::StackPush(lua, context, argument);   // Gruber patch. // LVB. // Was "void". Now it returns "bool"
+                return AZ::StackPush(lua, context, argument);
             }
             return true;
+#else
+            else
+            {
+                // \todo determine whether or not to adjust this for return results
+                AZ::StackPush(lua, context, argument);
+            }
+#endif
         }
-// Gruber patch end. // LVB. // Was "void". Now it returns "bool"
 
         bool StackRead(lua_State* lua, AZ::BehaviorContext* context, int index, AZ::BehaviorArgument& param, AZ::StackVariableAllocator* allocator)
         {

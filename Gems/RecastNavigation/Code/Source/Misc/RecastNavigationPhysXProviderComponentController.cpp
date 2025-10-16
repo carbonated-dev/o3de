@@ -175,6 +175,9 @@ namespace RecastNavigation
         AZ::Vector3 dimension = volume.GetExtents();
         AZ::Transform pose = AZ::Transform::CreateFromQuaternionAndTranslation(AZ::Quaternion::CreateIdentity(), volume.GetCenter());
 
+        Physics::BoxShapeConfiguration shapeConfiguration;
+        shapeConfiguration.m_dimensions = dimension;
+
         AzPhysics::OverlapRequest request = AzPhysics::OverlapRequestHelpers::CreateBoxOverlapRequest(dimension, pose, nullptr);
         request.m_queryType = AzPhysics::SceneQuery::QueryType::Static; // only looking for static PhysX colliders
         request.m_collisionGroup = m_collisionGroup;
@@ -643,7 +646,10 @@ namespace RecastNavigation
     }
 
     bool RecastNavigationPhysXProviderComponentController::CollectGeometryAsyncImpl(
-        float tileSize, float borderSize, const AZ::Aabb& worldVolume, AZStd::function<void(AZStd::shared_ptr<TileGeometry>)> tileCallback)
+        float tileSize,
+        float borderSize,
+        const AZ::Aabb& worldVolume,
+        AZStd::function<void(AZStd::shared_ptr<TileGeometry>)> tileCallback)
     {
         bool notInProgress = false;
         if (!m_updateInProgress.compare_exchange_strong(notInProgress, true))
@@ -663,7 +669,7 @@ namespace RecastNavigation
             const AZ::Vector3 extents = worldVolume.GetExtents();
             int tilesAlongX = aznumeric_cast<int>(AZStd::ceil(extents.GetX() / tileSize));
             int tilesAlongY = aznumeric_cast<int>(AZStd::ceil(extents.GetY() / tileSize));
-
+            
             const AZ::Vector3 worldOrigin = GetAdjustedOriginBasedOnTileSize(worldVolume, tileSize);
             const AZ::Vector3 worldMax(
                 worldOrigin.GetX() + tileSize * aznumeric_cast<float>(tilesAlongX),
@@ -679,13 +685,17 @@ namespace RecastNavigation
             {
                 for (int x = 0; x < tilesAlongX; ++x)
                 {
-                    const AZ::Vector3 tileMin{ worldOrigin.GetX() + aznumeric_cast<float>(x) * tileSize,
-                                               worldOrigin.GetY() + aznumeric_cast<float>(y) * tileSize,
-                                               worldOrigin.GetZ() };
+                    const AZ::Vector3 tileMin{
+                        worldOrigin.GetX() + aznumeric_cast<float>(x) * tileSize,
+                        worldOrigin.GetY() + aznumeric_cast<float>(y) * tileSize,
+                        worldOrigin.GetZ()
+                    };
 
-                    const AZ::Vector3 tileMax{ worldOrigin.GetX() + aznumeric_cast<float>(x + 1) * tileSize,
-                                               worldOrigin.GetY() + aznumeric_cast<float>(y + 1) * tileSize,
-                                               worldMax.GetZ() };
+                    const AZ::Vector3 tileMax{
+                        worldOrigin.GetX() + aznumeric_cast<float>(x + 1) * tileSize,
+                        worldOrigin.GetY() + aznumeric_cast<float>(y + 1) * tileSize,
+                        worldMax.GetZ()
+                    };
 
                     AZ::Aabb tileVolume = AZ::Aabb::CreateFromMinMax(tileMin, tileMax);
                     AZ::Aabb scanVolume = AZ::Aabb::CreateFromMinMax(tileMin - border, tileMax + border);
@@ -697,8 +707,7 @@ namespace RecastNavigation
                     geometryData->m_tileY = y;
 
                     AZ::TaskToken token = m_taskGraph.AddTask(
-                        m_taskDescriptor,
-                        [this, geometryData]()
+                        m_taskDescriptor, [this, geometryData]()
                         {
                             if (m_shouldProcessTiles)
                             {
@@ -715,8 +724,7 @@ namespace RecastNavigation
             }
 
             AZ::TaskToken finishToken = m_taskGraph.AddTask(
-                m_taskDescriptor,
-                [this, tileCallback]()
+                m_taskDescriptor, [this, tileCallback]()
                 {
                     tileCallback({}); // Notifies the caller that the operation is done.
                     m_updateInProgress = false;
@@ -727,9 +735,7 @@ namespace RecastNavigation
                 task.Precedes(finishToken);
             }
 
-            AZ_Assert(
-                m_taskGraphEvent->IsSignaled() == false,
-                "RecastNavigationPhysXProviderComponentController might be runtime two async gather operations, which is not supported.");
+            AZ_Assert(m_taskGraphEvent->IsSignaled() == false, "RecastNavigationPhysXProviderComponentController might be runtime two async gather operations, which is not supported.");
             m_taskGraph.SubmitOnExecutor(m_taskExecutor, m_taskGraphEvent.get());
             return true;
         }

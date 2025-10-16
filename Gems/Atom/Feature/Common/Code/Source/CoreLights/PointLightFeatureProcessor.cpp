@@ -57,18 +57,7 @@ namespace AZ
             desc.m_elementCountSrgName = "m_pointLightCount";
             desc.m_elementSize = sizeof(PointLightData);
             desc.m_srgLayout = RPI::RPISystemInterface::Get()->GetViewSrgLayout().get();
-            m_pointLightsEnabled = desc.m_srgLayout->FindShaderInputBufferIndex(Name(desc.m_bufferSrgName)).IsValid();
-
             m_shadowFeatureProcessor = GetParentScene()->GetFeatureProcessor<ProjectedShadowFeatureProcessor>();
-
-            if (!m_pointLightsEnabled)
-            {
-                AZ_Warning(
-                    "PointLightFeatureProcessor",
-                    false,
-                    "Could not find m_pointLights entry in the View SRG. Disabling PointLightFeatureProcessor.");
-                return;
-            }
 
             m_lightBufferHandler = GpuBufferHandler(desc);
 
@@ -157,11 +146,6 @@ namespace AZ
             AZ_PROFILE_SCOPE(RPI, "PointLightFeatureProcessor: Simulate");
             AZ_UNUSED(packet);
 
-            if (!m_pointLightsEnabled)
-            {
-                return;
-            }
-
             if (m_deviceBufferNeedsUpdate)
             {
                 m_lightBufferHandler.UpdateBuffer(m_lightData.GetDataVector<0>());
@@ -193,11 +177,6 @@ namespace AZ
         void PointLightFeatureProcessor::Render(const PointLightFeatureProcessor::RenderPacket& packet)
         {
             AZ_PROFILE_SCOPE(RPI, "PointLightFeatureProcessor: Render");
-
-            if (!m_pointLightsEnabled)
-            {
-                return;
-            }
 
             for (const RPI::ViewPtr& view : packet.m_views)
             {

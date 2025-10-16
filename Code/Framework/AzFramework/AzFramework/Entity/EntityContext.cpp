@@ -396,8 +396,8 @@ namespace AzFramework
         OnRootEntityReloaded();
         EntityContextEventBus::Event(m_contextId, &EntityContextEventBus::Events::OnEntityContextLoadedFromStream, entities);
     }
-
-// Gruber patch begin // VMED -- missing any access methods to entities in o3de EntityContext
+#if defined(CARBONATED)
+    // Gruber patch begin // VMED -- missing any access methods to entities in o3de EntityContext
     void EntityContext::GetNonPrefabEntities(EntityList& entities)
     {
         m_entityOwnershipService->GetNonPrefabEntities(entities);
@@ -407,5 +407,6 @@ namespace AzFramework
     {
         return m_entityOwnershipService->GetAllEntities(entities);
     }
-// Gruber patch end // VMED
+    // Gruber patch end // VMED
+#endif
 } // namespace AzFramework

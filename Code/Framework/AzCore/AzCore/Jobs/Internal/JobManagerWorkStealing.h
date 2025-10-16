@@ -21,9 +21,7 @@
 #include <AzCore/std/parallel/binary_semaphore.h>
 #include <AzCore/std/parallel/thread.h>
 
-#if defined(CARBONATED)
 // #define JOBMANAGER_ENABLE_STATS
-#endif
 
 namespace AZ
 {

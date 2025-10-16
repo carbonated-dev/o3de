@@ -14,7 +14,6 @@
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzFramework/StringFunc/StringFunc.h>
-#include <Atom/RHI/RHIUtils.h>
 #include <Atom_RHI_Traits_Platform.h>
 
 #include <WinPixEventRuntime/pix3.h>

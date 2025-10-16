@@ -200,7 +200,11 @@ namespace AZ::RHI
     private:
         ///////////////////////////////////////////////////////////////////
         // RHI::Object
+#if defined(CARBONATED)
+        void Shutdown() final;
+#else
         void Shutdown() override final;
+#endif
         ///////////////////////////////////////////////////////////////////
 
         bool ValidateIsInitialized() const;

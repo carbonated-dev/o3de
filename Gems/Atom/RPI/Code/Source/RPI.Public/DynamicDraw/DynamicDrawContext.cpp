@@ -478,8 +478,6 @@ namespace AZ
                 return;
             }
 
-            AZ_Assert( m_initialized && m_supportShaderVariants, "DynamicDrawContext is not initialized or unable to support shader variants. "
-                "Check if it was initialized with InitShaderWithVariant");
             if (RHI::CheckBitsAny(m_drawStateOptions, DrawStateOptions::ShaderVariant))
             {
                 if (m_currentStates.m_shaderVariantId != shaderVariantId)

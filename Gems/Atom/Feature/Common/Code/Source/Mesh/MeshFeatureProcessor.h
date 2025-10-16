@@ -80,7 +80,6 @@ namespace AZ
             }
 #endif
 
-
         private:
             class MeshLoader
                 : private SystemTickBus::Handler

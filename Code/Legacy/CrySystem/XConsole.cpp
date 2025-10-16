@@ -1558,6 +1558,7 @@ void CXConsole::ExecuteStringInternal(const char* command, const bool bFromConso
                 {
                     sTemp = sTemp.substr(nPos + 1);     // remove the command from sTemp
                     AZ::StringFunc::StripEnds(sTemp, " \t\r\n\"\'");
+
                     if (sTemp == "?")
                     {
                         ICVar* v = itrVar->second;

@@ -113,6 +113,9 @@ if(LY_BUILD_WITH_ADDRESS_SANITIZER)
     ly_append_configurations_options(
         COMPILATION_DEBUG
             /fsanitize=address
+            # CARBONATED fix for 3rd party libs compiled without ASAN            
+            /D_DISABLE_VECTOR_ANNOTATION
+            /D_DISABLE_STRING_ANNOTATION
     )
     get_filename_component(link_tools_dir ${CMAKE_LINKER} DIRECTORY)
     file(COPY

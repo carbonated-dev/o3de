@@ -25,12 +25,9 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 UiDynamicLayoutComponent::UiDynamicLayoutComponent()
-    : 
+    : m_numChildElementsToClone(0)
 #if defined(CARBONATED)
-    m_numChildElementsToClone(0),
-    m_resizeToFitChildren(true)
-#else
-    m_numChildElementsToClone(0)
+    , m_resizeToFitChildren(true)
 #endif
 {
 }

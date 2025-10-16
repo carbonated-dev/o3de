@@ -158,7 +158,6 @@ namespace UnitTests
         m_rc = AZStd::make_unique<TestingRCController>(1, 1);
         m_rc->SetDispatchPaused(false);
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         QObject::connect(
             m_rc.get(),
             &AssetProcessor::RCController::FileFailed,
@@ -166,15 +165,6 @@ namespace UnitTests
             {
                 m_fileFailed = true;
             });
-#else
-        QObject::connect(
-            m_rc.get(),
-            &AssetProcessor::RCController::FileFailed,
-            [this]([[maybe_unused]] auto entryIn)
-            {
-                m_fileFailed = true;
-            });
-#endif // defined(CARBONATED)
 
         QObject::connect(
             m_rc.get(),
@@ -235,15 +225,6 @@ namespace UnitTests
 
         AZStd::atomic_bool delayed = false;
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
-        QObject::connect(
-            m_assetProcessorManager.get(),
-            &AssetProcessor::AssetProcessorManager::ProcessingDelayed,
-            [&delayed]([[maybe_unused]] QString filePath)
-            {
-                delayed = true;
-            });
-#else
         QObject::connect(
             m_assetProcessorManager.get(),
             &AssetProcessor::AssetProcessorManager::ProcessingDelayed,
@@ -251,17 +232,7 @@ namespace UnitTests
             {
                 delayed = true;
             });
-#endif // defined(CARBONATED)
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
-        QObject::connect(
-            m_assetProcessorManager.get(),
-            &AssetProcessor::AssetProcessorManager::ProcessingResumed,
-            [&delayed]([[maybe_unused]] QString filePath)
-            {
-                delayed = false;
-            });
-#else
         QObject::connect(
             m_assetProcessorManager.get(),
             &AssetProcessor::AssetProcessorManager::ProcessingResumed,
@@ -269,7 +240,6 @@ namespace UnitTests
             {
                 delayed = false;
             });
-#endif // defined(CARBONATED)
 
         QCoreApplication::processEvents(); // execute CheckSource
 
@@ -447,7 +417,6 @@ namespace UnitTests
     void AssetManagerTestingBase::SetCatalogToUpdateOnJobCompletion()
     {
         using namespace AssetBuilderSDK;
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
         QObject::connect(
             m_rc.get(),
             &AssetProcessor::RCController::FileCompiled,
@@ -455,15 +424,6 @@ namespace UnitTests
             {
                 QMetaObject::invokeMethod(m_rc.get(), "OnAddedToCatalog", Qt::QueuedConnection, Q_ARG(AssetProcessor::JobEntry, entry));
             });
-#else
-        QObject::connect(
-            m_rc.get(),
-            &AssetProcessor::RCController::FileCompiled,
-            [this](AssetProcessor::JobEntry entry, [[maybe_unused]] AssetBuilderSDK::ProcessJobResponse response)
-            {
-                QMetaObject::invokeMethod(m_rc.get(), "OnAddedToCatalog", Qt::QueuedConnection, Q_ARG(AssetProcessor::JobEntry, entry));
-            });
-#endif // defined(CARBONATED)
     }
 
     AZStd::string AssetManagerTestingBase::MakePath(const char* filename, bool intermediate)

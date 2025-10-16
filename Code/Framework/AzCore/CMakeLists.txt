@@ -12,6 +12,7 @@
 o3de_pal_dir(pal_dir ${CMAKE_CURRENT_LIST_DIR}/Platform/${PAL_PLATFORM_NAME} ${O3DE_ENGINE_RESTRICTED_PATH} ${LY_ROOT_FOLDER})
 set(common_dir ${CMAKE_CURRENT_LIST_DIR}/Platform/Common)
 
+
 if(PAL_TRAIT_PROF_PIX_SUPPORTED)
     set(LY_PIX_ENABLED OFF CACHE BOOL "Enables PIX profiler integration.")
     if(LY_PIX_ENABLED)

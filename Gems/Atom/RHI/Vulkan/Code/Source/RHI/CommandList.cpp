@@ -39,11 +39,11 @@
 #include <RHI/ShaderResourceGroup.h>
 #include <RHI/SwapChain.h>
 
-
 #if defined(CARBONATED) && !defined(_RELEASE)
-#include <RHI/ReleaseContainer.h>
-#include <AzCore/Time/ITime.h>
+#include <Atom/RHI.Reflect/IndirectBufferLayout.h>
+#include <Atom/RHI/DispatchRaysItem.h>
 #endif
+
 namespace AZ
 {
     namespace Vulkan
@@ -1019,6 +1019,13 @@ namespace AZ
 
             for (u8 index = 0; !streamIter.HasEnded(); ++streamIter, ++index)
             {
+                //temp memory corruption workaround
+                const void* p = streamIter.operator->();
+                if (p == nullptr || p > (void*)0xFFFFFFFFFFFFFFF0)
+                {
+                    continue;
+                }
+
                 if (m_state.m_streamBufferHashes[index] != static_cast<uint64_t>(streamIter->GetHash()))
                 {
                     m_state.m_streamBufferHashes[index] = static_cast<uint64_t>(streamIter->GetHash());

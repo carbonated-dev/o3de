@@ -114,8 +114,11 @@ namespace AzToolsFramework
             AZ::Quaternion GetLocalRotationQuaternion() override;
 
             // Scale Modifiers
-            // AZ::Vector3 GetLocalScale() override;    // Gruber patch. GetLocalScale is deprecated
-
+#if defined(CARBONATED)
+            // Gruber patch. GetLocalScale is deprecated
+#else
+            AZ::Vector3 GetLocalScale() override;
+#endif
             void SetLocalUniformScale(float scale) override;
             float GetLocalUniformScale() override;
             float GetWorldUniformScale() override;

@@ -55,7 +55,11 @@ namespace AZ::RHI
 
         //////////////////////////////////////////////////////////////////////////
         // ResourceInvalidateBus::Handler
+#if defined(CARBONATED)
+        ResultCode OnResourceInvalidate() final;
+#else
         ResultCode OnResourceInvalidate() override final;
+#endif
         ResourceEventPriority GetPriority() const override { return High; }
         //////////////////////////////////////////////////////////////////////////
 

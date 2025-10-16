@@ -777,6 +777,12 @@ namespace AZStd
         auto lower_bound(const ComparableToKey& key)
             -> enable_if_t<(Internal::is_transparent<key_equal, ComparableToKey>::value && Internal::is_transparent<hasher, ComparableToKey>::value) || AZStd::is_convertible_v<ComparableToKey, key_type>, iterator>
         {
+#if defined(CARBONATED)
+            if (m_data.m_list.size() == 0) // might crash on the line below if no buckets allocated
+            {
+                return m_data.m_list.end();
+            }
+#endif
             vector_value_type& bucket = m_data.buckets()[bucket_from_hash(m_hasher(key))];
             iterator iter = bucket.second;
             size_type numElements = bucket.first;

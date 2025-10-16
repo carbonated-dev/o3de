@@ -66,7 +66,6 @@ namespace AZ
             GpuBufferHandler m_lightBufferHandler;
             RHI::Handle<uint32_t> m_lightMeshFlag;
             bool m_deviceBufferNeedsUpdate = false;
-            bool m_capsuleLightEnabled = true;
         };
     } // namespace Render
 } // namespace AZ

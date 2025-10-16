@@ -611,7 +611,12 @@ namespace AzToolsFramework
                 const auto entitiesIt = templateDomRef.FindMember(PrefabDomUtils::EntitiesName);
                 if (entitiesIt == templateDomRef.MemberEnd() || !entitiesIt->value.IsObject())
                 {
+#if defined(CARBONATED)
+                    // there can be no Entities but Instances
+                    AZ_Warning("Prefab", false, "'%s' lacks 'Entities' container.", path.c_str());
+#else
                     AZ_Error("Prefab", false, "'%s' lacks 'Entities' container.", path.c_str());
+#endif
                     return false;
                 }
 

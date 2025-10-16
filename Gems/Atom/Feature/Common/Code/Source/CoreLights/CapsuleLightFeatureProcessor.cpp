@@ -51,16 +51,6 @@ namespace AZ
             desc.m_elementSize = sizeof(CapsuleLightData);
             desc.m_srgLayout = RPI::RPISystemInterface::Get()->GetViewSrgLayout().get();
 
-            m_capsuleLightEnabled = desc.m_srgLayout->FindShaderInputBufferIndex(Name(desc.m_bufferSrgName)).IsValid();
-            if (!m_capsuleLightEnabled)
-            {
-                AZ_Warning(
-                    "CapsuleLightFeatureProcessor",
-                    false,
-                    "Could not find m_capsuleLights entry in the View SRG. Disabling CapsuleLightFeatureProcessor.");
-                return;
-            }
-
             m_lightBufferHandler = GpuBufferHandler(desc);
 
             MeshFeatureProcessor* meshFeatureProcessor = GetParentScene()->GetFeatureProcessor<MeshFeatureProcessor>();
@@ -122,11 +112,6 @@ namespace AZ
             AZ_PROFILE_SCOPE(RPI, "CapsuleLightFeatureProcessor: Simulate");
             AZ_UNUSED(packet);
 
-            if (!m_capsuleLightEnabled)
-            {
-                return;
-            }
-
             if (m_deviceBufferNeedsUpdate)
             {
                 m_lightBufferHandler.UpdateBuffer(m_lightData.GetDataVector<0>());
@@ -142,10 +127,6 @@ namespace AZ
         void CapsuleLightFeatureProcessor::Render(const CapsuleLightFeatureProcessor::RenderPacket& packet)
         {
             AZ_PROFILE_SCOPE(RPI, "CapsuleLightFeatureProcessor: Render");
-            if (!m_capsuleLightEnabled)
-            {
-                return;
-            }
 
             for (const RPI::ViewPtr& view : packet.m_views)
             {

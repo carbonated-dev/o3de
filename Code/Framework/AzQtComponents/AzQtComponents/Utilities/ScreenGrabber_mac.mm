@@ -65,11 +65,21 @@ namespace AzQtComponents
         Q_UNUSED(bounds);
         return QImage();
 #else
+
+#if defined(CARBONATED)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
         CGImageRef cgImage = CGWindowListCreateImageFromArray(bounds, windows, kCGWindowImageNominalResolution);
+#if defined(CARBONATED)
+#pragma clang diagnostic pop
+#endif
+
         CFRelease(windows);
-        
+
         QImage result = QtMac::fromCGImageRef(cgImage).toImage();
         CGImageRelease(cgImage);
+
         return result;
 #endif
     }

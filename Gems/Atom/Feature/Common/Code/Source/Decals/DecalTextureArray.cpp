@@ -205,7 +205,23 @@ namespace AZ
                 const DecalMapType mapType = aznumeric_cast<DecalMapType>(i);
                 if (!AreAllTextureMapsPresent(mapType))
                 {
+#if defined(CARBONATED)
+                    AZ_Warning("DecalTextureArray", false, "Missing decal texture map(s) for %s (%d of %d)",
+                        GetMapName(mapType).GetCStr(), i, DecalMapType_Num);
+                    for (int iter = m_materials.begin(); iter != -1; iter = m_materials.next(iter))
+                    {
+                        if (IsTextureMapPresentInMaterial(m_materials[iter], mapType))
+                        {
+                            AZ_Info("DecalTextureArray", "Material OK %s", m_materials[iter].m_materialAssetData.GetHint().c_str());
+                        }
+                        else
+                        {
+                            AZ_Info("DecalTextureArray", "Material miss %s", m_materials[iter].m_materialAssetData.GetHint().c_str());
+                        }
+                    }
+#else
                     AZ_Warning("DecalTextureArray", false, "Missing decal texture maps for %s. Please make sure all maps of this type are present.\n", GetMapName(mapType).GetCStr());
+#endif
                     m_textureArrayPacked[i] = nullptr;
                     continue;
                 }
@@ -394,7 +410,13 @@ namespace AZ
 #if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
             if (m_queueAssetsInProgress)
             {
-                AZ_Info("DecalTextureArray", "QueueAssetLoads recursion, loading %d assets", m_assetsCurrentlyLoading.size());
+                AZ_Info("DecalTextureArray", "QueueAssetLoads recursion, loading %d assets, materials %d",
+                    m_assetsCurrentlyLoading.size(), m_materials.size());
+                for (int i = 0; i < m_materials.size(); i++)
+                {
+                    MaterialData& md = m_materials[i];
+                    AZ_Info("DecalTextureArray", "%d %s", i, md.m_materialAssetData.GetHint().c_str());
+                }
                 return;
             }
             m_queueAssetsInProgress = true;

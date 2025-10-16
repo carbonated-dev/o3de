@@ -429,6 +429,9 @@ namespace AZ
 
         private:
 
+            // Registers functions in a BehaviorContext so they can be exposed to Lua scripts.
+            static void ReflectScriptContext(AZ::BehaviorContext* context);
+
             void InitScriptContext();
 
             // Utility function that returns either m_scriptBuffer or the content of m_scriptAsset, depending on which as the data

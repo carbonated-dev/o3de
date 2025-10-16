@@ -1383,6 +1383,13 @@ namespace AZ::Data
                 AssetHandler* handler = handlerIt->second;
                 auto assetData = handler->CreateAsset(assetId, assetType);
                 AZ_Error("AssetDatabase", assetData, "Failed to create asset with (id=%s, type=%s)", assetId.ToString<AZ::OSString>().c_str(), assetType.ToString<AZ::OSString>().c_str());
+
+                if (!assetData)
+                {
+                    AZ_Error("AssetDatabase", assetData, "Failed to create asset with (id=%s, type=%s)", assetId.ToString<AZ::OSString>().c_str(), assetType.ToString<AZ::OSString>().c_str());
+                    handler->CreateAsset(assetId, assetType);  // retry
+                }
+
                 if (assetData)
                 {
                     assetData->m_assetId = assetId;

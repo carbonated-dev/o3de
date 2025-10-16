@@ -24,56 +24,6 @@ namespace AZ
 {
     namespace RPI
     {
-        namespace
-        {
-            static AZ::EnvironmentVariable<LuaMaterialBehaviorContext*> g_luaMaterialBehaviorContext;
-            static const char* s_luaMaterialBehaviorContextName = "LuaMaterialBehaviorContext";
-        } // namespace
-
-        LuaMaterialBehaviorContext* LuaMaterialBehaviorContext::GetInstance()
-        {
-            if (!g_luaMaterialBehaviorContext)
-            {
-                g_luaMaterialBehaviorContext = AZ::Environment::FindVariable<LuaMaterialBehaviorContext*>(s_luaMaterialBehaviorContextName);
-            }
-
-            return g_luaMaterialBehaviorContext ? (*g_luaMaterialBehaviorContext) : nullptr;
-        }
-                
-        void LuaMaterialBehaviorContext::SetInstance(LuaMaterialBehaviorContext* instance)
-        {
-            if (!g_luaMaterialBehaviorContext)
-            {
-                g_luaMaterialBehaviorContext = AZ::Environment::CreateVariable<LuaMaterialBehaviorContext*>(s_luaMaterialBehaviorContextName);
-                (*g_luaMaterialBehaviorContext) = nullptr;
-            }
-
-            if ((instance) && (g_luaMaterialBehaviorContext) && (*g_luaMaterialBehaviorContext))
-            {
-                AZ_Assert(false, "LuaMaterialSciptContext::SetInstance was called without first destroying the old instance and setting it to nullptr");
-            }
-
-            (*g_luaMaterialBehaviorContext) = instance;
-        }
-
-        LuaMaterialBehaviorContext::LuaMaterialBehaviorContext()
-        {
-        }
-
-        void LuaMaterialBehaviorContext::ReflectScriptContext(AZ::BehaviorContext* behaviorContext)
-        {
-            // We don't need any functions in Image, but just need BehaviorContext to be aware of this
-            // type so we can pass around image pointers within lua scripts.
-            behaviorContext->Class<Image>();
-
-            LuaMaterialFunctorAPI::RenderStates::Reflect(behaviorContext);
-            LuaMaterialFunctorAPI::ShaderItem::Reflect(behaviorContext);
-            LuaScriptUtilities::Reflect(behaviorContext);
-            LuaMaterialFunctorAPI::RuntimeContext::Reflect(behaviorContext);
-            LuaMaterialFunctorAPI::PipelineRuntimeContext::Reflect(behaviorContext);
-            LuaMaterialFunctorAPI::EditorContext::Reflect(behaviorContext);
-        }
-
         void LuaMaterialFunctor::Reflect(ReflectContext* context)
         {
             if (auto* serializeContext = azrtti_cast<SerializeContext*>(context))
@@ -87,11 +37,25 @@ namespace AZ
 
             if (auto behaviorContext = azrtti_cast<BehaviorContext*>(context))
             {
-                LuaMaterialBehaviorContext::GetInstance()->ReflectScriptContext(behaviorContext);
+                ReflectScriptContext(behaviorContext);
             }
         }
 
         LuaMaterialFunctor::LuaMaterialFunctor() = default;
+
+        void LuaMaterialFunctor::ReflectScriptContext(AZ::BehaviorContext* behaviorContext)
+        {
+            // We don't need any functions in Image, but just need BehaviorContext to be aware of this
+            // type so we can pass around image pointers within lua scripts.
+            behaviorContext->Class<Image>(); 
+
+            LuaMaterialFunctorAPI::RenderStates::Reflect(behaviorContext);
+            LuaMaterialFunctorAPI::ShaderItem::Reflect(behaviorContext);
+            LuaScriptUtilities::Reflect(behaviorContext);
+            LuaMaterialFunctorAPI::RuntimeContext::Reflect(behaviorContext);
+            LuaMaterialFunctorAPI::PipelineRuntimeContext::Reflect(behaviorContext);
+            LuaMaterialFunctorAPI::EditorContext::Reflect(behaviorContext);
+        }
 
         const AZStd::vector<char>& LuaMaterialFunctor::GetScriptBuffer() const
         {

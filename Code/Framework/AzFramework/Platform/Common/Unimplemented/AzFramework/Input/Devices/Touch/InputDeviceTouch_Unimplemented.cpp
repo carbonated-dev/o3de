@@ -12,7 +12,7 @@
 namespace AzFramework
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    AZStd::unique_ptr<InputDeviceTouch::Implementation> InputDeviceTouch::Implementation::Create(InputDeviceTouch&)
+    InputDeviceTouch::Implementation* InputDeviceTouch::Implementation::Create(InputDeviceTouch&)
     {
         return nullptr;
     }

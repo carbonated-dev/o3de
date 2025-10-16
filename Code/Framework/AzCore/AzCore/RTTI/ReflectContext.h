@@ -557,7 +557,7 @@ namespace AZ
             return true;
         }
 
-        bool CanDomInvoke([[maybe_unused]] const AZ::Dom::Value& arguments) const override
+        virtual bool CanDomInvoke([[maybe_unused]] const AZ::Dom::Value& arguments) const
         {
             return CanInvokeFromDomArray<void*, Args...>(arguments);
         }
@@ -792,12 +792,12 @@ namespace AZ
             return m_memFunction;
         }
 
-        bool IsInvokable() const override
+        virtual bool IsInvokable() const
         {
             return true;
         }
 
-        bool CanDomInvoke([[maybe_unused]] const AZ::Dom::Value& arguments) const override
+        virtual bool CanDomInvoke([[maybe_unused]] const AZ::Dom::Value& arguments) const
         {
             return CanInvokeFromDomArray<C*, Args...>(arguments);
         }

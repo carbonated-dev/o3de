@@ -9,9 +9,6 @@
 
 #include <AzCore/EBus/EBus.h>
 #include <AzCore/Interface/Interface.h>
-#if defined(CARBONATED)
-#include <AzCore/std/string/string.h>
-#endif
 
 #if defined(CARBONATED)
 #include <AzCore/std/string/string.h>

@@ -600,9 +600,7 @@ namespace TextureAtlasBuilder
                 if (isDir)
                 {
                     AddFolderContents(paths, child, valid);
-#if defined(CARBONATED)
                     continue;
-#endif
                 }
 
                 // Not a directory - add the file if it supports an image extension

@@ -94,7 +94,6 @@ namespace AZ
             RHI::Handle<uint32_t> m_shadowMeshFlag;
 
             bool m_deviceBufferNeedsUpdate = false;
-            bool m_diskLightEnabled = true;
         };
     } // namespace Render
 } // namespace AZ

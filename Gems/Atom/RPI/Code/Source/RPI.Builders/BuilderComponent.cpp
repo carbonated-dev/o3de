@@ -23,7 +23,6 @@
 #include <Atom/RPI.Edit/Common/AssetAliasesSourceData.h>
 
 #include <Atom/RPI.Reflect/Asset/AssetHandler.h>
-#include <Atom/RPI.Reflect/Material/LuaMaterialFunctor.h>
 #include <Atom/RPI.Reflect/Material/MaterialAsset.h>
 #include <Atom/RPI.Reflect/Shader/ShaderAsset.h>
 #include <Atom/RPI.Reflect/Image/StreamingImagePoolAsset.h>
@@ -101,9 +100,6 @@ namespace AZ
 
         void BuilderComponent::Activate()
         {
-            m_luaMaterialBehaviorContext = aznew LuaMaterialBehaviorContext();
-            LuaMaterialBehaviorContext::SetInstance(m_luaMaterialBehaviorContext);
-
             // Register asset workers
             m_assetWorkers.emplace_back(MakeAssetBuilder<MaterialBuilder>());
             m_assetWorkers.emplace_back(MakeAssetBuilder<MaterialTypeBuilder>());
@@ -130,9 +126,6 @@ namespace AZ
         {
             m_assetHandlers.clear();
             m_assetWorkers.clear();
-            LuaMaterialBehaviorContext::SetInstance(nullptr);
-            delete m_luaMaterialBehaviorContext;
-            m_luaMaterialBehaviorContext = nullptr;
         }
     } // namespace RPI
 } // namespace AZ

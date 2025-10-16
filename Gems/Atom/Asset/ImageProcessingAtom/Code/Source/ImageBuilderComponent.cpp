@@ -289,12 +289,10 @@ namespace ImageProcessingAtom
         return ImageProcessingAtom::BuilderSettingManager::Instance()->IsValidPreset(presetName);
     }
 
-#if defined(CARBONATED)
     bool BuilderPluginComponent::IsExtensionSupported(const char* extension)
     {
         return ImageProcessingAtom::IsExtensionSupported(extension);
     }
-#endif
 
     void ImageBuilderWorker::ShutDown()
     {

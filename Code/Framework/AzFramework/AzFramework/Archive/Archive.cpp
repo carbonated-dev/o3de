@@ -1173,8 +1173,6 @@ namespace AZ::IO
     bool Archive::OpenPackCommon(AZStd::string_view szBindRoot, AZStd::string_view szFullPath,
         AZStd::intrusive_ptr<AZ::IO::MemoryBlock> pData, bool /* addLevels */)
     {
-        AZ_Info("OpenPackCommon", "szBindRoot is %.*s ; szFullPath is %.*s", AZ_STRING_ARG(szBindRoot), AZ_STRING_ARG(szFullPath));
-
         // setup PackDesc before the duplicate test
         PackDesc desc;
         desc.m_strFileName = szFullPath;
@@ -1210,11 +1208,10 @@ namespace AZ::IO
         desc.pArchive = OpenArchive(szFullPath, szBindRoot, flags, pData);
         if (!desc.pArchive)
         {
-            AZ_Info("Archive", "Couldn't open file %.*s\n", AZ_STRING_ARG(szFullPath));
             return false; // couldn't open the archive
         }
 
-        AZ_Info("Archive", "Opening archive file %.*s\n", AZ_STRING_ARG(szFullPath));
+        AZ_TracePrintf("Archive", "Opening archive file %.*s\n", AZ_STRING_ARG(szFullPath));
         desc.pZip = static_cast<NestedArchive*>(desc.pArchive.get())->GetCache();
 
         AZStd::unique_lock lock(m_csZips);
@@ -1265,7 +1262,6 @@ namespace AZ::IO
                 },
                 desc.m_strFileName.c_str(), bundleManifest, nextBundle, bundleCatalog);
         }
-        AZ_Info("Archive", "Archive file %.*s opened\n", AZ_STRING_ARG(szFullPath));
         return true;
     }
 
@@ -1359,15 +1355,6 @@ namespace AZ::IO
 
     bool Archive::OpenPacksCommon(AZStd::string_view szDir, AZStd::string_view pWildcardIn, AZStd::vector<AZ::IO::FixedMaxPathString>* pFullPaths, bool addLevels)
     {
-        AZ_Info(
-            "OpenPackCommon (vector)",
-            "szDir is %.*s ; pWildcardIn is %.*s",
-            aznumeric_cast<int>(szDir.size()),
-            szDir.data(),
-            aznumeric_cast<int>(pWildcardIn.size()),
-            pWildcardIn.data());
-
-
         constexpr AZStd::string_view wildcards{ "*?" };
         if (wildcards.find_first_of(pWildcardIn) == AZStd::string_view::npos)
         {

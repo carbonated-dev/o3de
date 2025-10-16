@@ -161,6 +161,8 @@ namespace AZ
          */
         bool GetConfiguration(AZ::ComponentConfig& outConfig) const;
 
+        virtual void Check() const {}
+
     protected:
         /**
          * Initializes a component's resources.
@@ -677,7 +679,10 @@ namespace AZ
          */
         Component* CreateComponent() override
         {
-            return aznew ComponentClass;
+            //return aznew ComponentClass;
+            Component* component = aznew ComponentClass;
+            component->Check();
+            return component;
         }
 
         /**

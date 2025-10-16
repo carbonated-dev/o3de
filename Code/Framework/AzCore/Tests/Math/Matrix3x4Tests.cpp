@@ -1048,7 +1048,5 @@ namespace UnitTest
             }
         }
     }
-#if defined(CARBONATED) // Fix Warning C4756 treated in VS17.14.x as error. The fix is copied from 2505.0.
     AZ_POP_DISABLE_WARNING
-#endif // defined(CARBONATED)
 } // namespace UnitTest

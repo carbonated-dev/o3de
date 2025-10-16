@@ -1,0 +1,217 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#include <Atom/RPI.Reflect/Image/ImageMipChainAsset.h>
+
+#include <AzCore/Serialization/SerializeContext.h>
+
+#if defined(CARBONATED)
+#include <AzCore/Memory/MemoryMarker.h>
+#include <AzCore/Asset/AssetManagerBus.h>
+#endif
+
+namespace AZ
+{
+    namespace RPI
+    {
+        const char* ImageMipChainAsset::DisplayName = "ImageMipChain";
+        const char* ImageMipChainAsset::Group = "Image";
+        const char* ImageMipChainAsset::Extension = "imagemipchain";
+
+        constexpr int mipShift = 0;//1;
+
+        void ImageMipChainAsset::Reflect(ReflectContext* context)
+        {
+            if (auto* serializeContext = azrtti_cast<SerializeContext*>(context))
+            {
+                serializeContext->Class<ImageMipChainAsset, Data::AssetData>()
+                    ->Version(0)
+                    ->Field("m_mipLevels", &ImageMipChainAsset::m_mipLevels)
+                    ->Field("m_arraySize", &ImageMipChainAsset::m_arraySize)
+                    ->Field("m_mipToSubImageOffset", &ImageMipChainAsset::m_mipToSubImageOffset)
+                    ->Field("m_subImageLayouts", &ImageMipChainAsset::m_subImageLayouts)
+                    ->Field("m_subImageDataOffsets", &ImageMipChainAsset::m_subImageDataOffsets)
+                    ->Field("m_imageData", &ImageMipChainAsset::m_imageData)
+                    ;
+            }
+        }
+
+        uint16_t ImageMipChainAsset::GetMipLevelCount() const
+        {
+            return m_mipLevels;
+        }
+
+        uint16_t ImageMipChainAsset::GetArraySize() const
+        {
+            return m_arraySize;
+        }
+
+        size_t ImageMipChainAsset::GetSubImageCount() const
+        {
+            return m_subImageDatas.size();
+        }
+
+        AZStd::span<const uint8_t> ImageMipChainAsset::GetSubImageData(uint32_t mipSlice, uint32_t arraySlice) const
+        {
+            return GetSubImageData(mipSlice * m_arraySize + arraySlice);
+        }
+
+        AZStd::span<const uint8_t> ImageMipChainAsset::GetSubImageData(uint32_t subImageIndex) const
+        {
+
+#if defined(CARBONATED)
+            if (subImageIndex + 1 >= m_subImageDataOffsets.size() || subImageIndex >= m_subImageDatas.size())
+            {
+                // MAD-14291 extended diagnostic
+                AZ::Data::AssetInfo assetInfo;
+                AZ::Data::AssetCatalogRequestBus::BroadcastResult(assetInfo, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetInfoById, GetId());
+                AZ_Assert(false, "MipError: subImageIndex %d is out of range, %d/%d for %s",
+                    subImageIndex, m_subImageDatas.size(), m_subImageDataOffsets.size(), assetInfo.m_relativePath.c_str());
+
+                return AZStd::span<const uint8_t>();
+            }
+#else
+            AZ_Assert(subImageIndex < m_subImageDataOffsets.size() && subImageIndex < m_subImageDatas.size(), "subImageIndex is out of range");
+#endif
+            // The offset vector contains an extra sentinel value.
+            //const size_t dataSize = m_subImageDataOffsets[subImageIndex + 1] - m_subImageDataOffsets[subImageIndex];
+             
+            // mip shift
+            AZ_Assert(m_subImageDataOffsets.size() == m_mipLevels * m_arraySize + 1 ||
+                      m_subImageDataOffsets.size() == (m_mipLevels + mipShift) * m_arraySize + 1, "mipShift mismatch")
+
+            const size_t dataSize = (m_subImageDataOffsets.size() == m_mipLevels * m_arraySize + 1) ?
+                m_subImageDataOffsets[subImageIndex + 1] - m_subImageDataOffsets[subImageIndex] :
+                m_subImageDataOffsets[subImageIndex + 1 + mipShift* m_arraySize] - m_subImageDataOffsets[subImageIndex + mipShift* m_arraySize];
+
+            return AZStd::span<const uint8_t>(reinterpret_cast<const uint8_t*>(m_subImageDatas[subImageIndex].m_data), dataSize);
+        }
+
+        const RHI::ImageSubresourceLayout& ImageMipChainAsset::GetSubImageLayout(uint32_t mipSlice) const
+        {
+            // return m_subImageLayouts[mipSlice];
+
+            //  mip shift
+            return (m_subImageDataOffsets.size() == m_mipLevels * m_arraySize + 1)  ?
+                m_subImageLayouts[mipSlice] :
+                m_subImageLayouts[mipShift + mipSlice];
+        }
+
+        const ImageMipChainAsset::MipSliceList& ImageMipChainAsset::GetMipSlices() const
+        {
+            return m_mipSlices;
+        }
+
+        size_t ImageMipChainAsset::GetImageDataSize() const
+        {
+            return m_imageData.size();
+        }
+
+        void ImageMipChainAsset::CopyFrom(const ImageMipChainAsset& source)
+        {
+#if defined(CARBONATED)
+            MEMORY_TAG(ImageMip);
+#if defined(AZ_ADVANCED_ASSET_TRACING)
+            AZ::Data::AssetInfo assetInfo;
+            AZ::Data::AssetCatalogRequestBus::BroadcastResult(assetInfo, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetInfoById, source.GetId());
+            ASSET_TAG(assetInfo.m_relativePath.c_str());
+#endif
+#endif  // CARBONATED
+            m_mipLevels = source.m_mipLevels;
+            m_arraySize = source.m_arraySize;
+            m_mipToSubImageOffset = source.m_mipToSubImageOffset;
+            m_subImageLayouts = source.m_subImageLayouts;
+            m_subImageDataOffsets = source.m_subImageDataOffsets;
+            m_imageData = source.m_imageData;
+
+            Init();
+        }
+
+        void ImageMipChainAsset::Init()
+        {
+#if defined(CARBONATED)
+            MEMORY_TAG(ImageMip);
+#endif
+            // mip shift
+            if (m_mipLevels < mipShift)
+            {
+                const size_t subImageCount = m_mipLevels * m_arraySize;
+
+                AZ_Assert(m_status != AssetStatus::Ready, "ImageMipChainAsset has already been initialized!");
+                AZ_Assert(m_subImageDataOffsets.size() == subImageCount + 1, "Expected image data offsets vector to be subImageCount + 1");
+                AZ_Assert(m_subImageDatas.empty(), "Expected sub-image data to be empty");
+
+                m_subImageDatas.resize(subImageCount);
+
+                for (size_t subImageIndex = 0; subImageIndex < subImageCount; ++subImageIndex)
+                {
+                    const uintptr_t ptrOffset = m_subImageDataOffsets[subImageIndex];
+                    const uintptr_t ptrBase = reinterpret_cast<uintptr_t>(m_imageData.data());
+                    m_subImageDatas[subImageIndex].m_data = reinterpret_cast<const void*>(ptrBase + ptrOffset);
+                }
+
+                for (uint16_t mipSliceIndex = 0; mipSliceIndex < m_mipLevels; ++mipSliceIndex)
+                {
+                    RHI::StreamingImageMipSlice mipSlice;
+                    mipSlice.m_subresources = AZStd::span<const RHI::StreamingImageSubresourceData>(&m_subImageDatas[m_arraySize * mipSliceIndex], m_arraySize);
+                    mipSlice.m_subresourceLayout = m_subImageLayouts[mipSliceIndex];
+                    m_mipSlices.push_back(mipSlice);
+                }
+            }
+            else
+            {
+                const int arrayMipShift = mipShift * m_arraySize;
+                m_mipLevels -= mipShift;
+                const size_t subImageCount = m_mipLevels * m_arraySize;
+
+                AZ_Assert(m_status != AssetStatus::Ready, "ImageMipChainAsset has already been initialized!");
+                AZ_Assert(m_subImageDataOffsets.size() == arrayMipShift + subImageCount + 1, "Expected image data offsets vector to be subImageCount + 1");
+                AZ_Assert(m_subImageDatas.empty(), "Expected sub-image data to be empty");
+
+                m_subImageDatas.resize(subImageCount);
+
+                for (size_t subImageIndex = 0; subImageIndex < subImageCount; ++subImageIndex)
+                {
+                    const uintptr_t ptrOffset = m_subImageDataOffsets[arrayMipShift + subImageIndex];
+                    const uintptr_t ptrBase = reinterpret_cast<uintptr_t>(m_imageData.data());
+                    m_subImageDatas[subImageIndex].m_data = reinterpret_cast<const void*>(ptrBase + ptrOffset);
+                }
+
+                for (uint16_t mipSliceIndex = 0; mipSliceIndex < m_mipLevels; ++mipSliceIndex)
+                {
+                    RHI::StreamingImageMipSlice mipSlice;
+                    mipSlice.m_subresources = AZStd::span<const RHI::StreamingImageSubresourceData>(&m_subImageDatas[m_arraySize * mipSliceIndex], m_arraySize);
+                    mipSlice.m_subresourceLayout = m_subImageLayouts[mipShift + mipSliceIndex];
+                    m_mipSlices.push_back(mipSlice);
+                }
+            }
+        }
+
+        void ImageMipChainAsset::SetReady()
+        {
+            m_status = AssetStatus::Ready;
+        }
+
+        Data::AssetHandler::LoadResult ImageMipChainAssetHandler::LoadAssetData(
+            const Data::Asset<Data::AssetData>& asset,
+            AZStd::shared_ptr<Data::AssetDataStream> stream,
+            const Data::AssetFilterCB& assetLoadFilterCB)
+        {
+#if defined(CARBONATED)
+            MEMORY_TAG(ImageMip);
+            ASSET_TAG(asset.GetHint().c_str());
+#endif
+            Data::AssetHandler::LoadResult result = Base::LoadAssetData(asset, stream, assetLoadFilterCB);
+            if (result == Data::AssetHandler::LoadResult::LoadComplete)
+            {
+                asset.GetAs<ImageMipChainAsset>()->Init();
+            }
+            return result;
+        }
+    }
+}

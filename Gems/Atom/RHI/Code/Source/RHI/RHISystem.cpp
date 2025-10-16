@@ -229,8 +229,7 @@ namespace AZ::RHI
             AZ_Error("RHISystem", false, "Failed to initialize RHI device.");
             return ResultCode::Fail;
         }
-#if defined(CARBONATED)
-        // This code snippet is available in the latest version of the engine and is taken from there.
+
         // Register device GPUs attributes
         if (auto deviceRegistrar = AzFramework::DeviceAttributeRegistrar::Get())
         {
@@ -245,7 +244,6 @@ namespace AZ::RHI
                 });
             deviceRegistrar->RegisterDeviceAttribute(AZStd::make_shared<AzFramework::DeviceAttributeGPUModel>(gpuList));
         }
-#endif
         return ResultCode::Success;
     }
 

@@ -8,7 +8,6 @@
 
 #include <AzCore/Debug/Trace.h>
 #include <AzCore/std/string/string_view.h>
-#include <AzCore/std/string/string.h>
 
 #include <assert.h>
 #include <sys/sysctl.h>
@@ -78,9 +77,9 @@ namespace AZ
                 _exit(exitCode);
             }
 
-            void OutputToDebugger(AZStd::string_view window, AZStd::string_view message)
+            void OutputToDebugger(AZStd::string_view, AZStd::string_view)
             {
-                // Not implemented on Apple
+                // std::cout << title << ": " << message;
             }
         }
     }

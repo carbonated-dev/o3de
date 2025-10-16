@@ -7,6 +7,11 @@
 #
 
 set(O3DE_IMGUI_RELEASE_ENABLED ON CACHE BOOL "Allow IMGUI in release builds")
+if($<CONFIG:release> AND NOT O3DE_IMGUI_RELEASE_ENABLED)
+    set(config_base_defines IMGUI_DISABLED)
+else()
+    set(config_base_defines IMGUI_ENABLED)
+endif()
 
 o3de_pal_dir(pal_source_dir ${CMAKE_CURRENT_LIST_DIR}/Source/Platform/${PAL_PLATFORM_NAME} "${gem_restricted_path}" "${gem_path}" "${gem_parent_relative_path}")
 
@@ -28,9 +33,7 @@ ly_add_target(
             Include
     COMPILE_DEFINITIONS
         PUBLIC
-            $<$<AND:$<CONFIG:Release>,$<BOOL:${O3DE_IMGUI_RELEASE_ENABLED}>>:IMGUI_ENABLED>
-            $<$<AND:$<CONFIG:Release>,$<NOT:$<BOOL:${O3DE_IMGUI_RELEASE_ENABLED}>>>:IMGUI_DISABLED>
-            $<$<NOT:$<CONFIG:Release>>:IMGUI_ENABLED>
+            ${config_base_defines}
         INTERFACE
             $<$<NOT:$<BOOL:${LY_MONOLITHIC_GAME}>>:IMGUI_API_IMPORT>
             IMGUI_INCLUDE_IMGUI_USER_H
@@ -73,7 +76,7 @@ ly_add_target(
             Gem::${gem_name}.ImGuiLYUtils
         PRIVATE
             Gem::LmbrCentral
-            Gem::LyShine
+            Gem::LyShine  # Carbonated
 )
 
 ly_add_target(

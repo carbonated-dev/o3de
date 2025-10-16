@@ -63,11 +63,7 @@ namespace AZ
 
         RHI::ResultCode Image::UpdateImageContents(const RHI::ImageUpdateRequest& request)
         {
-            RHI::ImagePool* imagePool = azrtti_cast<RHI::ImagePool*> (m_image->GetPool());
-            if (!imagePool)
-            {
-                return RHI::ResultCode::InvalidArgument;
-            }
+            RHI::ImagePool* imagePool = azrtti_cast<RHI::ImagePool*>(m_image->GetPool());
             return imagePool->UpdateImageContents(request);
         }     
     }

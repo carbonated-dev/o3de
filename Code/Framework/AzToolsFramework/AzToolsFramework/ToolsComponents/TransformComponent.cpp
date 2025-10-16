@@ -623,8 +623,9 @@ namespace AzToolsFramework
             AZ::Quaternion result = AZ::ConvertEulerDegreesToQuaternion(m_editorTransform.m_rotate);
             return result;
         }
-#if 0
+#if defined(CARBONATED)
         // Gruber patch. GetLocalScale is deprecated
+#else
         AZ::Vector3 TransformComponent::GetLocalScale()
         {
             AZ_WarningOnce("TransformComponent", false, "GetLocalScale is deprecated, please use GetLocalUniformScale instead");

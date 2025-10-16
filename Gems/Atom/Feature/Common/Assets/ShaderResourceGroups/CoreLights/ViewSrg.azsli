@@ -36,7 +36,6 @@ partial ShaderResourceGroup ViewSrg
 
     StructuredBuffer<SimplePointLight> m_simplePointLights;
     uint m_simplePointLightCount;
-
     StructuredBuffer<SimpleSpotLight> m_simpleSpotLights;
     uint m_simpleSpotLightCount;
     Buffer<uint> m_visibleSimpleSpotLightIndices;
@@ -45,7 +44,6 @@ partial ShaderResourceGroup ViewSrg
     static const uint MaxGoboTextureCount = 5;
     Texture2D<float> m_goboTextures[MaxGoboTextureCount];
 #if !defined(FORCE_SMALL_SRGS) || ENABLE_SPHERE_LIGHTS
-
     StructuredBuffer<PointLight> m_pointLights;
     uint m_pointLightCount;
 #endif

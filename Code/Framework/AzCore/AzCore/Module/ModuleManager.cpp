@@ -685,10 +685,18 @@ namespace AZ
             {
                 // Add the component to the entity (if it's not already there OR on the System Entity)
                 Component* component = moduleData->m_moduleEntity->FindComponent(componentTypeId);
+                if (component)
+                {
+                    component->Check();
+                }
                 if (!component && !(systemEntity && systemEntity->FindComponent(componentTypeId)))
                 {
                     component = moduleData->m_moduleEntity->CreateComponent(componentTypeId);
                     AZ_Warning(s_moduleLoggingScope, component != nullptr, "Failed to find Required System Component of type %s in module %s. Did you register the descriptor?", componentTypeId.ToString<AZStd::string>().c_str(), moduleName);
+                    if (component)
+                    {
+                        component->Check();
+                    }
                 }
 
                 // This can be nullptr if the component was on the System Entity or if the component was somehow not found
@@ -696,6 +704,7 @@ namespace AZ
                 {
                     // Store in list to topo sort later
                     componentsToActivate.emplace_back(component);
+                    component->Check();
                 }
             }
 

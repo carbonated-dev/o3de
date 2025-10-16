@@ -47,21 +47,12 @@ namespace AZ
             return largestRecordSize;
         }
 
-#if defined(CARBONATED) // Fix Warnings C4100 treated in VS17.14.x as errors.
-        RHI::Ptr<Buffer> RayTracingShaderTable::BuildTable([[maybe_unused]] RHI::Device& deviceBase,
-                                                           const RHI::RayTracingBufferPools& bufferPools,
-                                                           const RHI::RayTracingShaderTableRecordList& recordList,
-                                                           uint32_t shaderRecordSize,
-                                                           [[maybe_unused]] AZStd::wstring shaderTableName,
-                                                           Microsoft::WRL::ComPtr<ID3D12StateObjectProperties>& stateObjectProperties)
-#else
         RHI::Ptr<Buffer> RayTracingShaderTable::BuildTable([[maybe_unused]] RHI::Device& deviceBase,
                                                            const RHI::DeviceRayTracingBufferPools& bufferPools,
                                                            const RHI::DeviceRayTracingShaderTableRecordList& recordList,
                                                            uint32_t shaderRecordSize,
                                                             [[maybe_unused]] AZStd::wstring shaderTableName,
                                                            Microsoft::WRL::ComPtr<ID3D12StateObjectProperties>& stateObjectProperties)
-#endif // defined(CARBONATED)
         {
 
             uint32_t shaderTableSize = shaderRecordSize * static_cast<uint32_t>(recordList.size());

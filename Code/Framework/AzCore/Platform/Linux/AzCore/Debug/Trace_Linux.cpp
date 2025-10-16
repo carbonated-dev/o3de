@@ -8,7 +8,6 @@
 
 #include <AzCore/Debug/Trace.h>
 #include <AzCore/std/string/string_view.h>
-#include <AzCore/std/string/string.h>
 #include <iostream>
 
 namespace AZ::Debug::Platform

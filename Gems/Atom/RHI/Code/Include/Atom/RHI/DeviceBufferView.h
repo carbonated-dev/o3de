@@ -35,8 +35,11 @@ namespace AZ::RHI
         const DeviceBuffer& GetBuffer() const;
 
         //! Returns whether the view maps to the full buffer.
+#if defined(CARBONATED) 
+        bool IsFullView() const final;
+#else
         bool IsFullView() const override final;
-
+#endif
         //! Tells the renderer to ignore any validation related to this buffer's state and scope attachments.
         //! Assumes that the programmer is manually managing the Read/Write state of the buffer correctly.
         bool IgnoreFrameAttachmentValidation() const { return m_descriptor.m_ignoreFrameAttachmentValidation; }

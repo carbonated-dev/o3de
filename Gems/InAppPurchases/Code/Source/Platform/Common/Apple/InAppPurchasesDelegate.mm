@@ -242,6 +242,7 @@
             NSString* userNameHash = [self hashUserName:userName];
             payment.applicationUsername = userNameHash;
         }
+        
         [[SKPaymentQueue defaultQueue] addPayment:payment];
     }
     else

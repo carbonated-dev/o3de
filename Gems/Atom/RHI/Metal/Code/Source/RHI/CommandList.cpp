@@ -857,6 +857,7 @@ namespace AZ
             AZ_PROFILE_FUNCTION(RHI);
             const auto& viewports = m_state.m_viewportState.m_states;
             MTLViewport metalViewports[viewports.size()];
+
             for (uint32_t i = 0; i < viewports.size(); ++i)
             {
                 metalViewports[i].originX = viewports[i].m_minX;

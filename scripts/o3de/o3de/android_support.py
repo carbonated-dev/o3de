@@ -53,7 +53,7 @@ elif platform.system() == 'Linux':
     EXE_EXTENSION = ''
     O3DE_SCRIPT_EXTENSION = '.sh'
     SDKMANAGER_EXTENSION = ''
-    GRADLE_EXTENSION = '.sh'
+    GRADLE_EXTENSION = ''
     DEFAULT_ANDROID_SDK_PATH = f"{os.getenv('HOME')}/Android/Sdk"
     PYTHON_SCRIPT = 'python.sh'
 else:
@@ -295,7 +295,7 @@ class AndroidGradlePluginRequirements(object):
         @param java_version:    The version string reported by java (-version)
         @return: None
         """
-        java_version_check = Version(java_version.split('_')[0])
+        java_version_check = Version(java_version)
         if not java_version_check >= self._jdk_version:
             raise AndroidToolError(f"The installed version of java ({java_version_check}) does not meet the minimum version of ({self._jdk_version}) "
                                    f"which is required by the Android Gradle Plugin version ({self._agp_version}). Refer to the android gradle plugin "
@@ -317,8 +317,8 @@ class AndroidGradlePluginRequirements(object):
 # Note: This map needs to be updated in conjunction with newer versions of the Android Gradle plugins.
 
 ANDROID_GRADLE_PLUGIN_COMPATIBILITY_MAP = {
-    '8.2': AndroidGradlePluginRequirements(agp_version='8.2',
-                                           gradle_version='8.2',
+    '8.10': AndroidGradlePluginRequirements(agp_version='8.10',
+                                           gradle_version='8.11',
                                            sdk_build_tools_version='35.0.0',
                                            jdk_version='17',
                                            release_note_url='https://developer.android.com/build/releases/gradle-plugin'),
@@ -333,7 +333,7 @@ ANDROID_GRADLE_PLUGIN_COMPATIBILITY_MAP = {
                                            gradle_version='8.0',
                                            sdk_build_tools_version='33.0.1',
                                            jdk_version='17',
-                                           release_note_url='https://developer.android.com/build/releases/past-releases/agp-8-1-0-release-notes'),
+                                           release_note_url='https://developer.android.com/build/releases/gradle-plugin'),
 
     '8.0': AndroidGradlePluginRequirements(agp_version='8.0',
                                            gradle_version='8.0',
@@ -1763,7 +1763,7 @@ class AndroidProjectGenerator(object):
         absolute_azandroid_path = (self._engine_root / 'Code/Framework/AzAndroid/java').resolve().as_posix()
 
         gradle_build_env['TARGET_TYPE'] = 'application'
-        gradle_build_env['PROJECT_DEPENDENCIES'] = PROJECT_DEPENDENCIES_VALUE_FORMAT.format(dependencies='\n'.join(gradle_project_dependencies), additional_dependencies=ADDITIONAL_DEPENDENCIES, plugins=ADDITIONAL_PLUGINS) # CARBONATED: added implementations/plugins
+        gradle_build_env['PROJECT_DEPENDENCIES'] = PROJECT_DEPENDENCIES_VALUE_FORMAT.format(dependencies='\n'.join(gradle_project_dependencies))
         gradle_build_env['NATIVE_CMAKE_SECTION_ANDROID'] = NATIVE_CMAKE_SECTION_ANDROID_FORMAT.format(cmake_version=str(self._cmake_version), native_build_path=native_build_path, absolute_cmakelist_path=absolute_cmakelist_path)
         gradle_build_env['NATIVE_CMAKE_SECTION_DEFAULT_CONFIG'] = NATIVE_CMAKE_SECTION_DEFAULT_CONFIG_NDK_FORMAT_STR.format(abi=ANDROID_ARCH)
 
@@ -2075,7 +2075,7 @@ class AndroidProjectGenerator(object):
         for resolution in ANDROID_RESOLUTION_SETTINGS:
 
             target_directory = dst_resource_path / f'{MIPMAP_PATH_PREFIX}-{resolution}'
-            target_directory.mkdir(parents=True, exist_ok=True)
+            target_directory.mkdir(parent=True, exist_ok=True)
 
             # get the current resolution icon override
             icon_source = icon_overrides.get(resolution, default_icon)

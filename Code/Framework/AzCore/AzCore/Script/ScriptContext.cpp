@@ -3367,6 +3367,7 @@ LUA_API const Node* lua_getDummyNode()
             LuaLoadFromStack fromStack = FromLuaStack(context, &param, bcClass);
             return fromStack(lua, index, param, bcClass, allocator);
         }
+
         bool StackRead(lua_State* lua, int index, AZ::BehaviorArgument& param, AZ::StackVariableAllocator* allocator)
         {
             return StackRead(lua, index, ScriptContext::FromNativeContext(lua)->GetBoundContext(), param, allocator);
@@ -5766,9 +5767,9 @@ LUA_API const Node* lua_getDummyNode()
                 }
                 else
                 {
+#if (!defined(_RELEASE))
                     switch (error)
                     {
-#if (!defined(_RELEASE))
                     case ScriptContext::ErrorType::Error:
                         AZ_Error("Script", false, "%s", message);
                         break;
@@ -5785,7 +5786,7 @@ LUA_API const Node* lua_getDummyNode()
                         break;
 #endif
                     }
-               }
+                }
             }
 
             //////////////////////////////////////////////////////////////////////////

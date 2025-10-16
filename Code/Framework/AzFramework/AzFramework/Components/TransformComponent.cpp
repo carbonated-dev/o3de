@@ -87,7 +87,6 @@ namespace AZ
             new(self) TransformConfig();
         }
     }
-
 } // namespace AZ
 
 namespace AzFramework
@@ -363,7 +362,6 @@ namespace AzFramework
         AZ::TransformBus::Handler::BusConnect(m_entity->GetId());
         AZ::TransformNotificationBus::Bind(m_notificationBus, m_entity->GetId());
 
-
         const bool keepWorldTm = (m_parentActivationTransformMode == ParentActivationTransformMode::MaintainCurrentWorldTransform || !m_parentId.IsValid());
         SetParentImpl(m_parentId, keepWorldTm);
     }
@@ -410,7 +408,6 @@ namespace AzFramework
     {
         m_childChangedEvent.Signal(changeType, entityId);
     }
-
 
     void TransformComponent::SetLocalTM(const AZ::Transform& tm)
     {
@@ -1180,7 +1177,7 @@ namespace AzFramework
         }
 
         AZ::BehaviorContext* behaviorContext = azrtti_cast<AZ::BehaviorContext*>(reflection);
-        if(behaviorContext)
+        if (behaviorContext)
         {
             behaviorContext->EBus<AZ::TransformNotificationBus>("TransformNotificationBus")->
                 Handler<AZ::BehaviorTransformNotificationBusHandler>();

@@ -603,12 +603,27 @@ namespace AZ
                     }
 
                     auto* subPassBuilder = builder.AddSubpass();
+#if defined(CARBONATED) && !defined(_RELEASE)
+                    // detailed log message
+                    const bool buildSubpass = renderChild->BuildSubpassLayout(*subPassBuilder);
+                    if (!buildSubpass )
+                    {
+                        const bool hasAttachment = subPassBuilder->HasAttachments();
+                        if (!hasAttachment)
+                        {
+                            AZ_Error("ParentPass", false, "RenderPass [%s] failed to build: subpass %d, attachment %d.\n",
+                                renderChild->GetName().GetCStr(), buildSubpass, hasAttachment);
+                            return false;
+                        }
+                    }
+#else
                     if (!renderChild->BuildSubpassLayout(*subPassBuilder) || !subPassBuilder->HasAttachments())
                     {
                         AZ_Error(
                             "ParentPass", false, "RenderPass [%s] failed to build its subpass layout.\n", renderChild->GetName().GetCStr());
                         return false;
                     }
+#endif
                 }
                 else if (ParentPass* parentChild = azrtti_cast<ParentPass*>(m_children[i].get()))
                 {

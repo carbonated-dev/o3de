@@ -53,19 +53,8 @@ namespace AZ
             desc.m_elementSize = sizeof(DiskLightData);
             desc.m_srgLayout = RPI::RPISystemInterface::Get()->GetViewSrgLayout().get();
 
-            m_shadowFeatureProcessor = GetParentScene()->GetFeatureProcessor<ProjectedShadowFeatureProcessor>();
-
-            m_diskLightEnabled = desc.m_srgLayout->FindShaderInputBufferIndex(Name(desc.m_bufferSrgName)).IsValid();
-            if (!m_diskLightEnabled)
-            {
-                AZ_Warning(
-                    "DiskLightFeatureProcessor",
-                    false,
-                    "Could not find m_diskLights entry in the View SRG. Disabling DiskLightFeatureProcessor.");
-                return;
-            }
-
             m_lightBufferHandler = GpuBufferHandler(desc);
+            m_shadowFeatureProcessor = GetParentScene()->GetFeatureProcessor<ProjectedShadowFeatureProcessor>();
 
             MeshFeatureProcessor* meshFeatureProcessor = GetParentScene()->GetFeatureProcessor<MeshFeatureProcessor>();
             if (meshFeatureProcessor)
@@ -148,11 +137,6 @@ namespace AZ
             AZ_PROFILE_SCOPE(RPI, "DiskLightFeatureProcessor: Simulate");
             AZ_UNUSED(packet);
 
-            if (!m_diskLightEnabled)
-            {
-                return;
-            }
-
             if (m_deviceBufferNeedsUpdate)
             {
                 m_lightBufferHandler.UpdateBuffer(m_lightData.GetDataVector<0>());
@@ -190,10 +174,6 @@ namespace AZ
         void DiskLightFeatureProcessor::Render(const DiskLightFeatureProcessor::RenderPacket& packet)
         {
             AZ_PROFILE_SCOPE(RPI, "DiskLightFeatureProcessor: Simulate");
-            if (!m_diskLightEnabled)
-            {
-                return;
-            }
 
             for (const RPI::ViewPtr& view : packet.m_views)
             {
