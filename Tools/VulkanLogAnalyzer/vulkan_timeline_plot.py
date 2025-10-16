@@ -1,10 +1,17 @@
+"""
+Copyright (c) Contributors to the Open 3D Engine Project.
+For complete copyright and license terms please see the LICENSE at the root of this distribution.
+
+SPDX-License-Identifier: Apache-2.0 OR MIT
+"""
+
+# This script creates vulkan_timeline.png file with the visual representation of how GPU and CPU threads work
+# Data for profiling is put into output log when "r_logGPUStats N" console command is performed
+
 import re
 import matplotlib.pyplot as plt
 from collections import defaultdict
 import sys
-
-# This script creates vulkan_timeline.png file with the visual representation of how GPU and CPU threads work
-# Data for profiling is put into output log when "r_logGPUStats N" console command is performed
 
 def parse_log_file(filepath):
     frame_data_gpu = defaultdict(list)
@@ -30,7 +37,7 @@ def parse_log_file(filepath):
                 commit = float(m.group(2))
                 begin = float(m.group(3))
                 end = float(m.group(4))
-                # ✅ Фильтр: пропускаем слишком длинные GPU submissions
+                # Skip too long submissions
                 if end - begin < 0.1:
                     frame_data_gpu[fnum].append({'commit': commit, 'begin': begin, 'end': end})
                 continue
