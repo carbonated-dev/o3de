@@ -144,6 +144,11 @@ namespace AZ::RHI
 
         virtual void SetVerticalSyncIntervalInternal([[maybe_unused]]uint32_t previousVerticalSyncInterval) {}
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+        //! Sets the desired frames per second.
+        virtual void SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS) {};
+#endif
+
         //////////////////////////////////////////////////////////////////////////
 
         SwapChainDescriptor m_descriptor;

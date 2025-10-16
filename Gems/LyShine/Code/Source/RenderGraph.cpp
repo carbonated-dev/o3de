@@ -252,7 +252,7 @@ namespace LyShine
         primitive->m_next = nullptr;
         m_primitives.push_back(*primitive);
 
-#if defined(CARBONATED)
+        if (r_vkTexUsageMode > 0)
         {
             bool canAppendToLast = false;
 
@@ -331,6 +331,7 @@ namespace LyShine
         {
             m_combinedIndices[index_start + i] = vertex_start + primitive->m_indices[i];
         }
+#endif // CARBONATED
 
         m_totalNumVertices += primitive->m_numVertices;
         m_totalNumIndices += primitive->m_numIndices;
