@@ -177,7 +177,7 @@ def plot_timeline(frame_data_gpu, frame_data_cpu, frame_start_times, output_path
     ax.set_xticks([])
     ax.set_xlabel("")
 
-    ax.set_title("GPU Submissions (dark green) and CPU Threads (colored) — Per-Frame View", fontsize=10)
+    ax.set_title("GPU Submissions (dark green) and CPU Threads (colored) - Per-Frame View", fontsize=10)
     ax.grid(False, axis='x')
     ax.grid(True, axis='y', linestyle=':', alpha=0.4)
 

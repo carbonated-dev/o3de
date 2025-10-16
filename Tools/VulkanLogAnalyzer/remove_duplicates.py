@@ -23,7 +23,7 @@ def remove_duplicates(input_path, output_path):
     with open(output_path, "w", encoding="utf-8") as outfile:
         outfile.writelines(unique_lines)
 
-    print(f"Removed duplicates from '{input_path}' → saved to '{output_path}'")
+    print(f"Removed duplicates from '{input_path}' -> saved to '{output_path}'")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
