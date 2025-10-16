@@ -119,7 +119,7 @@ function(o3de_get_dependencies_for_target)
         set(target_dependency_stack_pos -1)
         list(FIND target_dependency_stack ${link_dependency} target_dependency_stack_pos)
         if(target_dependency_stack_pos GREATER_EQUAL 0)
-            message("Skip recursive dependency ${link_dependency}, which is at the posintion ${target_dependency_stack_pos} in the dependency stack ${target_dependency_stack}")
+            message("Skip recursive dependency ${link_dependency}, which is at the position ${target_dependency_stack_pos} in the dependency stack ${target_dependency_stack}")
             continue()
         endif()
         
