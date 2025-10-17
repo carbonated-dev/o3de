@@ -245,6 +245,7 @@ float ProjectedShadow::GetVisibilityEsmPcf()
         if (ratio > pcfFallbackThreshold)
         {
             ratio = GetVisibilityPcf();
+        }
         return saturate(ratio);
     }
 
