@@ -26,6 +26,10 @@
 
 namespace InAppPurchases
 {
+#if defined(CARBONATED)
+    const static char* s_tag = "O3DEInAppPurchases";
+#endif
+
     static bool IsFieldIdValid(jfieldID fid)
     {
         if (fid == NULL)
@@ -36,14 +40,30 @@ namespace InAppPurchases
         return true;
     }
 
+#if defined(CARBONATED)
+    static AZStd::string SafeGetStringField(JNIEnv* env, jobject obj, jfieldID fieldId)
+    {
+        auto jstr = static_cast<jstring>(env->GetObjectField(obj, fieldId));
+        if (jstr == nullptr)
+        {
+            return {};
+        }
+        return AZ::Android::JNI::ConvertJstringToString(jstr);
+    }
+#endif
+
     static PurchasedProductDetailsAndroid* ParseReceiptDetails(JNIEnv* env, jobjectArray jpurchasedProductDetails, int index)
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "ParseReceiptDetails");
+        AZ_TracePrintf(s_tag, "ParseReceiptDetails");
 #endif
         jobject jpurchasedProduct = env->GetObjectArrayElement(jpurchasedProductDetails, index);
 
+#if defined(CARBONATED)
+        const int NUM_FIELDS_PURCHASED_PRODUCTS = 10;
+#else
         const int NUM_FIELDS_PURCHASED_PRODUCTS = 7;
+#endif
         jfieldID fid[NUM_FIELDS_PURCHASED_PRODUCTS];
         jclass cls = env->GetObjectClass(jpurchasedProduct);
         fid[0] = env->GetFieldID(cls, "m_productId", "Ljava/lang/String;");
@@ -53,13 +73,18 @@ namespace InAppPurchases
         fid[4] = env->GetFieldID(cls, "m_signature", "Ljava/lang/String;");
         fid[5] = env->GetFieldID(cls, "m_purchaseTime", "J");
         fid[6] = env->GetFieldID(cls, "m_isAutoRenewing", "Z");
+#if defined(CARBONATED)
+        fid[7] = env->GetFieldID(cls, "m_price", "Ljava/lang/String;");
+        fid[8] = env->GetFieldID(cls, "m_currencyCode", "Ljava/lang/String;");
+        fid[9] = env->GetFieldID(cls, "m_priceMicro", "J");
+#endif
 
         for (int i = 0; i < NUM_FIELDS_PURCHASED_PRODUCTS; i++)
         {
             if (!IsFieldIdValid(fid[i]))
             {
 #if defined(CARBONATED)
-                AZ_TracePrintf("IAP", "Invalid FieldId in PurchasedProductDetails");
+                AZ_TracePrintf(s_tag, "Invalid FieldId in PurchasedProductDetails");
 #else
                 AZ_TracePrintf("LumberyardInAppBilling", "Invaild FieldId in PurchasedProductDetails\n");
 #endif
@@ -69,6 +94,18 @@ namespace InAppPurchases
 
         PurchasedProductDetailsAndroid* purchasedProductDetails = new PurchasedProductDetailsAndroid();
 
+#if defined(CARBONATED)
+        purchasedProductDetails->SetProductId(SafeGetStringField(env, jpurchasedProduct, fid[0]));
+        purchasedProductDetails->SetOrderId(SafeGetStringField(env, jpurchasedProduct, fid[1]));
+        purchasedProductDetails->SetPackageName(SafeGetStringField(env, jpurchasedProduct, fid[2]));
+        purchasedProductDetails->SetPurchaseToken(SafeGetStringField(env, jpurchasedProduct, fid[3]));
+        purchasedProductDetails->SetPurchaseSignature(SafeGetStringField(env, jpurchasedProduct, fid[4]));
+        purchasedProductDetails->SetPurchaseTime(env->GetLongField( jpurchasedProduct, fid[5]));
+        purchasedProductDetails->SetIsAutoRenewing(env->GetBooleanField( jpurchasedProduct, fid[6]));
+        purchasedProductDetails->SetProductPrice(SafeGetStringField(env, jpurchasedProduct, fid[7]));
+        purchasedProductDetails->SetProductCurrencyCode(SafeGetStringField(env, jpurchasedProduct, fid[8]));
+        purchasedProductDetails->SetProductPriceMicro(env->GetLongField( jpurchasedProduct, fid[9]));
+#else
         purchasedProductDetails->SetProductId(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[0]))));
         purchasedProductDetails->SetOrderId(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[1]))));
         purchasedProductDetails->SetPackageName(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[2]))));
@@ -76,14 +113,14 @@ namespace InAppPurchases
         purchasedProductDetails->SetPurchaseSignature(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jpurchasedProduct, fid[4]))));
         purchasedProductDetails->SetPurchaseTime(env->GetLongField(jpurchasedProduct, fid[5]));
         purchasedProductDetails->SetIsAutoRenewing(env->GetBooleanField(jpurchasedProduct, fid[6]));
-
+#endif
         return purchasedProductDetails;
     }
 
     void ProductInfoRetrieved(JNIEnv* env, jobject obj, jobjectArray jproductDetails)
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "ProductInfoRetrieved");
+        AZ_TracePrintf(s_tag, "ProductInfoRetrieved");
 #endif
         int numProducts = env->GetArrayLength(jproductDetails);
 
@@ -109,7 +146,7 @@ namespace InAppPurchases
             if (!IsFieldIdValid(fid[i]))
             {
 #if defined(CARBONATED)
-                AZ_TracePrintf("IAP", "Invalid FieldId in ProductDetails");
+                AZ_TracePrintf(s_tag, "Invalid FieldId in ProductDetails");
 #else
                 AZ_TracePrintf("LumberyardInAppBilling", "Invaild FieldId in ProductDetails\n");
 #endif
@@ -122,7 +159,15 @@ namespace InAppPurchases
             jobject jproduct = env->GetObjectArrayElement(jproductDetails, i);
 
             ProductDetailsAndroid* productDetails = new ProductDetailsAndroid();
-
+#if defined(CARBONATED)
+            productDetails->SetProductId(SafeGetStringField(env, jproduct, fid[0]));
+            productDetails->SetProductType(SafeGetStringField(env, jproduct, fid[1]));
+            productDetails->SetProductPrice(SafeGetStringField(env, jproduct, fid[2]));
+            productDetails->SetProductCurrencyCode(SafeGetStringField(env, jproduct, fid[3]));
+            productDetails->SetProductTitle(SafeGetStringField(env, jproduct, fid[4]));
+            productDetails->SetProductDescription(SafeGetStringField(env, jproduct, fid[5]));
+            productDetails->SetProductPriceMicro(env->GetLongField(jproduct, fid[6]));
+#else
             productDetails->SetProductId(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[0]))));
             productDetails->SetProductType(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[1]))));
             productDetails->SetProductPrice(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[2]))));
@@ -130,8 +175,9 @@ namespace InAppPurchases
             productDetails->SetProductTitle(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[4]))));
             productDetails->SetProductDescription(AZ::Android::JNI::ConvertJstringToString(static_cast<jstring>(env->GetObjectField(jproduct, fid[5]))));
             productDetails->SetProductPriceMicro(env->GetLongField(jproduct, fid[6]));
+#endif
 #if defined(CARBONATED)
-            AZ_TracePrintf("IAP", "AddProductDetailsToCache productDetails.Id = %s", productDetails->GetProductId().c_str());
+            AZ_TracePrintf(s_tag, "AddProductDetailsToCache productDetails.Id = %s", productDetails->GetProductId().c_str());
 #endif
             InAppPurchasesInterface::GetInstance()->GetCache()->AddProductDetailsToCache(productDetails);
         }
@@ -141,7 +187,7 @@ namespace InAppPurchases
     void PurchasedProductsRetrieved(JNIEnv* env, jobject object, jobjectArray jpurchasedProductDetails)
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "PurchasedProductsRetrieved");
+        AZ_TracePrintf(s_tag, "PurchasedProductsRetrieved");
         int numPurchasedProducts = env->GetArrayLength(jpurchasedProductDetails);
 
         auto purchasedProductsList = AZStd::make_shared<AZStd::vector<AZStd::unique_ptr<PurchasedProductDetails const>>>();
@@ -155,7 +201,6 @@ namespace InAppPurchases
             }
         }
 
-        AZ_TracePrintf("IAP", "NewProductPurchased");
         auto dispatchToMainThread = [purchasedProductsList]() {
             InAppPurchasesInterface::GetInstance()->GetCache()->ClearCachedPurchasedProductDetails();
 
@@ -194,7 +239,7 @@ namespace InAppPurchases
 #if defined(CARBONATED)
             auto purchasedProductPtr = AZStd::shared_ptr<PurchasedProductDetails>(purchasedProduct);
 
-            AZ_TracePrintf("IAP", "NewProductPurchased packageName = %s", purchasedProduct->GetPackageName().c_str());
+            AZ_TracePrintf(s_tag, "NewProductPurchased packageName = %s", purchasedProduct->GetPackageName().c_str());
             auto dispatchToMainThread = [purchasedProductPtr]() {
                 InAppPurchasesInterface::GetInstance()->GetCache()->AddPurchasedProductDetailsToCache(purchasedProductPtr.get());
                 InAppPurchasesResponseBus::Broadcast(&InAppPurchasesResponseBus::Events::NewProductPurchased, purchasedProductPtr.get());
@@ -204,7 +249,7 @@ namespace InAppPurchases
         }
         else
         {
-            AZ_TracePrintf("IAP", "NewProductPurchased purchasedProduct = null");
+            AZ_TracePrintf(s_tag, "NewProductPurchased purchasedProduct is null");
 #else
             InAppPurchasesInterface::GetInstance()->GetCache()->AddPurchasedProductDetailsToCache(purchasedProduct);
             EBUS_EVENT(InAppPurchasesResponseBus, NewProductPurchased, purchasedProduct);
@@ -222,7 +267,7 @@ namespace InAppPurchases
 #endif
         env->ReleaseStringUTFChars(jpurchaseToken, purchaseToken);
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "PurchaseConsumed token = %s", tokenCopy.c_str());
+        AZ_TracePrintf(s_tag, "PurchaseConsumed token = %s", tokenCopy.c_str());
         auto dispatchToMainThread = [tokenCopy]()
         {
             InAppPurchasesResponseBus::Broadcast(&InAppPurchasesResponseBus::Events::PurchaseConsumed, tokenCopy);
@@ -234,7 +279,7 @@ namespace InAppPurchases
 #if defined(CARBONATED)
     void PurchaseCancelled(JNIEnv* env, jobject object)
     {
-        AZ_TracePrintf("IAP", "PurchaseCancelled");
+        AZ_TracePrintf(s_tag, "PurchaseCancelled");
         auto dispatchToMainThread = []()
         {
             InAppPurchasesResponseBus::Broadcast(&InAppPurchasesResponseBus::Events::PurchaseCancelled, nullptr);
@@ -246,7 +291,7 @@ namespace InAppPurchases
 #if defined(CARBONATED)
     void PurchaseFailed(JNIEnv* env, jobject object, jint responseCode)
     {
-        AZ_TracePrintf("IAP", "PurchaseFailed with response code: %d\n", static_cast<int>(responseCode));
+        AZ_TracePrintf(s_tag, "PurchaseFailed with response code: %d\n", static_cast<int>(responseCode));
         auto dispatchToMainThread = []()
         {
             InAppPurchasesResponseBus::Broadcast(&InAppPurchasesResponseBus::Events::PurchaseFailed, nullptr);
@@ -275,7 +320,7 @@ namespace InAppPurchases
     void InAppPurchasesAndroid::Initialize()
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "Initialize");
+        AZ_TracePrintf(s_tag, "Initialize");
 #endif
         JNIEnv* env = AZ::Android::JNI::GetEnv();
         jobject activityObject = AZ::Android::Utils::GetActivityRef();
@@ -302,7 +347,7 @@ namespace InAppPurchases
     InAppPurchasesAndroid::~InAppPurchasesAndroid()
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "~InAppPurchasesAndroid");
+        AZ_TracePrintf(s_tag, "~InAppPurchasesAndroid");
 #endif
         JNIEnv* env = AZ::Android::JNI::GetEnv();
         jclass billingClass = env->GetObjectClass(m_billingInstance);
@@ -335,7 +380,7 @@ namespace InAppPurchases
         }
 
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "QueryProductInfo %s", idsLog.c_str());
+        AZ_TracePrintf(s_tag, "QueryProductInfo %s", idsLog.c_str());
 #endif
         jclass billingClass = env->GetObjectClass(m_billingInstance);
         jmethodID mid = env->GetMethodID(billingClass, "QueryProductInfo", "([Ljava/lang/String;)V");
@@ -348,7 +393,7 @@ namespace InAppPurchases
     void InAppPurchasesAndroid::QueryProductInfo() const
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "QueryProductInfo");
+        AZ_TracePrintf(s_tag, "QueryProductInfo");
 #endif
         AZ::IO::FileIOBase* fileReader = AZ::IO::FileIOBase::GetInstance();
 
@@ -359,7 +404,7 @@ namespace InAppPurchases
         if (!fileReader->Open("@products@/product_ids.json", AZ::IO::OpenMode::ModeRead, fileHandle))
         {
 #if defined(CARBONATED)
-            AZ_TracePrintf("IAP", "Unable to open file product_ids.json");
+            AZ_TracePrintf(s_tag, "Unable to open file product_ids.json");
 #else
             AZ_TracePrintf("LumberyardInAppBilling", "Unable to open file product_ids.json\n");
 #endif
@@ -369,7 +414,7 @@ namespace InAppPurchases
         if ((!fileReader->Size(fileHandle, fileSize)) || (fileSize == 0))
         {
 #if defined(CARBONATED)
-            AZ_TracePrintf("IAP", "Unable to read file product_ids.json - file truncated");
+            AZ_TracePrintf(s_tag, "Unable to read file product_ids.json - file truncated");
 #else
             AZ_TracePrintf("LumberyardInAppBilling", "Unable to read file product_ids.json - file truncated\n");
 #endif
@@ -382,7 +427,7 @@ namespace InAppPurchases
             fileBuffer.resize(0);
             fileReader->Close(fileHandle);
 #if defined(CARBONATED)
-            AZ_TracePrintf("IAP", "Failed to read file product_ids.json");
+            AZ_TracePrintf(s_tag, "Failed to read file product_ids.json");
 #else
             AZ_TracePrintf("LumberyardInAppBilling", "Failed to read file product_ids.json\n");
 #endif
@@ -396,7 +441,7 @@ namespace InAppPurchases
         {
             [[maybe_unused]] const char* errorStr = rapidjson::GetParseError_En(document.GetParseError());
 #if defined(CARBONATED)
-            AZ_TracePrintf("IAP", "Failed to parse product_ids.json: %s\n", errorStr);
+            AZ_TracePrintf(s_tag, "Failed to parse product_ids.json: %s\n", errorStr);
 #else
             AZ_TracePrintf("LumberyardInAppBilling", "Failed to parse product_ids.json: %s\n", errorStr);
 #endif
@@ -418,7 +463,7 @@ namespace InAppPurchases
     void InAppPurchasesAndroid::PurchaseProduct(const AZStd::string& productId, const AZStd::string& developerPayload) const
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "PurchaseProduct productId = %s developerPayload = %s", productId.c_str(), developerPayload.c_str());
+        AZ_TracePrintf(s_tag, "PurchaseProduct productId = %s developerPayload = %s", productId.c_str(), developerPayload.c_str());
 #endif
         JNIEnv* env = AZ::Android::JNI::GetEnv();
 
@@ -438,7 +483,8 @@ namespace InAppPurchases
         if (productType.empty())
         {
 #if defined(CARBONATED)
-            AZ_TracePrintf("IAP", "Failed to find product with id: %s", productId.c_str());
+            AZ_TracePrintf(s_tag, "Failed to find product with id: %s", productId.c_str());
+            InAppPurchasesResponseBus::Broadcast(&InAppPurchasesResponseBus::Events::PurchaseFailed, nullptr);
 #else
             AZ_TracePrintf("LumberyardInAppBilling", "Failed to find product with id: %s", productId.c_str());
 #endif
@@ -462,7 +508,7 @@ namespace InAppPurchases
     void InAppPurchasesAndroid::PurchaseProduct(const AZStd::string& productId) const
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "PurchaseProduct productId = %s", productId.c_str());
+        AZ_TracePrintf(s_tag, "PurchaseProduct productId = %s", productId.c_str());
 #endif
         PurchaseProduct(productId, "");
     }
@@ -470,7 +516,7 @@ namespace InAppPurchases
     void InAppPurchasesAndroid::QueryPurchasedProducts() const
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "QueryPurchasedProducts");
+        AZ_TracePrintf(s_tag, "QueryPurchasedProducts");
 #endif
         JNIEnv* env = AZ::Android::JNI::GetEnv();
 
@@ -484,14 +530,14 @@ namespace InAppPurchases
     void InAppPurchasesAndroid::RestorePurchasedProducts() const
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "RestorePurchasedProducts");
+        AZ_TracePrintf(s_tag, "RestorePurchasedProducts");
 #endif
     }
 
     void InAppPurchasesAndroid::ConsumePurchase(const AZStd::string& purchaseToken) const
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "ConsumePurchase purchaseToken = %s", purchaseToken.c_str());
+        AZ_TracePrintf(s_tag, "ConsumePurchase purchaseToken = %s", purchaseToken.c_str());
 #endif
         JNIEnv* env = AZ::Android::JNI::GetEnv();
 
@@ -507,7 +553,7 @@ namespace InAppPurchases
     void InAppPurchasesAndroid::FinishTransaction(const AZStd::string& transactionId, bool downloadHostedContent) const
     {
 #if defined(CARBONATED)
-        AZ_TracePrintf("IAP", "FinishTransaction");
+        AZ_TracePrintf(s_tag, "FinishTransaction");
 #endif
     }
 
@@ -515,4 +561,26 @@ namespace InAppPurchases
     {
         return &m_cache;
     }
+
+#if defined(CARBONATED)
+    AZStd::string InAppPurchasesAndroid::GetTransactionReceipt() const
+    {
+        JNIEnv* env = AZ::Android::JNI::GetEnv();
+        jclass billingClass = env->GetObjectClass(m_billingInstance);
+        jmethodID mid = env->GetMethodID(billingClass, "GetLastTransactionReceipt", "()Ljava/lang/String;");
+        auto jResult = static_cast<jstring>(env->CallObjectMethod(m_billingInstance, mid));
+
+        AZStd::string result;
+        if (jResult != nullptr)
+        {
+            const char* chars = env->GetStringUTFChars(jResult, nullptr);
+            result = chars;
+            env->ReleaseStringUTFChars(jResult, chars);
+            env->DeleteLocalRef(jResult);
+        }
+
+        env->DeleteLocalRef(billingClass);
+        return result;
+    }
+#endif
 }
