@@ -958,8 +958,13 @@ namespace AZ
     AZCORE_API LuaLoadFromStack FromLuaStack(AZ::BehaviorContext* context, const AZ::BehaviorParameter* param, AZ::BehaviorClass*& behaviorClass);
     AZCORE_API LuaPushToStack ToLuaStack(AZ::BehaviorContext* context, const AZ::BehaviorParameter* param, LuaPrepareValue* prepareParamOut, AZ::BehaviorClass*& behaviorClass);
 
+#if defined(CARBONATED)
+    AZCORE_API bool StackPush(lua_State* lua, AZ::BehaviorContext* context, AZ::BehaviorArgument& param);
+    AZCORE_API bool StackPush(lua_State* lua, AZ::BehaviorArgument& param);
+#else
     AZCORE_API void StackPush(lua_State* lua, AZ::BehaviorContext* context, AZ::BehaviorArgument& param);
     AZCORE_API void StackPush(lua_State* lua, AZ::BehaviorArgument& param);
+#endif
     AZCORE_API bool StackRead(lua_State* lua, int index, AZ::BehaviorContext* context,  AZ::BehaviorArgument& param, AZ::StackVariableAllocator*);
     AZCORE_API bool StackRead(lua_State* lua, int index, AZ::BehaviorArgument& param, AZ::StackVariableAllocator* = nullptr);
 

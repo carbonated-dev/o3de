@@ -201,7 +201,6 @@ namespace AZ
             // Lua:
             lua_rawgeti(m_lua, LUA_REGISTRYINDEX, m_lambdaRegistryIndex);
             // Lua: lambda
-// Gruber patch begin. // LVB. // "success" is used to analyze "bool" result of ExposedLambda::StackPush
 #if defined(CARBONATED)
             bool success = true;
             for (int i = 0; i < numArguments; ++i)
@@ -224,7 +223,6 @@ namespace AZ
             Internal::LuaSafeCall(m_lua, numArguments, 0);
 #endif
         }
-// Gruber patch end. // LVB. // "success" is used to analyze "bool" result of ExposedLambda::StackPush
 
         // \note Do not use, these are here for compiler compatibility only
         ExposedLambda()
@@ -249,8 +247,11 @@ namespace AZ
                 ? reinterpret_cast<T*>(argument.GetValueAddress())
                 : nullptr;
         }
-// Gruber patch begin. // LVB. // Was "void". Now it returns "bool"
+#if defined(CARBONATED)
         static bool StackPush(lua_State* lua, AZ::BehaviorContext* context, AZ::BehaviorArgument& argument)
+#else
+        static void StackPush(lua_State* lua, AZ::BehaviorContext* context, AZ::BehaviorArgument& argument)
+#endif
         {
             if (auto cStringPtr = GetAs<const char*>(argument))
             {
@@ -265,13 +266,19 @@ namespace AZ
             {
                 lua_pushlstring(lua, viewPtr->data(), viewPtr->size());
             }
+#if defined(CARBONATED)
             else
             {
                 return AZ::StackPush(lua, context, argument);
             }
             return true;
+#else
+            else
+            {
+                AZ::StackPush(lua, context, argument);
+            }
+#endif
         }
-// Gruber patch end. // LVB. // Was "void". Now it returns "bool"
 
         int m_lambdaRegistryIndex;
         int m_refCountRegistryIndex;
@@ -3373,8 +3380,11 @@ LUA_API const Node* lua_getDummyNode()
             return StackRead(lua, index, ScriptContext::FromNativeContext(lua)->GetBoundContext(), param, allocator);
         }
 
-// Gruber patch begin. // LVB. // It were "void" functions. Now they return "bool"
+#if defined(CARBONATED)
         bool StackPush(lua_State* lua, AZ::BehaviorContext* context, AZ::BehaviorArgument& param)
+#else
+        void StackPush(lua_State* lua, AZ::BehaviorContext* context, AZ::BehaviorArgument& param)
+#endif
         {
             AZ::BehaviorClass* unused = nullptr;
             LuaPrepareValue prepareValue = nullptr;
@@ -3385,19 +3395,26 @@ LUA_API const Node* lua_getDummyNode()
                 AZ_Error("ScriptContext", false, "No LuaPushToStack function found for typeid: %s", param.m_typeId.ToString<AZStd::string>().data());
                 return false;
             }
+            pushToStack(lua, param);
+            return true;
 #else
             AZ_Assert(
                 pushToStack != nullptr, "No LuaPushToStack function found for typeid: %s", param.m_typeId.ToString<AZStd::string>().data());
-#endif
             pushToStack(lua, param);
-            return true;
+#endif
         }
 
+#if defined(CARBONATED)
         bool StackPush(lua_State* lua, AZ::BehaviorArgument& param)
         {
             return StackPush(lua, ScriptContext::FromNativeContext(lua)->GetBoundContext(), param);
         }
-// Gruber patch end. // LVB. // It were "void" functions. Now they return "bool"
+#else
+        void StackPush(lua_State* lua, AZ::BehaviorArgument& param)
+        {
+            StackPush(lua, ScriptContext::FromNativeContext(lua)->GetBoundContext(), param);
+        }
+#endif
 
         LuaPushToStack ToLuaStack(BehaviorContext* context, const BehaviorParameter* param, LuaPrepareValue* prepareParam, BehaviorClass*& behaviorClass)
         {
