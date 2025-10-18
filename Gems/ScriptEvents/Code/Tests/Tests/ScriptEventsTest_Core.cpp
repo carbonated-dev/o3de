@@ -237,7 +237,7 @@ namespace ScriptEventsTests
             AZ::Data::AssetBus::Handler::BusDisconnect();
         }
 
-        void OnAssetReady([[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData>) override
+        void OnAssetReady(AZ::Data::Asset<AZ::Data::AssetData>) override
         {
             m_ready++;
 

@@ -10,7 +10,7 @@
 
 namespace UnitTests
 {
-    void MockFileProcessor::AssessAddedFile([[maybe_unused]] QString fileName)
+     void MockFileProcessor::AssessAddedFile([[maybe_unused]] QString fileName)
     {
         m_events[TestEvents::Added].Signal();
     }

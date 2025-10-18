@@ -64,9 +64,11 @@ set(FILES
     AzCore/PlatformIncl_Platform.h
     AzCore/PlatformIncl_Windows.h
     AzCore/Serialization/Locale_Platform.h
+    AzCore/Settings/CommandLineParser_Platform.h
     ../Common/WinAPI/AzCore/Serialization/Locale_WinAPI.h
     ../Common/WinAPI/AzCore/Serialization/Locale_WinAPI.cpp
     ../Common/WinAPI/AzCore/Settings/CommandLineParser_WinAPI.cpp
+    ../Common/WinAPI/AzCore/Settings/CommandLineParser_WinAPI.h
     ../Common/WinAPI/AzCore/Socket/AzSocket_fwd_WinAPI.h
     ../Common/WinAPI/AzCore/Socket/AzSocket_WinAPI.cpp
     ../Common/WinAPI/AzCore/Socket/AzSocket_WinAPI.h
@@ -77,5 +79,12 @@ set(FILES
     ../Common/WinAPI/AzCore/Utils/Utils_WinAPI.cpp
     AzCore/Utils/Utils_Windows.cpp
     AzCore/Debug/Profiler_Platform.inl
+    ../Common/WinAPI/AzCore/Debug/Profiler_WinAPI.inl
+)
+
+set(SKIP_UNITY_BUILD_INCLUSION_FILES
+    ../Common/WinAPI/AzCore/Settings/CommandLineParser_WinAPI.cpp
+    ../Common/WinAPI/AzCore/Serialization/Locale_WinAPI.cpp
+    ../Common/WinAPI/AzCore/Socket/AzSocket_WinAPI.cpp
     ../Common/WinAPI/AzCore/Debug/Profiler_WinAPI.inl
 )

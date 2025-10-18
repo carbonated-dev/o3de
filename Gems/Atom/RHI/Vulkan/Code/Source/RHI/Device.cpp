@@ -11,10 +11,10 @@
 #include <Atom/RHI.Reflect/Vulkan/PlatformLimitsDescriptor.h>
 #include <Atom/RHI.Reflect/Vulkan/VulkanBus.h>
 #include <Atom/RHI.Reflect/Vulkan/XRVkDescriptors.h>
+#include <Atom/RHI/DeviceTransientAttachmentPool.h>
 #include <Atom/RHI/Factory.h>
 #include <Atom/RHI/RHIMemoryStatisticsInterface.h>
 #include <Atom/RHI/RHISystemInterface.h>
-#include <Atom/RHI/DeviceTransientAttachmentPool.h>
 #include <Atom_RHI_Vulkan_Platform.h>
 #include <AzCore/Debug/Trace.h>
 #include <AzCore/std/containers/set.h>
@@ -32,6 +32,7 @@
 #include <RHI/SwapChain.h>
 #include <RHI/WSISurface.h>
 #include <RHI/WindowSurfaceBus.h>
+#include <Vulkan_Fence_Platform.h>
 #include <Vulkan_Traits_Platform.h>
 
 #if defined(CARBONATED)
@@ -153,24 +154,86 @@ namespace AZ
                 m_supportedPipelineStageFlagsMask &= ~(VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT);
             }
 
+            static_assert(
+                AZStd::to_underlying(RHI::HardwareQueueClass::Count) == 3,
+                "Vulkan queue selection needs to be updated when new hardware queue classes are introduced.");
+
+            int graphicsFamilyIndex = -1;
+            int computeFamilyIndex = -1;
+            int transferFamilyIndex = -1;
+
+            for (int familyIndex = 0; familyIndex < static_cast<int>(m_queueFamilyProperties.size()); ++familyIndex)
+            {
+                const VkQueueFamilyProperties& familyProperties = m_queueFamilyProperties[familyIndex];
+
+                // There should be at least one queue family supporting both graphics and compute (as well as copying, but that might not be
+                // exposed)
+                if ((graphicsFamilyIndex == -1) &&
+                    AZ::RHI::CheckBitsAll(familyProperties.queueFlags, static_cast<VkFlags>(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)))
+                {
+                    graphicsFamilyIndex = familyIndex;
+                }
+
+                if (AZ::RHI::CheckBitsAny(familyProperties.queueFlags, static_cast<VkFlags>(VK_QUEUE_COMPUTE_BIT)))
+                {
+                    if (computeFamilyIndex == -1)
+                    {
+                        computeFamilyIndex = familyIndex;
+                    }
+                    else
+                    {
+                        // We take the queue family that supports the least amount of features, but still supports compute. That way we
+                        // likely get an async compute queue.
+                        if (AZ::RHI::CountBitsSet(familyProperties.queueFlags) <
+                            AZ::RHI::CountBitsSet(m_queueFamilyProperties[computeFamilyIndex].queueFlags))
+                        {
+                            computeFamilyIndex = familyIndex;
+                        }
+                    }
+                }
+
+                if (AZ::RHI::CheckBitsAny(familyProperties.queueFlags, static_cast<VkFlags>(VK_QUEUE_TRANSFER_BIT)))
+                {
+                    if (transferFamilyIndex == -1)
+                    {
+                        transferFamilyIndex = familyIndex;
+                    }
+                    else
+                    {
+                        // We take the queue family that supports the least amount of features, but still supports copying. That way we
+                        // likely get an async copy queue.
+                        if (AZ::RHI::CountBitsSet(familyProperties.queueFlags) <
+                            AZ::RHI::CountBitsSet(m_queueFamilyProperties[transferFamilyIndex].queueFlags))
+                        {
+                            transferFamilyIndex = familyIndex;
+                        }
+                    }
+                }
+            }
+
+            AZ_Assert(
+                graphicsFamilyIndex != -1 && computeFamilyIndex != -1 && transferFamilyIndex != -1, "Necessary queue families not found.");
+
+            AZStd::unordered_map<int, uint32_t> queueCounts;
+
+            queueCounts[graphicsFamilyIndex]++;
+            queueCounts[computeFamilyIndex]++;
+            queueCounts[transferFamilyIndex]++;
+
             AZStd::vector<VkDeviceQueueCreateInfo> queueCreationInfo;
             VkDeviceQueueCreateInfo queueCreateInfo = {};
             queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 
-            for (size_t familyIndex = 0; familyIndex < m_queueFamilyProperties.size(); ++familyIndex)
-            {
-                const VkQueueFamilyProperties& familyProperties = m_queueFamilyProperties[familyIndex];
+            // [GFX TODO][ATOM-286] Figure out if we care about queue priority (currently: maximum of 3 queues per family)
+            AZStd::array<float, 3> queuePriority{ 1.0f, 1.0f, 1.0f };
 
-                // [GFX TODO][ATOM-286] Figure out if we care about queue priority
-                float* queuePriorities = new float[familyProperties.queueCount];
-                for (size_t index = 0; index < familyProperties.queueCount; ++index)
-                {
-                    queuePriorities[index] = 1.0f;
-                }
+            for (auto [familyIndex, queueCount] : queueCounts)
+            {
+                queueCount = AZStd::min(queueCount, m_queueFamilyProperties[familyIndex].queueCount);
 
                 queueCreateInfo.queueFamilyIndex = static_cast<uint32_t>(familyIndex);
-                queueCreateInfo.queueCount = familyProperties.queueCount;
-                queueCreateInfo.pQueuePriorities = queuePriorities;
+                queueCreateInfo.queueCount = queueCount;
+                queueCreateInfo.pQueuePriorities = queuePriority.data();
 
                 queueCreationInfo.push_back(queueCreateInfo);
             }
@@ -195,15 +258,12 @@ namespace AZ
             descriptorIndexingFeatures.shaderInputAttachmentArrayNonUniformIndexing = physicalDeviceDescriptorIndexingFeatures.shaderInputAttachmentArrayNonUniformIndexing;
             descriptorIndexingFeatures.shaderUniformTexelBufferArrayNonUniformIndexing = physicalDeviceDescriptorIndexingFeatures.shaderUniformTexelBufferArrayNonUniformIndexing;
             descriptorIndexingFeatures.shaderStorageTexelBufferArrayNonUniformIndexing = physicalDeviceDescriptorIndexingFeatures.shaderStorageTexelBufferArrayNonUniformIndexing;
-            descriptorIndexingFeatures.descriptorBindingPartiallyBound = physicalDeviceDescriptorIndexingFeatures.shaderStorageTexelBufferArrayNonUniformIndexing;
+            descriptorIndexingFeatures.descriptorBindingPartiallyBound = physicalDeviceDescriptorIndexingFeatures.descriptorBindingPartiallyBound;
             descriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount;
             descriptorIndexingFeatures.runtimeDescriptorArray = physicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray;
-            descriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind =
-                physicalDeviceDescriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind;
-            descriptorIndexingFeatures.descriptorBindingStorageImageUpdateAfterBind =
-                physicalDeviceDescriptorIndexingFeatures.descriptorBindingStorageImageUpdateAfterBind;
-            descriptorIndexingFeatures.descriptorBindingStorageBufferUpdateAfterBind =
-                physicalDeviceDescriptorIndexingFeatures.descriptorBindingStorageBufferUpdateAfterBind;
+            descriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind = physicalDeviceDescriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind;
+            descriptorIndexingFeatures.descriptorBindingStorageImageUpdateAfterBind = physicalDeviceDescriptorIndexingFeatures.descriptorBindingStorageImageUpdateAfterBind;
+            descriptorIndexingFeatures.descriptorBindingStorageBufferUpdateAfterBind = physicalDeviceDescriptorIndexingFeatures.descriptorBindingStorageBufferUpdateAfterBind;
 
             auto bufferDeviceAddressFeatures = physicalDevice.GetPhysicalDeviceBufferDeviceAddressFeatures();
             auto depthClipEnabled = physicalDevice.GetPhysicalDeviceDepthClipEnableFeatures();
@@ -212,7 +272,7 @@ namespace AZ
 
             VkPhysicalDeviceRobustness2FeaturesEXT robustness2 = {};
             robustness2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
-            robustness2.nullDescriptor = physicalDevice.GetPhysicalDeviceRobutness2Features().nullDescriptor;
+            robustness2.nullDescriptor = physicalDevice.GetPhysicalDeviceRobustness2Features().nullDescriptor;
 
             bufferDeviceAddressFeatures.pNext = nullptr;
             depthClipEnabled.pNext = nullptr;
@@ -236,23 +296,23 @@ namespace AZ
                 AppendVkStruct(chainInit, &subpassMergeFeedback);
             }
 
-            auto fragmenDensityMapFeatures = physicalDevice.GetPhysicalDeviceFragmentDensityMapFeatures();
-            auto fragmenShadingRateFeatures = physicalDevice.GetPhysicalDeviceFragmentShadingRateFeatures();
+            auto fragmentDensityMapFeatures = physicalDevice.GetPhysicalDeviceFragmentDensityMapFeatures();
+            auto fragmentShadingRateFeatures = physicalDevice.GetPhysicalDeviceFragmentShadingRateFeatures();
 
-            if (fragmenShadingRateFeatures.attachmentFragmentShadingRate)
+            if (fragmentShadingRateFeatures.attachmentFragmentShadingRate)
             {
                 // Must disable the "FragmentDensityMap" usage if "attachmentFragmentShadingRate" is enabled.
                 physicalDevice.DisableOptionalDeviceExtension(OptionalDeviceExtension::FragmentDensityMap);
-                fragmenShadingRateFeatures.pNext = nullptr;
-                AppendVkStruct(chainInit, &fragmenShadingRateFeatures);
+                fragmentShadingRateFeatures.pNext = nullptr;
+                AppendVkStruct(chainInit, &fragmentShadingRateFeatures);
             }
-            else if (fragmenDensityMapFeatures.fragmentDensityMap && fragmenDensityMapFeatures.fragmentDensityMapNonSubsampledImages)
+            else if (fragmentDensityMapFeatures.fragmentDensityMap && fragmentDensityMapFeatures.fragmentDensityMapNonSubsampledImages)
             {
                 // We only support NonSubsampledImages when using fragment density map
                 // Must disable the "FragmentShadingRate" usage if "fragmentDensityMap" is enabled.
                 physicalDevice.DisableOptionalDeviceExtension(OptionalDeviceExtension::FragmentShadingRate);
-                fragmenDensityMapFeatures.pNext = nullptr;
-                AppendVkStruct(chainInit, &fragmenDensityMapFeatures);
+                fragmentDensityMapFeatures.pNext = nullptr;
+                AppendVkStruct(chainInit, &fragmentDensityMapFeatures);
             }
 
             VkPhysicalDeviceVulkan12Features vulkan12Features = {};
@@ -289,7 +349,6 @@ namespace AZ
                 vulkan12Features.descriptorBindingSampledImageUpdateAfterBind = physicalDevice.GetPhysicalDeviceVulkan12Features().descriptorBindingSampledImageUpdateAfterBind;
                 vulkan12Features.descriptorBindingStorageImageUpdateAfterBind = physicalDevice.GetPhysicalDeviceVulkan12Features().descriptorBindingStorageImageUpdateAfterBind;
                 vulkan12Features.descriptorBindingStorageBufferUpdateAfterBind = physicalDevice.GetPhysicalDeviceVulkan12Features().descriptorBindingStorageBufferUpdateAfterBind;
-                vulkan12Features.descriptorBindingPartiallyBound = physicalDevice.GetPhysicalDeviceVulkan12Features().descriptorBindingPartiallyBound;
                 vulkan12Features.descriptorBindingUpdateUnusedWhilePending = physicalDevice.GetPhysicalDeviceVulkan12Features().descriptorBindingUpdateUnusedWhilePending;
                 vulkan12Features.shaderOutputViewportIndex = physicalDevice.GetPhysicalDeviceVulkan12Features().shaderOutputViewportIndex;
                 vulkan12Features.shaderOutputLayer = physicalDevice.GetPhysicalDeviceVulkan12Features().shaderOutputLayer;
@@ -372,11 +431,6 @@ namespace AZ
             if (physicalDevice.IsOptionalDeviceExtensionSupported(OptionalDeviceExtension::CalibratedTimestamps))
             {
                 InitializeTimeDomains();
-            }
-
-            for (const VkDeviceQueueCreateInfo& queueInfo : queueCreationInfo)
-            {
-                delete[] queueInfo.pQueuePriorities;
             }
 
             //Load device features now that we have loaded all extension info
@@ -1349,6 +1403,40 @@ namespace AZ
             m_features.m_signalFenceFromCPU = physicalDevice.GetPhysicalDeviceTimelineSemaphoreFeatures().timelineSemaphore;
 #endif
 #endif
+            // These are two nested ifs instead of one because MSVC complains about a missing contexpr otherwise
+            // The warning is C4127, but we can't add a constexpr when doing (constexpr && non-constexpr)
+            // The two ifs can be combined into a single one once MSVC fixes this warning
+            // See https://developercommunity.visualstudio.com/t/C4127-provides-advice-that-breaks-code/10497946?sort=newest&q=ICE
+            if constexpr (CrossDeviceFencesSupported)
+            {
+                if (physicalDevice.IsOptionalDeviceExtensionSupported(OptionalDeviceExtension::ExternalSemaphore))
+                {
+                    VkExternalSemaphoreProperties externalSemaphoreProperties{};
+                    externalSemaphoreProperties.sType = VK_STRUCTURE_TYPE_EXTERNAL_SEMAPHORE_PROPERTIES;
+
+                    VkPhysicalDeviceExternalSemaphoreInfo externalSemaphoreInfo{};
+                    externalSemaphoreInfo.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_SEMAPHORE_INFO;
+                    externalSemaphoreInfo.handleType = ExternalSemaphoreHandleTypeBit;
+
+                    VkSemaphoreTypeCreateInfo semaphoreCreateInfo{};
+                    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+                    semaphoreCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+                    externalSemaphoreInfo.pNext = &semaphoreCreateInfo;
+                    GetContext().GetPhysicalDeviceExternalSemaphoreProperties(
+                        physicalDevice.GetNativePhysicalDevice(), &externalSemaphoreInfo, &externalSemaphoreProperties);
+
+                    m_features.m_crossDeviceFences = RHI::CheckBitsAll<VkExternalSemaphoreFeatureFlags>(
+                        externalSemaphoreProperties.externalSemaphoreFeatures,
+                        VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT | VK_EXTERNAL_SEMAPHORE_FEATURE_EXPORTABLE_BIT);
+
+                    // This feature was only tested on Nvidia and it's not clear if it work for other Vendors
+                    // We disable it for other vendors for the time being
+                    m_features.m_crossDeviceFences =
+                        m_features.m_crossDeviceFences && physicalDevice.GetDescriptor().m_vendorId == RHI::VendorId::nVidia;
+                }
+            }
+            m_features.m_crossDeviceHostMemory =
+                physicalDevice.IsOptionalDeviceExtensionSupported(OptionalDeviceExtension::ExternalMemoryHost);
 
             const auto& deviceLimits = physicalDevice.GetDeviceLimits();
             m_limits.m_maxImageDimension1D = deviceLimits.maxImageDimension1D;

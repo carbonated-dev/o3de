@@ -13,6 +13,7 @@
 #include <AzCore/Component/EntityBus.h>
 #include <AzCore/Component/TickBus.h>
 #include <AzCore/EBus/Event.h>
+#include <AzFramework/AzFrameworkAPI.h>
 
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <AzFramework/Network/NetBindable.h>
@@ -38,7 +39,7 @@ namespace AzFramework
     using TransformComponentConfiguration = AZ::TransformConfig;
 
     //! Fundamental component that describes the entity in 3D space.
-    class TransformComponent
+    class AZF_API TransformComponent
         : public AZ::Component
         , public AZ::EntityBus::Handler
         , public AZ::TransformBus::Handler
@@ -64,9 +65,9 @@ namespace AzFramework
 
         using ParentActivationTransformMode = AZ::TransformConfig::ParentActivationTransformMode;
 
-        TransformComponent() = default;
+        TransformComponent();
         TransformComponent(const TransformComponent& copy);
-        ~TransformComponent() override = default;
+        ~TransformComponent() override;
 
         // TransformBus events (publicly accessible)
         void BindTransformChangedEventHandler(AZ::TransformChangedEvent::Handler& handler) override;

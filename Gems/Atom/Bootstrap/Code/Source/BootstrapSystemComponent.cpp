@@ -139,6 +139,7 @@ AZ_CVAR(uint32_t, r_maxheight, 0, cvar_r_resolution_Changed, AZ::ConsoleFunctorF
 AZ_CVAR(uint32_t, r_reduced_maxheight, 0, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Reduced Max Height in pixels to increase FPS for game-specific modes. 0 = disabled");
 #endif
 AZ_CVAR(uint32_t, r_fullscreen, false, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Starting fullscreen state.");
+AZ_CVAR(uint32_t, r_resizable, true, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Whether the window should be resizable.");
 AZ_CVAR(uint32_t, r_resolutionMode, 0, cvar_r_resolution_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "0: render resolution same as window client area size, 1: render resolution use the values specified by r_width and r_height");
 AZ_CVAR(float, r_renderScale, 1.0f, cvar_r_renderScale_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "Scale to apply to the window resolution.");
 AZ_CVAR(AZ::CVarFixedString, r_antiAliasing, "", cvar_r_antiAliasing_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "The anti-aliasing to be used for the current render pipeline. Available options: MSAA, TAA, SMAA");
@@ -228,6 +229,20 @@ namespace AZ
                         if (AZ::StringFunc::LooksLikeBool(valueStr.c_str()))
                         {
                             r_fullscreen = AZ::StringFunc::ToBool(valueStr.c_str());
+                        }
+                    }
+                }
+
+                const AZStd::string resizableCvarName("r_resizable");
+                if (pCmdLine->HasSwitch(resizableCvarName))
+                {
+                    auto numValues = pCmdLine->GetNumSwitchValues(resizableCvarName);
+                    if (numValues > 0)
+                    {
+                        auto valueStr = pCmdLine->GetSwitchValue(resizableCvarName);
+                        if (AZ::StringFunc::LooksLikeBool(valueStr.c_str()))
+                        {
+                            r_resizable = AZ::StringFunc::ToBool(valueStr.c_str());
                         }
                     }
                 }
@@ -394,8 +409,14 @@ namespace AZ
                     // command line arguments into cvars.
                     UpdateCVarsFromCommandLine();
 
+                    AzFramework::WindowStyleMasks masks{};
+                    if (r_resizable)
+                    {
+                        masks.m_platformAgnosticStyleMask |= AzFramework::WindowStyleMasks::WINDOW_STYLE_RESIZEABLE;
+                    }
+
                     m_nativeWindow = AZStd::make_unique<AzFramework::NativeWindow>(
-                        projectTitle.c_str(), AzFramework::WindowGeometry(0, 0, r_width, r_height));
+                        projectTitle.c_str(), AzFramework::WindowGeometry(0, 0, r_width, r_height), masks);
                     AZ_Assert(m_nativeWindow, "Failed to create the game window\n");
 
                     m_nativeWindow->Activate();

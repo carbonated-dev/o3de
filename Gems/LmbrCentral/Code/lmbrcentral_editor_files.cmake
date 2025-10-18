@@ -34,10 +34,6 @@ set(FILES
     Source/Builders/BenchmarkAssetBuilder/BenchmarkAssetBuilderWorker.cpp
     Source/Scripting/EditorLookAtComponent.h
     Source/Scripting/EditorLookAtComponent.cpp
-    Source/Scripting/EditorRandomTimedSpawnerComponent.cpp
-    Source/Scripting/EditorRandomTimedSpawnerComponent.h
-    Source/Scripting/EditorSpawnerComponent.h
-    Source/Scripting/EditorSpawnerComponent.cpp
     Source/Scripting/EditorPrefabSpawnerComponent.h
     Source/Scripting/EditorPrefabSpawnerComponent.cpp
     Source/Scripting/EditorTagComponent.h
@@ -80,8 +76,6 @@ set(FILES
     Source/Shape/EditorShapeComponentConverters.cpp
     Source/Editor/EditorCommentComponent.h
     Source/Editor/EditorCommentComponent.cpp
-    Source/Scripting/SpawnerComponent.h
-    Source/Scripting/SpawnerComponent.cpp
     Source/Scripting/PrefabSpawnerComponent.h
     Source/Scripting/PrefabSpawnerComponent.cpp
     Source/Shape/TubeShape.h
@@ -104,10 +98,6 @@ set(FILES
     Source/Builders/CopyDependencyBuilder/XmlBuilderWorker/XmlBuilderWorker.h
     Source/Builders/CopyDependencyBuilder/XmlFormattedAssetBuilderWorker.cpp
     Source/Builders/CopyDependencyBuilder/XmlFormattedAssetBuilderWorker.h
-    Source/Builders/LevelBuilder/LevelBuilderComponent.cpp
-    Source/Builders/LevelBuilder/LevelBuilderComponent.h
-    Source/Builders/LevelBuilder/LevelBuilderWorker.cpp
-    Source/Builders/LevelBuilder/LevelBuilderWorker.h
     Source/Builders/SliceBuilder/SliceBuilderComponent.cpp
     Source/Builders/SliceBuilder/SliceBuilderComponent.h
     Source/Builders/SliceBuilder/SliceBuilderWorker.cpp

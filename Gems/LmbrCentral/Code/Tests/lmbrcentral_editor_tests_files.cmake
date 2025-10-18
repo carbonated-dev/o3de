@@ -20,7 +20,6 @@ set(FILES
     EditorShapeTestUtils.cpp
     EditorShapeTestUtils.h
     EditorTubeShapeComponentTests.cpp
-    SpawnerComponentTest.cpp
     PrefabSpawnerComponentTest.cpp
     Builders/CopyDependencyBuilderTest.cpp
     Builders/SliceBuilderTests.cpp

@@ -23,6 +23,10 @@
             "isTemplated": false
         },
         {
+            "file": ".command_settings",
+            "isTemplated": false
+        },
+        {
             "file": "CMakeLists.txt",
             "isTemplated": true
         },
@@ -85,6 +89,10 @@
         {
             "file": "Registry/assetprocessor_settings.setreg",
             "isTemplated": true
+        },
+        {
+            "file": "Registry/assimp_settings.setreg",
+            "isTemplated": false
         },
         {
             "file": "Resources/GameSDK.ico",

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <AzCore/base.h>
 #include <AzCore/Memory/Memory.h>
 #include <AzCore/std/typetraits/aligned_storage.h>
 
@@ -65,9 +66,6 @@ namespace AZ
     };
 
     // Template is externed here and explicitly instantiated in the cpp file
-    extern template class HphaSchemaBase<false>;
-    extern template class HphaSchemaBase<true>;
-
     namespace Internal
     {
         // HphaSchema class defaults to disabling the allocator debug functionality

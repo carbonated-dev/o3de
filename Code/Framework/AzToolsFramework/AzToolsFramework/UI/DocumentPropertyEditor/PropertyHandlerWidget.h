@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <AzToolsFramework/AzToolsFrameworkAPI.h>
 #if !defined(Q_MOC_RUN)
 #include <AzCore/DOM/DomUtils.h>
 #include <AzCore/DOM/DomValue.h>
@@ -23,7 +24,7 @@ namespace AzToolsFramework
     //! Property handler widgets are registered to the PropertyEditorToolsSystemInterface and
     //! instantiated as part of the DocumentPropertyEditor, with one handler instance being constructed
     //! for each property editor.
-    class PropertyHandlerWidgetInterface
+    class AZTF_API PropertyHandlerWidgetInterface
     {
     public:
         virtual ~PropertyHandlerWidgetInterface() = default;
@@ -39,6 +40,12 @@ namespace AzToolsFramework
         {
             return false;
         }
+
+        //! Allow the widget to lint its matching text to outline the current search
+        virtual void SetFilter([[maybe_unused]] const QString& filter)
+        {
+        }
+
         //! Returns the first widget in the tab order for this property editor, i.e. the widget that should be selected
         //! when the user hits tab on the widget immediately prior to this.
         //! By default, this returns GetWidget, a single widget tab order.

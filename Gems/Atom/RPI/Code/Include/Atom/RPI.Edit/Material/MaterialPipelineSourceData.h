@@ -7,12 +7,13 @@
  */
 #pragma once
 
-#include <AzCore/RTTI/RTTI.h>
-#include <AzCore/Memory/SystemAllocator.h>
-#include <AzCore/std/string/string.h>
-#include <AzCore/std/containers/vector.h>
 #include <Atom/RPI.Edit/Configuration.h>
 #include <Atom/RPI.Edit/Material/MaterialPropertySourceData.h>
+#include <Atom/RPI.Reflect/Material/ShaderCollection.h>
+#include <AzCore/Memory/SystemAllocator.h>
+#include <AzCore/RTTI/RTTI.h>
+#include <AzCore/std/containers/vector.h>
+#include <AzCore/std/string/string.h>
 
 namespace AZ
 {
@@ -39,16 +40,30 @@ namespace AZ
 
                 AZStd::string m_shader; //!< Relative path to a template .shader file that will configure the final shader asset.
                 AZStd::string m_azsli; //!< Relative path to a template .azsli file that will be stitched together with material-specific shader code.
+
                 Name m_shaderTag; //!< tag to identify the shader, particularly in lua functors
+                //! Type of the generated draw-items
+                using DrawItemType = AZ::RPI::ShaderCollection::Item::DrawItemType;
+                DrawItemType m_drawItemType = DrawItemType::Raster;
 
                 bool operator==(const ShaderTemplate& rhs) const
                 {
-                    return m_shader == rhs.m_shader && m_azsli == rhs.m_azsli && m_shaderTag == rhs.m_shaderTag;
+                    return m_shader == rhs.m_shader && m_azsli == rhs.m_azsli && m_shaderTag == rhs.m_shaderTag &&
+                        m_drawItemType == rhs.m_drawItemType;
                 }
 
                 bool operator<(const ShaderTemplate& rhs) const
                 {
-                    return AZStd::tuple(m_shader, m_azsli, m_shaderTag.GetHash()) < AZStd::tuple(rhs.m_shader, rhs.m_azsli, rhs.m_shaderTag.GetHash());
+                    return AZStd::tuple(
+                               AZStd::string_view(m_shader),
+                               AZStd::string_view(m_azsli),
+                               m_shaderTag.GetHash(),
+                               static_cast<int32_t>(m_drawItemType)) <
+                        AZStd::tuple(
+                               AZStd::string_view(rhs.m_shader),
+                               AZStd::string_view(rhs.m_azsli),
+                               rhs.m_shaderTag.GetHash(),
+                               static_cast<int32_t>(rhs.m_drawItemType));
                 }
             };
 
@@ -65,17 +80,36 @@ namespace AZ
             AZStd::vector<ShaderTemplate> m_shaderTemplates;
 
             // A list of members to be added to the Object SRG. For example, writing:
-            // 
+            //
             // "objectSrg": [
             //     "float4 m_myCustomVar1",
             //     "uint   m_myCustomVar2"
             // ],
-            // 
+            //
             // in your .materialpipeline file will add m_myCustomVar1 and m_myCustomVar2
             // to the ObjectSrg of all materials rendered in your material pipeline.
             // NOTE: this feature currently only supports "type variableName" entries and
             // doesn't support arbitrary strings, which may cause shader compilation failure
+            //
+            // NOTE 2: Keep in mind that this can't be supported in Raytracing shaders or Deferred shaders, since
+            // those don't have an ObjectSrg or DrawSrg.
             AZStd::vector<AZStd::string> m_objectSrgAdditions;
+
+            // A list of members to be added to the Draw SRG. For example, writing:
+            //
+            // "drawSrgAdditions": [
+            //     "float4 m_myCustomVar1;",
+            //     "uint   m_myCustomVar2;"
+            // ],
+            //
+            // in your .materialpipeline file will add m_myCustomVar1 and m_myCustomVar2
+            // to the DrawSrg of all materials rendered in your material pipeline.
+            // NOTE: this feature currently only supports "type variableName" entries and
+            // doesn't support arbitrary strings, which may cause shader compilation failure
+            //
+            // NOTE 2: As abovce, keep in mind that this can't be supported in Raytracing shaders or Deferred shaders, since
+            // those don't have an ObjectSrg or DrawSrg.
+            AZStd::vector<AZStd::string> m_drawSrgAdditions;
 
             //! Relative path to a lua script to configure shader compilation
             AZStd::string m_pipelineScript;

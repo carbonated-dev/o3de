@@ -43,7 +43,10 @@ set(launcher_generator_LY_PROJECTS ${LY_PROJECTS})
 # and the prebuilt installer always operates on a project, so will generally only happen
 # when building an installer from the o3de source code, or just compiling O3DE itself with no
 # project specified.
-if (NOT launcher_generator_LY_PROJECTS)
+if (NOT launcher_generator_LY_PROJECTS AND NOT LY_MONOLITHIC_GAME)
+    # do not generate a stub O3DE Launcher in monolithic mode.
+    # This stub O3DE Generic Launcher is only for script-only mode, which cannot function in monolithic
+    # linkage mode, since it does not have a linker.
     set(launcher_generator_LY_PROJECTS ":PROJECT_PATH_ONLY_FOR_GENERIC_LAUNCHER")
     set(O3DE_PROJECTS_NAME "O3DE")
     set(launcher_generator_BUILD_GENERIC TRUE) # used to skip the asset processing step
@@ -69,8 +72,9 @@ foreach(project_name project_path IN ZIP_LISTS O3DE_PROJECTS_NAME launcher_gener
         if(PAL_TRAIT_BUILD_HOST_TOOLS)
             add_custom_target(${project_name}.Assets
                 COMMENT "Processing ${project_name} assets..."
+                USES_TERMINAL # Do not buffer output of run command
                 COMMAND "${CMAKE_COMMAND}"
-                    -DLY_LOCK_FILE=$<GENEX_EVAL:$<TARGET_FILE_DIR:AZ::AssetProcessorBatch>>/project_assets.lock
+                    -DLY_LOCK_FILE=${project_real_path}/user/AssetProcessorTemp/project_assets.lock
                     -P ${LY_ROOT_FOLDER}/cmake/CommandExecution.cmake
                         EXEC_COMMAND $<GENEX_EVAL:$<TARGET_FILE:AZ::AssetProcessorBatch>>
                             --zeroAnalysisMode

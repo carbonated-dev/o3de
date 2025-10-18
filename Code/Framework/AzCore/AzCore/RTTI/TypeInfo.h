@@ -261,7 +261,6 @@ namespace AZ
             }
         };
 
-        extern template struct AggregateTypes<Crc32>;
 
         template<typename T>
         constexpr AZStd::string_view GetTypeName()
@@ -468,14 +467,14 @@ namespace AZ
 namespace AZ
 {
     //! Add GetO3deTypeName and GetO3deTypeId declarations for commonly used O3DE types
-    AZ_TYPE_INFO_SPECIALIZE_WITH_NAME_DECL(AZ::Uuid);
-    AZ_TYPE_INFO_SPECIALIZE_WITH_NAME_DECL(PlatformID);
+    AZ_TYPE_INFO_SPECIALIZE_WITH_NAME_DECL_API(AZCORE_API, AZ::Uuid);
+    AZ_TYPE_INFO_SPECIALIZE_WITH_NAME_DECL_API(AZCORE_API, PlatformID);
 }
 
 namespace AZStd
 {
-    AZ_TYPE_INFO_SPECIALIZE_WITH_NAME_DECL(AZStd::monostate);
-    AZ_TYPE_INFO_SPECIALIZE_WITH_NAME_DECL(AZStd::allocator);
+    AZ_TYPE_INFO_SPECIALIZE_WITH_NAME_DECL_API(AZCORE_API, AZStd::monostate);
+    AZ_TYPE_INFO_SPECIALIZE_WITH_NAME_DECL_API(AZCORE_API, AZStd::allocator);
 
     // Adding specialization of AZStd container types in the AZStd namespace
     // to allow ADL for these types when invoking GetO3deTypeName/GetO3deTypeId from the AzTypeInfo template
@@ -512,9 +511,9 @@ namespace AZStd
     // Add declarations of GetO3deTypeName and GetO3deTypeId for the basic string templates
     // In TypeInfo.cpp the implementation for common string specializations are added
     // AZStd::string, AZStd::string_view, AZStd::fixed_string<1024>, AZ::OSString
-    AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL(AZStd::char_traits, AZ_TYPE_INFO_INTERNAL_TYPENAME);
-    AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL(AZStd::basic_string_view, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_TYPENAME);
-    AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL(AZStd::basic_string, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_TYPENAME);
+    AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL_API(AZCORE_API, AZStd::char_traits, AZ_TYPE_INFO_INTERNAL_TYPENAME);
+    AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL_API(AZCORE_API, AZStd::basic_string_view, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_TYPENAME);
+    AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL_API(AZCORE_API, AZStd::basic_string, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_TYPENAME);
 #if defined(CARBONATED)
     // Xcode 16 compiler error fix
     // split in two parts to avoid ambiguous GetTemplateIdentity compiler error
@@ -523,9 +522,9 @@ namespace AZStd
     // I changed GetTemplateIdentity to explicit implementation to avoid the error
     AZ::TemplateId GetO3deTemplateId(AZ::Adl, decltype(AZ::AzGenericTypeInfo::Internal::TemplateIdentityTypeAutoType<AZStd::basic_fixed_string>()));
     // part 2 of the original macro
-    AZ_TYPE_INFO_INTERNAL_BOTHFIX_UUID_DECL(AZStd::basic_fixed_string, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_AUTO, AZ_TYPE_INFO_INTERNAL_TYPENAME);
+    AZ_TYPE_INFO_INTERNAL_BOTHFIX_UUID_DECL_API(AZCORE_API, AZStd::basic_fixed_string, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_AUTO, AZ_TYPE_INFO_INTERNAL_TYPENAME);
 #else
-    AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL(AZStd::basic_fixed_string, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_AUTO, AZ_TYPE_INFO_INTERNAL_TYPENAME);
+    AZ_TYPE_INFO_INTERNAL_SPECIALIZED_TEMPLATE_BOTHFIX_UUID_DECL_API(AZCORE_API, AZStd::basic_fixed_string, AZ_TYPE_INFO_INTERNAL_TYPENAME, AZ_TYPE_INFO_INTERNAL_AUTO, AZ_TYPE_INFO_INTERNAL_TYPENAME);
 #endif
 }
 

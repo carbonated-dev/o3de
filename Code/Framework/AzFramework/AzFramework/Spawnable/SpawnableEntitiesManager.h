@@ -17,8 +17,12 @@
 #include <AzCore/std/parallel/atomic.h>
 #include <AzCore/std/parallel/mutex.h>
 #include <AzFramework/Spawnable/SpawnableEntitiesInterface.h>
+#include <AzFramework/AzFrameworkAPI.h>
+
+#if defined(CARBONATED)
 #include <AzFramework/Spawnable/Spawnable.h>    // Gruber patch // VMED
 #include <AzCore/Component/EntityId.h> // Gruber patch. // LVB. // Support unique instances
+#endif
 
 namespace AZ
 {
@@ -28,7 +32,7 @@ namespace AZ
 
 namespace AzFramework
 {
-    class SpawnableEntitiesManager
+    class AZF_API SpawnableEntitiesManager
         : public SpawnableEntitiesInterface::Registrar
     {
     public:

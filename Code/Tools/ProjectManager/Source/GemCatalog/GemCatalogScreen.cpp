@@ -98,7 +98,7 @@ namespace O3DE::ProjectManager
         connect(
             m_gemInspector,
             &GemInspector::TagClicked,
-            [=](const Tag& tag)
+            [this](const Tag& tag)
             {
                 SelectGem(tag.id);
             });
@@ -309,6 +309,9 @@ namespace O3DE::ProjectManager
     void GemCatalogScreen::Refresh(bool refreshRemoteRepos)
     {
         QSet<QPersistentModelIndex> validIndexes;
+
+        // Clear the model to avoid duplicated entries that may cause incompatibilities
+        m_gemModel->Clear();
 
         if (const auto& outcome = PythonBindingsInterface::Get()->GetAllGemInfos(m_projectPath); outcome.IsSuccess())
         {

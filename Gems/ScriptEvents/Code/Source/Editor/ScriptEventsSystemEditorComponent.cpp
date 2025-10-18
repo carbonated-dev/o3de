@@ -22,7 +22,7 @@
 
 #if defined(SCRIPTEVENTS_EDITOR)
 
-AZ_DECLARE_BUDGET(AzToolsFramework);
+AZ_DECLARE_BUDGET_SHARED(AzToolsFramework);
 
 namespace ScriptEventsEditor
 {
@@ -243,6 +243,7 @@ namespace ScriptEventsEditor
         if (moduleConfiguration)
         {
             moduleConfiguration->UnregisterAssetHandler();
+            moduleConfiguration->CleanUp();
         }
     }
 }

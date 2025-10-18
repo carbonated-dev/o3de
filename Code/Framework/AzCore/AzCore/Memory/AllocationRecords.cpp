@@ -239,8 +239,8 @@ namespace AZ::Debug
         size_t newRequestedBytePeak;
         do
         {
-            currentRequestedBytePeak = m_requestedBytesPeak.load(std::memory_order::memory_order_relaxed);
-            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(std::memory_order::memory_order_relaxed));
+            currentRequestedBytePeak = m_requestedBytesPeak.load(AZStd::memory_order_relaxed);
+            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(AZStd::memory_order_relaxed));
         } while (!m_requestedBytesPeak.compare_exchange_weak(currentRequestedBytePeak, newRequestedBytePeak));
 
         ++m_requestedAllocs;
@@ -412,8 +412,8 @@ namespace AZ::Debug
         size_t newRequestedBytePeak;
         do
         {
-            currentRequestedBytePeak = m_requestedBytesPeak.load(std::memory_order::memory_order_relaxed);
-            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(std::memory_order::memory_order_relaxed));
+            currentRequestedBytePeak = m_requestedBytesPeak.load(AZStd::memory_order_relaxed);
+            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(AZStd::memory_order_relaxed));
         } while (!m_requestedBytesPeak.compare_exchange_weak(currentRequestedBytePeak, newRequestedBytePeak));
         ++m_requestedAllocs;
 
@@ -516,8 +516,8 @@ namespace AZ::Debug
         size_t newRequestedBytePeak;
         do
         {
-            currentRequestedBytePeak = m_requestedBytesPeak.load(std::memory_order::memory_order_relaxed);
-            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(std::memory_order::memory_order_relaxed));
+            currentRequestedBytePeak = m_requestedBytesPeak.load(AZStd::memory_order_relaxed);
+            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(AZStd::memory_order_relaxed));
         } while (!m_requestedBytesPeak.compare_exchange_weak(currentRequestedBytePeak, newRequestedBytePeak));
     }
 

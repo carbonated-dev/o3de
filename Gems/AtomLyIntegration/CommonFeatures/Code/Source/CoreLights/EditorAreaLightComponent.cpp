@@ -49,7 +49,7 @@ namespace AZ
                             ->Attribute(Edit::Attributes::ViewportIcon, "Icons/Components/Viewport/AreaLight.svg")
                             ->Attribute(Edit::Attributes::AppearsInAddComponentMenu, AZ_CRC_CE("Game"))
                             ->Attribute(Edit::Attributes::AutoExpand, true)
-                            ->Attribute(Edit::Attributes::HelpPageURL, "https://o3de.org/docs/user-guide/components/reference/atom/light/")
+                            ->Attribute(Edit::Attributes::HelpPageURL, "https://www.o3de.org/docs/user-guide/components/reference/atom/light/")
                         ;
 
                     editContext->Class<AreaLightComponentController>(
@@ -245,7 +245,7 @@ namespace AZ
             if (m_lightType == AreaLightComponentConfig::LightType::Unknown)
             {
                 // Light type is unknown, see if it can be determined from a shape component.
-                Crc32 shapeType = Crc32(0);
+                Crc32 shapeType = Crc32();
                 LmbrCentral::ShapeComponentRequestsBus::EventResult(shapeType, GetEntityId(), &LmbrCentral::ShapeComponentRequestsBus::Events::GetShapeType);
                 
                 constexpr Crc32 SphereShapeTypeId = AZ_CRC_CE("Sphere");

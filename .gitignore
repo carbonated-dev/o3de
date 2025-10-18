@@ -23,6 +23,7 @@ _savebackup/
 *.swatches
 /imgui.ini
 .command_settings
+CrashDB/
 
 # CARBONATED
 /python/runtime

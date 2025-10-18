@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <AzToolsFramework/AzToolsFrameworkAPI.h>
+
 #if !defined(Q_MOC_RUN)
 #include <AzCore/Instance/InstancePool.h>
 #include <AzCore/std/containers/unordered_set.h>
@@ -35,7 +37,7 @@ namespace AzToolsFramework
     class DocumentPropertyEditor;
     class DPERowWidget;
 
-    class DPELayout : public QHBoxLayout
+    class AZTF_API DPELayout : public QHBoxLayout
     {
         Q_OBJECT
 
@@ -95,7 +97,7 @@ namespace AzToolsFramework
         mutable QSize m_cachedMinLayoutSize;
     };
 
-    class DPERowWidget : public QFrame
+    class AZTF_API DPERowWidget : public QFrame
     {
         Q_OBJECT
         Q_PROPERTY(bool hasChildRows READ HasChildRows);
@@ -180,7 +182,7 @@ namespace AzToolsFramework
         AZStd::optional<bool> m_expandByDefault;
     };
 
-    class DocumentPropertyEditor
+    class AZTF_API DocumentPropertyEditor
         : public QScrollArea
         , public IPropertyEditor
     {
@@ -203,8 +205,6 @@ namespace AzToolsFramework
          *  to make the DPE arbitrarily narrow. */
         void SetEnforceMinWidth(bool enforceMinWidth);
 
-        virtual QSize sizeHint() const override;
-
         auto GetAdapter()
         {
             return m_adapter;
@@ -225,9 +225,15 @@ namespace AzToolsFramework
         void ExpandAll();
         void CollapseAll();
 
+        // QScrollArea overrides
+        virtual QSize sizeHint() const override;
+        // ~QScrollArea overrides
+
         // IPropertyEditor overrides
         void SetSavedStateKey(AZ::u32 key, AZStd::string propertyEditorName = {}) override;
         void ClearInstances() override;
+        void SetFilterString(AZStd::string str) override; // Only used for linting, filtering is handled by the DocumentAdapter
+        // ~IPropertyEditor overrides
 
         AZ::Dom::Value GetDomValueForRow(DPERowWidget* row) const;
 
@@ -295,6 +301,7 @@ namespace AzToolsFramework
         AZ::DocumentPropertyEditor::DocumentAdapter::ResetEvent::Handler m_resetHandler;
         AZ::DocumentPropertyEditor::DocumentAdapter::ChangedEvent::Handler m_changedHandler;
         AZ::DocumentPropertyEditor::DocumentAdapter::MessageEvent::Handler m_domMessageHandler;
+        AZ::DocumentPropertyEditor::DocumentAdapter::FilterEvent::Handler m_filterHandler;
 
         QVBoxLayout* m_layout = nullptr;
         bool m_allowVerticalScroll = true;

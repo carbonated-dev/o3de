@@ -7,7 +7,6 @@
  */
 #pragma once
 
-#include <Cry_Geo.h>
 #include <Include/IPlugin.h>
 #include <QtWidgets/QMainWindow>
 #include <LyShine/IDraw2d.h>
@@ -159,7 +158,7 @@ bool ClipboardContainsOurDataType();
 
 #define UICANVASEDITOR_NAME_SHORT   "UiCanvasEditor"
 
-#define UICANVASEDITOR_COORDINATE_SYSTEM_CYCLE_SHORTCUT_KEY_SEQUENCE    QKeySequence(Qt::CTRL + Qt::Key_W)
+#define UICANVASEDITOR_COORDINATE_SYSTEM_CYCLE_SHORTCUT_KEY_SEQUENCE    QKeySequence(0x0 | Qt::CTRL | Qt::Key_W)
 #define UICANVASEDITOR_SNAP_TO_GRID_TOGGLE_SHORTCUT_KEY_SEQUENCE        QKeySequence(Qt::Key_G)
 
 #define UICANVASEDITOR_CANVAS_DIRECTORY "UI/Canvases"
