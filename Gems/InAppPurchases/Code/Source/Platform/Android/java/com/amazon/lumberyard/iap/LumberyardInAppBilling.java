@@ -53,10 +53,13 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
         public String m_signature;
         public long m_purchaseTime;
         public boolean m_isAutoRenewing;
+        public String m_price;
+        public String m_currencyCode;
+        public long m_priceMicro;
     }
 
     private static final String s_tag = "LMBR";
-    private static final String s_subTag = "(IAP) - ";
+    private static final String s_subTag = "(O3DEInAppPurchases) - ";
 
     private final Activity m_activity;
     private BillingClient m_billingClient;
@@ -68,6 +71,7 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
     private final ArrayList<PurchasedProductDetails> m_queriedProductsList = new ArrayList<>();
     private int m_queryPurchasesResponseCount = 0;
     private final Object m_queryLock = new Object();
+    private PurchasedProductDetails m_lastPurchasedProductDetails;
 
     public native void nativeProductInfoRetrieved(Object[] productDetails);
     public native void nativeNewProductPurchased(Object[] purchasedProductDetails);
@@ -157,12 +161,34 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
     public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases)
     {
         final int responseCode = billingResult.getResponseCode();
+        Log.d(s_tag, s_subTag + "onPurchasesUpdated responseCode = " + responseCode);
 
         if (responseCode == BillingClient.BillingResponseCode.OK && purchases != null)
         {
-            ArrayList<PurchasedProductDetails> purchasedProducts = new ArrayList<>();
-            ParsePurchasedProducts(purchases, purchasedProducts);
-            nativeNewProductPurchased(purchasedProducts.toArray());
+            purchases.forEach(purchase ->
+            {
+                ArrayList<PurchasedProductDetails> purchasedProducts = new ArrayList<>();
+                ParsePurchasedProduct(purchase, purchasedProducts);
+                if (!purchasedProducts.isEmpty())
+                {
+                    PurchasedProductDetails purchasedProduct = purchasedProducts.get(0);
+                    if (purchasedProduct.m_orderId != null)
+                    {
+                        m_lastPurchasedProductDetails = purchasedProduct;
+                        nativeNewProductPurchased(purchasedProducts.toArray());
+                    }
+                    else
+                    {
+                        Log.e(s_tag, s_subTag + "Payment is delayed");
+                        nativePurchaseFailed(BillingClient.BillingResponseCode.SERVICE_TIMEOUT);
+                    }
+                }
+                else
+                {
+                    Log.e(s_tag, s_subTag + "Unable to parse product");
+                    nativePurchaseFailed(BillingClient.BillingResponseCode.ITEM_UNAVAILABLE);
+                }
+            });
         }
         else
         {
@@ -401,6 +427,15 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
         m_billingClient.consumeAsync(consumeParams, listener);
     }
 
+    public String GetLastTransactionReceipt()
+    {
+        if (m_lastPurchasedProductDetails == null)
+        {
+            return "";
+        }
+        return m_lastPurchasedProductDetails.m_purchaseToken;
+    }
+
     private void ParsePurchasedProducts(List<Purchase> purchases, ArrayList<PurchasedProductDetails> purchasedProducts)
     {
         if (purchases == null)
@@ -410,18 +445,49 @@ public class LumberyardInAppBilling implements PurchasesUpdatedListener
 
         for (Purchase purchase : purchases)
         {
-            for (String productId : purchase.getProducts())
+            ParsePurchasedProduct(purchase, purchasedProducts);
+        }
+    }
+
+    private void ParsePurchasedProduct(Purchase purchase, ArrayList<PurchasedProductDetails> purchasedProducts)
+    {
+        if (purchase == null)
+        {
+            return;
+        }
+
+        for (String productId : purchase.getProducts())
+        {
+            com.android.billingclient.api.ProductDetails.OneTimePurchaseOfferDetails purchaseOfferDetails = null;
+            for (com.android.billingclient.api.ProductDetails details : m_productDetailsList)
             {
-                PurchasedProductDetails purchasedProductDetails = new PurchasedProductDetails();
-                purchasedProductDetails.m_productId = productId;
-                purchasedProductDetails.m_orderId = purchase.getOrderId();
-                purchasedProductDetails.m_packageName = purchase.getPackageName();
-                purchasedProductDetails.m_purchaseToken = purchase.getPurchaseToken();
-                purchasedProductDetails.m_signature = purchase.getSignature();
-                purchasedProductDetails.m_purchaseTime = purchase.getPurchaseTime();
-                purchasedProductDetails.m_isAutoRenewing = purchase.isAutoRenewing();
-                purchasedProducts.add(purchasedProductDetails);
+                if (details.getProductId().equals(productId))
+                {
+                    purchaseOfferDetails = details.getOneTimePurchaseOfferDetails();
+                    break;
+                }
             }
+
+            PurchasedProductDetails purchasedProductDetails = new PurchasedProductDetails();
+            purchasedProductDetails.m_productId = productId;
+            purchasedProductDetails.m_orderId = purchase.getOrderId();
+            purchasedProductDetails.m_packageName = purchase.getPackageName();
+            purchasedProductDetails.m_purchaseToken = purchase.getPurchaseToken();
+            purchasedProductDetails.m_signature = purchase.getSignature();
+            purchasedProductDetails.m_purchaseTime = purchase.getPurchaseTime();
+            purchasedProductDetails.m_isAutoRenewing = purchase.isAutoRenewing();
+            if (purchaseOfferDetails != null)
+            {
+                purchasedProductDetails.m_price = purchaseOfferDetails.getFormattedPrice();
+                purchasedProductDetails.m_currencyCode = purchaseOfferDetails.getPriceCurrencyCode();
+                purchasedProductDetails.m_priceMicro = purchaseOfferDetails.getPriceAmountMicros();
+            }
+            else
+            {
+                Log.e(s_tag, s_subTag + "Can't find product '" + productId + "' details");
+            }
+
+            purchasedProducts.add(purchasedProductDetails);
         }
     }
 

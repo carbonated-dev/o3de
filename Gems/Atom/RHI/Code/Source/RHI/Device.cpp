@@ -167,7 +167,7 @@ namespace AZ::RHI
 #else
                 const double t = AZStd::GetTimeNowTicks() / 1e9; // Use time since system start like all Vulkan timestamps
 #endif
-                AZ_Info("GPUtime", "Begin Frame at %f. Frame num=%u\n", (t - m_startLogTime), m_frameCounter);
+                AZ_Info("GPU/CPU", "Begin Frame at %f. Frame num=%u\n", (t - m_startLogTime), m_frameCounter);
             }
             m_FrameTimeLock.unlock();
 #endif
@@ -275,7 +275,7 @@ namespace AZ::RHI
                             if (m_lastFrameToLog >= m_frameCounter)
                             {
                                 AZ_Info(
-                                    "GPUtime",
+                                    "GPU/CPU",
                                     "frame %u, commit %f, begin: %f, end: %f\n",
                                     fc.m_frameNumber,
                                     fc.m_commands[ib].m_commitTime - m_startLogTime,
@@ -432,6 +432,12 @@ namespace AZ::RHI
 
     ResultCode Device::EndFrame()
     {
+#if defined(CARBONATED)
+        if (m_lastFrameToLog > 0 && m_lastFrameToLog < m_frameCounter + 1)
+        {
+            m_lastFrameToLog = 0;
+        }
+#endif
         if (ValidateIsInitialized() && ValidateIsInFrame())
         {
             AZ_PROFILE_SCOPE(RHI, "Device: EndFrame");
