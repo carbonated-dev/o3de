@@ -14,6 +14,13 @@ from collections import defaultdict
 import sys
 
 def parse_log_file(filepath):
+    """
+    Parse the log file containing GPU/CPU timing data.
+    Returns:
+        frame_data_gpu: dict[frame] -> list of {commit, begin, end}
+        frame_data_cpu: dict[frame] -> {thread_name: lastFrameTime}
+        frame_start_times: dict[frame] -> start_time (absolute)
+    """
     frame_data_gpu = defaultdict(list)
     frame_data_cpu = defaultdict(dict)
     frame_start_times = {}
@@ -52,6 +59,9 @@ def parse_log_file(filepath):
     return frame_data_gpu, frame_data_cpu, frame_start_times
 
 def get_cpu_color(name):
+    """
+    Return color for CPU thread based on its name.
+    """
     if name == "Main":
         return 'tab:blue'
     elif name in ("GPU", "*GPUendMax", "*GPUwaitAvg"):
@@ -60,13 +70,17 @@ def get_cpu_color(name):
         return 'gold'
 
 def plot_timeline(frame_data_gpu, frame_data_cpu, frame_start_times, output_path='vulkan_timeline.png'):
+    """
+    Generate a timeline plot of GPU and CPU activity per frame.
+    """
     if not frame_data_gpu and not frame_data_cpu:
         print("No GPU or CPU data found.")
         return
 
     y_step = 0.15
+    label_offset = 0.03  # vertical offset below the segment
 
-    # === GPU ===
+    # Process GPU submissions
     all_gpu = []
     max_gpu_per_frame = 0
     for frame, subs in frame_data_gpu.items():
@@ -81,7 +95,7 @@ def plot_timeline(frame_data_gpu, frame_data_cpu, frame_start_times, output_path
                 'y': idx * y_step
             })
 
-    # === CPU ===
+    # Process CPU threads
     all_cpu_threads = set()
     for d in frame_data_cpu.values():
         all_cpu_threads.update(d.keys())
@@ -101,10 +115,11 @@ def plot_timeline(frame_data_gpu, frame_data_cpu, frame_start_times, output_path
                         'name': name,
                         'x0': start_time,
                         'x1': start_time + duration,
-                        'y': y
+                        'y': y,
+                        'frame': frame
                     })
 
-    # === Compute frame durations ===
+    # Compute frame durations
     sorted_frames = sorted(frame_start_times.keys())
     frame_durations = {}
     for i, frame in enumerate(sorted_frames):
@@ -118,21 +133,41 @@ def plot_timeline(frame_data_gpu, frame_data_cpu, frame_start_times, output_path
             else:
                 frame_durations[frame] = 0.0
 
-    # === Plot ===
+    # Plot
     total_height = max(4.0, (max_gpu_per_frame + len(all_cpu_threads) + 2) * y_step * 2)
     fig, ax = plt.subplots(figsize=(16, total_height))
 
-    # --- GPU ---
+    # Draw GPU submissions
     for item in all_gpu:
-        ax.hlines(item['y'], item['begin'], item['end'], color='darkgreen', linewidth=2, alpha=0.9)
-        ax.plot(item['commit'], item['y'], 'ko', markersize=2)
+        seg_dur = item['end'] - item['begin']
+        frame_dur = frame_durations.get(item['frame'], 0.016)
+        y_pos = item['y']
+        ax.hlines(y_pos, item['begin'], item['end'], color='darkgreen', linewidth=2, alpha=0.9)
+        ax.plot(item['commit'], y_pos, 'ko', markersize=2)
 
-    # --- CPU ---
+        if frame_dur > 0 and seg_dur / frame_dur > 0.1:
+            pct = seg_dur / frame_dur * 100
+            mid_x = (item['begin'] + item['end']) / 2
+            # Place label BELOW the segment
+            ax.text(mid_x, y_pos - label_offset, f"{pct:.0f}%",
+                    ha='center', va='top', fontsize=6, color='black', weight='bold')
+
+    # Draw CPU threads
     for item in all_cpu:
+        seg_dur = item['x1'] - item['x0']
+        frame_dur = frame_durations.get(item['frame'], 0.016)
+        y_pos = item['y']
         color = get_cpu_color(item['name'])
-        ax.hlines(item['y'], item['x0'], item['x1'], color=color, linewidth=2, alpha=0.9)
+        ax.hlines(y_pos, item['x0'], item['x1'], color=color, linewidth=2, alpha=0.9)
 
-    # --- Begin Frame lines and annotations ---
+        if frame_dur > 0 and seg_dur / frame_dur > 0.1:
+            pct = seg_dur / frame_dur * 100
+            mid_x = (item['x0'] + item['x1']) / 2
+            # Place label BELOW the segment
+            ax.text(mid_x, y_pos - label_offset, f"{pct:.0f}%",
+                    ha='center', va='top', fontsize=6, color='black', weight='bold')
+
+    # Annotate frames
     for frame in sorted_frames:
         start_time = frame_start_times[frame]
         duration = frame_durations[frame]
@@ -156,7 +191,7 @@ def plot_timeline(frame_data_gpu, frame_data_cpu, frame_start_times, output_path
         ax.text(start_time, y_bottom, f"{start_time:.3f}",
                 ha='center', va='top', fontsize=7, color='gray')
 
-    # --- Y axis ---
+    # Y-axis
     y_ticks = []
     y_labels = []
 
@@ -183,7 +218,7 @@ def plot_timeline(frame_data_gpu, frame_data_cpu, frame_start_times, output_path
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
-    print(f"Saved clean timeline to: {output_path}")
+    print(f"Saved timeline to: {output_path}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
