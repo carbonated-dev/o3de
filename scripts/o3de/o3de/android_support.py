@@ -317,6 +317,12 @@ class AndroidGradlePluginRequirements(object):
 
 ANDROID_GRADLE_PLUGIN_COMPATIBILITY_MAP = {
 
+    '8.9': AndroidGradlePluginRequirements(agp_version='8.9.1',
+                                           gradle_version='8.11.1',
+                                           sdk_build_tools_version='35.0.0',
+                                           jdk_version='17',
+                                           release_note_url='https://developer.android.com/build/releases/past-releases/agp-8-9-0-release-notes'),
+
     '8.2': AndroidGradlePluginRequirements(agp_version='8.2',
                                            gradle_version='8.2',
                                            sdk_build_tools_version='35.0.0',
