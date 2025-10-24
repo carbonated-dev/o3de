@@ -1468,7 +1468,10 @@ class AndroidProjectGenerator(object):
             'NDK_VERSION': self._android_ndk.version,
             'SDK_BUILD_TOOL_VER': self._android_sdk_build_tool_version,
             'LY_ENGINE_ROOT': self._engine_root.as_posix(),
-            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'" # CARBONATED -- root dependencies
+            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # CARBONATED -- root dependencies
+# CARBONATED -- begin
+            'LOCAL_REPOSITORIES_PATH': "'src/main/libs'"
+# CARBONATED -- end
         }
         # Generate the gradle build script
         self.create_file_from_project_template(src_template_file='root.build.gradle.in',
