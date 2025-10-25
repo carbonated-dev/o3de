@@ -1484,11 +1484,7 @@ class AndroidProjectGenerator(object):
                                                template_env=root_gradle_env,
                                                dst_file=self._build_dir / 'build.gradle')
 
-        self.write_settings_gradle(project_names)
-
-        self.prepare_gradle_wrapper()
-
-        # CARBONATED -- begin : Carbonated game only specific - prepare to add Android project for NetflixSdk gem into dependency lists
+# CARBONATED -- begin : Carbonated game only specific - prepare to add Android project for NetflixSdk gem into dependency lists
         netflixsdk_dir = self._build_dir / "netflixsdk"
         app_dir = self._build_dir / "app"
         libs_dir = app_dir / "src/main/libs"
@@ -1501,7 +1497,11 @@ class AndroidProjectGenerator(object):
             shutil.copy(netflix_gradle_path, netflixsdk_dir)
             shutil.copytree(netflix_gem_lib_dir, libs_dir, dirs_exist_ok=True)
             project_names.append("netflixsdk")
-        # CARBONATED -- end
+# CARBONATED -- end
+
+        self.write_settings_gradle(project_names)
+
+        self.prepare_gradle_wrapper()
 
         logger.info(f"Android project scripts written to '{self._build_dir.absolute()}'.")
 
