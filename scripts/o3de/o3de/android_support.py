@@ -1010,6 +1010,7 @@ ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.android.gms:play-services-games:23.2.0'
     implementation 'com.google.android.gms:play-services-auth:21.2.0'  
     implementation 'androidx.games:games-frame-pacing:2.1.3'
+    implementation "com.netflix.games:sdk:1.8.1"
 """
 
 ADDITIONAL_PLUGINS = """
@@ -1490,7 +1491,7 @@ class AndroidProjectGenerator(object):
         libs_dir = app_dir / "src/main/libs"
         netflixsdk_gem_dir = self._project_path / "Gems/NetflixSdk"
         if netflixsdk_gem_dir.exists():
-            netflix_gem_lib_dir = netflixsdk_gem_dir / "Code/Platform/Android/libs"
+            netflix_gem_lib_dir = netflixsdk_gem_dir / "Code/Source/Platform/Android/libs"
             netflix_gradle_path = netflixsdk_gem_dir /  "Projects/Android/build.gradle"
             (netflixsdk_dir / "src/main").mkdir(parents=True, exist_ok=True)
             libs_dir.mkdir(parents=True, exist_ok=True)
