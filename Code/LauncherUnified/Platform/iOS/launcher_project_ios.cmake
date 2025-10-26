@@ -71,3 +71,20 @@ add_custom_command(TARGET ${project_name}.GameLauncher POST_BUILD
     COMMENT "Synchronizing Layout Assets ..."
     VERBATIM
 )
+
+# CARBONATED
+# add post-buld step to copy game-specific assets to the target
+
+add_custom_command(TARGET ${project_name}.GameLauncher POST_BUILD
+    COMMAND ${LY_PYTHON_CMD} game_layout_tool.py
+        --platform iOS
+        --project-path ${project_real_path}
+        --source ${project_real_path}/RawAssets/iOS
+        --destination $<TARGET_BUNDLE_DIR:${project_name}.GameLauncher>
+        --build-config $<CONFIG>
+    WORKING_DIRECTORY ${layout_tool_dir}
+    COMMENT "Synchronizing Layout Assets ..."
+    VERBATIM
+)
+
+# CARBONATED END
