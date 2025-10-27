@@ -163,9 +163,9 @@ namespace AZ::RHI
             if (m_lastFrameToLog >= m_frameCounter)
             {
 #if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_MAC)
-                const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
+                [[maybe_unused]] const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
 #else
-                const double t = AZStd::GetTimeNowTicks() / 1e9; // Use time since system start like all Vulkan timestamps
+                [[maybe_unused]] const double t = AZStd::GetTimeNowTicks() / 1e9; // Use time since system start like all Vulkan timestamps
 #endif
                 AZ_Info("GPU/CPU", "Begin Frame at %f. Frame num=%u\n", (t - m_startLogTime), m_frameCounter);
             }
