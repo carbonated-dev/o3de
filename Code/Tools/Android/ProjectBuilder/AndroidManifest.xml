@@ -8,8 +8,8 @@
 
     <!-- SDK_VERSIONS -->
 
-    <!-- OpenGL ES 3.0 -->
-    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+    <!-- Vulkan 1.0.0; VK_MAKE_VERSION(1,0,0) -->
+    <uses-feature android:name="android.hardware.vulkan.version" android:version="0x00400000" android:required="true" />
 
     <!-- Required for Kindle devices, which is based off Android 5.0, to access app specific public storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="21" />
