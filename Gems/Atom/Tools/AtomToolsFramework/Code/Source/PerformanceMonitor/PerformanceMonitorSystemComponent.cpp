@@ -12,6 +12,8 @@
 #include <AzCore/Serialization/SerializeContext.h>
 #include <PerformanceMonitor/PerformanceMonitorSystemComponent.h>
 
+AZ_DECLARE_BUDGET(AtomToolsFramework);
+
 namespace AtomToolsFramework
 {
     void PerformanceMonitorSystemComponent::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided)
@@ -45,6 +47,7 @@ namespace AtomToolsFramework
 
     void PerformanceMonitorSystemComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AtomToolsFramework, "PerformanceMonitorSystemComponent::Tick:OnTick");
         if (!m_profilingEnabled)
         {
             return;

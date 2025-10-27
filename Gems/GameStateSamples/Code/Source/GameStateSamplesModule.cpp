@@ -104,6 +104,8 @@ namespace GameStateSamples
 
         void OnTick([[maybe_unused]]float deltaTime, [[maybe_unused]]AZ::ScriptTimePoint scriptTimePoint) override
         {
+            AZ_PROFILE_SCOPE(Game, "GameStateSamplesModule::Tick:OnTick");
+
             // Ideally this would be called at startup (either above in OnCrySystemInitialized, or better during AZ system component
             // initialisation), but because the initial game state depends on loading a UI canvas using LYShine we need to wait until
             // the first tick, because LyShine in turn is not properly initialized until UiRenderer::OnBootstrapSceneReady has been

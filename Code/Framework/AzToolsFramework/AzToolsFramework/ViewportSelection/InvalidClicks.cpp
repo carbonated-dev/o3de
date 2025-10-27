@@ -11,6 +11,8 @@
 #include <AzToolsFramework/Viewport/ViewportTypes.h>
 #include <AzToolsFramework/ViewportSelection/EditorSelectionUtil.h>
 #include <AzToolsFramework/ViewportSelection/InvalidClicks.h>
+#include <AzCore/Debug/Profiler.h>
+
 
 AZ_CVAR(float, ed_invalidClickRadius, 10.0f, nullptr, AZ::ConsoleFunctorFlags::Null, "Maximum invalid click radius to expand to");
 AZ_CVAR(float, ed_invalidClickDuration, 1.0f, nullptr, AZ::ConsoleFunctorFlags::Null, "Duration to display the invalid click feedback");
@@ -111,6 +113,7 @@ namespace AzToolsFramework
 
     void InvalidClicks::OnTick(const float deltaTime, [[maybe_unused]] const AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AzFramework, "InvalidClicks::Tick:OnTick");
         for (auto& invalidClickBehavior : m_invalidClickBehaviors)
         {
             invalidClickBehavior->Update(deltaTime);

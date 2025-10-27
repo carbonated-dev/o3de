@@ -304,6 +304,7 @@ namespace NvCloth
 
     void ClothComponentMesh::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Cloth, "ClothComponentMesh::Tick:OnTick");
         CopyRenderDataToModel();
     }
 

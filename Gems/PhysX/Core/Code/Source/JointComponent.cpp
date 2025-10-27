@@ -19,6 +19,8 @@
 #include <AzFramework/Physics/PhysicsSystem.h>
 #include <AzFramework/Physics/Components/SimulatedBodyComponentBus.h>
 
+#include <AzCore/Debug/Profiler.h>
+
 namespace PhysX
 {
     JointComponentConfiguration::JointComponentConfiguration(
@@ -209,6 +211,8 @@ namespace PhysX
 
     void JointComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Physics, "PhysX::JointComponent::Tick:OnTick");
+
         // Check if the lead entity has a rigid body in the next tick because
         // the lead entity might not be created yet during activation of the follower's entity.
         // If the lead exists but it doesn't have a rigid body then this joint will never get

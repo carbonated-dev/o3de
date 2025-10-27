@@ -25,6 +25,8 @@
 #include <AzToolsFramework/API/EntityCompositionRequestBus.h>
 #include <AzToolsFramework/Entity/EditorEntityHelpers.h>
 
+AZ_DEFINE_BUDGET(Maestro);
+
 namespace Maestro
 {
     /*static*/ AZ::ScriptTimePoint EditorSequenceComponent::s_lastPropertyRefreshTime;
@@ -321,6 +323,7 @@ namespace Maestro
 
     void EditorSequenceComponent::OnTick([[maybe_unused]] float deltaTime, AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Maestro, "EditorSequenceComponent::Tick:OnTick");
         // refresh the property displays at a lower refresh rate
         if ((time.GetMilliseconds() - s_lastPropertyRefreshTime.GetMilliseconds()) > s_refreshPeriodMilliseconds)
         {

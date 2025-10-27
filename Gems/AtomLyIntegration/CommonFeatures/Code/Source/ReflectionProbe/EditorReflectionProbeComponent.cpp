@@ -24,6 +24,8 @@ AZ_PUSH_DISABLE_WARNING(4251 4800, "-Wunknown-warning-option") // disable warnin
 #include <QProgressDialog>
 AZ_POP_DISABLE_WARNING
 
+AZ_DECLARE_BUDGET(AtomLyIntegration);
+
 namespace AZ
 {
     namespace Render
@@ -186,6 +188,7 @@ namespace AZ
 
         void EditorReflectionProbeComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
         {
+            AZ_PROFILE_SCOPE(AtomLyIntegration, "EditorReflectionProbeComponent::Tick:OnTick");
             if (!m_controller.m_featureProcessor)
             {
                 return;

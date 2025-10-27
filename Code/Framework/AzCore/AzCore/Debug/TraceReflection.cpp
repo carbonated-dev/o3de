@@ -11,6 +11,7 @@
 #include <AzCore/RTTI/BehaviorContext.h>
 #include <AzCore/Script/ScriptContext.h>
 #include <AzCore/Component/TickBus.h>
+#include <AzCore/Debug/Profiler.h>
 
 namespace AZ::Debug
 {
@@ -249,6 +250,7 @@ namespace AZ::Debug
         [[maybe_unused]] float deltaTime,
         [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AzCore, "TraceMessageBusHandler::Tick:OnTick");
         FlushMessageCalls();
     }
 

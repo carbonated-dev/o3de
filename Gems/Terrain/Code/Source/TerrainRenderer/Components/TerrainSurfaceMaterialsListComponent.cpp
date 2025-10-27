@@ -23,6 +23,8 @@
 #include <SurfaceData/SurfaceDataProviderRequestBus.h>
 #include <TerrainSystem/TerrainSystemBus.h>
 
+#include <TerrainProfiler.h>
+
 namespace Terrain
 {
     void TerrainSurfaceMaterialMapping::Reflect(AZ::ReflectContext* context)
@@ -307,6 +309,8 @@ namespace Terrain
 
     void TerrainSurfaceMaterialsListComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Terrain, "TerrainSurfaceMaterialsListComponent::OnTick:Tick");
+
         auto handleTagChanges = [&](TerrainSurfaceMaterialMapping& mapping)
         {
             if (mapping.m_materialInstance && mapping.m_previousTag != mapping.m_surfaceTag)

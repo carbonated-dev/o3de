@@ -22,6 +22,8 @@
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentBus.h>
 #include <AzCore/Math/PackedVector3.h>
 
+AZ_DEFINE_BUDGET(EditorWhiteBox);
+
 namespace WhiteBox
 {
     AtomRenderMesh::AtomRenderMesh(AZ::EntityId entityId)
@@ -297,6 +299,7 @@ namespace WhiteBox
 
     void AtomRenderMesh::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(EditorWhiteBox, "AtomRenderMesh::Tick:OnTick");
         if (!m_materialInstance || !m_materialInstance->NeedsCompile() || m_materialInstance->Compile())
         {
             AZ::TickBus::Handler::BusDisconnect();

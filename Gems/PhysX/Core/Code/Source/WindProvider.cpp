@@ -13,6 +13,7 @@
 #include <PhysX/ForceRegionComponentBus.h>
 #include <PhysX/ColliderShapeBus.h>
 #include <System/PhysXSystem.h>
+#include <AzCore/Debug/Profiler.h>
 
 namespace PhysX
 {
@@ -306,6 +307,8 @@ namespace PhysX
     }
     void WindProvider::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Physics, "PhysX::WindProvider::Tick:OnTick");
+
         if (m_globalWindHandler)
         {
             m_globalWindHandler->OnTick();

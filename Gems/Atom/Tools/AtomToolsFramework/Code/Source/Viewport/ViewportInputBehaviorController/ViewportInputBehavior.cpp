@@ -129,7 +129,7 @@ namespace AtomToolsFramework
 
     void ViewportInputBehavior::OnTick(float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
-        AZ_PROFILE_SCOPE(AtomToolsFramework, "EntityPreviewViewportWidget::Tick:OnTick");
+        AZ_PROFILE_SCOPE(AtomToolsFramework, "ViewportInputBehavior::Tick:OnTick");
 
         // delta x and y values are accumulated in MoveX and MoveY functions (by dragging the mouse)
         // in the Tick function we then lerp them down to 0 over short time and apply delta transform to an entity

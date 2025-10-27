@@ -166,6 +166,7 @@ namespace AZ
 
         void ImGuiPass::TickHandlerFrameEnd::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint timePoint)
         {
+            AZ_PROFILE_SCOPE(AzRender, "ImGuiPass::TickHandlerFrameEnd::Tick:OnTick");
             auto imguiContextScope = ImguiContextScope(m_imGuiPass.m_imguiContext);
             ImGui::EndFrame();
         }

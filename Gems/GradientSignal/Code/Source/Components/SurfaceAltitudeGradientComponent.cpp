@@ -16,6 +16,8 @@
 #include <GradientSignal/Util.h>
 #include <LmbrCentral/Dependency/DependencyMonitor.h>
 
+AZ_DECLARE_BUDGET(GradientSignal);
+
 namespace GradientSignal
 {
     void SurfaceAltitudeGradientConfig::Reflect(AZ::ReflectContext* context)
@@ -259,6 +261,7 @@ namespace GradientSignal
 
     void SurfaceAltitudeGradientComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(GradientSignal, "SurfaceAltitudeGradientComponent::Tick:OnTick");
         if (m_dirty)
         {
             const auto altitudeMinOld = m_configuration.m_altitudeMin;

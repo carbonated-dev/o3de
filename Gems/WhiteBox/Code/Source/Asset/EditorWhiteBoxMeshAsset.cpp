@@ -18,6 +18,8 @@
 #include <AzToolsFramework/API/ToolsApplicationAPI.h>
 #include <WhiteBox/EditorWhiteBoxComponentBus.h>
 
+AZ_DECLARE_BUDGET(EditorWhiteBox);
+
 namespace WhiteBox
 {
     AZ_CLASS_ALLOCATOR_IMPL(EditorWhiteBoxMeshAsset, AZ::SystemAllocator)
@@ -222,6 +224,7 @@ namespace WhiteBox
 
     void EditorWhiteBoxMeshAsset::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(EditorWhiteBox, "EditorWhiteBoxMeshAsset::Tick:OnTick");
         // after rebuilding the white box mesh, immediately disconnect from the tick bus (we only use it for deferred rebuilding)
         EditorWhiteBoxComponentRequestBus::Event(m_entityComponentIdPair, &EditorWhiteBoxComponentRequestBus::Events::RebuildWhiteBox);
         AZ::TickBus::Handler::BusDisconnect();

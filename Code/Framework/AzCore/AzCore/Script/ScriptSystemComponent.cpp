@@ -33,6 +33,8 @@
 #include <AzCore/Serialization/Utils.h>
 #include <AzCore/std/string/conversions.h>
 
+#include <AzCore/Debug/Profiler.h>
+
 namespace AZ
 {
 
@@ -893,6 +895,7 @@ public:
 
     void OnTick(float deltaTime, ScriptTimePoint time) override
     {
+        AZ_PROFILE_SCOPE(AzCore, "TickBusBehaviorHandler::OnTick");
         Call(FN_OnTick,deltaTime,time);
     }
 

@@ -13,7 +13,7 @@
 #include <LmbrCentral/Animation/AttachmentComponentBus.h>
 #include <LmbrCentral/Animation/SkeletalHierarchyRequestBus.h>
 
-AZ_DECLARE_BUDGET(AtomLyIntegration);
+AZ_DEFINE_BUDGET(AtomLyIntegration);
 
 namespace AZ
 {

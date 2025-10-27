@@ -13,6 +13,7 @@
 #include <AzCore/Math/Transform.h>
 
 #include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(LmbrCentral);
 
 namespace LmbrCentral
 {
@@ -156,7 +157,7 @@ namespace LmbrCentral
     //=========================================================================
     void EditorLookAtComponent::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/)
     {
-        AZ_PROFILE_SCOPE(Animation, "EditorLookAtComponent::Tick:OnTick");
+        AZ_PROFILE_SCOPE(LmbrCentral, "EditorLookAtComponent::Tick:OnTick");
 
         RecalculateTransform();
         AZ::TickBus::Handler::BusDisconnect();

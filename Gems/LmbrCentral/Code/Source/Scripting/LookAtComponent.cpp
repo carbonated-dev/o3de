@@ -12,6 +12,7 @@
 #include <AzCore/RTTI/BehaviorContext.h>
 
 #include <AzCore/Debug/Profiler.h>
+AZ_DEFINE_BUDGET(LmbrCentral);
 
 namespace LmbrCentral
 {
@@ -146,7 +147,7 @@ namespace LmbrCentral
     //=========================================================================
     void LookAtComponent::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/)
     {
-        AZ_PROFILE_SCOPE(Animation, "LookAtComponent::Tick:OnTick");
+        AZ_PROFILE_SCOPE(LmbrCentral, "LookAtComponent::Tick:OnTick");
 
         RecalculateTransform();
         AZ::TickBus::Handler::BusDisconnect();

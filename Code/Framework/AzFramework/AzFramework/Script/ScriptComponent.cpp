@@ -34,6 +34,8 @@
 #include <AzFramework/IO/LocalFileIO.h>
 #include <AzFramework/StringFunc/StringFunc.h>
 
+AZ_DECLARE_BUDGET(AzFramework);
+
 extern "C" {
 #   include <Lua/lualib.h>
 #   include <Lua/lauxlib.h>
@@ -633,6 +635,7 @@ namespace AzFramework
 
     void ScriptComponent::OnTick([[maybe_unused]]float deltaTime, [[maybe_unused]]AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AzFramework, "ScriptComponent::Tick:OnTick");
         AZ::TickBus::Handler::BusDisconnect();
 
         if (LoadInContext())

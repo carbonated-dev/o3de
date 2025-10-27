@@ -213,6 +213,7 @@ namespace EMotionFX
 
     void JointSwingLimitManipulators::OnTick([[maybe_unused]] float delta, [[maybe_unused]] AZ::ScriptTimePoint timePoint)
     {
+        AZ_PROFILE_SCOPE(Animation, "JointSwingLimitManipulators::Tick:OnTick");
         if (!m_debugDisplay || !m_physicsSetupManipulatorData.HasJointLimit())
         {
             return;

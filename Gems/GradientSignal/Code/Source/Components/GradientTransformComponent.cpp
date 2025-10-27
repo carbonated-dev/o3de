@@ -16,6 +16,8 @@
 #include <AzCore/Component/TransformBus.h>
 #include <GradientSignal/Util.h>
 
+AZ_DEFINE_BUDGET(GradientSignal);
+
 namespace GradientSignal
 {
     void GradientTransformConfig::Reflect(AZ::ReflectContext* context)
@@ -353,6 +355,7 @@ namespace GradientSignal
 
     void GradientTransformComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(GradientSignal, "GradientTransformComponent::Tick:OnTick");
         if (m_dirty)
         {
             // Updating on tick to query transform bus on main thread.

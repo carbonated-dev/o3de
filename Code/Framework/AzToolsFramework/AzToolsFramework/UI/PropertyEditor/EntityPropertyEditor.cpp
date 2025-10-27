@@ -2392,6 +2392,8 @@ namespace AzToolsFramework
 
     void EntityPropertyEditor::OnTick(float deltaTime, AZ::ScriptTimePoint /*time*/)
     {
+        AZ_PROFILE_SCOPE(AzFramework, "EntityPropertyEditor::Tick:OnTick");
+
         m_moveFadeSecondsRemaining -= deltaTime;
         m_overlay->setVisible(true);
         if (m_moveFadeSecondsRemaining <= 0.0f)

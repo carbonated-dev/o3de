@@ -783,6 +783,7 @@ namespace AzToolsFramework
 
     void EditorEntityModel::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/)
     {
+        AZ_PROFILE_SCOPE(AzFramework, "EditorEntityModel::Tick:OnTick");
         // If a tick has elapsed, and entities are still queued, add them all to the model.
         if (!m_queuedEntityAdds.empty())
         {

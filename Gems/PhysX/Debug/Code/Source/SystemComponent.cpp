@@ -433,6 +433,7 @@ namespace PhysXDebug
     // TickBus::Handler
     void SystemComponent::OnTick([[maybe_unused]] float deltaTime, AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Physics, "PhysX::Debug::SystemComponent::Tick:OnTick");
         if (!m_settings.IsPhysXDebugEnabled())
         {
             return;

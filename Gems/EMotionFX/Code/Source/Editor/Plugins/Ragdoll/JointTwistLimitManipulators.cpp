@@ -175,6 +175,7 @@ namespace EMotionFX
 
     void JointTwistLimitManipulators::OnTick([[maybe_unused]] float delta, [[maybe_unused]] AZ::ScriptTimePoint timePoint)
     {
+        AZ_PROFILE_SCOPE(Animation, "JointTwistLimitManipulators::Tick:OnTick");
         if (!m_debugDisplay || !m_physicsSetupManipulatorData.HasJointLimit())
         {
             return;

@@ -25,6 +25,8 @@
 #include <QWindow>
 #include <QMouseEvent>
 
+AZ_DEFINE_BUDGET(AtomToolsFramework);
+
 namespace AtomToolsFramework
 {
     RenderViewportWidget::RenderViewportWidget(QWidget* parent, bool shouldInitializeViewportContext)
@@ -220,6 +222,7 @@ namespace AtomToolsFramework
 
     void RenderViewportWidget::OnTick([[maybe_unused]]float deltaTime, AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AtomToolsFramework, "RenderViewportWidget::Tick:OnTick");
         m_time = time;
         m_controllerList->UpdateViewport({GetId(), AzFramework::FloatSeconds(deltaTime), m_time});
     }

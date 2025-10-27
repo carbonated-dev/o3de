@@ -20,7 +20,7 @@
 #include <EMStudio/AnimViewportWidget.h>
 #include <EMStudio/AtomRenderPlugin.h>
 
-AZ_DECLARE_BUDGET(AtomLyIntegration);
+AZ_DEFINE_BUDGET(AtomLyIntegration);
 
 namespace EMStudio
 {

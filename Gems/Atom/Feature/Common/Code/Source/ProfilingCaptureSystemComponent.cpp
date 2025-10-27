@@ -560,6 +560,7 @@ namespace AZ
 
         void ProfilingCaptureSystemComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] ScriptTimePoint time)
         {
+            AZ_PROFILE_SCOPE(AzRender, "ProfilingCaptureSystemComponent::Tick:OnTick");
             // Update the delayed captures
             m_timestampCapture.UpdateCapture();
             m_cpuFrameTimeStatisticsCapture.UpdateCapture();

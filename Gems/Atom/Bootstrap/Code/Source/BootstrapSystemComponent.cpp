@@ -46,6 +46,8 @@
 #include <AzCore/Console/IConsole.h>
 #include <BootstrapSystemComponent_Traits_Platform.h>
 
+AZ_DEFINE_BUDGET(Bootstrap);
+
 void cvar_r_renderPipelinePath_Changed(const AZ::CVarFixedString& newPipelinePath)
 {
     auto viewportContextManager = AZ::Interface<AZ::RPI::ViewportContextRequestsInterface>::Get();
@@ -929,6 +931,7 @@ namespace AZ
 
             void BootstrapSystemComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] ScriptTimePoint time)
             {
+                AZ_PROFILE_SCOPE(Bootstrap, "BootstrapSystemComponent::Tick:OnTick");
                 // Temp: When running in the launcher without the legacy renderer
                 // we need to call RenderTick on the viewport context each frame.
                 if (m_viewportContext)

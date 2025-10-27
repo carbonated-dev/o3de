@@ -28,6 +28,8 @@
 #include <AzCore/std/smart_ptr/make_shared.h>
 #include <AzCore/std/smart_ptr/unique_ptr.h>
 #include <AzCore/UserSettings/UserSettings.h>
+#include <AzCore/Debug/Profiler.h>
+
 
 namespace AZ
 {
@@ -157,6 +159,7 @@ namespace AZ
 
     void StreamerComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AzCore, "ComponentApplication::Tick:OnTick");
         bool isEnabled = false;
         if (auto profilerSystem = AZ::Debug::ProfilerSystemInterface::Get(); profilerSystem)
         {

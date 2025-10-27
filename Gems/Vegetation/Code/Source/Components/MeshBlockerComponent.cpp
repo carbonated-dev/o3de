@@ -369,6 +369,7 @@ namespace Vegetation
 
     void MeshBlockerComponent::OnTick(float /*deltaTime*/, AZ::ScriptTimePoint /*time*/)
     {
+        AZ_PROFILE_SCOPE(Vegetation, "MeshBlockerComponent::Tick:OnTick");
         if (m_refresh)
         {
             UpdateMeshData();

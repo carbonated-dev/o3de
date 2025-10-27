@@ -180,6 +180,7 @@ namespace AzFramework
 
     void EntityVisibilityBoundsUnionSystem::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AzFramework, "EntityVisibilityBoundsUnionSystem::Tick:OnTick");
         ProcessEntityBoundsUnionRequests();
     }
 } // namespace AzFramework

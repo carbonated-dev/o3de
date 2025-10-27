@@ -124,6 +124,8 @@ namespace EMotionFX
 
         void EditorSimpleLODComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
         {
+            AZ_PROFILE_SCOPE(Animation, "EmotionFX::EditorSimpleLODComponent::Tick:OnTick");
+
             SimpleLODComponent::UpdateLodLevelByDistance(m_actorInstance, m_configuration, GetEntityId());
         }
 

@@ -11,6 +11,9 @@
 #include <AzFramework/Spawnable/Script/SpawnableScriptBus.h>
 #include <AzFramework/Spawnable/Script/SpawnableScriptMediator.h>
 #include <AzFramework/Spawnable/Script/SpawnableScriptNotificationsHandler.h>
+#include <AzCore/Debug/Profiler.h>
+
+AZ_DECLARE_BUDGET(AzFramework);
 
 namespace AzFramework::Scripts
 {
@@ -60,6 +63,7 @@ namespace AzFramework::Scripts
 
     void SpawnableScriptMediator::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AzFramework, "SpawnableScriptMediator::Tick:OnTick");
         ProcessResults();
         AZ::TickBus::Handler::BusDisconnect();
     }

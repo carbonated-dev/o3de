@@ -234,6 +234,7 @@ namespace EMotionFX
 
     void ColliderCapsuleManipulators::OnTick([[maybe_unused]] float delta, [[maybe_unused]] AZ::ScriptTimePoint timePoint)
     {
+        AZ_PROFILE_SCOPE(Animation, "ColliderCapsuleManipulators::Tick:OnTick");
         if (m_capsuleViewportEdit)
         {
             const AzFramework::CameraState cameraState = AzToolsFramework::GetCameraState(m_viewportId);

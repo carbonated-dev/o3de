@@ -156,6 +156,7 @@ namespace EMStudio
 
     void RotationParameterEditor::OnTick([[maybe_unused]] float delta, [[maybe_unused]] AZ::ScriptTimePoint timePoint)
     {
+        AZ_PROFILE_SCOPE(Animation, "RotationParameterEditor::Tick:OnTick");
         EMotionFX::ActorInstance* selectedActorInstance = EMotionFX::GetActorManager().GetFirstEditorActorInstance();
         if (selectedActorInstance)
         {

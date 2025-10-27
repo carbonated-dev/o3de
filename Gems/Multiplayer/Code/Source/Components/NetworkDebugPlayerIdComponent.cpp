@@ -15,6 +15,8 @@
 #include <AzFramework/Viewport/ViewportScreen.h>
 #include <AzNetworking/Framework/INetworking.h>
 
+AZ_DECLARE_BUDGET(MULTIPLAYER);
+
 namespace Multiplayer
 {
     AZ_CVAR(bool, cl_debugPlayerIdRender, true, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Whether NetworkDebugPlayerIdComponent should render the player id and connection count on-screen.");
@@ -96,6 +98,7 @@ namespace Multiplayer
 
     void NetworkDebugPlayerIdComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(MULTIPLAYER, "NetworkDebugPlayerIdComponent: OnTick");
         if (!cl_debugPlayerIdRender)
         {
             return;

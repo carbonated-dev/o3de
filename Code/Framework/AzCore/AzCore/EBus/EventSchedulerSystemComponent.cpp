@@ -10,6 +10,7 @@
 #include <AzCore/Interface/Interface.h>
 #include <AzCore/Console/ILogger.h>
 #include <AzCore/Serialization/SerializeContext.h>
+#include <AzCore/Debug/Profiler.h>
 
 AZ_TYPE_SAFE_INTEGRAL_CVARBINDING(TimeMs);
 
@@ -66,6 +67,7 @@ namespace AZ
 
     void EventSchedulerSystemComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AzCore, "EventSchedulerSystemComponent::Tick:OnTick");
         TimeMs startTime = AZ::GetElapsedTimeMs();
         bool usingTimeslice = bg_maxScheduledEventProcessTimeMs != TimeMs{ 0 };
 

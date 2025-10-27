@@ -220,6 +220,7 @@ namespace AZ
 
         void EditorDiffuseProbeGridComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
         {
+            AZ_PROFILE_SCOPE(AzRender, "EditorDiffuseProbeGridComponent::Tick:OnTick");
             if (!m_controller.m_featureProcessor)
             {
                 return;

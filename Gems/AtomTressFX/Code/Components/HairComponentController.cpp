@@ -24,6 +24,8 @@
 #include <Rendering/HairFeatureProcessor.h>
 #include <Components/HairComponentController.h>
 
+AZ_DECLARE_BUDGET(AtomTressFX);
+
 namespace AZ
 {
     namespace Render
@@ -189,6 +191,7 @@ namespace AZ
 
             void HairComponentController::OnTick([[maybe_unused]]float deltaTime, [[maybe_unused]]AZ::ScriptTimePoint time)
             {
+                AZ_PROFILE_SCOPE(AtomTressFX, "HairComponentController::Tick:OnTick");
                 if (!m_renderObject)
                 {
                     return;

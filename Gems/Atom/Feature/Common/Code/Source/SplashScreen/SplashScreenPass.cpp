@@ -99,6 +99,7 @@ namespace AZ::Render
 
     void SplashScreenPass::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(AzRender, "SplashScreenPass::Tick:OnTick");
         // Not using the delta time from Tick bus because it could be scaled.
         const TimeUs currentTimeUs = static_cast<TimeUs>(AZStd::GetTimeNowMicroSecond());
         float currentRealTimeStamp = aznumeric_cast<float>(currentTimeUs) / 1000000.0f;

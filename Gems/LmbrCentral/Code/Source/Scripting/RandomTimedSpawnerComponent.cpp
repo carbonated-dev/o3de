@@ -15,6 +15,8 @@
 
 #include <AzCore/Component/TransformBus.h>
 #include <AzCore/Time/ITime.h>
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(LmbrCentral);
 
 namespace LmbrCentral
 {
@@ -89,6 +91,8 @@ namespace LmbrCentral
 
     void RandomTimedSpawnerComponent::OnTick([[maybe_unused]] float deltaTime, AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(LmbrCentral, "RandomTimedSpawnerComponent::Tick:OnTick");
+
         m_currentTime = time.GetSeconds();
 
         if (m_currentTime >= m_nextSpawnTime)

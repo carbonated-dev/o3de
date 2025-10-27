@@ -48,6 +48,8 @@
 #include <QMenu>
 #include <QAction>
 
+AZ_DEFINE_BUDGET(MULTIPLAYER);
+
 namespace Multiplayer
 {
     using namespace AzNetworking;
@@ -539,6 +541,7 @@ namespace Multiplayer
 
     void MultiplayerEditorSystemComponent::OnTick(float, AZ::ScriptTimePoint)
     {
+        AZ_PROFILE_SCOPE(MULTIPLAYER, "MultiplayerEditorSystemComponent::Tick:OnTick");
         if (m_serverProcessWatcher && !m_serverProcessWatcher->IsProcessRunning())
         {
             AZ::TickBus::Handler::BusDisconnect();

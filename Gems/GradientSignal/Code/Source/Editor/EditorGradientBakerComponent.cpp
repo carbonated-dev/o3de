@@ -493,6 +493,7 @@ namespace GradientSignal
 
     void EditorGradientBakerComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Editor, "EditorGradientBakerComponent::Tick:OnTick");
         if (m_bakeImageJob && m_bakeImageJob->IsFinished())
         {
             delete m_bakeImageJob;

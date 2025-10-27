@@ -22,7 +22,7 @@
 #include <AzFramework/Viewport/ViewportControllerList.h>
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
 
-AZ_DEFINE_BUDGET(AtomToolsFramework);
+AZ_DECLARE_BUDGET(AtomToolsFramework);
 
 namespace AtomToolsFramework
 {

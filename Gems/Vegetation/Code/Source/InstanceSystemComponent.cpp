@@ -384,6 +384,7 @@ namespace Vegetation
 
     void InstanceSystemComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Vegetation, "InstanceSystemComponent::Tick:OnTick");
         if (HasTasks())
         {
             ProcessMainThreadTasks();

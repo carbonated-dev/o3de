@@ -295,6 +295,7 @@ namespace SurfaceData
 
     void SurfaceDataColliderComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(SurfaceData, "SurfaceDataColliderComponent::Tick:OnTick");
         if (m_refresh)
         {
             UpdateColliderData();

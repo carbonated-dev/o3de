@@ -168,6 +168,7 @@ namespace EMotionFX::MotionMatching
 
     void MotionMatchingSystemComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
     {
+        AZ_PROFILE_SCOPE(Animation, "MotionMatchingSystemComponent::Tick:OnTick");
         MotionMatchingSystemComponent::DebugDraw(AzFramework::g_defaultSceneEntityDebugDisplayId);
     }
 } // namespace EMotionFX::MotionMatching

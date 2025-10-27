@@ -147,6 +147,7 @@ namespace EMotionFX
 
     void ColliderRotationManipulators::OnTick([[maybe_unused]] float delta, [[maybe_unused]] AZ::ScriptTimePoint timePoint)
     {
+        AZ_PROFILE_SCOPE(Animation, "ColliderRotationManipulators::Tick:OnTick");
         const AzFramework::CameraState cameraState = AzToolsFramework::GetCameraState(m_viewportId);
         m_rotationManipulators.RefreshView(cameraState.m_position);
     }

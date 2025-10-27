@@ -17,6 +17,8 @@
 #include <AzCore/std/parallel/lock.h>
 #include <AzCore/std/parallel/thread.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
+#include <AzCore/Debug/Profiler.h>
+AZ_DEFINE_BUDGET(SaveDataSystem);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 namespace SaveData
@@ -367,6 +369,7 @@ namespace SaveData
     ////////////////////////////////////////////////////////////////////////////////////////////////
     void SaveDataSystemComponent::Implementation::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint scriptTimePoint)
     {
+        AZ_PROFILE_SCOPE(SaveDataSystem, "SaveDataSystemComponent::Implementation::Tick:OnTick");
         // We could potentially only do this every n milliseconds, or perhaps try and signal when a
         // thread completes and only check it then, but in almost all cases there will only ever be
         // one save or load thread running at any time (if there are any at all), so iterating over

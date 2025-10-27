@@ -15,6 +15,8 @@
 #include <Atom/RPI.Public/RenderPipeline.h>
 #include <Atom/RPI.Public/Base.h>
 
+AZ_DECLARE_BUDGET(AtomLyIntegration);
+
 namespace AZ
 {
     namespace Render
@@ -247,6 +249,7 @@ namespace AZ
 
         void EditorHDRColorGradingComponent::OnTick([[maybe_unused]] float deltaTime, [[maybe_unused]] AZ::ScriptTimePoint time)
         {
+            AZ_PROFILE_SCOPE(AtomLyIntegration, "EditorHDRColorGradingComponent::Tick:OnTick");
             if (m_waitOneFrame)
             {
                 m_waitOneFrame = false;
