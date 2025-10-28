@@ -29,6 +29,8 @@ AZ_PUSH_DISABLE_WARNING(4251 4800, "-Wunknown-warning-option") // disable warnin
 
 #include <QString>
 #include <QStringList>
+#include <AzCore/Debug/Profiler.h>
+AZ_DEFINE_BUDGET(AtomImage);
 
 AZ_POP_DISABLE_WARNING
 
@@ -312,6 +314,7 @@ namespace ImageProcessingAtom
 
     void ImagePreviewer::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AtomImage, "ImagePreviewer::OnSystemTick");
         if (m_createDisplayTextureResult.isFinished())
         {
             CreateDisplayTextureResult result = m_createDisplayTextureResult.result();

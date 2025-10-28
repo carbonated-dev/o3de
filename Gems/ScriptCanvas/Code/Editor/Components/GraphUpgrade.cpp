@@ -715,6 +715,8 @@ namespace ScriptCanvasEditor
 
     void StateMachine::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(ScriptCanvas, "StateMachine::OnSystemTick");
+
         IState::ExitStatus exitStatus = IState::ExitStatus::Default;
 
         if (m_currentState)

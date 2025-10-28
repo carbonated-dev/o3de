@@ -30,6 +30,8 @@
 #include <AzCore/std/parallel/thread.h>
 #include <AzCore/std/parallel/atomic.h>
 #include <AzNetworking/Framework/INetworking.h>
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(AzFramework);
 
 namespace AzFramework
 {
@@ -273,6 +275,7 @@ namespace AzFramework
     //-------------------------------------------------------------------------
     void ScriptDebugAgent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AzFramework, "ScriptDebugAgent::OnSystemTick");
         AzFramework::IRemoteTools* remoteTools = AzFramework::RemoteToolsInterface::Get();
         if (remoteTools)
         {

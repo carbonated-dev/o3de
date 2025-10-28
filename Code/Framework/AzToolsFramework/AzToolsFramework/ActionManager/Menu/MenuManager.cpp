@@ -13,6 +13,8 @@
 
 #include <AzToolsFramework/ActionManager/Action/ActionManagerInterface.h>
 #include <AzToolsFramework/ActionManager/Action/ActionManagerInternalInterface.h>
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(AzToolsFramework);
 
 namespace AzToolsFramework
 {
@@ -798,6 +800,7 @@ namespace AzToolsFramework
 
     void MenuManager::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AzToolsFramework, "MenuManager::OnSystemTick");
         RefreshMenus();
         RefreshMenuBars();
         RefreshLastDisplayedMenu();

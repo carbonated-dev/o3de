@@ -258,7 +258,7 @@ namespace AZ
 
         void RPISystem::OnSystemTick()
         {
-            AZ_PROFILE_SCOPE(RPI, "RPISystem: OnSystemTick");
+            AZ_PROFILE_SCOPE(RPI, "RPISystem::OnSystemTick");
 
             // Image system update is using system tick but not game tick so it can stream images in background even game is pausing
             m_imageSystem.Update();

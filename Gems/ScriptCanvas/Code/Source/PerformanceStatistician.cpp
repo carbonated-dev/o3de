@@ -109,6 +109,7 @@ namespace ScriptCanvas
 
         void PerformanceStatistician::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(ScriptCanvas, "PerformanceStatistician::OnSystemTick");
             switch (m_trackingState)
             {
             case TrackingState::AccumulatedInProgress:

@@ -170,6 +170,7 @@ namespace AzToolsFramework
 
         void AssetBrowserComponent::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(AzToolsFramework, "AssetBrowserComponent::OnSystemTick");
             m_changeset->Synchronize();
             if (!m_entriesReady)
             {

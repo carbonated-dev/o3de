@@ -1086,6 +1086,7 @@ namespace GraphCanvas
 
     void NodeGroupFrameComponent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "NodeGroupFrameComponent::OnSystemTick");
         // 1 or 0 indicates whether to align to that direction or not.
         const int adjustVertical = 1;
         const int adjustHorizontal = 1;

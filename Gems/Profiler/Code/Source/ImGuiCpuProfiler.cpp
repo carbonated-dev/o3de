@@ -24,6 +24,7 @@
 #include <AzCore/std/sort.h>
 #include <AzCore/std/string/conversions.h>
 #include <AzCore/std/time.h>
+AZ_DECLARE_BUDGET(Profiler);
 
 namespace Profiler
 {
@@ -1228,6 +1229,7 @@ namespace Profiler
     // System tick bus overrides
     void ImGuiCpuProfiler::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Profiler, "ImGuiCpuProfiler::OnSystemTick");
         if (m_paused)
         {
             AZ::SystemTickBus::Handler::BusDisconnect();

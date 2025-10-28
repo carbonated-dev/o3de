@@ -295,6 +295,7 @@ namespace GraphCanvas
 
     void ConnectionGraphicsItem::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "ConnectionGraphicsItem::OnSystemTick");
         UpdateOffset();
     }
 

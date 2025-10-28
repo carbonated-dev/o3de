@@ -451,6 +451,7 @@ namespace ScriptCanvas
 
         void ClientTransceiver::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(ScriptCanvas, "ScriptCanvas::ClientTransceiver::OnSystemTick");
             AzFramework::IRemoteTools* remoteTools = RemoteToolsInterface::Get();
             if (!remoteTools)
                 return;

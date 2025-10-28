@@ -24,6 +24,9 @@
 #include <AzFramework/Script/ScriptRemoteDebuggingConstants.h>
 
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
+#include <AzCore/Debug/Profiler.h>
+
+AZ_DEFINE_BUDGET(LuaIDE);
 
 
 namespace LUADebugger
@@ -87,6 +90,7 @@ namespace LUADebugger
 
     void Component::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(LuaIDE, "LuaIDE::Component::OnSystemTick");
         if (m_remoteTools)
         {
             const AzFramework::ReceivedRemoteToolsMessages* messages = m_remoteTools->GetReceivedMessages(AzFramework::LuaToolsKey);

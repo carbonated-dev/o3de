@@ -9,6 +9,8 @@
 #include "ScriptEventRegistration.h"
 #include "ScriptEvent.h"
 #include "ScriptEventsBus.h"
+#include <AzCore/Debug/Profiler.h>
+AZ_DEFINE_BUDGET(ScriptEvents);
 
 namespace ScriptEvents
 {
@@ -65,6 +67,7 @@ namespace ScriptEvents
 
         void ScriptEventRegistration::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(ScriptEvents, "ScriptEventRegistration::OnSystemTick");
             AZ::SystemTickBus::Handler::BusDisconnect();
 
             CompleteRegistration(m_asset);

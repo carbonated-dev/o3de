@@ -67,6 +67,7 @@ namespace AZ
     //=========================================================================
     void AssetManagerComponent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AzCore, "AssetManagerComponent::OnSystemTick");
         Data::AssetManager::Instance().DispatchEvents();
     }
 

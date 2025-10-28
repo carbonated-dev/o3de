@@ -12,6 +12,8 @@
 #include <PreviewRenderer/PreviewRendererSystemComponent.h>
 #include <Atom/RPI.Public/RPISystemInterface.h>
 
+AZ_DECLARE_BUDGET(AtomToolsFramework);
+
 namespace AtomToolsFramework
 {
     void PreviewRendererSystemComponent::Reflect(AZ::ReflectContext* context)
@@ -72,6 +74,7 @@ namespace AtomToolsFramework
 
     void PreviewRendererSystemComponent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AtomToolsFramework, "AtomToolsAssetBrowser::OnSystemTick");
         // Do not create the preview reader until the RPI has been initialized
         if (AZ::RPI::RPISystemInterface::Get() && AZ::RPI::RPISystemInterface::Get()->IsInitialized())
         {

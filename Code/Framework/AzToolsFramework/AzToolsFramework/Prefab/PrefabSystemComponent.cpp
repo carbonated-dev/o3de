@@ -135,6 +135,7 @@ namespace AzToolsFramework
 
         void PrefabSystemComponent::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(AzToolsFramework, "PrefabSystemComponent::OnSystemTick");
             m_instanceUpdateExecutor.UpdateTemplateInstancesInQueue();
             GarbageCollectTemplates(false);
         }

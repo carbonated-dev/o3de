@@ -116,6 +116,7 @@ namespace GraphCanvas
 
     void AnimatedPulse::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "AnimatedPulse::OnSystemTick");
         AZ::SystemTickBus::Handler::BusDisconnect();
 
         PulseNotificationBus::Event(GetEffectId(), &PulseNotifications::OnPulseComplete);

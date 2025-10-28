@@ -46,6 +46,7 @@ namespace ScriptCanvasEditor
 
     void DynamicOrderingDynamicSlotComponent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(ScriptCanvas, "DynamicOrderingDynamicSlotComponent::OnSystemTick");
         if (GetScriptCanvasNodeId().IsValid())
         {
             SlotMappingRequests* requestInterface = SlotMappingRequestBus::FindFirstHandler(GetEntityId());

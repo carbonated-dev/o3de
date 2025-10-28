@@ -113,6 +113,7 @@ namespace GraphCanvas
 
     void StringNodePropertyDisplay::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "StringNodePropertyDisplay::OnSystemTick");
         EditFinished();
         AZ::SystemTickBus::Handler::BusDisconnect();
     }

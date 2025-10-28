@@ -675,6 +675,7 @@ namespace AZ
 
         void FrameCaptureSystemComponent::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(AzRender, "FrameCaptureSystemComponent::OnSystemTick");
             // inProgressCaptures is in capture submit order, loop over the captures until we find an unfinished one.
             // This ensures that OnCaptureFinished is signalled in submission order
             while (m_inProgressCaptures.size())

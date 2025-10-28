@@ -18,6 +18,8 @@
 #include <Atom_Feature_Traits_Platform.h>
 #include <numeric>
 
+AZ_DECLARE_BUDGET(AzRender);
+
 namespace AZ
 {
     namespace Render
@@ -185,6 +187,7 @@ namespace AZ
 
         void SkinnedMeshOutputStreamManager::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(AzRender, "SkinnedMeshOutputStreamManager::OnSystemTick");
             GarbageCollect();
         }
 

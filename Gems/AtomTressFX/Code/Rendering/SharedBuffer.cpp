@@ -18,6 +18,8 @@
 
 #include <numeric>
 
+AZ_DECLARE_BUDGET(AtomTressFX);
+
 namespace AZ::Render
 {
     //! Setting the constructor as private will create compile error to remind the developer to set
@@ -211,6 +213,7 @@ namespace AZ::Render
 
     void SharedBuffer::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AtomTressFX, "SharedBuffer::OnSystemTick");
         GarbageCollect();
     }
 

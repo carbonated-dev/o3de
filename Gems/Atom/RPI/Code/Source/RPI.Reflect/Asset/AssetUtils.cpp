@@ -8,6 +8,9 @@
 
 #include <Atom/RPI.Reflect/Asset/AssetUtils.h>
 #include <AzCore/Asset/AssetManagerBus.h>
+#include <AzCore/Debug/Profiler.h>
+
+AZ_DECLARE_BUDGET(RPI);
 
 namespace AZ
 {
@@ -121,6 +124,8 @@ namespace AZ
             // SystemTickBus::Handler overrides..
             void AsyncAssetLoader::OnSystemTick()
             {
+                AZ_PROFILE_SCOPE(RPI, "AsyncAssetLoader::OnSystemTick");
+
                 SystemTickBus::Handler::BusDisconnect();
                 HandleCallback(m_asset);
             }

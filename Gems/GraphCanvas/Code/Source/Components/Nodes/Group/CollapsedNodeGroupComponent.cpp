@@ -245,6 +245,7 @@ namespace GraphCanvas
 
     void CollapsedNodeGroupComponent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "CollapsedNodeGroupComponent::OnSystemTick");
         // Delay count for Qt to catch up with the visuals so I can animate in a visually pleasing way.
         if (m_animationDelayCounter > 0)
         {

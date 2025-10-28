@@ -14,6 +14,8 @@
 #include <AzCore/Console/ILogger.h>
 #include <AzCore/RTTI/BehaviorContext.h>
 #include <AzCore/Serialization/SerializeContext.h>
+#include <AzCore/Debug/Profiler.h>
+AZ_DEFINE_BUDGET(AzNetworking);
 
 namespace AzNetworking
 {
@@ -77,6 +79,7 @@ namespace AzNetworking
 
     void NetworkingSystemComponent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AzNetworking, "NetworkingSystemComponent::OnSystemTick");
         m_readerThread->SwapBuffers();
         for (auto& networkInterface : m_networkInterfaces)
         {

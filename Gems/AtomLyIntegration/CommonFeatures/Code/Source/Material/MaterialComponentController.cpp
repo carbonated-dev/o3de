@@ -14,6 +14,7 @@
 #include <AzCore/Asset/AssetSerializer.h>
 #include <AzCore/Serialization/SerializeContext.h>
 #include <Material/MaterialComponentController.h>
+AZ_DECLARE_BUDGET(AtomLyIntegration);
 
 namespace AZ
 {
@@ -220,6 +221,7 @@ namespace AZ
 
         void MaterialComponentController::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(AtomLyIntegration, "MaterialComponentController::OnSystemTick");
             while (!m_notifiedMaterialAssets.empty())
             {
                 auto materialAsset = m_notifiedMaterialAssets.front();

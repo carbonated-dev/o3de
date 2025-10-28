@@ -31,6 +31,8 @@
 #include <GraphModel/Model/Connection.h>
 #include <GraphModel/Model/Graph.h>
 
+AZ_DECLARE_BUDGET(AtomToolsFramework);
+
 namespace AtomToolsFramework
 {
     void GraphDocument::Reflect(AZ::ReflectContext* context)
@@ -409,6 +411,7 @@ namespace AtomToolsFramework
 
     void GraphDocument::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AtomToolsFramework, "GraphDocument::OnSystemTick");
         if (m_buildPropertiesQueued)
         {
             BuildEditablePropertyGroups();

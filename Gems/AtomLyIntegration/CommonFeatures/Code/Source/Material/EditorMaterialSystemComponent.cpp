@@ -47,6 +47,8 @@ AZ_PUSH_DISABLE_WARNING(4251 4800, "-Wunknown-warning-option")
 #include <QProcessEnvironment>
 AZ_POP_DISABLE_WARNING
 
+AZ_DECLARE_BUDGET(AtomLyIntegration);
+
 constexpr AZStd::string_view MaterialCanvasActionIdentifier = "o3de.action.tools.material_canvas";
 constexpr AZStd::string_view MaterialEditorActionIdentifier = "o3de.action.tools.material_editor";
 
@@ -233,6 +235,7 @@ namespace AZ
 
         void EditorMaterialSystemComponent::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(AtomLyIntegration, "EditorMaterialSystemComponent::OnSystemTick");
             auto previewRenderer = AZ::Interface<AtomToolsFramework::PreviewRendererInterface>::Get();
             if (!previewRenderer || !m_materialPreviewModelAsset.IsReady() || !m_materialPreviewLightingPresetAsset.IsReady())
             {

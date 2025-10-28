@@ -147,6 +147,7 @@ namespace ScriptCanvas
 
         void ServiceComponent::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(ScriptCanvas, "ScriptCanvas::ServiceComponent::OnSystemTick");
             AzFramework::IRemoteTools* remoteTools = AzFramework::RemoteToolsInterface::Get();
             if (remoteTools)
             {

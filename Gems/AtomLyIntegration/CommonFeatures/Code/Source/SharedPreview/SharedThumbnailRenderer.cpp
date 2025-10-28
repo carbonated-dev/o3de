@@ -20,6 +20,7 @@
 #include <SharedPreview/SharedPreviewContent.h>
 #include <SharedPreview/SharedPreviewUtils.h>
 #include <SharedPreview/SharedThumbnailRenderer.h>
+AZ_DECLARE_BUDGET(AtomLyIntegration);
 
 namespace AZ
 {
@@ -214,6 +215,7 @@ namespace AZ
 
         void SharedThumbnailRenderer::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(AtomLyIntegration, "SharedThumbnailRenderer::OnSystemTick");
             // models/sphere.azmodel
             LoadPreviewAsset(m_defaultModelAsset, AZ::Data::AssetId("{6DE0E9A8-A1C7-5D0F-9407-4E627C1F223C}", 284780167));
             // lightingpresets/thumbnail.lightingpreset.azasset

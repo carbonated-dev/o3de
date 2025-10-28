@@ -28,6 +28,8 @@
 #include <QImage>
 #include <QPixmap>
 
+AZ_DECLARE_BUDGET(AtomToolsFramework);
+
 namespace AtomToolsFramework
 {
     PreviewRenderer::PreviewRenderer(const AZStd::string& sceneName, const AZStd::string& pipelineName)
@@ -267,6 +269,7 @@ namespace AtomToolsFramework
 
     void PreviewRenderer::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AtomToolsFramework, "PreviewRenderer::OnSystemTick");
         if (m_state)
         {
             m_state->Update();

@@ -95,6 +95,7 @@ namespace GraphCanvas
     
     void NodeNudgingController::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "NodeNudgingController::OnSystemTick");
         UpdatePositioning();
         AZ::SystemTickBus::Handler::BusDisconnect();
     }

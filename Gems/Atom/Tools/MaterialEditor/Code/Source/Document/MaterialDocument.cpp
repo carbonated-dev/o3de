@@ -24,6 +24,7 @@
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/Serialization/SerializeContext.h>
 #include <Document/MaterialDocument.h>
+AZ_DECLARE_BUDGET(AtomToolsFramework);
 
 namespace MaterialEditor
 {
@@ -356,6 +357,7 @@ namespace MaterialEditor
 
     void MaterialDocument::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AtomToolsFramework, "MaterialDocument::OnSystemTick");
         if (m_compilePending)
         {
             if (m_materialInstance && m_materialInstance->Compile())

@@ -811,6 +811,7 @@ namespace GraphCanvas
 
     void GestureSceneHelper::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "GestureSceneHelper::OnSystemTick");
         if (m_handleShakeAction)
         {
             m_handleShakeAction = false;
@@ -1220,6 +1221,7 @@ namespace GraphCanvas
 
     void SceneComponent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "SceneComponent::OnSystemTick");
         ProcessEnableDisableQueue();
     }
 

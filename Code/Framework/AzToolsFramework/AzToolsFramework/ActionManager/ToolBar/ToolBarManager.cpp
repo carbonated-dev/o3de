@@ -15,6 +15,8 @@
 #include <AzToolsFramework/ActionManager/Action/ActionManagerInternalInterface.h>
 
 #include <QWidget>
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(AzToolsFramework);
 
 namespace AzToolsFramework
 {
@@ -501,6 +503,7 @@ namespace AzToolsFramework
 
     void ToolBarManager::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AzToolsFramework, "ToolBarManager::OnSystemTick");
         RefreshToolBars();
         RefreshToolBarAreas();
     }

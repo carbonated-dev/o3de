@@ -36,6 +36,7 @@ namespace ScriptCanvas
 
             void BaseTimer::OnSystemTick()
             {
+                AZ_PROFILE_SCOPE(ScriptCanvas, "BaseTimer::OnSystemTick");
                 AZ::SystemTickBus::Handler::BusDisconnect();
 
                 if (!AZ::TickBus::Handler::BusIsConnected())

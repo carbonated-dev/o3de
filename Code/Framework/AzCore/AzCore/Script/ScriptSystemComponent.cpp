@@ -319,6 +319,7 @@ ScriptContext*  ScriptSystemComponent::GetContext(ScriptContextId id)
 //=========================================================================
 void ScriptSystemComponent::OnSystemTick()
 {
+    AZ_PROFILE_SCOPE(AzCore, "ScriptSystemComponent::OnSystemTick");
     for (size_t i = 0; i < m_contexts.size(); ++i)
     {
         ContextContainer& contextContainer = m_contexts[i];

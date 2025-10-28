@@ -12,6 +12,11 @@
 #include "TwitchSystemComponent.h"
 #include "TwitchReflection.h"
 #include <Twitch_Traits_Platform.h>
+
+#include <AzCore/Debug/Profiler.h>
+
+AZ_DEFINE_BUDGET(Twitch);
+
 namespace Twitch
 {
     TwitchSystemComponent::TwitchSystemComponent() 
@@ -21,6 +26,7 @@ namespace Twitch
 
     void TwitchSystemComponent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Twitch, "TwitchSystemComponent::OnSystemTick");
         if( m_twitchREST != nullptr)
             m_twitchREST->FlushEvents();
     }

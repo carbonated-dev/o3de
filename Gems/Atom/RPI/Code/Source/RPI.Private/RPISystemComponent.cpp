@@ -174,6 +174,7 @@ namespace AZ
 #endif
         void RPISystemComponent::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(RPI, "RPISystemComponent::OnSystemTick");
 #if defined(CARBONATED)
             if (m_suspended)
             {

@@ -15,6 +15,8 @@ AZ_POP_DISABLE_WARNING
 #include <QTimer>
 #include <QTableView>
 #include <AzCore/std/parallel/lock.h>
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(AzToolsFramework);
 
 namespace AzToolsFramework
 {
@@ -168,6 +170,7 @@ namespace AzToolsFramework
 
         void AZTracePrintFLogTab::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(AzToolsFramework, "AZTracePrintFLogTab::OnSystemTick");
             // if we've already queued a timer tick, don't queue another one:
             bool wasQueued = m_alreadyQueuedDrainMessage.exchange(true, AZStd::memory_order_acq_rel);
             if (!wasQueued)

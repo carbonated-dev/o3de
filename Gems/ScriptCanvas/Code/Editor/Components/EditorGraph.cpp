@@ -3708,6 +3708,7 @@ namespace ScriptCanvasEditor
 
     void EditorGraph::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(ScriptCanvas, "EditorGraph::OnSystemTick");
         if (!m_allowVersionUpdate)
         {
             m_allowVersionUpdate = true;

@@ -53,6 +53,7 @@ namespace GraphCanvas
 
     void GlowOutlineGraphicsItem::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "GlowOutlineGraphicsItem::OnSystemTick");
         UpdateOutlinePath();
         AZ::SystemTickBus::Handler::BusDisconnect();
     }

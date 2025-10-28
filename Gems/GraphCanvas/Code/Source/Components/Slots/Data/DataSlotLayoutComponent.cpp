@@ -324,6 +324,7 @@ namespace GraphCanvas
 
     void DataSlotLayout::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "DataSlotLayout::OnSystemTick");
         UpdateFilterState();
 
         if (m_slotText && m_doubleClickFilter)

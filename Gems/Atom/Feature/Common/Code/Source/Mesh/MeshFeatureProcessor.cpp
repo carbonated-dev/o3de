@@ -1684,6 +1684,7 @@ namespace AZ
 
         void ModelDataInstance::MeshLoader::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(AzRender, "ModelDataInstance::MeshLoader::OnSystemTick");
 #if defined(CARBONATED)
             MEMORY_TAG(Mesh);
             ASSET_TAG(m_modelAsset.GetHint().c_str());

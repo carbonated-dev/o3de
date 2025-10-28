@@ -608,6 +608,7 @@ namespace ScriptCanvasEditor
 
     void UnitTestDockWidget::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(ScriptCanvas, "UnitTestDockWidget::OnSystemTick");
         if (m_pendingTests.IsFinished())
         {
             OnTestsComplete();

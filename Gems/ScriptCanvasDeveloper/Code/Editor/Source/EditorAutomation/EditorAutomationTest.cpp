@@ -8,6 +8,9 @@
 
 #include <ScriptCanvasDeveloperEditor/EditorAutomation/EditorAutomationTest.h>
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(ScriptCanvas);
+
 namespace ScriptCanvas::Developer
 {
     /////////////////////////////////
@@ -198,6 +201,7 @@ namespace ScriptCanvas::Developer
 
     void EditorAutomationTest::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(ScriptCanvas, "ScriptCanvas::EditorAutomationTest::OnSystemTick");
         if (m_actionRunner.Tick())
         {
             if (!HasErrors())

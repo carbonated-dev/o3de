@@ -333,6 +333,7 @@ namespace ScriptCanvasEditor
 
     void SystemComponent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(ScriptCanvas, "ScriptCanvas::SystemComponent::OnSystemTick");
         if (m_isGarbageCollectRequested)
         {
             m_isGarbageCollectRequested = false;

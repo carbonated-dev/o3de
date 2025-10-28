@@ -20,6 +20,9 @@
 #include <Source/AutoGen/RemoteTools.AutoPackets.h>
 #include <Source/AutoGen/RemoteTools.AutoPacketDispatcher.h>
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DEFINE_BUDGET(RemoteTools);
+
 namespace RemoteTools
 {
     static constexpr const char* RemoteServerAddress = "127.0.0.1";
@@ -114,6 +117,7 @@ namespace RemoteTools
 
     void RemoteToolsSystemComponent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(RemoteTools, "RemoteToolsSystemComponent::OnSystemTick");
         if (!m_messageTypesToClearForNextTick.empty())
         {
             for (const AZ::Crc32& key : m_messageTypesToClearForNextTick)

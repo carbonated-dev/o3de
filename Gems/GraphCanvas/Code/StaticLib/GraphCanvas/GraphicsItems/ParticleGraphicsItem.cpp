@@ -105,6 +105,7 @@ namespace GraphCanvas
 
     void ParticleGraphicsItem::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "ParticleGraphicsItem::OnSystemTick");
         AZ::SystemTickBus::Handler::BusDisconnect();
 
         QGraphicsScene* graphicsScene = this->scene();

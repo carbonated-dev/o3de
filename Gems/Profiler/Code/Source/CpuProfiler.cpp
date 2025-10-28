@@ -13,6 +13,7 @@
 #include <AzCore/Statistics/StatisticalProfilerProxy.h>
 #include <AzCore/std/smart_ptr/shared_ptr.h>
 #include <AzCore/std/time.h>
+AZ_DEFINE_BUDGET(Profiler);
 
 namespace Profiler
 {
@@ -205,6 +206,7 @@ namespace Profiler
 
     void CpuProfiler::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Profiler, "CpuProfiler::OnSystemTick");
         if (!m_enabled)
         {
             return;

@@ -358,6 +358,7 @@ namespace AzToolsFramework
 
         void AssetSystemComponent::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(AzToolsFramework, "AssetSystemComponent::OnSystemTick");
             AssetSystemBus::ExecuteQueuedEvents();
         }
 

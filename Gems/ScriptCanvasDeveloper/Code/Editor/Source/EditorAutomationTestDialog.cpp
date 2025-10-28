@@ -407,6 +407,7 @@ namespace ScriptCanvas::Developer
 
     void EditorAutomationTestDialog::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(ScriptCanvas, "ScriptCanvas::EditorAutomationTestDialog::OnSystemTick");
         auto currentTime = AZStd::chrono::steady_clock::now();
         auto elapsedTimed = AZStd::chrono::duration_cast<AZStd::chrono::milliseconds>(currentTime - m_startTime);
 

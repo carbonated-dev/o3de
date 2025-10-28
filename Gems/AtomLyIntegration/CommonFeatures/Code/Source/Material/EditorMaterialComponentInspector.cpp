@@ -39,6 +39,8 @@ AZ_PUSH_DISABLE_WARNING(4251 4800, "-Wunknown-warning-option") // disable warnin
 #include <QWidget>
 AZ_POP_DISABLE_WARNING
 
+AZ_DECLARE_BUDGET(AtomLyIntegration);
+
 namespace AZ
 {
     namespace Render
@@ -837,6 +839,7 @@ namespace AZ
 
             void MaterialPropertyInspector::OnSystemTick()
             {
+                AZ_PROFILE_SCOPE(AtomLyIntegration, "MaterialPropertyInspector::OnSystemTick");
                 if (m_updateUI)
                 {
                     m_updateUI = false;

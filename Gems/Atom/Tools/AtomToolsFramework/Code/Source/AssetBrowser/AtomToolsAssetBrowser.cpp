@@ -29,6 +29,9 @@ AZ_PUSH_DISABLE_WARNING(4251 4800, "-Wunknown-warning-option") // disable warnin
 #include <QPushButton>
 AZ_POP_DISABLE_WARNING
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(AtomToolsFramework);
+
 namespace AtomToolsFramework
 {
     AtomToolsAssetBrowser::AtomToolsAssetBrowser(QWidget* parent)
@@ -417,6 +420,7 @@ namespace AtomToolsFramework
 
     void AtomToolsAssetBrowser::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AtomToolsFramework, "AtomToolsAssetBrowser::OnSystemTick");
         if (!ValidateDocumentPath(m_pathToSelect))
         {
             AZ::SystemTickBus::Handler::BusDisconnect();

@@ -95,6 +95,7 @@ namespace GraphCanvas
 
     void LayerControllerComponent::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(Animation, "LayerControllerComponent::OnSystemTick");
         UpdateZValue();
         LayerControllerNotificationBus::Event(GetEntityId(), &LayerControllerNotifications::OnOffsetsChanged, m_layerOffset, m_groupLayerOffset);
         AZ::SystemTickBus::Handler::BusDisconnect();

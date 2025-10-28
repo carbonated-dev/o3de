@@ -44,6 +44,9 @@ char** __argv = nullptr;
 #include <mach-o/dyld.h>
 #endif
 
+#include <AzCore/Debug/Profiler.h>
+AZ_DECLARE_BUDGET(AzToolsFramework);
+
 //#include "PanelData.h"
 
 // the UI Framework is the entry point into the UI side of things
@@ -327,6 +330,7 @@ namespace AzToolsFramework
 
     void Framework::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(AzToolsFramework, "Framework::OnSystemTick");
         AZ::SystemTickBus::Handler::BusDisconnect();
         CheckForReadyToQuit();
     }

@@ -297,6 +297,7 @@ namespace ScriptCanvasEditor
 
         void Modifier::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(ScriptCanvas, "ScriptCanvas::Modifier::OnSystemTick");
             switch (m_state)
             {
             case State::GatheringDependencies:

@@ -124,6 +124,7 @@ namespace ScriptCanvasEditor
 
         void Scanner::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(ScriptCanvas, "ScriptCanvas::Scanner::OnSystemTick");
             if (m_catalogAssetIndex == m_result.m_catalogAssets.size())
             {
                 VE_LOG("Scanner: Complete.");

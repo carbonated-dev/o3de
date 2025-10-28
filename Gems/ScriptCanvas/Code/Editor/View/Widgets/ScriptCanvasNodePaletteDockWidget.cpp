@@ -345,6 +345,7 @@ namespace ScriptCanvasEditor
 
         void ScriptCanvasRootPaletteTreeItem::OnSystemTick()
         {
+            AZ_PROFILE_SCOPE(ScriptCanvas, "ScriptCanvasRootPaletteTreeItem::OnSystemTick");
             AZ::SystemTickBus::Handler::BusDisconnect();
 
             while (!m_requestQueue.empty())

@@ -3934,6 +3934,7 @@ namespace ScriptCanvasEditor
 
     void MainWindow::OnSystemTick()
     {
+        AZ_PROFILE_SCOPE(ScriptCanvas, "ScriptCanvas::MainWindow::OnSystemTick");
         if (HasSystemTickAction(SystemTickActionFlag::RefreshPropertyGrid))
         {
             RemoveSystemTickAction(SystemTickActionFlag::RefreshPropertyGrid);
