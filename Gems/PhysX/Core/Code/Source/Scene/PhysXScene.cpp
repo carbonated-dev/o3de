@@ -572,7 +572,7 @@ namespace PhysX
 
     void PhysXScene::FinishSimulation()
     {
-        AZ_PROFILE_SCOPE(Physics, "PhysXScene::FinishSimulation");
+        AZ_PROFILE_SCOPE(Physics, "PhysXScene::FinishSimulation. Scene: %s", GetConfiguration().m_sceneName.c_str());
 
         if (!IsEnabled())
         {
@@ -580,7 +580,7 @@ namespace PhysX
         }
 
         {
-            AZ_PROFILE_SCOPE(Physics, "PhysXScene::CheckResults");
+            AZ_PROFILE_SCOPE(Physics, "PhysXScene::CheckResults. Scene: %s", GetConfiguration().m_sceneName.c_str());
 
             // Wait for the simulation to complete.
             // In the multithreaded environment we need to make sure we don't lock the scene for write here.

@@ -462,7 +462,7 @@ namespace AZ
             AZ_PROFILE_SCOPE(RPI, "View: SortFinalizedDrawLists");
             RHI::DrawListsByTag& drawListsByTag = m_drawListContext.GetMergedDrawListsByTag();
 
-            AZ::JobCompletion jobCompletion;
+            AZ::JobCompletion jobCompletion(nullptr, "View::SortFinalizedDrawListsJob");
             for (size_t idx = 0; idx < drawListsByTag.size(); ++idx)
             {
                 if (drawListsByTag[idx].size() > 1)

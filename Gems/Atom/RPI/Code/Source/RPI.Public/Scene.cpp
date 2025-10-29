@@ -462,7 +462,7 @@ namespace AZ
         void Scene::SimulateJobs()
         {
             // Create a new job to track completion.
-            m_simulationCompletion = aznew AZ::JobCompletion();
+            m_simulationCompletion = aznew AZ::JobCompletion(nullptr, "Scene::SimulateJobs");
 
             for (FeatureProcessorPtr& fp : m_featureProcessors)
             {
@@ -632,7 +632,7 @@ namespace AZ
         void Scene::CollectDrawPacketsJobs()
         {
             AZ_PROFILE_SCOPE(RPI, "CollectDrawPacketsJobs");
-            AZ::JobCompletion* collectDrawPacketsCompletion = aznew AZ::JobCompletion();
+            AZ::JobCompletion* collectDrawPacketsCompletion = aznew AZ::JobCompletion(nullptr, "Scene::CollectDrawPacketsJobs");
 
             // Launch FeatureProcessor::Render() jobs
             for (auto& fp : m_featureProcessors)
@@ -692,7 +692,7 @@ namespace AZ
 
         void Scene::FinalizeDrawListsJobs()
         {
-            AZ::JobCompletion* finalizeDrawListsCompletion = aznew AZ::JobCompletion();
+            AZ::JobCompletion* finalizeDrawListsCompletion = aznew AZ::JobCompletion(nullptr, "Scene::FinalizeDrawListsJobs");
             for (auto& view : m_renderPacket.m_views)
             {
                 const auto finalizeDrawListsLambda = [view](AZ::Job& job)

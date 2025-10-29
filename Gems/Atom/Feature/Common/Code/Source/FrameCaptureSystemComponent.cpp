@@ -152,7 +152,7 @@ namespace AZ
                 }
                 else
                 {
-                    AZ::JobCompletion jobCompletion;
+                    AZ::JobCompletion jobCompletion(nullptr, "PngFrameCaptureOutput");
                     for (int i = 0; i < numThreads; ++i)
                     {
                         int startPixel = i * numPixelsPerThread;

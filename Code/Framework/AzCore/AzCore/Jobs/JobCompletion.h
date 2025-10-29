@@ -23,9 +23,15 @@ namespace AZ
     public:
         AZ_CLASS_ALLOCATOR(JobCompletion, ThreadPoolAllocator);
 
-        JobCompletion(JobContext* context = nullptr)
+        JobCompletion(JobContext* context, const char* name)
             : Job(false, context, true)
         {
+#if defined(CARBONATED)
+            if (name)
+            {
+                m_jobName = name;
+            }
+#endif
         }
 
         /**
@@ -33,7 +39,11 @@ namespace AZ
          */
         void StartAndWaitForCompletion()
         {
+#if defined(CARBONATED)
+            AZ_PROFILE_SCOPE(AzCore, "StartAndWaitForCompletion: %s. Job: %s", GetContext()->GetJobManager().GetJobManagerName().c_str(), m_jobName.c_str());
+#else
             AZ_PROFILE_FUNCTION(AzCore);
+#endif
 
             // start the job
             Start();
@@ -60,6 +70,12 @@ namespace AZ
         }
 
         AZStd::semaphore m_semaphore;
+
+
+#if defined(CARBONATED)
+    private:
+        AZStd::fixed_string<64> m_jobName;
+#endif
     };
 }
 

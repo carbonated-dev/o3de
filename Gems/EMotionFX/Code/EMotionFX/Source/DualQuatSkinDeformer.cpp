@@ -84,7 +84,7 @@ namespace EMotionFX
         }
         else
         {
-            AZ::JobCompletion jobCompletion;
+            AZ::JobCompletion jobCompletion(nullptr, "DualQuatSkinDeformer::Update");
 
             // Split up the skinned vertices into batches.
             const uint32 numVertices = m_mesh->GetNumVertices();

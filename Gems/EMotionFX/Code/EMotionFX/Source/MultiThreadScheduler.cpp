@@ -154,7 +154,7 @@ namespace EMotionFX
             }
 
             // process the actor instances in the current step in parallel
-            AZ::JobCompletion jobCompletion;
+            AZ::JobCompletion jobCompletion(nullptr, "MultiThreadScheduler::Execute");
             for (ActorInstance* actorInstance : currentStep.m_actorInstances)
             {
                 if (actorInstance->GetIsEnabled() == false)

@@ -1090,7 +1090,7 @@ namespace Terrain
 
     void TerrainMeshManager::ProcessSectorUpdates(AZStd::vector<AZStd::vector<Sector*>>& sectorUpdates)
     {
-        AZ::JobCompletion jobCompletion;
+        AZ::JobCompletion jobCompletion(nullptr, "TerrainMeshManager::ProcessSectorUpdates");
 
         for (uint32_t lodLevel = 0; lodLevel < sectorUpdates.size(); ++lodLevel)
         {

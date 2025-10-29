@@ -20,6 +20,7 @@ namespace NvCloth
     Solver::Solver(const AZStd::string& name, NvSolverUniquePtr nvSolver)
         : m_name(name)
         , m_nvSolver(AZStd::move(nvSolver))
+        , m_simulationCompletion(nullptr, name.c_str())
     {
     }
 

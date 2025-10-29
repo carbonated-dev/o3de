@@ -81,6 +81,10 @@ namespace AZ
         /// Returns 0 based worker index (for legacy Job compatibility)
         AZ::u32 GetWorkerThreadId() const { return m_impl.GetWorkerThreadId(); }
 
+#if defined(CARBONATED)
+        AZStd::fixed_string<128> GetJobManagerName() const { return m_impl.GetJobManagerName(); }
+#endif
+
     private:
         //non-copyable
         JobManager(const JobManager& manager);

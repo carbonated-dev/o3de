@@ -428,7 +428,7 @@ namespace AZ
 #if defined(CARBONATED)
             MEMORY_TAG(Mesh);
 #endif
-            AZ::JobCompletion jobCompletion;
+            AZ::JobCompletion jobCompletion(nullptr, "ExecuteCombinedJobQueue");
             for (size_t i = 0; i < initQueue.size(); ++i)
             {
                 // Update Culling work should happen after Init is done
@@ -466,7 +466,7 @@ namespace AZ
             MEMORY_TAG(Mesh);
             ASSET_TAG("UnknownMesh1");  // not a particular asset loading, hard to identify, but there is some memory allocated, TODO
 #endif
-            AZ::JobCompletion jobCompletion;
+            AZ::JobCompletion jobCompletion(nullptr, "ExecuteSimulateJobQueue");
             for (Job* childJob : jobQueue)
             {
                 // FeatureProcessor::Simulate is optionally run with a parent job.

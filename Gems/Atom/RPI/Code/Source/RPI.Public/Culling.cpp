@@ -1065,7 +1065,7 @@ namespace AZ
 
         void CullingScene::BeginCullingJobs(const Scene& scene, AZStd::span<const ViewPtr> views)
         {
-            AZ::JobCompletion beginCullingCompletion;
+            AZ::JobCompletion beginCullingCompletion(nullptr, "CullingScene::BeginCullingJobs");
 
             const auto& entityContextId = GetEntityContextIdForOcclusion(&scene);
             for (auto& view : views)

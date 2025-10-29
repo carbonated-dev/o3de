@@ -109,7 +109,7 @@ namespace EMotionFX::MotionMatching
             }
             else // job system
             {
-                AZ::JobCompletion jobCompletion;
+                AZ::JobCompletion jobCompletion(nullptr, "MotionMatchingData::ExtractFeatures");
 
                 // Split-up the motion database into batches of frames and extract the feature values for each batch simultaneously.
                 for (size_t batchIndex = 0; batchIndex < numBatches; ++batchIndex)

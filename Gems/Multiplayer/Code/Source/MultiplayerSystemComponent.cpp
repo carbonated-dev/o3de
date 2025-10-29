@@ -657,7 +657,7 @@ namespace Multiplayer
             // Threaded update calls.
             AZ_PROFILE_SCOPE(MULTIPLAYER, "MultiplayerSystemComponent: UpdateConnections");
 
-            AZ::JobCompletion jobCompletion;
+            AZ::JobCompletion jobCompletion(nullptr, "MultiplayerSystemComponent::UpdateConnections");
 
             auto sendNetworkUpdates = [&jobCompletion](IConnection& connection)
             {
@@ -1600,7 +1600,7 @@ namespace Multiplayer
 
             if (bg_parallelNotifyPreRender)
             {
-                AZ::JobCompletion jobCompletion;
+                AZ::JobCompletion jobCompletion(nullptr, "MultiplayerSystemComponent::TickVisibleNetworkEntities");
                 for (NetBindComponent* netBindComponent : gatheredEntities)
                 {
                     AZ::Job* job = AZ::CreateJobFunction([netBindComponent = netBindComponent, deltaTime]()

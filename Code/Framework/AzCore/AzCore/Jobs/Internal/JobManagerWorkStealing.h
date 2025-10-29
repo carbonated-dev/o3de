@@ -83,7 +83,9 @@ namespace AZ
             AZ::u32 GetNumWorkerThreads() const { return static_cast<AZ::u32>(m_workerThreads.size()); }
 
             AZ::u32 GetWorkerThreadId() const;
-
+#if defined(CARBONATED)
+            AZStd::fixed_string<128> GetJobManagerName() const { return m_jobManagerName; }
+#endif
         private:
 
             void ActivateWorker();
@@ -152,6 +154,10 @@ namespace AZ
             //thread-local pointer to the info for this thread. This is set for worker threads all the time,
             //and user threads only while they are processing jobs
             static AZ_THREAD_LOCAL ThreadInfo* m_currentThreadInfo;
+
+#if defined(CARBONATED)
+            AZStd::fixed_string<128> m_jobManagerName;
+#endif
         };
     }
 }

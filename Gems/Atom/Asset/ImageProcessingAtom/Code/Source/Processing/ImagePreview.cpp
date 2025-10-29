@@ -28,6 +28,7 @@ namespace ImageProcessingAtom
         , m_textureSetting(textureSetting)
         , m_presetSetting(nullptr)
         , m_inputImage(nullptr)
+        , m_doneJob(nullptr, "ImagePreview")
     {
         InitializeJobSettings();
     }
@@ -111,7 +112,7 @@ namespace ImageProcessingAtom
         m_jobCancelGroup = AZStd::make_unique<AZ::JobCancelGroup>();
         m_jobContext = AZStd::make_unique<AZ::JobContext>(*m_jobManager, *m_jobCancelGroup);
 
-        new (&m_doneJob) AZ::JobCompletion(m_jobContext.get()); //re-initialize with the job context
+        new (&m_doneJob) AZ::JobCompletion(m_jobContext.get(), "ImagePreview::InitializeJobSettings"); // re-initialize with the job context
     }
 
 }// namespace ImageProcessingAtom

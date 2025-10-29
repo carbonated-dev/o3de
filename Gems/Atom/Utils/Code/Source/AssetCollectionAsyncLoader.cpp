@@ -130,7 +130,7 @@ namespace AZ
         m_jobManager = AZStd::make_unique<AZ::JobManager>(desc);
         m_jobCancelGroup = AZStd::make_unique<AZ::JobCancelGroup>();
         m_jobContext = AZStd::make_unique<AZ::JobContext>(*m_jobManager, *m_jobCancelGroup);
-        m_jobUsedForCancellation = AZStd::make_unique<AZ::JobCompletion>(m_jobContext.get());
+        m_jobUsedForCancellation = AZStd::make_unique<AZ::JobCompletion>(m_jobContext.get(), "AssetCollectionAsyncLoader::LoadAssetsAsync");
         m_jobUsedForCancellation->Reset(true);
 
         //Kick off the job.

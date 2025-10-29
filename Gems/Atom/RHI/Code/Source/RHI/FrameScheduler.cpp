@@ -327,7 +327,7 @@ namespace AZ::RHI
                 resourcePoolDatabase.ForEachShaderResourceGroupPool<decltype(compileGroupsBeginFunction)>(compileGroupsBeginFunction);
 
                 // Iterate over each SRG pool and fork jobs to compile SRGs.
-                AZ::JobCompletion jobCompletion;
+                AZ::JobCompletion jobCompletion(nullptr, "CompileShaderResourceGroups");
 
                 const auto compileIntervalsFunction = [compilesPerJob, &jobCompletion](ShaderResourceGroupPool* srgPool)
                 {
@@ -577,7 +577,8 @@ namespace AZ::RHI
         // Otherwise, fork a job for each group.
         else
         {
-            AZ::JobCompletion jobCompletion;
+            AZ::JobCompletion jobCompletion(nullptr, "FrameScheduler::Execute");
+
             for (uint32_t groupIndex = 0; groupIndex < groupCount; ++groupIndex)
             {
                 const auto jobLambda = [this, groupIndex](AZ::Job& owner)

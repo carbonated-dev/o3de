@@ -222,7 +222,7 @@ namespace ImageProcessingAtom
                 AZ::JobCompletion* completionJob = nullptr;
                 if (!currentJob)
                 {
-                    completionJob = aznew AZ::JobCompletion();
+                    completionJob = aznew AZ::JobCompletion(nullptr, "ASTCCompressor::CompressImage");
                 }
                 // Create jobs for each compression thread
                 for (AZ::u32 threadIdx = 0; threadIdx < threadCount; threadIdx++)

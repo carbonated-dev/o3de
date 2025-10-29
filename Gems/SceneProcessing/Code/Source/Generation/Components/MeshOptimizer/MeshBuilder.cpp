@@ -243,7 +243,7 @@ namespace AZ::MeshBuilder
 
     void MeshBuilder::GenerateSubMeshVertexOrders()
     {
-        AZ::JobCompletion jobCompletion;           
+        AZ::JobCompletion jobCompletion(nullptr, "MeshBuilder::GenerateSubMeshVertexOrders");           
 
         for (const AZStd::unique_ptr<MeshBuilderSubMesh>& subMesh : m_subMeshes)
         {

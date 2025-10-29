@@ -86,6 +86,9 @@ JobManagerWorkStealing::JobManagerWorkStealing(const JobManagerDesc& desc)
     : m_isAsynchronous(!desc.m_workerThreads.empty())
     , m_workerThreads(AZStd::move(CreateWorkerThreads(desc)))
 {
+#if defined(CARBONATED)
+    m_jobManagerName = desc.m_jobManagerName;
+#endif
     //allow workers to begin processing after they have all been created, needed to wait since they may access each others queues
     m_initSemaphore.release(static_cast<unsigned int>(desc.m_workerThreads.size()));
 }
