@@ -1010,7 +1010,6 @@ ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.android.gms:play-services-games:23.2.0'
     implementation 'com.google.android.gms:play-services-auth:21.2.0'  
     implementation 'androidx.games:games-frame-pacing:2.1.3'
-    implementation "com.netflix.games:sdk:1.8.1"
 """
 
 ADDITIONAL_PLUGINS = """
@@ -1484,21 +1483,6 @@ class AndroidProjectGenerator(object):
         self.create_file_from_project_template(src_template_file='root.build.gradle.in',
                                                template_env=root_gradle_env,
                                                dst_file=self._build_dir / 'build.gradle')
-
-# CARBONATED -- begin : Carbonated game only specific - prepare to add Android project for NetflixSdk gem into dependency lists
-        netflixsdk_dir = self._build_dir / "netflixsdk"
-        app_dir = self._build_dir / "app"
-        libs_dir = app_dir / "src/main/libs"
-        netflixsdk_gem_dir = self._project_path / "Gems/NetflixSdk"
-        if netflixsdk_gem_dir.exists():
-            netflix_gem_lib_dir = netflixsdk_gem_dir / "Code/Source/Platform/Android/libs"
-            netflix_gradle_path = netflixsdk_gem_dir /  "Projects/Android/build.gradle"
-            (netflixsdk_dir / "src/main").mkdir(parents=True, exist_ok=True)
-            libs_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy(netflix_gradle_path, netflixsdk_dir)
-            shutil.copytree(netflix_gem_lib_dir, libs_dir, dirs_exist_ok=True)
-            project_names.append("netflixsdk")
-# CARBONATED -- end
 
         self.write_settings_gradle(project_names)
 
