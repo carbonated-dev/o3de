@@ -317,6 +317,12 @@ class AndroidGradlePluginRequirements(object):
 
 ANDROID_GRADLE_PLUGIN_COMPATIBILITY_MAP = {
 
+    '8.9': AndroidGradlePluginRequirements(agp_version='8.9.1',
+                                           gradle_version='8.11.1',
+                                           sdk_build_tools_version='35.0.0',
+                                           jdk_version='17',
+                                           release_note_url='https://developer.android.com/build/releases/past-releases/agp-8-9-0-release-notes'),
+
     '8.2': AndroidGradlePluginRequirements(agp_version='8.2',
                                            gradle_version='8.2',
                                            sdk_build_tools_version='35.0.0',
@@ -1004,6 +1010,7 @@ ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.android.gms:play-services-games:23.2.0'
     implementation 'com.google.android.gms:play-services-auth:21.2.0'  
     implementation 'androidx.games:games-frame-pacing:2.1.3'
+    implementation "com.netflix.games:sdk:1.8.1"
 """
 
 ADDITIONAL_PLUGINS = """
@@ -1468,12 +1475,30 @@ class AndroidProjectGenerator(object):
             'NDK_VERSION': self._android_ndk.version,
             'SDK_BUILD_TOOL_VER': self._android_sdk_build_tool_version,
             'LY_ENGINE_ROOT': self._engine_root.as_posix(),
-            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'" # CARBONATED -- root dependencies
+            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # CARBONATED -- root dependencies
+# CARBONATED -- begin
+            'LOCAL_REPOSITORIES_PATH': "'src/main/libs'"
+# CARBONATED -- end
         }
         # Generate the gradle build script
         self.create_file_from_project_template(src_template_file='root.build.gradle.in',
                                                template_env=root_gradle_env,
                                                dst_file=self._build_dir / 'build.gradle')
+
+# CARBONATED -- begin : Carbonated game only specific - prepare to add Android project for NetflixSdk gem into dependency lists
+        netflixsdk_dir = self._build_dir / "netflixsdk"
+        app_dir = self._build_dir / "app"
+        libs_dir = app_dir / "src/main/libs"
+        netflixsdk_gem_dir = self._project_path / "Gems/NetflixSdk"
+        if netflixsdk_gem_dir.exists():
+            netflix_gem_lib_dir = netflixsdk_gem_dir / "Code/Source/Platform/Android/libs"
+            netflix_gradle_path = netflixsdk_gem_dir /  "Projects/Android/build.gradle"
+            (netflixsdk_dir / "src/main").mkdir(parents=True, exist_ok=True)
+            libs_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy(netflix_gradle_path, netflixsdk_dir)
+            shutil.copytree(netflix_gem_lib_dir, libs_dir, dirs_exist_ok=True)
+            project_names.append("netflixsdk")
+# CARBONATED -- end
 
         self.write_settings_gradle(project_names)
 
