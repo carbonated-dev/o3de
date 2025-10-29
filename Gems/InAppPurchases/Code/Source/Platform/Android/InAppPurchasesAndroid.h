@@ -37,6 +37,9 @@ namespace InAppPurchases
         void FinishTransaction(const AZStd::string& transactionId, bool downloadHostedContent) const override;
 
         InAppPurchasesCache* GetCache() override;
+#if defined(CARBONATED)
+        AZStd::string GetTransactionReceipt() const override;
+#endif
 
     private:
         jobject m_billingInstance;

@@ -134,6 +134,21 @@ namespace LyShine
         LyShine::UiPrimitiveList   m_primitives;
 
 #if defined(CARBONATED)
+        // Each draw command represents one continuous range in the combined vertex/index buffers
+        // that uses a single texture (texIndex).
+        struct DrawCommand
+        {
+            int m_combinedVertexStart = 0; // Start offset in m_combinedVertices
+            int m_combinedVertexCount = 0; // Number of vertices in this draw batch
+            int m_combinedIndexStart = 0; // Start offset in m_combinedIndices
+            int m_combinedIndexCount = 0; // Number of indices in this draw batch
+
+            uint8 m_usedTexIndex = 255; // Texture index used by all vertices in this batch
+            int m_numPrimitives = 0;    // Number of primitives combined in this DrawCommand
+        };
+
+        AZStd::vector<DrawCommand> m_drawCommands;
+
         // Per-frame combined vertex and index buffers
         AZStd::vector<UiPrimitiveVertex> m_combinedVertices;
         AZStd::vector<uint16> m_combinedIndices;
@@ -355,6 +370,11 @@ namespace LyShine
         AZ::RHI::TargetBlendState GetBlendModeState(LyShine::BlendMode blendMode, bool isShaderOutputPremultAlpha) const;
 
         void SetRttPassesEnabled(UiRenderer* uiRenderer, bool enabled);
+
+#if defined(CARBONATED)
+    private:
+        void CheckAndApplyVulkanTexWorkaround(const AZStd::string& gpuName);
+#endif
 
     protected:  // data
 

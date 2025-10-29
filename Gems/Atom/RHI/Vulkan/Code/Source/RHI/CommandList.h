@@ -120,6 +120,9 @@ namespace AZ
 
             RHI::CommandListValidator& GetValidator();
 
+#if defined(CARBONATED) && !defined(_RELEASE)
+            void CollectGPUStatistics(double commitTime);
+#endif
         private:
             struct Descriptor
             {
@@ -186,6 +189,13 @@ namespace AZ
             bool m_supportsPredication = false;
             bool m_supportsDrawIndirectCount = false;
             RHI::CommandListValidator m_validator;
+#if defined(CARBONATED) && !defined(_RELEASE)
+            bool m_collectingGPUStats = false;
+            VkQueryPool m_queryPool = VK_NULL_HANDLE;
+            const uint32_t m_timestampStartIndex = 0;
+            const uint32_t m_timestampEndIndex = 1;
+            VkTimeDomainEXT m_cpuTimeDomain = VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT;
+#endif
         };
 
         template<class Item>

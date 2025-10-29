@@ -306,6 +306,9 @@ namespace AZ
             // The order must match the enum OptionalDeviceExtensions
             RawStringList optionalExtensions = { {
                 VK_EXT_SAMPLE_LOCATIONS_EXTENSION_NAME,
+#if defined(CARBONATED)
+                VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
+#endif
                 VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME,
                 VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
                 VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,

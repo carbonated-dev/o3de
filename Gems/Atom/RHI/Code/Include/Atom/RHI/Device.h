@@ -179,8 +179,11 @@ namespace AZ::RHI
         void RegisterCommandBuffer(const void* buffer);
         void MarkCommandBufferCommit(const void* buffer);
         void CommandBufferCompleted(const void* buffer, double begin, double end);
+        bool GatheringStatsEnabled() const { return m_statsEnabled; }
+        void LogGPUSnapshot(int nFrames);   // writes "commit+begin+end times" of nFrames into the Log
         void EnableGatheringStats();
         void DisableGatheringStats();
+        unsigned int GetLastFrameToLog() const { return m_lastFrameToLog; }
 #endif
     protected:
 
@@ -271,6 +274,8 @@ namespace AZ::RHI
         double m_FrameGPUWaitAvgTime = 0.0;
         double m_FrameGPUEndMaxTime = 0.0;
         bool m_statsEnabled = false;
+        unsigned int m_lastFrameToLog = 0;
+        double m_startLogTime = 0;
 #endif
     };
 }

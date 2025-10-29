@@ -1,6 +1,7 @@
 */Code/Framework/AzCore/AzCore/Settings/SettingsRegistryMergeUtils.h
 */Code/Framework/AzCore/AzCore/Asset/AssetManager.cpp
 */Code/Framework/AzCore/AzCore/Console/Console.cpp
+*/Code/Framework/AzCore/Platform/Common/UnixLike/AzCore/std/parallel/internal/thread_UnixLike.h
 */Gems/Atom/RPI/Code/Source/RPI.Public/Material/Material.cpp
 */Gems/Atom/RPI/Code/Source/RPI.Reflect/Material/MaterialTypeAsset.cpp
 */Gems/Atom/RHI/Metal/Code/Source/RHI/PipelineState.cpp
@@ -9,6 +10,7 @@
 */Gems/Atom/RHI/Metal/Code/Source/RHI/MetalViewController.h
 */Gems/Atom/RHI/Vulkan/Code/Source/RHI/SwapChain.cpp
 */Gems/Atom/RHI/Vulkan/Code/Source/RHI/SwapChain.h
+*/Gems/Atom/RHI/Vulkan/Code/Source/RHI/CommandQueue.cpp
 */Gems/Atom/RPI/Code/Source/RPI.Public/WindowContext.cpp
 */Code/Framework/AzFramework/AzFramework/Windowing/NativeWindow.cpp
 */Code/Legacy/CrySystem/System.cpp

@@ -36,6 +36,10 @@
 #include <Atom/RHI.Reflect/IndirectBufferLayout.h>
 #include <Atom/RHI/DispatchRaysItem.h>
 
+#if defined(CARBONATED) && !defined(_RELEASE)
+#include <RHI/ReleaseContainer.h>
+#include <AzCore/Time/ITime.h>
+#endif
 namespace AZ
 {
     namespace Vulkan
@@ -59,6 +63,41 @@ namespace AZ
             const auto& physicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
             m_supportsPredication = physicalDevice.IsFeatureSupported(DeviceFeature::Predication);
             m_supportsDrawIndirectCount = physicalDevice.IsFeatureSupported(DeviceFeature::DrawIndirectCount);
+#if defined(CARBONATED) && !defined(_RELEASE)
+            const auto& context = device.GetContext();
+
+            VkQueryPoolCreateInfo queryPoolInfo = {};
+            queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+            queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+            queryPoolInfo.queryCount = 2; // start + end
+            context.CreateQueryPool(device.GetNativeDevice(), &queryPoolInfo, nullptr, &m_queryPool);
+
+            { // Let's define supported "m_cpuTimeDomain" to use in GetCalibratedTimestampsEXT
+                if (context.GetPhysicalDeviceCalibrateableTimeDomainsEXT)
+                {
+                    uint32_t timeDomainCount = 0;
+                    context.GetPhysicalDeviceCalibrateableTimeDomainsEXT(
+                        physicalDevice.GetNativePhysicalDevice(), &timeDomainCount, nullptr);
+
+                    AZStd::vector<VkTimeDomainEXT> timeDomains(timeDomainCount);
+                    context.GetPhysicalDeviceCalibrateableTimeDomainsEXT(
+                        physicalDevice.GetNativePhysicalDevice(), &timeDomainCount, timeDomains.data());
+
+                    if (AZStd::find(timeDomains.begin(), timeDomains.end(), VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT) == timeDomains.end())
+                    {
+                        if (AZStd::find(timeDomains.begin(), timeDomains.end(), VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT) !=
+                            timeDomains.end())
+                        {
+                            m_cpuTimeDomain = VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT;
+                        }
+                        else
+                        {
+                            m_cpuTimeDomain = VK_TIME_DOMAIN_DEVICE_EXT; // fallback
+                        }
+                    }
+                }
+            }
+#endif
             return result;
         }
 
@@ -140,6 +179,12 @@ namespace AZ
                 copy.bufferOffset = sourceBufferMemoryView->GetOffset() + descriptor.m_sourceOffset;
                 copy.bufferRowLength = descriptor.m_sourceBytesPerRow / GetFormatSize(format) * formatDimensionAlignment.m_width;
                 copy.bufferImageHeight = RHI::AlignUp(descriptor.m_sourceSize.m_height, formatDimensionAlignment.m_height);
+#if defined(CARBONATED)
+                // VkBufferImageCopy::bufferImageHeight should be multiple to formatDimensionAlignment.m_height otherwise Validation Layer will issue an error.
+                copy.bufferImageHeight =
+                    ((copy.bufferImageHeight + formatDimensionAlignment.m_height - 1) / formatDimensionAlignment.m_height) *
+                    formatDimensionAlignment.m_height;
+#endif
                 copy.imageSubresource.aspectMask = destinationImage->GetImageAspectFlags();
                 copy.imageSubresource.mipLevel = descriptor.m_destinationSubresource.m_mipSlice;
                 copy.imageSubresource.baseArrayLayer = descriptor.m_destinationSubresource.m_arraySlice;
@@ -214,6 +259,12 @@ namespace AZ
                 copy.bufferOffset = destinationBufferMemoryView->GetOffset() + descriptor.m_destinationOffset;
                 copy.bufferRowLength = descriptor.m_destinationBytesPerRow / GetFormatSize(format) * formatDimensionAlignment.m_width;
                 copy.bufferImageHeight = RHI::AlignUp(descriptor.m_sourceSize.m_height, formatDimensionAlignment.m_height);
+#if defined(CARBONATED)
+                // VkBufferImageCopy::bufferImageHeight should be multiple to formatDimensionAlignment.m_height otherwise Validation Layer will issue an error.
+                copy.bufferImageHeight =
+                    ((copy.bufferImageHeight + formatDimensionAlignment.m_height - 1) / formatDimensionAlignment.m_height) *
+                    formatDimensionAlignment.m_height;
+#endif
                 copy.imageSubresource.aspectMask = ConvertImageAspect(descriptor.m_sourceSubresource.m_aspect);
                 copy.imageSubresource.mipLevel = descriptor.m_sourceSubresource.m_mipSlice;
                 copy.imageSubresource.baseArrayLayer = descriptor.m_sourceSubresource.m_arraySlice;
@@ -631,6 +682,15 @@ namespace AZ
 
         void CommandList::Shutdown()
         {
+#if defined(CARBONATED) && !defined(_RELEASE)
+            if (m_queryPool)
+            {
+                auto& device = static_cast<Device&>(GetDevice());
+                device.QueueForRelease(
+                    new ReleaseContainer<VkQueryPool>(device.GetNativeDevice(), m_queryPool, device.GetContext().DestroyQueryPool));
+                m_queryPool = VK_NULL_HANDLE;
+            }
+#endif
             m_nativeCommandBuffer = VK_NULL_HANDLE; // do not call vkFreeCommanBuffers().
             DeviceObject::Shutdown();
         }
@@ -669,17 +729,129 @@ namespace AZ
 
             VkResult vkResult = static_cast<Device&>(GetDevice()).GetContext().BeginCommandBuffer(m_nativeCommandBuffer, &beginInfo);
             AssertSuccess(vkResult);
+#if defined(CARBONATED) && !defined(_RELEASE)
+            if (m_queryPool)
+            {
+                m_collectingGPUStats = GetDevice().GatheringStatsEnabled();
+                if (m_collectingGPUStats)
+                {
+                    // Reset both queries before using them
+                    static_cast<Device&>(GetDevice())
+                        .GetContext()
+                        .CmdResetQueryPool(m_nativeCommandBuffer, m_queryPool, m_timestampStartIndex, 2);
+                    // Write timestamp at beginning
+                    static_cast<Device&>(GetDevice())
+                        .GetContext()
+                        .CmdWriteTimestamp(m_nativeCommandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_queryPool, m_timestampStartIndex);
+                }
+            }
+#endif
         }
 
         void CommandList::EndCommandBuffer()
         {
             AZ_Assert(m_isUpdating, "Not in updating state");
 
+#if defined(CARBONATED) && !defined(_RELEASE)
+            if (m_queryPool && m_collectingGPUStats)
+            {
+                // Write timestamp at the end
+                static_cast<Device&>(GetDevice()).GetContext().CmdWriteTimestamp(m_nativeCommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_queryPool, m_timestampEndIndex);
+            }
+#endif
             m_state.m_framebuffer = nullptr;
             m_state.m_subpassIndex = 0;
             AssertSuccess(static_cast<Device&>(GetDevice()).GetContext().EndCommandBuffer(m_nativeCommandBuffer));
             m_isUpdating = false;
         }
+
+#if defined(CARBONATED) && !defined(_RELEASE)
+        void CommandList::CollectGPUStatistics(double commitTime)
+        {
+            if (!m_collectingGPUStats)
+            {
+                return;
+            }
+            const auto& device = static_cast<Device&>(GetDevice());
+            const auto& context = device.GetContext();
+
+            uint64_t timestamps[2] = {};
+
+            VkResult result = context.GetQueryPoolResults(
+                device.GetNativeDevice(),
+                m_queryPool,
+                m_timestampStartIndex,
+                2,
+                sizeof(timestamps),
+                timestamps,
+                sizeof(uint64_t),
+                VK_QUERY_RESULT_64_BIT);
+            if (result != VK_SUCCESS)
+            {
+                GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, 0, 0);
+                return;
+            }
+
+            const auto& physicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
+            double timestampPeriod = physicalDevice.GetDeviceLimits().timestampPeriod; // ns per tick
+
+            const uint64_t gpuStart = timestamps[0];
+            const uint64_t gpuEnd = timestamps[1];
+
+            // Convert GPU ticks to seconds
+            const double gpuStartSec = (gpuStart * timestampPeriod) / 1e9;
+            const double gpuEndSec = (gpuEnd * timestampPeriod) / 1e9;
+
+            // Calibration
+            VkCalibratedTimestampInfoEXT timestampInfos[2] = {};
+            timestampInfos[0].sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT;
+            timestampInfos[0].timeDomain = VK_TIME_DOMAIN_DEVICE_EXT; // GPU
+
+            timestampInfos[1].sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT;
+            timestampInfos[1].timeDomain = m_cpuTimeDomain; // CPU
+
+            uint64_t timestampsCalibration[2] = {};
+
+            result = VK_NOT_READY;
+            if (context.GetCalibratedTimestampsEXT)
+            {
+                uint64_t maxDeviation = 0;
+                result = context.GetCalibratedTimestampsEXT(device.GetNativeDevice(), 2, timestampInfos, timestampsCalibration, &maxDeviation);
+            }
+            if (result == VK_SUCCESS)
+            {
+                const uint64_t gpuCalibTicks = timestampsCalibration[0];
+                const uint64_t cpuCalibNs = timestampsCalibration[1];
+
+                // Calculate calibration in Seconds
+                const double gpuCalibSec = (gpuCalibTicks * timestampPeriod) / 1e9;
+                const double cpuCalibSec = cpuCalibNs / 1e9;
+
+                // Calculation time shift
+                const double timeShiftSec = cpuCalibSec - gpuCalibSec;
+
+                // Apply calibration
+                double gpuStartCpuSec = gpuStartSec + timeShiftSec;
+                double gpuEndCpuSec = gpuEndSec + timeShiftSec;
+
+                // --- Clamp GPU time not to be earlier than commit time ---
+                // GPU cannot start rendering before we actually submitted the command buffer as it is reported on Windows by Radeon RX 480
+                if (gpuStartCpuSec < commitTime)
+                {
+                    const double offset = commitTime - gpuStartCpuSec;
+                    gpuStartCpuSec += offset;
+                    gpuEndCpuSec += offset;
+                }
+
+                GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartCpuSec, gpuEndCpuSec);
+            }
+            else
+            {
+                // Fallback to not corrected values
+                GetDevice().CommandBufferCompleted(m_nativeCommandBuffer, gpuStartSec, gpuEndSec);
+            }
+        }
+#endif
 
         void CommandList::BeginRenderPass(const BeginRenderPassInfo& beginInfo)
         {
