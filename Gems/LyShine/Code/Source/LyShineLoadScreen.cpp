@@ -117,6 +117,11 @@ namespace LyShine
             return false;
         }
 
+        if (gEnv->IsDedicated())  // no loading screen on a dedicated server
+        {
+            return false;
+        }
+
         AZ_Assert(!m_isPlaying, "LyShineLoadScreen was not stopped before another level load started.");
         AZ_Assert(!m_gameCanvasEntityId.IsValid(), "LyShineLoadScreen game load canvas was not unloaded before a level load started.");
         if (m_isPlaying || m_gameCanvasEntityId.IsValid())

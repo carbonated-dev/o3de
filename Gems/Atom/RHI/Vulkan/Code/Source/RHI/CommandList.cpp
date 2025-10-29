@@ -68,34 +68,36 @@ namespace AZ
             m_supportsPredication = physicalDevice.IsFeatureSupported(DeviceFeature::Predication);
             m_supportsDrawIndirectCount = physicalDevice.IsFeatureSupported(DeviceFeature::DrawIndirectCount);
 #if defined(CARBONATED) && !defined(_RELEASE)
+            const auto& context = device.GetContext();
+
             VkQueryPoolCreateInfo queryPoolInfo = {};
             queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
             queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
             queryPoolInfo.queryCount = 2; // start + end
-            static_cast<Device&>(GetDevice()).GetContext().CreateQueryPool(device.GetNativeDevice(), &queryPoolInfo, nullptr, &m_queryPool);
+            context.CreateQueryPool(device.GetNativeDevice(), &queryPoolInfo, nullptr, &m_queryPool);
 
             { // Let's define supported "m_cpuTimeDomain" to use in GetCalibratedTimestampsEXT
-                uint32_t timeDomainCount = 0;
-                static_cast<Device&>(GetDevice())
-                    .GetContext()
-                    .GetPhysicalDeviceCalibrateableTimeDomainsEXT(physicalDevice.GetNativePhysicalDevice(), &timeDomainCount, nullptr);
-
-                AZStd::vector<VkTimeDomainEXT> timeDomains(timeDomainCount);
-                static_cast<Device&>(GetDevice())
-                    .GetContext()
-                    .GetPhysicalDeviceCalibrateableTimeDomainsEXT(
-                    physicalDevice.GetNativePhysicalDevice(), &timeDomainCount, timeDomains.data());
-
-                if (AZStd::find(timeDomains.begin(), timeDomains.end(), VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT) == timeDomains.end())
+                if (context.GetPhysicalDeviceCalibrateableTimeDomainsEXT)
                 {
-                    if (AZStd::find(timeDomains.begin(), timeDomains.end(), VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT) !=
-                        timeDomains.end())
+                    uint32_t timeDomainCount = 0;
+                    context.GetPhysicalDeviceCalibrateableTimeDomainsEXT(
+                        physicalDevice.GetNativePhysicalDevice(), &timeDomainCount, nullptr);
+
+                    AZStd::vector<VkTimeDomainEXT> timeDomains(timeDomainCount);
+                    context.GetPhysicalDeviceCalibrateableTimeDomainsEXT(
+                        physicalDevice.GetNativePhysicalDevice(), &timeDomainCount, timeDomains.data());
+
+                    if (AZStd::find(timeDomains.begin(), timeDomains.end(), VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT) == timeDomains.end())
                     {
-                        m_cpuTimeDomain = VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT;
-                    }
-                    else
-                    {
-                        m_cpuTimeDomain = VK_TIME_DOMAIN_DEVICE_EXT; // fallback
+                        if (AZStd::find(timeDomains.begin(), timeDomains.end(), VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT) !=
+                            timeDomains.end())
+                        {
+                            m_cpuTimeDomain = VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_EXT;
+                        }
+                        else
+                        {
+                            m_cpuTimeDomain = VK_TIME_DOMAIN_DEVICE_EXT; // fallback
+                        }
                     }
                 }
             }
