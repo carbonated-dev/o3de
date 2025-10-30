@@ -58,6 +58,7 @@ namespace AZ
 
         void LutGenerationPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "LutGenerationPass::BuildCommandListInternal");
             const auto* colorGradingSettings = GetHDRColorGradingSettings();
             if (colorGradingSettings)
             {

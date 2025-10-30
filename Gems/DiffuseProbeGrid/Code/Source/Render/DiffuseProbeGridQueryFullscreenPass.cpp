@@ -190,6 +190,8 @@ namespace AZ
 
         void DiffuseProbeGridQueryFullscreenPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "DiffuseProbeGridQueryFullscreenPass::BuildCommandListInternal");
+
             RHI::CommandList* commandList = context.GetCommandList();
             RPI::Scene* scene = m_pipeline->GetScene();
             DiffuseProbeGridFeatureProcessor* diffuseProbeGridFeatureProcessor = scene->GetFeatureProcessor<DiffuseProbeGridFeatureProcessor>();

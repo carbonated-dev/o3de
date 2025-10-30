@@ -257,6 +257,8 @@ namespace AZ
 
         void DiffuseProbeGridVisualizationPreparePass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "DiffuseProbeGridVisualizationPreparePass::BuildCommandListInternal");
+
             RHI::CommandList* commandList = context.GetCommandList();
 
             RPI::Scene* scene = m_pipeline->GetScene();

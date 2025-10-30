@@ -72,6 +72,7 @@ namespace AZ
 
         void LightCullingRemap::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "LightCullingRemap::BuildCommandListInternal");
             RHI::CommandList* commandList = context.GetCommandList();
 
             SetSrgsForDispatch(commandList);

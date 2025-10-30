@@ -373,6 +373,8 @@ namespace AZ
 
         void RayTracingPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "BuildCommandListInternal::BuildCommandListInternal");
+
             RPI::Scene* scene = m_pipeline->GetScene();
             RayTracingFeatureProcessor* rayTracingFeatureProcessor = scene->GetFeatureProcessor<RayTracingFeatureProcessor>();
             AZ_Assert(rayTracingFeatureProcessor, "RayTracingPass requires the RayTracingFeatureProcessor");

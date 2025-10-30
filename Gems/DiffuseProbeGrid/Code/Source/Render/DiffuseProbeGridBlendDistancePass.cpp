@@ -178,6 +178,8 @@ namespace AZ
 
         void DiffuseProbeGridBlendDistancePass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "DiffuseProbeGridBlendDistancePass::BuildCommandListInternal");
+
             RHI::CommandList* commandList = context.GetCommandList();
             RPI::Scene* scene = m_pipeline->GetScene();
             DiffuseProbeGridFeatureProcessor* diffuseProbeGridFeatureProcessor = scene->GetFeatureProcessor<DiffuseProbeGridFeatureProcessor>();

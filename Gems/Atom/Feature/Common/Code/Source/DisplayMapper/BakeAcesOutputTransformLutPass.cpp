@@ -104,6 +104,7 @@ namespace AZ
 
         void BakeAcesOutputTransformLutPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "BakeAcesOutputTransformLutPass::BuildCommandListInternal");
             if (m_needToUpdateLut)
             {
                 ComputePass::BuildCommandListInternal(context);

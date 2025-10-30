@@ -145,6 +145,7 @@ namespace AZ
 
         void LightCullingPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "LightCullingPass::BuildCommandListInternal");
             RHI::CommandList* commandList = context.GetCommandList();
 
             SetSrgsForDispatch(commandList);

@@ -275,6 +275,8 @@ namespace AZ
 
         void RasterPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "RasterPass::BuildCommandListInternal");
+
             RHI::CommandList* commandList = context.GetCommandList();
 
             if (context.GetSubmitRange().m_startIndex != context.GetSubmitRange().m_endIndex)

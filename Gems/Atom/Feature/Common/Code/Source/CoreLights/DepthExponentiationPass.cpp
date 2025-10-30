@@ -88,6 +88,7 @@ namespace AZ
 
         void DepthExponentiationPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "DepthExponentiationPass::BuildCommandListInternal");
             const uint32_t typeIndex = aznumeric_cast<uint32_t>(m_shadowmapType);
             m_dispatchItem.m_pipelineState = m_shaderVariant[typeIndex].m_pipelineState;
 

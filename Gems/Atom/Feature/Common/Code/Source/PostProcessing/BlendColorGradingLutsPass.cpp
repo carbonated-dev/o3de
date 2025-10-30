@@ -207,6 +207,8 @@ namespace AZ
 
         void BlendColorGradingLutsPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "BlendColorGradingLutsPass::BuildCommandListInternal");
+
             if (m_needToUpdateLut && m_blendedLut.m_lutImage && m_currentShaderVariantIndex <= LookModificationSettings::MaxBlendLuts)
             {
                 m_dispatchItem.m_pipelineState = m_shaderVariant[m_currentShaderVariantIndex].m_pipelineState;

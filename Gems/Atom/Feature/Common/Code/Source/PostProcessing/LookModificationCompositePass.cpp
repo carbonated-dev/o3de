@@ -240,6 +240,8 @@ namespace AZ
 
         void LookModificationCompositePass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "LookModificationCompositePass::BuildCommandListInternal");
+
             AZ_Assert(m_shaderResourceGroup != nullptr, "LookModificationCompositePass %s has a null shader resource group when calling Execute.", GetPathName().GetCStr());
 
             RHI::CommandList* commandList = context.GetCommandList();

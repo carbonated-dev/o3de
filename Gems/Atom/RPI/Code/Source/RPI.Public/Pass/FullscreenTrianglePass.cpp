@@ -304,6 +304,8 @@ namespace AZ
 
         void FullscreenTrianglePass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "FullscreenTrianglePass::BuildCommandListInternal");
+
             RHI::CommandList* commandList = context.GetCommandList();
 
             SetSrgsForDraw(commandList);

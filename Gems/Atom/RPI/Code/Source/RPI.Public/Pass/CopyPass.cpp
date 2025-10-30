@@ -141,6 +141,8 @@ namespace AZ
 
         void CopyPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "CopyPass::BuildCommandListInternal");
+
             if (m_copyItem.m_type != RHI::CopyItemType::Invalid)
             {
                 context.GetCommandList()->Submit(m_copyItem);

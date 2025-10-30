@@ -229,6 +229,8 @@ namespace AZ
 
         void DiffuseProbeGridBorderUpdatePass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "DiffuseProbeGridBorderUpdatePass::BuildCommandListInternal");
+
             RHI::CommandList* commandList = context.GetCommandList();
 
             // submit the DispatchItems for each DiffuseProbeGrid in this range

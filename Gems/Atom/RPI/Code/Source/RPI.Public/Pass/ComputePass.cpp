@@ -172,6 +172,8 @@ namespace AZ
 
         void ComputePass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "ComputePass::BuildCommandListInternal");
+
             RHI::CommandList* commandList = context.GetCommandList();
 
             SetSrgsForDispatch(commandList);

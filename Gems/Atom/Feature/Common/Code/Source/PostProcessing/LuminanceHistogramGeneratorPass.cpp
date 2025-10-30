@@ -46,6 +46,8 @@ namespace AZ
 
         void LuminanceHistogramGeneratorPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "LuminanceHistogramGeneratorPass::BuildCommandListInternal");
+
             RHI::CommandList* commandList = context.GetCommandList();
 
             SetSrgsForDispatch(commandList);

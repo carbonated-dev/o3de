@@ -219,6 +219,8 @@ namespace AZ
 
             void HairSkinningComputePass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
             {
+                AZ_PROFILE_SCOPE(RPI, "HairSkinningComputePass::BuildCommandListInternal");
+
                 if (m_buildShaderAndData)
                 {   // Protect against shader and data async change that were not carried out
                     m_dispatchItems.clear();

@@ -59,6 +59,8 @@ namespace AZ
 
         void MorphTargetComputePass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "MorphTargetComputePass::BuildCommandListInternal");
+
             if (m_skinnedMeshFeatureProcessor)
             {
                 RHI::CommandList* commandList = context.GetCommandList();

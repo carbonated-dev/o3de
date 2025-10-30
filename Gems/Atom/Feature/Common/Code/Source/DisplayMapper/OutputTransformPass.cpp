@@ -89,6 +89,8 @@ namespace AZ
 
         void OutputTransformPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "OutputTransformPass::BuildCommandListInternal");
+
             AZ_Assert(m_shaderResourceGroup != nullptr, "LookModificationPass %s has a null shader resource group when calling Execute.", GetPathName().GetCStr());
 
             RHI::CommandList* commandList = context.GetCommandList();

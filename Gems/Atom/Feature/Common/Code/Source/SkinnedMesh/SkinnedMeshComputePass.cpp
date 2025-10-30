@@ -52,6 +52,8 @@ namespace AZ
 
         void SkinnedMeshComputePass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "SkinnedMeshComputePass::BuildCommandListInternal");
+
             if (m_skinnedMeshFeatureProcessor)
             {
                 RHI::CommandList* commandList = context.GetCommandList();

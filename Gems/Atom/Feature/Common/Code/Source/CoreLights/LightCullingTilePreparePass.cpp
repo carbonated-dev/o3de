@@ -45,6 +45,8 @@ namespace AZ
 
         void LightCullingTilePreparePass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
+            AZ_PROFILE_SCOPE(RPI, "LightCullingTilePreparePass::BuildCommandListInternal");
+
             // Dispatch one compute shader thread per depth buffer pixel. These threads are divided into thread-groups that analyze one tile. (Typically 16x16 pixel tiles)
             RHI::CommandList* commandList = context.GetCommandList();
             SetSrgsForDispatch(commandList);
