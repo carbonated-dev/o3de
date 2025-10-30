@@ -692,8 +692,12 @@ namespace AZ
             const Name& propertyId,
             const MaterialPropertySourceData& propertySourceData) const
         {
+#if defined(CARBONATED)
+            materialTypeAssetCreator.BeginMaterialProperty(
+                propertyId, propertySourceData.m_dataType, materialPipelineName, propertySourceData.m_optional);
+#else
             materialTypeAssetCreator.BeginMaterialProperty(propertyId, propertySourceData.m_dataType, materialPipelineName);
-
+#endif
             if (propertySourceData.m_dataType == MaterialPropertyDataType::Enum)
             {
                 materialTypeAssetCreator.SetMaterialPropertyEnumNames(propertySourceData.m_enumValues);

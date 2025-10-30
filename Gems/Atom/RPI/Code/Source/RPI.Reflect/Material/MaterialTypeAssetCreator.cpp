@@ -299,7 +299,11 @@ namespace AZ
             return true;
         }
 
+#if defined(CARBONATED)
+        void MaterialTypeAssetCreator::BeginMaterialProperty(const Name& materialPropertyName, MaterialPropertyDataType dataType, const AZ::Name& materialPipelineName, bool optional)
+#else
         void MaterialTypeAssetCreator::BeginMaterialProperty(const Name& materialPropertyName, MaterialPropertyDataType dataType, const AZ::Name& materialPipelineName)
+#endif
         {
             if (!ValidateIsReady())
             {
@@ -328,6 +332,9 @@ namespace AZ
             m_wipMaterialProperty.m_nameId = materialPropertyName;
             m_wipMaterialProperty.m_dataType = dataType;
             m_wipMaterialPropertyPipeline = materialPipelineName;
+#if defined(CARBONATED)
+            m_wipMaterialPropertyOptional = optional;
+#endif
         }
 
         void MaterialTypeAssetCreator::ConnectMaterialPropertyToShaderInput(const Name& shaderInputName)
@@ -374,6 +381,12 @@ namespace AZ
                 outputId.m_itemIndex = RHI::Handle<uint32_t>{m_materialShaderResourceGroupLayout->FindShaderInputConstantIndex(shaderInputName).GetIndex()};
                 if (outputId.m_itemIndex.IsNull())
                 {
+#if defined(CARBONATED)
+                    if (m_wipMaterialPropertyOptional)
+                    {
+                        return;
+                    }
+#endif
                     ReportError("Material property '%s': Could not find shader constant input '%s'.", m_wipMaterialProperty.GetName().GetCStr(), shaderInputName.GetCStr());
                 }
                 break;
@@ -381,6 +394,12 @@ namespace AZ
                 outputId.m_itemIndex = RHI::Handle<uint32_t>{m_materialShaderResourceGroupLayout->FindShaderInputImageIndex(shaderInputName).GetIndex()};
                 if (outputId.m_itemIndex.IsNull())
                 {
+#if defined(CARBONATED)
+                    if (m_wipMaterialPropertyOptional)
+                    {
+                        return;
+                    }
+#endif
                     ReportError("Material property '%s': Could not find shader image input '%s'.", m_wipMaterialProperty.GetName().GetCStr(), shaderInputName.GetCStr());
                 }
                 break;
