@@ -1612,6 +1612,8 @@ namespace AZ
     {
         AZ_PROFILE_SCOPE(System, "Component application simulation tick");
 
+        //const int64_t t0 = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+
         // Only record when the record metrics on tick callback is set
         if (m_recordMetricsOnTickCallback)
         {
@@ -1652,14 +1654,49 @@ namespace AZ
         }
 
         m_timeSystem->ApplyTickRateLimiterIfNeeded();
+        /*
+        const int64_t t1 = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+        const int64_t dt = t1 - t0;
+        if (dt >= 50)
+        {
+            AZ_Info("ttt", "Tick calls took %d", dt);
+        }
+         */
     }
 
     void ComponentApplication::TickSystem()
     {
         AZ_PROFILE_SCOPE(System, "Component application tick");
+        //const int64_t t0 = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
 
         SystemTickBus::ExecuteQueuedEvents();
+        
+        //const int64_t t1 = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+        
         SystemTickBus::Broadcast(&SystemTickBus::Events::OnSystemTick);
+        
+        //const int64_t t2 = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+        /*
+        const int64_t dt = t2 - t0;
+        if (dt >= 50)
+        {
+            int nHandlers = 0;
+            SystemTickBus::EnumerateHandlers(
+                [&nHandlers] (SystemTickEvents* handler) -> bool
+                {
+                    nHandlers++;
+                    return true;
+                });
+            AZ_Info("ttt", "TickSystem calls took %d: events %dms, ticks %dms, nHandlers %d", dt, t1-t0, t2-t1, nHandlers);
+            int count = 0;
+            SystemTickBus::EnumerateHandlers(
+                [&count] (SystemTickEvents* handler) -> bool
+                {
+                    AZ_Info("ttt", "Handler %d %s", count++, typeid(*handler).name());
+                    return true;
+                });
+        }
+         */
     }
 
     bool ComponentApplication::ShouldAddSystemComponent(AZ::ComponentDescriptor* descriptor)

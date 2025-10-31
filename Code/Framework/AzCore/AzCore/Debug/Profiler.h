@@ -100,6 +100,32 @@ namespace AZ::Debug
         // Optimization to avoid calling Interface<Profiler>::Get
         static AZStd::optional<Profiler*> m_cachedProfiler;
     };
+
+#if defined(CARBONATED) && defined(MICRO_FREEZE_TRACING)
+    class MicroFreezeTracer
+    {
+    public:
+        MicroFreezeTracer(int64_t thresholdPercent, const char* name);
+        ~MicroFreezeTracer();
+    private:
+        int64_t GetTime();
+
+        int64_t mThreshold;
+        int64_t mStart;
+        const char* mName;
+    };
+
+#define MFT_CONCATENATION_MACRO_1(a, b) a##b
+#define MFT_CONCATENATION_MACRO_2(a, b) MFT_CONCATENATION_MACRO_1(a, b)
+#define MICRO_FREEZE_TRACER() AZ::Debug::MicroFreezeTracer MFT_CONCATENATION_MACRO_2(microFreezeTracer_, __LINE__)(100, AZ_FUNCTION_SIGNATURE)
+#define MICRO_FREEZE_TRACER_CUSTOM(x) AZ::Debug::MicroFreezeTracer MFT_CONCATENATION_MACRO_2(microFreezeTracer_, __LINE__)(x, AZ_FUNCTION_SIGNATURE)
+
+#else
+
+#define MICRO_FREEZE_TRACER()
+#define MICRO_FREEZE_TRACER_CUSTOM(x)
+
+#endif  // CARBONATED && MICRO_FREEZE_TRACING
 } // namespace AZ::Debug
 
 #include <AzCore/Debug/Profiler.inl>

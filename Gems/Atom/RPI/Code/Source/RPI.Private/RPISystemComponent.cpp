@@ -175,9 +175,11 @@ namespace AZ
         void RPISystemComponent::OnSystemTick()
         {
 #if defined(CARBONATED)
+            MICRO_FREEZE_TRACER_CUSTOM(20);
+            
             if (m_suspended)
             {
-                return;
+                //return;
             }
 #endif
             if (m_performanceCollector)

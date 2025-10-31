@@ -67,6 +67,8 @@ namespace AZ
     //=========================================================================
     void AssetManagerComponent::OnSystemTick()
     {
+        MICRO_FREEZE_TRACER_CUSTOM(20);
+
         Data::AssetManager::Instance().DispatchEvents();
     }
 

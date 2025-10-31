@@ -20,6 +20,7 @@
 #include <AzCore/std/smart_ptr/make_shared.h>
 #include <AzCore/StringFunc/StringFunc.h>
 #include <AzCore/Utils/Utils.h>
+#include <AzCore/Time/ITime.h>
 
 #include <AzFramework/Asset/AssetSystemBus.h>
 #include <AzFramework/IO/RemoteStorageDrive.h>
@@ -96,8 +97,12 @@ namespace
         ISystem* system = gEnv ? gEnv->pSystem : nullptr;
         while (!gameApplication.WasExitMainLoopRequested())
         {
+            //const int64_t t0 = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+            
             // Pump the system event loop
             gameApplication.PumpSystemEventLoopUntilEmpty();
+
+            //const int64_t t1 = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
 
             if (gameApplication.WasExitMainLoopRequested())
             {
@@ -107,20 +112,34 @@ namespace
             // Update the AzFramework system tick bus
             gameApplication.TickSystem();
 
+            //const int64_t t2 = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+
             // Pre-update CrySystem
             if (system)
             {
                 system->UpdatePreTickBus();
             }
 
+            //const int64_t t3 = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+
             // Update the AzFramework application tick bus
             gameApplication.Tick();
+
+            //const int64_t t4 = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
 
             // Post-update CrySystem
             if (system)
             {
                 system->UpdatePostTickBus();
             }
+            
+            //const int64_t t5 = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+            /*
+            if (t5 - t0 >= 50)
+            {
+                AZ_Info("ttt", "App cycle %d: PumpSystemEvent %d, TickSystem %d, PreTick %d, Tick %d, PostTick %d", t5-t0, t1-t0, t2-t1, t3-t2, t4-t3, t5-t4);
+            }
+            */
         }
     }
 }

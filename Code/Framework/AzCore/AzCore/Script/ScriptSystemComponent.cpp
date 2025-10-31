@@ -15,6 +15,7 @@
 #include <AzCore/Component/ComponentApplicationBus.h>
 #include <AzCore/Component/Entity.h>
 #include <AzCore/Component/TickBus.h>
+#include <AzCore/Debug/Profiler.h>
 #include <AzCore/Debug/ProfilerReflection.h>
 #include <AzCore/Debug/TraceReflection.h>
 #include <AzCore/IO/FileIO.h>
@@ -317,6 +318,8 @@ ScriptContext*  ScriptSystemComponent::GetContext(ScriptContextId id)
 //=========================================================================
 void ScriptSystemComponent::OnSystemTick()
 {
+    MICRO_FREEZE_TRACER_CUSTOM(10);
+
     for (size_t i = 0; i < m_contexts.size(); ++i)
     {
         ContextContainer& contextContainer = m_contexts[i];

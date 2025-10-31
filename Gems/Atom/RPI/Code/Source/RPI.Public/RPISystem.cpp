@@ -258,6 +258,8 @@ namespace AZ
 
         void RPISystem::OnSystemTick()
         {
+            MICRO_FREEZE_TRACER_CUSTOM(20);
+
             AZ_PROFILE_SCOPE(RPI, "RPISystem: OnSystemTick");
 
             // Image system update is using system tick but not game tick so it can stream images in background even game is pausing

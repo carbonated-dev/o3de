@@ -1493,6 +1493,10 @@ void CSystem::CreateSystemVars()
     const int defaultAssertValue = 1;
 #endif
 
+#if defined(CARBONATED) && defined(MICRO_FREEZE_TRACING)
+    REGISTER_INT("tmr_MicroFreezeThreshold", 100, 0, "Micro freeze detection threshold");
+#endif
+
 #if !defined(CARBONATED)
     REGISTER_CVAR2_CB(
         "sys_asserts",

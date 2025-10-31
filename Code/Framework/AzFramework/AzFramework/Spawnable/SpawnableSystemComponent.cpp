@@ -62,6 +62,8 @@ namespace AzFramework
 
     void SpawnableSystemComponent::OnSystemTick()
     {
+        MICRO_FREEZE_TRACER_CUSTOM(10);
+
         // Handle only high priority spawning events such as those created from network. These need to happen even if the client
         // doesn't have focus to avoid time-out issues for instance.
         m_entitiesManager.ProcessQueue(SpawnableEntitiesManager::CommandQueuePriority::High);

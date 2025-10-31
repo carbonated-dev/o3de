@@ -185,6 +185,8 @@ namespace AZ
 
         void SkinnedMeshOutputStreamManager::OnSystemTick()
         {
+            MICRO_FREEZE_TRACER_CUSTOM(20);
+
             GarbageCollect();
         }
 

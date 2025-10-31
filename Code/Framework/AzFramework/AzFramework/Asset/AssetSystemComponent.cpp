@@ -366,6 +366,8 @@ namespace AzFramework
         // SystemTickBus overrides
         void AssetSystemComponent::OnSystemTick()
         {
+            MICRO_FREEZE_TRACER_CUSTOM(10);
+
             AZ_PROFILE_FUNCTION(AzFramework);
             LegacyAssetEventBus::ExecuteQueuedEvents();
         }
