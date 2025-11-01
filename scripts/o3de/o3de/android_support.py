@@ -1005,10 +1005,6 @@ dependencies {{
 
 # CARBONATED -- begin : additional libs for messaging and Swappy
 ADDITIONAL_DEPENDENCIES = """
-    implementation 'com.google.firebase:firebase-core:21.1.1'
-    implementation 'com.google.firebase:firebase-messaging:24.0.3'
-    implementation 'com.google.android.gms:play-services-games:23.2.0'
-    implementation 'com.google.android.gms:play-services-auth:21.2.0'  
     implementation 'androidx.games:games-frame-pacing:2.1.3'
 """
 
@@ -1438,25 +1434,28 @@ class AndroidProjectGenerator(object):
         # Prepare the working build directory
         self._build_dir.mkdir(parents=True, exist_ok=True)
 
+# CARBONATED -- begin
+        android_gems = self.scan_and_integrate_gems()
+        engine_project_name = self.create_engine_module()
+# CARBONATED -- end
+
         self.create_platform_settings()
 
         self.create_default_local_properties()
 
         project_names = self.patch_and_transfer_android_libs()
 
-# CARBONATED -- begin : Carbonated game only specific - prepare to add Android project for PlayerEngagement gem into dependency lists
-        playerengagement_dir = self._build_dir / "playerengagement"
-        app_dir = self._build_dir / "app"
-        (playerengagement_dir / "src/main").mkdir(parents=True, exist_ok=True)
-        app_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy(self._project_path / "Gems/PlayerEngagement/Projects/Android/build.gradle", playerengagement_dir)
-        shutil.copy(self._project_path / "Gems/PlayerEngagement/Projects/Android/google-services.json", app_dir)
-        shutil.copytree(self._project_path / "Gems/PlayerEngagement/Resources/Android", playerengagement_dir / "src/main", dirs_exist_ok=True)       
-        project_names.append("playerengagement")        
+# CARBONATED -- begin
+        project_names.append(engine_project_name)
+        project_names.extend([gem_name for gem_name, _ in android_gems])
 # CARBONATED -- end
 
         project_names.extend(self.create_lumberyard_app(project_names))
-        
+
+# CARBONATED -- begin
+        local_repositories_path = self.generate_local_repositories_path(android_gems)
+# CARBONATED -- end
+
 # CARBONATED -- begin : generate/append asset pack project to the project list 
         if self._aab_enable_asset_pack:
             self.generate_aab_asset_pack_project()            
@@ -1476,7 +1475,7 @@ class AndroidProjectGenerator(object):
             'LY_ENGINE_ROOT': self._engine_root.as_posix(),
             'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # CARBONATED -- root dependencies
 # CARBONATED -- begin
-            'LOCAL_REPOSITORIES_PATH': "'src/main/libs'"
+            'LOCAL_REPOSITORIES_PATH': local_repositories_path
 # CARBONATED -- end
         }
         # Generate the gradle build script
@@ -2246,6 +2245,251 @@ class AndroidProjectGenerator(object):
             if target_directory.is_dir():
                 logging.debug("Clearing folder %s", target_directory)
                 utils.remove_dir_path(target_directory)
+
+# CARBONATED -- begin
+    @staticmethod
+    def generate_local_repositories_path(android_gems: List[Tuple[str, Path]]) -> str:
+        """
+        Generates a local repositories block for all gems with jniLibs
+
+        :param android_gems: List of gems with Android components
+        :return: String with local repository configurations
+        """
+        local_repositories = ""
+
+        for gem_name, gem_path in android_gems:
+            gem_jni_libs_path = gem_path / '3rdParty' / 'Platform' / 'Android' / 'jniLibs'
+            if gem_jni_libs_path.is_dir():
+                local_repo = f"            url uri('../{gem_name}/src/main/jniLibs')"
+                if local_repositories:
+                    local_repositories += "\n"
+                local_repositories += local_repo
+                logger.info(f"Added local repository for gem: {gem_name}")
+
+        if local_repositories:
+            return local_repositories
+        else:
+            return "            url uri('src/main/libs')"  # fallback to standard path
+
+    def scan_and_integrate_gems(self) -> List[Tuple[str, Path]]:
+        """
+        Scans and integrates gems with Android components
+
+        :return: List of integrated gems
+        """
+        logger.info("Scanning gems for Android components...")
+
+        android_gems = self.scan_gems_for_android_components(self._project_path, self._build_dir)
+
+        for gem_name, gem_path in android_gems:
+            try:
+                self.copy_gem_android_components(gem_name, gem_path, self._build_dir)
+                logger.info(f"Successfully integrated gem: {gem_name}")
+            except Exception as e:
+                logger.error(f"Error integrating gem {gem_name}: {e}")
+
+        logger.info(f"Found and integrated gems with Android components: {len(android_gems)}")
+        return android_gems
+
+    def scan_gems_for_android_components(self, project_path: Path, android_build_root: Path) -> List[Tuple[str, Path]]:
+        """
+        Scans all project gems for Android-specific components
+
+        :param project_path: Path to O3DE project
+        :param android_build_root: Android build root folder
+        :return: List of tuples (gem_name, gem_path) with Android components
+        """
+        android_gems = []
+
+        # Read project.json to get gem list
+        project_json_path = project_path / 'project.json'
+        if not project_json_path.is_file():
+            logger.warning(f"project.json not found in {project_path}")
+            return android_gems
+
+        try:
+            with open(project_json_path, 'r', encoding=DEFAULT_READ_ENCODING) as f:
+                project_data = json.load(f)
+
+            # Get gem list from project.json
+            gems = project_data.get('gem_names', [])
+            external_gems = project_data.get('external_subdirectories', [])
+
+            all_gem_paths = []
+
+            # Process built-in gems
+            for gem in gems:
+                gem_path = project_path / gem
+                if gem_path.exists():
+                    all_gem_paths.append((gem, gem_path))
+
+            # Process external gems
+            for external_gem in external_gems:
+                external_gem_path = Path(external_gem)
+                if not external_gem_path.is_absolute():
+                    external_gem_path = project_path / external_gem_path
+
+                if external_gem_path.exists():
+                    gem_name = external_gem_path.name
+                    all_gem_paths.append((gem_name, external_gem_path))
+
+            # Check each gem for Android components
+            for gem_name, gem_path in all_gem_paths:
+                android_gem_path = gem_path / '3rdParty' / 'Platform' / 'Android'
+
+                has_build_gradle = (android_gem_path / 'build.gradle').is_file()
+                if has_build_gradle:# or has_jni_libs or has_java_code or res_folder:
+                    logger.info(f"Found Android component in gem: {gem_name}")
+                    android_gems.append((gem_name, gem_path))
+
+                    # Create folder structure for gem in Android project
+                    self._setup_gem_android_structure(gem_name, android_build_root)
+
+        except Exception as e:
+            logger.error(f"Error scanning gems: {e}")
+
+        return android_gems
+
+    @staticmethod
+    def _setup_gem_android_structure(gem_name: str, android_build_root: Path):
+        """
+        Creates folder structure for gem in Android project
+
+        :param gem_name: Gem name
+        :param android_build_root: Android build root folder
+        """
+        gem_build_path = android_build_root / gem_name
+        gem_src_main_path = gem_build_path / 'src' / 'main'
+        gem_jni_libs_path = gem_src_main_path / 'jniLibs'
+
+        # Create required folders
+        gem_jni_libs_path.mkdir(parents=True, exist_ok=True)
+
+        logger.debug(f"Created folder structure for gem {gem_name}")
+
+    def copy_gem_android_components(self, gem_name: str, gem_path: Path, android_build_root: Path):
+        """
+        Copies Android components from gem to Android project structure
+
+        :param gem_name: Gem name
+        :param gem_path: Path to gem
+        :param android_build_root: Android build root folder
+        """
+        gem_android_path = gem_path / '3rdParty' / 'Platform' / 'Android'
+        gem_build_path = android_build_root / gem_name
+        gem_src_main_path = gem_build_path / 'src' / 'main'
+
+        # Copy build.gradle if exists
+        gem_build_gradle = gem_android_path / 'build.gradle'
+        if gem_build_gradle.is_file():
+            dst_build_gradle = gem_build_path / 'build.gradle'
+            shutil.copy2(gem_build_gradle, dst_build_gradle)
+            logger.info(f"Copied build.gradle for gem {gem_name}")
+
+        # Copy jniLibs if exists
+        gem_jni_libs = gem_android_path / 'jniLibs'
+        if gem_jni_libs.is_dir():
+            dst_jni_libs = gem_src_main_path / 'jniLibs'
+
+            # Clear target folder before copying
+            if dst_jni_libs.exists():
+                shutil.rmtree(dst_jni_libs)
+
+            # Recursively copy jniLibs
+            shutil.copytree(gem_jni_libs, dst_jni_libs)
+            logger.info(f"Copied jniLibs for gem {gem_name}")
+
+        # Copy other possible Android components
+        self._copy_additional_gem_android_components(gem_name, gem_path, android_build_root)
+
+    @staticmethod
+    def _copy_additional_gem_android_components(gem_name: str, gem_path: Path, android_build_root: Path):
+        """
+        Copies additional Android components from gem
+
+        :param gem_name: Gem name
+        :param gem_path: Source Android folder of gem
+        :param android_build_root: Android build root folder
+        """
+        gem_build_path = android_build_root / gem_name
+        gem_3rd_party_path = gem_path / '3rdParty' / 'Platform' / 'Android'
+
+        # Copy res folder if exists
+        gem_res_path = gem_path / 'Resources' / 'Android' / 'res'
+        if gem_res_path.is_dir():
+            dst_res_path = gem_build_path / 'src' / 'main' / 'res'
+            if dst_res_path.exists():
+                shutil.rmtree(dst_res_path)
+            shutil.copytree(gem_res_path, dst_res_path)
+            logger.info(f"Copied Resources for gem {gem_name}")
+
+        # Copy java folder if exists
+        gem_java_path = gem_path / 'Code' / 'Source' / 'Platform' / 'Android' / 'java'
+        if not gem_java_path.is_dir():
+            gem_java_path = gem_path / 'Code' / 'Platform' / 'Android' / 'java'
+        if gem_java_path.is_dir():
+            dst_java_path = gem_build_path / 'src' / 'main' / 'java'
+            if dst_java_path.exists():
+                shutil.rmtree(dst_java_path)
+            shutil.copytree(gem_java_path, dst_java_path)
+            logger.info(f"Copied Java files for gem {gem_name}")
+
+        # Copy Assets folder if exists
+        gem_java_path = gem_path / 'Assets' / 'Android'
+        if gem_java_path.is_dir():
+            dst_java_path = gem_build_path / 'src' / 'main' / 'assets'
+            if dst_java_path.exists():
+                shutil.rmtree(dst_java_path)
+            shutil.copytree(gem_java_path, dst_java_path)
+            logger.info(f"Copied Assets files for gem {gem_name}")
+
+        # Copy AndroidManifest.xml if exists
+        gem_manifest = gem_path / 'Resources' / 'Android' / 'AndroidManifest.xml'
+        if gem_manifest.is_file():
+            dst_manifest = gem_build_path / 'src' / 'main' / 'AndroidManifest.xml'
+            shutil.copy2(gem_manifest, dst_manifest)
+            logger.info(f"Copied AndroidManifest.xml for gem {gem_name}")
+
+        # Copy google-services.json if exists
+        gem_google_services = gem_3rd_party_path / 'google-services.json'
+        logger.info(f"gem_google_services - {gem_google_services}")
+        if gem_google_services.is_file():
+            dst_google_services = android_build_root / 'app' / 'google-services.json'
+            logger.info(f"dst_google_services - {dst_google_services}")
+            dst_google_services.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(gem_google_services, dst_google_services)
+            logger.info(f"Copied google-services.json for gem {gem_name}")
+
+    def create_engine_module(self) -> str:
+        """
+        Creates an engine module to centralize engine-specific Android code
+        """
+        engine_project_name = 'engine'
+        engine_module_path = self._build_dir / engine_project_name
+
+        # Create folder structure
+        engine_src_main_path = engine_module_path / 'src' / 'main'
+        engine_src_main_path.mkdir(parents=True, exist_ok=True)
+
+        logger.info(f"Creating engine module at {engine_module_path}")
+
+        # Get absolute path to AzAndroid Java code
+        absolute_azandroid_path = (self._engine_root / 'Code/Framework/AzAndroid/java').resolve().as_posix()
+
+        # Prepare environment for template
+        engine_gradle_env = {
+            'ABSOLUTE_AZANDROID_PATH': absolute_azandroid_path,
+            'AAB_ASSET_PACK_LIST': ''
+        }
+
+        # Create build.gradle for engine module
+        self.create_file_from_project_template(src_template_file='engine.build.gradle.in',
+                                               template_env=engine_gradle_env,
+                                               dst_file=engine_module_path / 'build.gradle')
+
+        logger.info("Engine module created successfully")
+        return engine_project_name
+    # CARBONATED -- end
 
     class _Library:
         """
