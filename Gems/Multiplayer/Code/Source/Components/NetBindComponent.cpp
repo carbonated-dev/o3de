@@ -902,7 +902,7 @@ namespace Multiplayer
         for (AZ::Component* component : GetEntity()->GetComponents())
         {
             MultiplayerComponent* multiplayerComponent = azrtti_cast<MultiplayerComponent*>(component);
-            if (multiplayerComponent != nullptr)
+            if (multiplayerComponent != nullptr && multiplayerComponent->GetController() != nullptr)
             {
                 multiplayerComponent->SetOwningConnectionId(m_owningConnectionId);
                 m_multiplayerInputComponentVector.push_back(multiplayerComponent);
