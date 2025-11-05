@@ -1762,8 +1762,9 @@ class AndroidProjectGenerator(object):
         gradle_build_env = dict()
 
         absolute_cmakelist_path = (self._engine_root / 'CMakeLists.txt').resolve().as_posix()
-        absolute_azandroid_path = (self._engine_root / 'Code/Framework/AzAndroid/java').resolve().as_posix()
-
+# CARBONATED -- begin : AzAndroid/java moved to engine module
+        #absolute_azandroid_path = (self._engine_root / 'Code/Framework/AzAndroid/java').resolve().as_posix()
+# CARBONATED -- end
         gradle_build_env['TARGET_TYPE'] = 'application'
         gradle_build_env['PROJECT_DEPENDENCIES'] = PROJECT_DEPENDENCIES_VALUE_FORMAT.format(dependencies='\n'.join(gradle_project_dependencies), additional_dependencies=ADDITIONAL_DEPENDENCIES, plugins=ADDITIONAL_PLUGINS) # CARBONATED: added implementations/plugins
         gradle_build_env['NATIVE_CMAKE_SECTION_ANDROID'] = NATIVE_CMAKE_SECTION_ANDROID_FORMAT.format(cmake_version=str(self._cmake_version), native_build_path=native_build_path, absolute_cmakelist_path=absolute_cmakelist_path)
