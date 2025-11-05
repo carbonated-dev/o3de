@@ -1035,11 +1035,13 @@ NATIVE_CMAKE_SECTION_DEFAULT_CONFIG_NDK_FORMAT_STR = """
         }}
 """
 
+# CARBONATED -- begin
 OVERRIDE_JAVA_SOURCESET_STR = """
             java {{
-                srcDirs = ['{absolute_azandroid_path}', 'src/main/java']
+                srcDirs = ['src/main/java']
             }}
 """
+# CARBONATED -- end
 
 NATIVE_CMAKE_SECTION_BUILD_TYPE_CONFIG_FORMAT_STR = """
             externalNativeBuild {{
@@ -1779,7 +1781,10 @@ class AndroidProjectGenerator(object):
             az_asset_android_dst_path = az_android_dst_path
 # CARBONATED -- end
 
-        gradle_build_env['OVERRIDE_JAVA_SOURCESET'] = OVERRIDE_JAVA_SOURCESET_STR.format(absolute_azandroid_path=absolute_azandroid_path)
+# CARBONATED -- begin
+        #gradle_build_env['OVERRIDE_JAVA_SOURCESET'] = OVERRIDE_JAVA_SOURCESET_STR.format(absolute_azandroid_path=absolute_azandroid_path)
+        gradle_build_env['OVERRIDE_JAVA_SOURCESET'] = OVERRIDE_JAVA_SOURCESET_STR
+# CARBONATED -- end
 
         gradle_build_env['OPTIONAL_JNI_SRC_LIB_SET'] = ', "outputs/native-lib"'
 
