@@ -2146,7 +2146,7 @@ class AndroidProjectGenerator(object):
                 f'Got: {type(orientation).__name__}'
             )
             
-# CARBONATED -- original code below
+# CARBONATED# CARBONATED -- original code below
         """ orientation = az_android_package_env['ORIENTATION'] """
 # CARBONATED -- end
         
@@ -2299,7 +2299,7 @@ class AndroidProjectGenerator(object):
 
     def scan_gems_for_android_components(self, project_path: Path, android_build_root: Path) -> List[Tuple[str, Path]]:
         """
-        Scans all project gems for Android-specific components
+        Scans all project gems (local and external) for Android components
 
         :param project_path: Path to O3DE project
         :param android_build_root: Android build root folder
@@ -2321,6 +2321,10 @@ class AndroidProjectGenerator(object):
             gems = project_data.get('gem_names', [])
             external_gems = project_data.get('external_subdirectories', [])
 
+            # Get gems from engine.json and other manifests
+            engine_gems = self._get_engine_manifest_gems(project_path)
+            all_external_gems = external_gems + engine_gems
+
             all_gem_paths = []
 
             # Process built-in gems
@@ -2329,8 +2333,8 @@ class AndroidProjectGenerator(object):
                 if gem_path.exists():
                     all_gem_paths.append((gem, gem_path))
 
-            # Process external gems
-            for external_gem in external_gems:
+            # Process external gems from project.json
+            for external_gem in all_external_gems:
                 external_gem_path = Path(external_gem)
                 if not external_gem_path.is_absolute():
                     external_gem_path = project_path / external_gem_path
@@ -2338,6 +2342,11 @@ class AndroidProjectGenerator(object):
                 if external_gem_path.exists():
                     gem_name = external_gem_path.name
                     all_gem_paths.append((gem_name, external_gem_path))
+
+            # Process gems from O3DE registry
+            registry_gems = self._get_registry_gems(project_path)
+            for gem_name, gem_path in registry_gems:
+                all_gem_paths.append((gem_name, gem_path))
 
             # Check each gem for Android components
             for gem_name, gem_path in all_gem_paths:
@@ -2355,6 +2364,97 @@ class AndroidProjectGenerator(object):
             logger.error(f"Error scanning gems: {e}")
 
         return android_gems
+
+    def _get_engine_manifest_gems(self, project_path: Path) -> List[str]:
+        """
+        Gets paths to external gems from engine.json and other manifests
+
+        :param project_path: Project path
+        :return: List of paths to external gems
+        """
+        external_gems = []
+
+        try:
+            # Check engine.json in project folder
+            engine_json_path = project_path / 'engine.json'
+            if engine_json_path.is_file():
+                with open(engine_json_path, 'r', encoding=DEFAULT_READ_ENCODING) as f:
+                    engine_data = json.load(f)
+                    external_gems.extend(engine_data.get('external_subdirectories', []))
+
+            # Check engine manifest
+            o3de_manifest = manifest.get_o3de_manifest()
+            logger.info(f"o3de_manifest: {o3de_manifest}")
+            if o3de_manifest:
+                engine_manifest_path = Path(o3de_manifest) / 'engine.json'
+                if engine_manifest_path.is_file():
+                    with open(engine_manifest_path, 'r', encoding=DEFAULT_READ_ENCODING) as f:
+                        engine_manifest_data = json.load(f)
+                        external_gems.extend(engine_manifest_data.get('external_subdirectories', []))
+
+            # Check gems from global registry
+            global_gems = self._get_global_registry_gems()
+            external_gems.extend(global_gems)
+
+        except Exception as e:
+            logger.warning(f"Error reading engine manifests: {e}")
+
+        return external_gems
+
+    @staticmethod
+    def _get_registry_gems(project_path: Path) -> List[Tuple[str, Path]]:
+        """
+        Gets gems from O3DE registry
+
+        :param project_path: Project path
+        :return: List of tuples (gem_name, gem_path)
+        """
+        registry_gems = []
+
+        try:
+            # Get all registered gems
+            all_gems = manifest.get_manifest_gems()
+
+            for gem_path in all_gems:
+                logger.info(f"gem_data: {gem_path}")
+
+            for gem_path in all_gems:
+                gem_name = Path(gem_path).name
+
+                if gem_path and Path(gem_path).exists():
+                    registry_gems.append((gem_name, Path(gem_path)))
+
+        except Exception as e:
+            logger.warning(f"Error getting gems from registry: {e}")
+
+        return registry_gems
+
+    @staticmethod
+    def _get_global_registry_gems() -> List[str]:
+        """
+        Gets gems from global O3DE registry
+
+        :return: List of paths to gems
+        """
+        global_gems = []
+
+        try:
+            # Get paths to global gems through manifest
+            o3de_manifest = manifest.get_o3de_manifest()
+            if o3de_manifest:
+                registry_path = Path(o3de_manifest) / 'Registry'
+                if registry_path.exists():
+                    # Look for gems in registry folders
+                    for gem_folder in registry_path.iterdir():
+                        if gem_folder.is_dir():
+                            gem_json_path = gem_folder / 'gem.json'
+                            if gem_json_path.is_file():
+                                global_gems.append(str(gem_folder))
+
+        except Exception as e:
+            logger.warning(f"Error getting global gems: {e}")
+
+        return global_gems
 
     @staticmethod
     def _setup_gem_android_structure(gem_name: str, android_build_root: Path):
