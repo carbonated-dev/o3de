@@ -46,6 +46,12 @@
 #include <AzCore/Console/IConsole.h>
 #include <BootstrapSystemComponent_Traits_Platform.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Settings/SettingsRegistry.h>
+#include <AzCore/Settings/SettingsRegistryVisitorUtils.h>
+#include <AzCore/std/string/regex.h>
+#endif
+
 void cvar_r_renderPipelinePath_Changed(const AZ::CVarFixedString& newPipelinePath)
 {
     auto viewportContextManager = AZ::Interface<AZ::RPI::ViewportContextRequestsInterface>::Get();
@@ -137,6 +143,7 @@ AZ_CVAR(uint32_t, r_height, 1080, cvar_r_resolution_Changed, AZ::ConsoleFunctorF
 AZ_CVAR(uint32_t, r_maxwidth, 0, cvar_r_resolution_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "Max Width in pixels.  0 = disabled.");
 AZ_CVAR(uint32_t, r_maxheight, 0, cvar_r_resolution_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "Max Height in pixels. 0 = disabled");
 AZ_CVAR(uint32_t, r_reduced_maxheight, 0, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Reduced Max Height in pixels to increase FPS for game-specific modes. 0 = disabled");
+AZ_CVAR(uint32_t, r_useHalfOfMaxRes, 0, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Usage : r_useHalfOfMaxRes [0 = standard / 1 = r_maxwidth will be ScreenWidth / 2]");
 #endif
 AZ_CVAR(uint32_t, r_fullscreen, false, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Starting fullscreen state.");
 AZ_CVAR(uint32_t, r_resolutionMode, 0, cvar_r_resolution_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "0: render resolution same as window client area size, 1: render resolution use the values specified by r_width and r_height");
@@ -428,7 +435,18 @@ namespace AZ
                     [this]()
                     {
                         Initialize();
+#if defined (CARBONATED)
+                        if (m_nativeWindow)
+                        {
+                            const auto& windowSize = m_nativeWindow->GetRenderResolution();
+                            if (windowSize.m_height == 0 || windowSize.m_width == 0) // We will set window resolution if it didn't set yet
+                            {
+                                SetWindowResolution();
+                            }
+                        }
+#else
                         SetWindowResolution();
+#endif
                     });
             }
 
@@ -499,7 +517,71 @@ namespace AZ
                         RunBRDFPipeline(m_defaultScene, nullptr);
                     }
                 }
+
+#if defined(CARBONATED)
+                const AZ::RHI::Ptr<AZ::RHI::Device> rhiDevice = AZ::RHI::RHISystemInterface::Get()->GetDevice();
+                if (rhiDevice)
+                {
+                    const auto& descriptor = rhiDevice->GetPhysicalDevice().GetDescriptor();
+                    CheckAndApplyUseHalfOfMaxResWorkaround(descriptor.m_description);
+                }
+#endif
             }
+
+#if defined(CARBONATED)
+            ////////////////////////////////////////////////////////////////////////////////////////////////////
+            void BootstrapSystemComponent::CheckAndApplyUseHalfOfMaxResWorkaround(const AZStd::string& gpuName)
+            {
+                auto registry = AZ::SettingsRegistry::Get();
+                if (!registry)
+                {
+                    AZ_Warning("BootstrapSystemComponent", false, "SettingsRegistry is not available");
+                    return;
+                }
+
+                // Path to Vulkan1TexPerDrawCall section
+                constexpr const char* kRootKey = "/O3DE/VulkanUseHalfOfMaxRes";
+
+                bool matched = false;
+
+                // Iterate over all key/value pairs in the section
+                auto callback = [&](const AZ::SettingsRegistryInterface::VisitArgs& visitArgs)
+                {
+                    if (visitArgs.m_type != AZ::SettingsRegistryInterface::Type::String)
+                    {
+                        return AZ::SettingsRegistryInterface::VisitResponse::Skip;
+                    }
+
+                    // Get regex string value
+                    AZ::SettingsRegistryInterface::FixedValueString regexString;
+                    if (!registry->Get(regexString, visitArgs.m_jsonKeyPath))
+                    {
+                        return AZ::SettingsRegistryInterface::VisitResponse::Continue;
+                    }
+
+                    // Compile regex pattern
+                    AZStd::regex regexPattern(regexString.c_str(), AZStd::regex::ECMAScript | AZStd::regex::icase);
+
+                    // Try to match GPU name
+                    if (AZStd::regex_match(gpuName.c_str(), regexPattern))
+                    {
+                        AZ_Info(
+                            "BootstrapSystemComponent", "GPU \"%s\" matched VulkanUseHalfOfMaxRes workaround rule \"%s\"", gpuName.c_str(), visitArgs.m_fieldName.cbegin());
+                        matched = true;
+                        return AZ::SettingsRegistryInterface::VisitResponse::Done;
+                    }
+
+                    return AZ::SettingsRegistryInterface::VisitResponse::Continue;
+                };
+
+                // Visit all entries under /O3DE/VulkanUseHalfOfMaxRes
+                AZ::SettingsRegistryVisitorUtils::VisitObject(*registry, callback, kRootKey);
+
+                // Apply workaround if matched
+                r_useHalfOfMaxRes = matched ? 1 : 0;
+                AZ_Info("BootstrapSystemComponent", "r_useHalfOfMaxRes = %d", matched);
+            }
+#endif
 
             void BootstrapSystemComponent::OnWindowCreated(AzFramework::NativeWindowHandle windowHandle)
             {
@@ -584,9 +666,10 @@ namespace AZ
                     // Apply the clamp before the renderscale is applied so we have more predictable results.
                     // We adjust width first, and then height, ensuring neither
                     // dimensions exceeds the max.
+                    bool useWorkaround = static_cast<uint32_t>(r_useHalfOfMaxRes) != 0;
                     float aspect_ratio = static_cast<float>(resolution.m_width) / static_cast<float>(resolution.m_height);
-                    uint32_t maxwidth = static_cast<uint32_t>(r_maxwidth);
-                    uint32_t maxheight = static_cast<uint32_t>(r_maxheight);
+                    uint32_t maxwidth = useWorkaround ? resolution.m_width / 2 : static_cast<uint32_t>(r_maxwidth);
+                    uint32_t maxheight = useWorkaround ? 0 : static_cast<uint32_t>(r_maxheight);
 
                     if (maxwidth > 0 && resolution.m_width > maxwidth)
                     {
