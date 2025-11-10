@@ -2145,8 +2145,8 @@ class AndroidProjectGenerator(object):
                 f'ANDROID_SCREEN_ORIENTATION must be a string or int in android_project.json. '
                 f'Got: {type(orientation).__name__}'
             )
-            
-# CARBONATED# CARBONATED -- original code below
+
+# CARBONATED -- original code below
         """ orientation = az_android_package_env['ORIENTATION'] """
 # CARBONATED -- end
         
