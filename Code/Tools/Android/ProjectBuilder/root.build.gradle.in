@@ -23,7 +23,7 @@ allprojects {
         google()
         mavenCentral()
         maven {
-${LOCAL_REPOSITORIES_PATH}
+            ${LOCAL_REPOSITORIES_PATH}
         }
     }
 }

@@ -1331,7 +1331,11 @@ class AndroidProjectGenerator(object):
                  android_ndk_package: str, project_name: str, project_path: Path, project_general_settings: dict, project_android_settings: dict,
                  cmake_path: Path, cmake_version: str, gradle_path: Path, gradle_version: str, gradle_custom_jvm_args: str, android_gradle_plugin_version: str,
                  ninja_path: Path, asset_mode:str, signing_config: AndroidSigningConfig or None, extra_cmake_configure_args: str, src_pak_file_path: str,
-                 strip_debug_symbols: bool = False, overwrite_existing: bool = True, oculus_project: bool = False):
+                 strip_debug_symbols: bool = False, overwrite_existing: bool = True, oculus_project: bool = False,
+    # CARBONATED -- begin
+                 engine_package_name: str = "com.o3de.engine"
+    # CARBONATED -- end
+                 ):
         """
         Initialize the object with all the required parameters needed to create an Android Project. The parameters should be verified before initializing this object
         
@@ -1361,6 +1365,9 @@ class AndroidProjectGenerator(object):
         :param strip_debug_symbols:             Option to strip the debug symbols from the native built libraries
         :param overwrite_existing:              Option to overwrite the any existing build script
         :param oculus_project:                  Option to indicate that we are building the android script for oculus devices.
+# CARBONATED -- begin
+        :param engine_package_name:             The engine module package name
+# CARBONATED -- end
         """
 
         # General properties
@@ -1408,7 +1415,11 @@ class AndroidProjectGenerator(object):
         
 # CARBONATED -- begin : get the play delivery asset pack name
         self._aab_enable_asset_pack = get_android_config(project_path=self._project_path).get_boolean_value(SETTINGS_AAB_ENABLE_ASSET_PACK.key)
-# CARBONATED -- end 
+# CARBONATED -- end
+
+# CARBONATED -- begin
+        self._engine_package_name = engine_package_name
+# CARBONATED -- end
 
     def execute(self):
         """
@@ -2266,9 +2277,9 @@ class AndroidProjectGenerator(object):
         for gem_name, gem_path in android_gems:
             gem_jni_libs_path = gem_path / '3rdParty' / 'Platform' / 'Android' / 'jniLibs'
             if gem_jni_libs_path.is_dir():
-                local_repo = f"            url uri('../{gem_name}/src/main/jniLibs')"
+                local_repo = f"url uri('../{gem_name}/src/main/jniLibs')"
                 if local_repositories:
-                    local_repositories += "\n"
+                    local_repositories = "\t\t\t" + local_repositories + "\n"
                 local_repositories += local_repo
                 logger.info(f"Added local repository for gem: {gem_name}")
 
@@ -2585,7 +2596,7 @@ class AndroidProjectGenerator(object):
         # Prepare environment for template
         engine_gradle_env = {
             'ABSOLUTE_AZANDROID_PATH': absolute_azandroid_path,
-            'AAB_ASSET_PACK_LIST': ''
+            'ENGINE_PACKAGE_NAME': self._engine_package_name
         }
 
         # Create build.gradle for engine module
