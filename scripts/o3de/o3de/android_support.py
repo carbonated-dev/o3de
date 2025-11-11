@@ -2614,7 +2614,7 @@ class AndroidProjectGenerator(object):
                 deps_data = json.load(f)
 
             # Copy files to app module folder
-            files_to_copy = deps_data.get('files_to_cope_in_app_module_folder', [])
+            files_to_copy = deps_data.get('files_to_copy_in_app_module_folder', [])
             for file_name in files_to_copy:
                 src_file = gem_path / '3rdParty' / 'Platform' / 'Android' / file_name
                 dst_file = android_build_root / 'app' / file_name
