@@ -1007,10 +1007,6 @@ dependencies {{
 ADDITIONAL_DEPENDENCIES = """
     implementation 'androidx.games:games-frame-pacing:2.1.3'
 """
-
-ADDITIONAL_PLUGINS = """
-    apply plugin: 'com.google.gms.google-services'
-"""
 # CARBONATED -- end
 
 NATIVE_CMAKE_SECTION_ANDROID_FORMAT = """
@@ -1419,6 +1415,8 @@ class AndroidProjectGenerator(object):
 
 # CARBONATED -- begin
         self._engine_package_name = engine_package_name
+        self._plugins = ""
+        self._additional_dependencies = ""
 # CARBONATED -- end
 
     def execute(self):
@@ -1772,6 +1770,10 @@ class AndroidProjectGenerator(object):
 
         native_build_path = self._native_build_path
 
+# CARBONATED -- begin
+        self._additional_dependencies = ADDITIONAL_DEPENDENCIES + "\n" + self._additional_dependencies
+# CARBONATED -- end
+
         gradle_build_env = dict()
 
         absolute_cmakelist_path = (self._engine_root / 'CMakeLists.txt').resolve().as_posix()
@@ -1779,7 +1781,7 @@ class AndroidProjectGenerator(object):
         #absolute_azandroid_path = (self._engine_root / 'Code/Framework/AzAndroid/java').resolve().as_posix()
 # CARBONATED -- end
         gradle_build_env['TARGET_TYPE'] = 'application'
-        gradle_build_env['PROJECT_DEPENDENCIES'] = PROJECT_DEPENDENCIES_VALUE_FORMAT.format(dependencies='\n'.join(gradle_project_dependencies), additional_dependencies=ADDITIONAL_DEPENDENCIES, plugins=ADDITIONAL_PLUGINS) # CARBONATED: added implementations/plugins
+        gradle_build_env['PROJECT_DEPENDENCIES'] = PROJECT_DEPENDENCIES_VALUE_FORMAT.format(dependencies='\n'.join(gradle_project_dependencies), additional_dependencies=self._additional_dependencies, plugins=self._plugins) # CARBONATED: added implementations/plugins
         gradle_build_env['NATIVE_CMAKE_SECTION_ANDROID'] = NATIVE_CMAKE_SECTION_ANDROID_FORMAT.format(cmake_version=str(self._cmake_version), native_build_path=native_build_path, absolute_cmakelist_path=absolute_cmakelist_path)
         gradle_build_env['NATIVE_CMAKE_SECTION_DEFAULT_CONFIG'] = NATIVE_CMAKE_SECTION_DEFAULT_CONFIG_NDK_FORMAT_STR.format(abi=ANDROID_ARCH)
 
@@ -2427,9 +2429,6 @@ class AndroidProjectGenerator(object):
             all_gems = manifest.get_manifest_gems()
 
             for gem_path in all_gems:
-                logger.info(f"gem_data: {gem_path}")
-
-            for gem_path in all_gems:
                 gem_name = Path(gem_path).name
 
                 if gem_path and Path(gem_path).exists():
@@ -2519,6 +2518,9 @@ class AndroidProjectGenerator(object):
         # Copy other possible Android components
         self._copy_additional_gem_android_components(gem_name, gem_path, android_build_root)
 
+        # Run additional settings
+        self._run_gem_additional_settings(gem_path, android_build_root)
+
     @staticmethod
     def _copy_additional_gem_android_components(gem_name: str, gem_path: Path, android_build_root: Path):
         """
@@ -2529,7 +2531,6 @@ class AndroidProjectGenerator(object):
         :param android_build_root: Android build root folder
         """
         gem_build_path = android_build_root / gem_name
-        gem_3rd_party_path = gem_path / '3rdParty' / 'Platform' / 'Android'
 
         # Copy res folder if exists
         gem_res_path = gem_path / 'Resources' / 'Android' / 'res'
@@ -2567,16 +2568,6 @@ class AndroidProjectGenerator(object):
             shutil.copy2(gem_manifest, dst_manifest)
             logger.info(f"Copied AndroidManifest.xml for gem {gem_name}")
 
-        # Copy google-services.json if exists
-        gem_google_services = gem_3rd_party_path / 'google-services.json'
-        logger.info(f"gem_google_services - {gem_google_services}")
-        if gem_google_services.is_file():
-            dst_google_services = android_build_root / 'app' / 'google-services.json'
-            logger.info(f"dst_google_services - {dst_google_services}")
-            dst_google_services.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(gem_google_services, dst_google_services)
-            logger.info(f"Copied google-services.json for gem {gem_name}")
-
     def create_engine_module(self) -> str:
         """
         Creates an engine module to centralize engine-specific Android code
@@ -2606,6 +2597,52 @@ class AndroidProjectGenerator(object):
 
         logger.info("Engine module created successfully")
         return engine_project_name
+
+    def _run_gem_additional_settings(self, gem_path: Path, android_build_root: Path):
+        """
+        Runs additional settings from the gem's JSON file
+
+        :param gem_path: Path to the gem
+        """
+        additional_deps_file = gem_path / '3rdParty' / 'Platform' / 'Android' / 'additional_settings.json'
+
+        if not additional_deps_file.is_file():
+            return
+
+        try:
+            with open(additional_deps_file, 'r', encoding=DEFAULT_READ_ENCODING) as f:
+                deps_data = json.load(f)
+
+            # Copy files to app module folder
+            files_to_copy = deps_data.get('files_to_cope_in_app_module_folder', [])
+            for file_name in files_to_copy:
+                src_file = gem_path / '3rdParty' / 'Platform' / 'Android' / file_name
+                dst_file = android_build_root / 'app' / file_name
+
+                if src_file.is_file():
+                    dst_file.parent.mkdir(parents=True, exist_ok=True)
+
+                    shutil.copy2(src_file, dst_file)
+                    logger.info(f"Copied {file_name} to app module from gem {gem_path.name}")
+                else:
+                    logger.warning(f"File {file_name} not found in gem {gem_path.name} at path {src_file}")
+
+            # Add additional dependencies
+            additional_deps = deps_data.get('additional_dependencies', [])
+            for dep in additional_deps:
+                if dep not in self._additional_dependencies:
+                    self._additional_dependencies += f"    {dep}\n"
+
+            # Add plugins
+            plugins = deps_data.get('plugins', [])
+            for plugin in plugins:
+                if plugin not in self._plugins:
+                    self._plugins += f"    {plugin}\n"
+
+            logger.info(f"Loaded additional dependencies and plugins from {additional_deps_file}")
+
+        except Exception as e:
+            logger.warning(f"Error loading additional dependencies from {additional_deps_file}: {e}")
     # CARBONATED -- end
 
     class _Library:
