@@ -2338,13 +2338,15 @@ class AndroidProjectGenerator(object):
             engine_gems = self._get_engine_manifest_gems(project_path)
             all_external_gems = external_gems + engine_gems
 
+            added_gem_names = set()
             all_gem_paths = []
 
             # Process built-in gems
             for gem in gems:
                 gem_path = project_path / gem
-                if gem_path.exists():
+                if gem_path.exists() and gem not in added_gem_names:
                     all_gem_paths.append((gem, gem_path))
+                    added_gem_names.add(gem)
 
             # Process external gems from project.json
             for external_gem in all_external_gems:
@@ -2354,12 +2356,16 @@ class AndroidProjectGenerator(object):
 
                 if external_gem_path.exists():
                     gem_name = external_gem_path.name
-                    all_gem_paths.append((gem_name, external_gem_path))
+                    if gem_name not in added_gem_names:
+                        all_gem_paths.append((gem_name, external_gem_path))
+                        added_gem_names.add(gem_name)
 
             # Process gems from O3DE registry
             registry_gems = self._get_registry_gems(project_path)
             for gem_name, gem_path in registry_gems:
-                all_gem_paths.append((gem_name, gem_path))
+                if gem_name not in added_gem_names:
+                    all_gem_paths.append((gem_name, gem_path))
+                    added_gem_names.add(gem_name)
 
             # Check each gem for Android components
             for gem_name, gem_path in all_gem_paths:
