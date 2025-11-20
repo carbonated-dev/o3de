@@ -37,6 +37,11 @@ namespace LmbrCentral
         //! \param offset           Attachment's offset from target.
         virtual void Attach(AZ::EntityId targetId, const char* targetBoneName, const AZ::Transform& offset) = 0;
 
+#if defined(CARBONATED)
+        //Attach to the configuration set on the component
+        virtual void AttachToDefaults() {};
+#endif
+
         //! The entity will detach from its target.
         virtual void Detach() = 0;
 
