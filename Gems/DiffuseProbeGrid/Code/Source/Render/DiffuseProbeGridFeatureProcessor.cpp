@@ -23,6 +23,11 @@
 #include <Atom/RHI/PipelineState.h>
 #include <Atom/RHI.Reflect/InputStreamLayoutBuilder.h>
 
+#if defined(CARBONATED)
+#include <Atom/RPI.Public/Pass/FullscreenTrianglePass.h>
+#include <Atom/RPI.Public/Image/ImageSystemInterface.h>
+#endif
+
 // This component invokes shaders based on Nvidia's RTX-GI SDK.
 // Please refer to "Shaders/DiffuseGlobalIllumination/Nvidia RTX-GI License.txt" for license information.
 
@@ -219,6 +224,12 @@ namespace AZ
             // update pipeline states
             if (m_needUpdatePipelineStates)
             {
+#if defined(CARBONATED)
+                if (m_mobilePipeline)
+                {
+                    UpdateBakedProbeGridCompositePass(m_mobilePipeline);
+                }
+#endif
                 UpdatePipelineStates();
                 m_needUpdatePipelineStates = false;
             }
@@ -893,9 +904,174 @@ namespace AZ
                 }
             }
         }
+#if defined(CARBONATED)
+        void DiffuseProbeGridFeatureProcessor::UpdateBakedProbeGridCompositePass(AZ::RPI::RenderPipeline* renderPipeline)
+        {
+            // Search for our pass in the given pipeline
+            AZ::RPI::PassFilter filter = AZ::RPI::PassFilter::CreateWithPassName(AZ::Name("BakedProbeGridCompositePass"), renderPipeline);
+            AZ::RPI::Pass* pass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(filter);
+            if (!pass)
+            {
+                return;
+            }
+
+            // Select the active baked grid
+            DiffuseProbeGrid* activeGrid = nullptr;
+            for (auto& gridPtr : m_diffuseProbeGrids)
+            {
+                if (!gridPtr)
+                {
+                    continue;
+                }
+
+                // Enabled, has valid baked textures, and is not real-time
+                if (gridPtr->HasValidBakedTextures() && gridPtr->GetMode() == DiffuseProbeGridMode::Baked)
+                {
+                    activeGrid = gridPtr.get();
+                    break;
+                }
+            }
+
+            if (!activeGrid)
+            {
+                pass->SetEnabled(false);
+                return;
+            }
+
+            pass->SetEnabled(true);
+
+            AZ::RPI::FullscreenTrianglePass* fsPass = azrtti_cast<AZ::RPI::FullscreenTrianglePass*>(pass);
+            if (!fsPass)
+            {
+                return;
+            }
+
+            AZ::Data::Instance<AZ::RPI::ShaderResourceGroup> passSrg = fsPass->GetShaderResourceGroup();
+            if (!passSrg)
+            {
+                return;
+            }
+
+            auto irrImage = activeGrid->GetBakedIrradianceImage();
+            if (!irrImage)
+            {
+                pass->SetEnabled(false);
+                return;
+            }
+
+            // --- Populate the SRG ---
+
+            const auto& layout = *passSrg->GetLayout();
+
+            auto dataImage = activeGrid->GetBakedProbeDataImage(); // Data::Instance<RPI::Image>
+            if (!dataImage)
+            {
+                return;
+            }
+
+            auto distanceImage = activeGrid->GetBakedDistanceImage();
+            if (!distanceImage)
+            {
+                return;
+            }
+
+            auto spacing = activeGrid->GetProbeSpacing();
+            auto extents = activeGrid->GetExtents();
+
+            auto countX = floor(extents.GetX() / spacing.GetX()) + 1;
+            auto countY = floor(extents.GetY() / spacing.GetY()) + 1;
+            auto countZ = floor(extents.GetZ() / spacing.GetZ()) + 1;
+
+            auto irradianceImage = activeGrid->GetIrradianceImage();
+
+            // Grid bounds
+            const AZ::Obb& obb = activeGrid->GetObbWs();
+
+            const AZ::Vector3 center = obb.GetPosition(); // Grid center in world space
+            const AZ::Vector3 half = obb.GetHalfLengths(); // Half extents along each axis
+
+            const AZ::Vector3 gridMinWS = center - half;
+            const AZ::Vector3 gridMaxWS = center + half;
+
+            // Parameters
+            float intensity = 0.0f; //activeGrid->GetAmbientMultiplier(); 
+
+            // SRG indices
+            auto irrIndex = layout.FindShaderInputImageIndex(AZ::Name("m_probeIrradiance"));
+            auto dataIndex = layout.FindShaderInputImageIndex(AZ::Name("m_probeData"));
+            auto intensityIndex = layout.FindShaderInputConstantIndex(AZ::Name("m_intensity"));
+            auto gridMinIndex = layout.FindShaderInputConstantIndex(AZ::Name("m_gridMin"));
+            auto gridMaxIndex = layout.FindShaderInputConstantIndex(AZ::Name("m_gridMax"));
+
+            // Set values
+
+            if (irrIndex.IsValid())
+            {
+                passSrg->SetImage(irrIndex, irrImage);
+            }
+
+            if (dataIndex.IsValid())
+            {
+                passSrg->SetImage(dataIndex, dataImage);
+            }
+
+            if (intensityIndex.IsValid())
+            {
+                passSrg->SetConstant(intensityIndex, intensity);
+            }
+
+            if (gridMinIndex.IsValid())
+            {
+                passSrg->SetConstant(gridMinIndex, AZ::Vector4(gridMinWS, 0.0f));
+            }
+
+            if (gridMaxIndex.IsValid())
+            {
+                passSrg->SetConstant(gridMaxIndex, AZ::Vector4(gridMaxWS, 0.0f));
+            }
+
+            // Don't forget!
+            passSrg->Compile();
+        }
+#endif
 
         void DiffuseProbeGridFeatureProcessor::AddRenderPasses(AZ::RPI::RenderPipeline* renderPipeline)
         {
+#if defined(CARBONATED)
+            m_mobilePipeline = nullptr;
+            const AZStd::string_view pipelineName = renderPipeline->GetId().GetStringView();
+            const bool mobilePipeline = pipelineName.starts_with("MobilePipeline");
+
+            // --- MOBILE: only baked fullscreen composite ---
+            if (mobilePipeline)
+            {
+                if (m_diffuseProbeGrids.empty())
+                {
+                    return;
+                }
+                // Already added?
+                {
+                    AZ::RPI::PassFilter compositeFilter =
+                        AZ::RPI::PassFilter::CreateWithPassName(AZ::Name("BakedProbeGridCompositePass"), renderPipeline);
+                    if (AZ::RPI::PassSystemInterface::Get()->FindFirstPass(compositeFilter))
+                    {
+                        return;
+                    }
+                }
+
+                m_mobilePipeline = renderPipeline;
+
+                // Add our fullscreen pass after MobileTransparentPass
+                AddPassRequest(renderPipeline, "Passes/BakedProbeGridCompositePassRequest.azasset", "MobileTransparentPass");
+
+                // After successful addition – immediately initialize the SRG
+                UpdateBakedProbeGridCompositePass(renderPipeline);
+
+                UpdatePasses();
+                m_needUpdatePipelineStates = true;
+                return;
+            }
+#endif
             // only add to this pipeline if it contains the DiffuseGlobalFullscreen pass
             RPI::PassFilter diffuseGlobalFullscreenPassFilter = RPI::PassFilter::CreateWithPassName(AZ::Name("DiffuseGlobalFullscreenPass"), renderPipeline);
             RPI::Pass* diffuseGlobalFullscreenPass = RPI::PassSystemInterface::Get()->FindFirstPass(diffuseGlobalFullscreenPassFilter);

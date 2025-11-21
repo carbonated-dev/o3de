@@ -160,6 +160,11 @@ namespace AZ
             // loads the probe visualization model and creates the BLAS
             void OnVisualizationModelAssetReady(Data::Asset<Data::AssetData> asset);
 
+#if defined(CARBONATED)
+            void UpdateBakedProbeGridCompositePass(AZ::RPI::RenderPipeline* renderPipeline);
+            AZ::RPI::RenderPipeline* m_mobilePipeline = nullptr;
+#endif
+
             // list of all diffuse probe grids
             const size_t InitialProbeGridAllocationSize = 64;
             DiffuseProbeGridVector m_diffuseProbeGrids;

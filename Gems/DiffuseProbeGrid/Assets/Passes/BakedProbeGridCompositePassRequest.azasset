@@ -1,0 +1,26 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassRequest",
+    "ClassData": {
+        "Name": "BakedProbeGridCompositePass",
+        "TemplateName": "BakedProbeGridCompositePassTemplate",
+        "Enabled": true,
+        "Connections": [
+            {
+                "LocalSlot": "LightingInputOutput",
+                "AttachmentRef": {
+                    "Pass": "MobileTransparentPass",
+                    "Attachment": "InputOutput"
+                }
+            },
+            {
+				"LocalSlot": "DepthTex",
+                "AttachmentRef": {
+                    "Pass": "ForwardPass",
+                    "Attachment": "DepthStencilOutput"
+                }
+            }
+        ]
+    }
+}

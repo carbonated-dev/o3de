@@ -461,6 +461,10 @@
                 "Path": "Passes/DiffuseGlobalFullscreen.pass"
             },
             {
+                "Name": "BakedProbeGridCompositePassTemplate",
+                "Path": "Passes/BakedProbeGridCompositePass.pass"
+            },
+            {
                 "Name": "MorphTargetPassTemplate",
                 "Path": "Passes/MorphTarget.pass"
             },

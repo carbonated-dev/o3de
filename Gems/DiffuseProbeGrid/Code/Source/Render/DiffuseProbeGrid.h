@@ -283,6 +283,11 @@ namespace AZ
             const AZStd::string& GetBakedDistanceRelativePath() const { return m_bakedDistanceRelativePath; }
             const AZStd::string& GetBakedProbeDataRelativePath() const { return m_bakedProbeDataRelativePath; }
 
+#if defined(CARBONATED)
+            const AZ::Data::Instance<AZ::RPI::Image>& GetBakedIrradianceImage() const { return m_bakedIrradianceImage; }
+            const AZ::Data::Instance<AZ::RPI::Image>& GetBakedDistanceImage() const { return m_bakedDistanceImage; }
+            const AZ::Data::Instance<AZ::RPI::Image>& GetBakedProbeDataImage() const { return m_bakedProbeDataImage; }
+#endif
             // attachment Ids
             const RHI::AttachmentId GetRayTraceImageAttachmentId() const { return m_rayTraceImageAttachmentId; }
             const RHI::AttachmentId GetIrradianceImageAttachmentId() const { return m_irradianceImageAttachmentId; }

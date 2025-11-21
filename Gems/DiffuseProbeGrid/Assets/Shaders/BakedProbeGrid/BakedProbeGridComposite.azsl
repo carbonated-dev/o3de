@@ -1,0 +1,176 @@
+/*
+ * Baked DiffuseProbeGrid composite for mobile pipeline.
+ * Fullscreen pass:
+ *  - Input  : lighting buffer + depth
+ *  - Output : lighting + baked GI from probe grid (simplified version)
+ */
+
+#include <scenesrg.srgi>
+#include <viewsrg.srgi>
+
+#include <Atom/Features/PostProcessing/FullscreenVertexUtil.azsli>
+#include <Atom/Features/PostProcessing/FullscreenVertexInfo.azsli>
+#include <Atom/RPI/Math.azsli>
+
+// Per-pass SRG for this fullscreen composite
+ShaderResourceGroup PassSrg : SRG_PerPass
+{
+    // after-transparent input
+    Texture2D<float4> m_lightingInput;
+
+    // depth
+    Texture2D<float>  m_depth;
+
+    Sampler LinearSampler
+    {
+        MinFilter = Linear;
+        MagFilter = Linear;
+        MipFilter = Linear;
+        AddressU = Clamp;
+        AddressV = Clamp;
+        AddressW = Clamp;
+    };
+
+    // baked 2D irradiance atlas (from DPG)
+    Texture2D<float4> m_probeIrradiance;
+
+    // probeData texture — REQUIRED for correct sampling
+    // rgb = worldPos of probe, a = flags
+    Texture2D<float4> m_probeData;
+
+    // grid bounds
+    float4 m_gridMin;
+    float4 m_gridMax;
+
+    float  m_intensity;
+};
+
+
+// Local PSOutput, similar to VisualizationComposite
+struct PSOutput
+{
+    float4 m_color : SV_Target0;
+};
+
+// -------------------------
+// Vertex Shader
+// -------------------------
+
+VSOutput MainVS(VSInput input)
+{
+    VSOutput OUT;
+
+    float4 posTex = GetVertexPositionAndTexCoords(input.m_vertexID);
+    OUT.m_texCoord = float2(posTex.z, posTex.w);
+    OUT.m_position = float4(posTex.x, posTex.y, 0.0, 1.0);
+
+    return OUT;
+}
+
+// -------------------------
+// Helper functions
+// -------------------------
+
+// Reconstruct world position from pixel coordinates and depth.
+// Based on SampleGlobalIBL from DiffuseComposite.azsl.
+float3 ReconstructWorldPosition(uint2 screenCoords, float depth)
+{
+    uint2 dimensions;
+    PassSrg::m_depth.GetDimensions(dimensions.x, dimensions.y);
+
+    float2 UV = saturate((float2)screenCoords / float2(dimensions));
+
+    float x = UV.x * 2.0f - 1.0f;
+    float y = (1.0f - UV.y) * 2.0f - 1.0f;
+
+    float4 projectedPos = float4(x, y, depth, 1.0f);
+
+    // view space
+    float4 positionVS = mul(ViewSrg::m_projectionMatrixInverse, projectedPos);
+    positionVS /= positionVS.w;
+
+    // world space
+    float3 positionWS = mul(ViewSrg::m_viewMatrixInverse, positionVS).xyz;
+    return positionWS;
+}
+
+float3 SampleBakedProbeGrid(float3 worldPos)
+{
+    uint2 dims;
+    PassSrg::m_probeData.GetDimensions(dims.x, dims.y);
+
+    // Convert worldPos to normalized grid coordinates [0..1]^3
+    float3 rel3 =
+        saturate((worldPos - PassSrg::m_gridMin.xyz) /
+                 (PassSrg::m_gridMax.xyz - PassSrg::m_gridMin.xyz));
+
+    // Now rel3.xyz corresponds to probeData coordinates (packed in 2D)
+    // Standard packing: z varies sequentially across rows
+
+    float probeCountX = (float)dims.x;
+    float probeCountY = (float)dims.y;
+
+    // Take the nearest probe in the 2D probeData texture:
+    float2 probeUV = float2(rel3.x, rel3.y);
+
+    // This is still a simplification.
+    // Ideally, compute index = x + y*probeCountX + z*probeCountX*probeCountY
+    // and then map that index back to UV.
+    // But for now, we ignore z and take a slice — to eliminate "fog".
+
+    float4 pd = PassSrg::m_probeData.SampleLevel(PassSrg::LinearSampler, probeUV, 0);
+
+    // The probe position stored in pd.rgb is the probe's world-space position!
+    float3 probePositionWS = pd.rgb;
+
+    // Now the correct part — find the irradiance UV for this probe.
+    // DPG baking uses the same UV layout as probeData.
+    float3 irr = PassSrg::m_probeIrradiance.SampleLevel(PassSrg::LinearSampler, probeUV, 0).rgb;
+
+    return irr * PassSrg::m_intensity;
+}
+
+
+// -------------------------
+// Pixel Shader
+// -------------------------
+
+PSOutput MainPS(VSOutput IN)
+{
+    PSOutput OUT;
+
+    uint2 screenCoords = IN.m_position.xy;
+
+    // Read depth
+    float depth = PassSrg::m_depth.Load(uint3(screenCoords, 0)).r;
+
+    // If depth == 1 → background (skip GI computation)
+    if (depth >= 1.0f)
+    {
+        // Just read lighting and exit
+        uint2 dims;
+        PassSrg::m_lightingInput.GetDimensions(dims.x, dims.y);
+        float2 uv = saturate((float2)screenCoords / float2(dims));
+        float3 lighting = PassSrg::m_lightingInput.Sample(PassSrg::LinearSampler, uv).rgb;
+
+        OUT.m_color = float4(lighting, 1.0f);
+        return OUT;
+    }
+
+    // Reconstruct UV and original lighting
+    uint2 dims;
+    PassSrg::m_lightingInput.GetDimensions(dims.x, dims.y);
+    float2 uv = saturate((float2)screenCoords / float2(dims));
+    float3 lighting = PassSrg::m_lightingInput.Sample(PassSrg::LinearSampler, uv).rgb;
+
+    // Reconstruct world position (not used yet, but will be needed in the next step)
+    float3 worldPos = ReconstructWorldPosition(screenCoords, depth);
+
+    // Sample extremely simplified baked GI
+    float3 gi = SampleBakedProbeGrid(worldPos);
+
+    float3 result = lighting + gi;
+
+    OUT.m_color = float4(result, 1.0f);
+    return OUT;
+}
