@@ -90,6 +90,36 @@ namespace AZ
             createInfo.magFilter = ConvertFilterMode(filterMag);
             createInfo.minFilter = ConvertFilterMode(filterMin);
 
+ #if defined(CARBONATED)
+            // Check support for linear filtering of the format via the PhysicalDevice API
+            {
+                // We only check depth formats - they are the ones that most often break during linear filtering
+                const RHI::Format depthFormats[] = {
+                    RHI::Format::D16_UNORM, RHI::Format::D32_FLOAT, RHI::Format::D24_UNORM_S8_UINT, RHI::Format::D32_FLOAT_S8X24_UINT
+                };
+
+                bool needsLinearForDepthFormat = (createInfo.magFilter == VK_FILTER_LINEAR) || (createInfo.minFilter == VK_FILTER_LINEAR) ||
+                    (filterMip == RHI::FilterMode::Linear);
+
+                for (RHI::Format format : depthFormats)
+                {
+                    VkFormatProperties props = physicalDevice.GetFormatProperties(format, false);
+
+                    if (!RHI::CheckBitsAll(
+                            props.optimalTilingFeatures,
+                            static_cast<VkFormatFeatureFlags>(VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)))
+                    {
+                        if (needsLinearForDepthFormat)
+                        {
+                            createInfo.magFilter = VK_FILTER_NEAREST;
+                            createInfo.minFilter = VK_FILTER_NEAREST;
+                            filterMip = RHI::FilterMode::Point;
+                            break; // one match is enough
+                        }
+                    }
+                }
+            }
+#endif
             switch (filterMip)
             {
             case RHI::FilterMode::Point:
