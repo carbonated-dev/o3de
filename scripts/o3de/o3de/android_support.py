@@ -1003,13 +1003,16 @@ dependencies {{
 {plugins}
 """
 
-# CARBONATED -- begin : additional libs for messaging and Swappy
+# CARBONATED -- begin : additional libs for messaging, Swappy. and AppsFlyer
 ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.firebase:firebase-core:21.1.1'
     implementation 'com.google.firebase:firebase-messaging:24.0.3'
     implementation 'com.google.android.gms:play-services-games:23.2.0'
     implementation 'com.google.android.gms:play-services-auth:21.2.0'  
     implementation 'androidx.games:games-frame-pacing:2.1.3'
+    implementation 'com.appsflyer:af-android-sdk:6.17.4'
+    implementation 'com.android.installreferrer:installreferrer:2.2'
+
 """
 
 ADDITIONAL_PLUGINS = """
