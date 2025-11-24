@@ -191,6 +191,15 @@ namespace AZ::RHI
     }
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+    void MultiDeviceSwapChain::SaveSetOfPresentImages()
+    {
+        IterateObjects<SwapChain>(
+            []([[maybe_unused]] auto deviceIndex, auto deviceSwapChain)
+            {
+                deviceSwapChain->SaveSetOfPresentImages();
+            });
+    }
+
     void MultiDeviceSwapChain::SetDesiredFPS(uint32_t desiredFPS)
     {
         IterateObjects<SwapChain>([desiredFPS]([[maybe_unused]] auto deviceIndex, auto deviceSwapChain)

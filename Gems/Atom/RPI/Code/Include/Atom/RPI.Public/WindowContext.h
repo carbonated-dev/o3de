@@ -84,6 +84,7 @@ namespace AZ
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
             void OnDesiredFPSChanged(uint32_t desiredFPS) override;
+            void OnSaveSetOfPresentImages() override;
 #endif
 
             // ExclusiveFullScreenRequestBus::Handler overrides ...

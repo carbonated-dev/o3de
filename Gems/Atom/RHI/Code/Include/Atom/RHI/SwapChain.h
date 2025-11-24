@@ -43,6 +43,7 @@ namespace AZ::RHI
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         //! Sets the desired frames per second.
         void SetDesiredFPS(uint32_t desiredFPS);
+        void SaveSetOfPresentImages();
 #endif
 
         //! Resizes the display resolution of the swap chain. Ideally, this matches the platform window
@@ -143,6 +144,7 @@ namespace AZ::RHI
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         virtual void SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS) {}
+        virtual void SaveSetOfPresentImagesInternal() {}
 #endif
 
         //////////////////////////////////////////////////////////////////////////

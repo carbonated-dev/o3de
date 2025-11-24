@@ -34,10 +34,111 @@
 #include <swappy/swappyVk.h>
 #endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS && CARBONATED_USE_SWAPPY
 
+#include <AzFramework/IO/LocalFileIO.h>
+
 namespace AZ
 {
     namespace Vulkan
     {
+        static int ImageNumber = 0;
+
+static bool WriteBMP(
+            const char* filePath,
+            uint32_t width,
+            uint32_t height,
+            const uint8_t* rgbaData, // ВАЖНО: RGBA, НЕ BGRA
+            size_t rowPitch)
+        {
+            const uint32_t bytesPerPixel = 4;
+            const uint32_t tightRowSize = width * bytesPerPixel;
+            const uint32_t dataSize = tightRowSize * height;
+
+// --- Плотные структуры без паддинга ---
+#pragma pack(push, 1)
+            struct BMPHeader
+            {
+                uint16_t bfType; // 'BM'
+                uint32_t bfSize;
+                uint16_t bfReserved1;
+                uint16_t bfReserved2;
+                uint32_t bfOffBits; // 54 = 14 + 40
+            };
+
+            struct BMPInfoHeader
+            {
+                uint32_t biSize; // 40
+                int32_t biWidth;
+                int32_t biHeight;
+                uint16_t biPlanes; // 1
+                uint16_t biBitCount; // 32
+                uint32_t biCompression; // 0 = BI_RGB
+                uint32_t biSizeImage; // размер данных
+                int32_t biXPelsPerMeter; // 72 dpi ~ 2835
+                int32_t biYPelsPerMeter;
+                uint32_t biClrUsed;
+                uint32_t biClrImportant;
+            };
+#pragma pack(pop)
+
+            BMPHeader header{};
+            BMPInfoHeader info{};
+
+            header.bfType = 0x4D42; // 'BM'
+            header.bfOffBits = sizeof(BMPHeader) + sizeof(BMPInfoHeader);
+            header.bfSize = header.bfOffBits + dataSize;
+
+            info.biSize = sizeof(BMPInfoHeader);
+            info.biWidth = static_cast<int32_t>(width);
+            info.biHeight = -static_cast<int32_t>(height); // top-down
+            info.biPlanes = 1;
+            info.biBitCount = 32; // B,G,R,X
+            info.biCompression = 0; // BI_RGB
+            info.biSizeImage = dataSize;
+            info.biXPelsPerMeter = 2835;
+            info.biYPelsPerMeter = 2835;
+            info.biClrUsed = 0;
+            info.biClrImportant = 0;
+
+            // --- Перегоняем с учётом rowPitch и правильного порядка каналов ---
+            AZStd::vector<uint8_t> tight(dataSize);
+
+            for (uint32_t y = 0; y < height; ++y)
+            {
+                const uint8_t* src = rgbaData + y * rowPitch;
+                uint8_t* dst = tight.data() + y * tightRowSize;
+
+                for (uint32_t x = 0; x < width; ++x)
+                {
+                    const uint8_t R = src[x * 4 + 0];
+                    const uint8_t G = src[x * 4 + 1];
+                    const uint8_t B = src[x * 4 + 2];
+                    // const uint8_t A = src[x*4 + 3]; // BMP игнорит
+
+                    // BMP (32 bpp, BI_RGB) — порядок байт в файле: B, G, R, X
+                    dst[x * 4 + 0] = B;
+                    dst[x * 4 + 1] = G;
+                    dst[x * 4 + 2] = R;
+                    dst[x * 4 + 3] = 255; // альфа можно забить
+                }
+            }
+
+            // --- Пишем файл ---
+            AZ::IO::HandleType handle;
+            AZ::IO::Result openRes =
+                AZ::IO::LocalFileIO::GetInstance()->Open(filePath, AZ::IO::OpenMode::ModeWrite | AZ::IO::OpenMode::ModeBinary, handle);
+
+            if (!openRes)
+                return false;
+
+            AZ::u64 written = 0;
+            AZ::IO::LocalFileIO::GetInstance()->Write(handle, &header, sizeof(header), &written);
+            AZ::IO::LocalFileIO::GetInstance()->Write(handle, &info, sizeof(info), &written);
+            AZ::IO::LocalFileIO::GetInstance()->Write(handle, tight.data(), dataSize, &written);
+            AZ::IO::LocalFileIO::GetInstance()->Close(handle);
+
+            return true;
+        }
+
         static bool IsDefaultSwapChainNeeded()
         {
             auto* xrSystem = RHI::RHISystemInterface::Get()->GetXRSystem();
@@ -105,6 +206,12 @@ namespace AZ
         }
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+        void SwapChain::SaveSetOfPresentImagesInternal()
+        {
+            m_currentImage = ++ImageNumber;
+            m_currentPresentIndexToSave = (int)m_swapchainNativeImages.size();
+        }
+
         void SwapChain::SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS)
         {
 #if defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_USE_SWAPPY)
@@ -319,6 +426,162 @@ namespace AZ
                     device.GetSwapChainSemaphoreAllocator().DeAllocate(transferSemaphore);
                     m_swapChainBarrier.m_isValid = false;
                 }
+
+// ---------------- DEBUG SCREENSHOT ----------------
+                if (m_currentPresentIndexToSave > 0)
+                {
+                    VkDevice vkDevice = device.GetNativeDevice();
+                    VkImage srcImage = m_swapchainNativeImages[imageIndex];
+                    uint32_t width = m_dimensions.m_imageWidth;
+                    uint32_t height = m_dimensions.m_imageHeight;
+
+                    // Создаём staging image (linear, host-visible)
+                    VkImageCreateInfo imgInfo{};
+                    imgInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+                    imgInfo.imageType = VK_IMAGE_TYPE_2D;
+                    imgInfo.format = m_surfaceFormat.format; // VK_FORMAT_B8G8R8A8_UNORM
+                    imgInfo.extent = { width, height, 1 };
+                    imgInfo.mipLevels = 1;
+                    imgInfo.arrayLayers = 1;
+                    imgInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+                    imgInfo.tiling = VK_IMAGE_TILING_LINEAR;
+                    imgInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+                    imgInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+                    VkImage dstImage = VK_NULL_HANDLE;
+                    device.GetContext().CreateImage(vkDevice, &imgInfo, VkSystemAllocator::Get(), &dstImage);
+
+                    VkMemoryRequirements memReq{};
+                    device.GetContext().GetImageMemoryRequirements(vkDevice, dstImage, &memReq);
+
+                    // --- выбор host-visible памяти ---
+                    uint32_t memoryTypeIndex = 0;
+                    {
+                        VkPhysicalDeviceMemoryProperties memProps;
+                        device.GetContext().GetPhysicalDeviceMemoryProperties(
+                            static_cast<const PhysicalDevice&>(device.GetPhysicalDevice()).GetNativePhysicalDevice(), &memProps);
+
+                        for (uint32_t i = 0; i < memProps.memoryTypeCount; ++i)
+                        {
+                            if ((memReq.memoryTypeBits & (1 << i)) &&
+                                (memProps.memoryTypes[i].propertyFlags &
+                                 (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)))
+                            {
+                                memoryTypeIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    VkMemoryAllocateInfo allocInfo{};
+                    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+                    allocInfo.allocationSize = memReq.size;
+                    allocInfo.memoryTypeIndex = memoryTypeIndex;
+
+                    VkDeviceMemory dstMemory = VK_NULL_HANDLE;
+                    device.GetContext().AllocateMemory(vkDevice, &allocInfo, VkSystemAllocator::Get(), &dstMemory);
+                    device.GetContext().BindImageMemory(vkDevice, dstImage, dstMemory, 0);
+
+                    // Командный буфер
+                    auto cmdList = device.AcquireCommandList(vulkanQueue->GetId().m_familyIndex);
+                    cmdList->BeginCommandBuffer();
+                    VkCommandBuffer cmd = cmdList->GetNativeCommandBuffer();
+
+                    // Барьер: PRESENT_SRC → TRANSFER_SRC
+                    VkImageMemoryBarrier b1{};
+                    b1.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                    b1.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                    b1.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                    b1.image = srcImage;
+                    b1.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+                    b1.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+                    b1.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+                    device.GetContext().CmdPipelineBarrier(
+                        cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &b1);
+
+                    // Барьер: dstImage → TRANSFER_DST
+                    VkImageMemoryBarrier b2{};
+                    b2.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                    b2.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    b2.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                    b2.image = dstImage;
+                    b2.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+                    b2.srcAccessMask = 0;
+                    b2.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+                    device.GetContext().CmdPipelineBarrier(
+                        cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &b2);
+
+                    // Копирование
+                    VkImageCopy region{};
+                    region.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+                    region.dstSubresource = region.srcSubresource;
+                    region.extent = { width, height, 1 };
+
+                    device.GetContext().CmdCopyImage(
+                        cmd, srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+                    // dstImage → GENERAL (CPU readable)
+                    VkImageMemoryBarrier b3{};
+                    b3.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                    b3.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                    b3.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+                    b3.image = dstImage;
+                    b3.subresourceRange = b2.subresourceRange;
+                    b3.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                    b3.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+                    device.GetContext().CmdPipelineBarrier(
+                        cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 0, nullptr, 1, &b3);
+
+                    // srcImage ← обратно в PRESENT
+                    VkImageMemoryBarrier b4 = b1;
+                    b4.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                    b4.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                    b4.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                    b4.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+                    device.GetContext().CmdPipelineBarrier(
+                        cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &b4);
+
+                    cmdList->EndCommandBuffer();
+
+                    // Скачиваем
+                    VkFenceCreateInfo fi{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+                    VkFence fence;
+                    device.GetContext().CreateFence(vkDevice, &fi, VkSystemAllocator::Get(), &fence);
+
+                    VkSubmitInfo si{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+                    VkCommandBuffer nativeCmd = cmd;
+                    si.commandBufferCount = 1;
+                    si.pCommandBuffers = &nativeCmd;
+
+                    device.GetContext().QueueSubmit(vulkanQueue->GetNativeQueue(), 1, &si, fence);
+                    device.GetContext().WaitForFences(vkDevice, 1, &fence, VK_TRUE, UINT64_MAX);
+                    device.GetContext().DestroyFence(vkDevice, fence, VkSystemAllocator::Get());
+
+                    // Мапим и пишем BMP
+                    void* mapped = nullptr;
+                    device.GetContext().MapMemory(vkDevice, dstMemory, 0, VK_WHOLE_SIZE, 0, &mapped);
+
+                    VkImageSubresource sub{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
+                    VkSubresourceLayout layout{};
+                    device.GetContext().GetImageSubresourceLayout(vkDevice, dstImage, &sub, &layout);
+
+                    uint8_t* pixelData = reinterpret_cast<uint8_t*>(mapped) + layout.offset;
+
+                    AZStd::string path = AZStd::string::format("@user@/swapchain_%i_%u.bmp", m_currentImage, imageIndex);
+
+                    WriteBMP(path.c_str(), width, height, pixelData, layout.rowPitch);
+
+                    device.GetContext().UnmapMemory(vkDevice, dstMemory);
+
+                    device.GetContext().DestroyImage(vkDevice, dstImage, VkSystemAllocator::Get());
+                    device.GetContext().FreeMemory(vkDevice, dstMemory, VkSystemAllocator::Get());
+                    m_currentPresentIndexToSave--;
+                }
+                // ---------------- END DEBUG SCREENSHOT ----------------
 
                 VkPresentInfoKHR info{};
                 info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

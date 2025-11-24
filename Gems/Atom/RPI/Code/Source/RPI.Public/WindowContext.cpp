@@ -172,6 +172,12 @@ namespace AZ
         }
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+        void WindowContext::OnSaveSetOfPresentImages()
+        {
+            RHI::Ptr<RHI::SwapChain> defaultSwapChain = GetSwapChain(ViewType::Default);
+            defaultSwapChain->SaveSetOfPresentImages();
+        }
+
         void WindowContext::OnDesiredFPSChanged(uint32_t desiredFPS)
         {
 #if (defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_USE_SWAPPY)) || defined(AZ_PLATFORM_IOS)
