@@ -56,6 +56,7 @@ endif()
 
 
 foreach(project_name project_path IN ZIP_LISTS O3DE_PROJECTS_NAME launcher_generator_LY_PROJECTS)
+
     if (NOT launcher_generator_BUILD_GENERIC) # generic launcher does not build assets.
         # Computes the realpath to the project.  Only used in building assets.
         # If the project_path is relative, it is evaluated relative to the ${LY_ROOT_FOLDER}
@@ -88,6 +89,7 @@ foreach(project_name project_path IN ZIP_LISTS O3DE_PROJECTS_NAME launcher_gener
     # Monolithic game
     ################################################################################
     if(LY_MONOLITHIC_GAME)
+
         # In the monolithic case, we need to register the gem modules, to do so we will generate a StaticModules.inl
         # file from StaticModules.in
         set_property(GLOBAL APPEND PROPERTY LY_STATIC_MODULE_PROJECTS_NAME ${project_name})
@@ -134,7 +136,6 @@ foreach(project_name project_path IN ZIP_LISTS O3DE_PROJECTS_NAME launcher_gener
         endif()
 
         if(PAL_TRAIT_BUILD_SERVER_SUPPORTED)
-            
             set(server_runtime_dependencies
                 Legacy::CrySystem
             )
