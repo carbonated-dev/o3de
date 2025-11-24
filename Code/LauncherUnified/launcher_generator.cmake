@@ -56,8 +56,6 @@ endif()
 
 
 foreach(project_name project_path IN ZIP_LISTS O3DE_PROJECTS_NAME launcher_generator_LY_PROJECTS)
-    message(STATUS "PPP project ${project_name}")
-
     if (NOT launcher_generator_BUILD_GENERIC) # generic launcher does not build assets.
         # Computes the realpath to the project.  Only used in building assets.
         # If the project_path is relative, it is evaluated relative to the ${LY_ROOT_FOLDER}
@@ -90,8 +88,6 @@ foreach(project_name project_path IN ZIP_LISTS O3DE_PROJECTS_NAME launcher_gener
     # Monolithic game
     ################################################################################
     if(LY_MONOLITHIC_GAME)
-        message(STATUS "PPP monolithic")
-
         # In the monolithic case, we need to register the gem modules, to do so we will generate a StaticModules.inl
         # file from StaticModules.in
         set_property(GLOBAL APPEND PROPERTY LY_STATIC_MODULE_PROJECTS_NAME ${project_name})
@@ -122,7 +118,6 @@ foreach(project_name project_path IN ZIP_LISTS O3DE_PROJECTS_NAME launcher_gener
         endif()
 
     else()
-        message(STATUS "PPP not monolithic")
 
         set(game_runtime_dependencies
             Legacy::CrySystem
@@ -139,7 +134,6 @@ foreach(project_name project_path IN ZIP_LISTS O3DE_PROJECTS_NAME launcher_gener
         endif()
 
         if(PAL_TRAIT_BUILD_SERVER_SUPPORTED)
-            message(STATUS "PPP server supported")
             
             set(server_runtime_dependencies
                 Legacy::CrySystem
@@ -147,7 +141,6 @@ foreach(project_name project_path IN ZIP_LISTS O3DE_PROJECTS_NAME launcher_gener
 
             if (O3DE_SCRIPT_ONLY)
                 foreach(server_launcher_type ${SERVER_LAUNCHER_TYPES})
-                    message(STATUS "PPP server launcher type ${server_launcher_type}")
                     set(SERVER_RUNTIME_DEPENDENCIES_${server_launcher_type} "${SERVER_RUNTIME_DEPENDENCIES_${server_launcher_type}}" O3DE.${server_launcher_type})
                 endforeach()
             endif()
@@ -225,10 +218,8 @@ foreach(project_name project_path IN ZIP_LISTS O3DE_PROJECTS_NAME launcher_gener
     # Server
     ################################################################################
     if(PAL_TRAIT_BUILD_SERVER_SUPPORTED)
-        message(STATUS "PPP server supported 2")
 
         foreach(server_launcher_type ${SERVER_LAUNCHER_TYPES})
-            message(STATUS "PPP add target ${server_launcher_type}")
 
             ly_add_target(
                 NAME ${project_name}.${server_launcher_type} ${SERVER_LAUNCHERTYPE_${server_launcher_type}}
