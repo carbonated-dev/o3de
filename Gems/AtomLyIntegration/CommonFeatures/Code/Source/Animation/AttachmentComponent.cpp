@@ -100,6 +100,10 @@ namespace AZ
                 Attach(configuration.m_targetId, configuration.m_targetBoneName.c_str(), configuration.m_targetOffset);
             }
 
+#if defined(CARBONATED)
+            m_initialConfiguration = configuration;
+#endif
+
             LmbrCentral::AttachmentComponentRequestBus::Handler::BusConnect(m_ownerId);
         }
 
@@ -171,6 +175,13 @@ namespace AZ
             // alert others that we've attached
             LmbrCentral::AttachmentComponentNotificationBus::Event(m_targetId, &LmbrCentral::AttachmentComponentNotificationBus::Events::OnAttached, m_ownerId);
         }
+
+#if defined(CARBONATED)
+        void BoneFollower::AttachToDefaults()
+        {
+            Attach(m_initialConfiguration.m_targetId, m_initialConfiguration.m_targetBoneName.c_str(), m_initialConfiguration.m_targetOffset);
+        }
+#endif
 
         void BoneFollower::Detach()
         {
