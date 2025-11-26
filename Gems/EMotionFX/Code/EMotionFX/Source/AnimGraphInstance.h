@@ -77,7 +77,7 @@ namespace EMotionFX
         void Output(Pose* outputPose);
 
         void Start();
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ANIMGRAPH_PAUSE_RESUME)
         void Pause();
         void Resume();
 #endif
@@ -334,8 +334,8 @@ namespace EMotionFX
 #if defined(EMFX_DEVELOPMENT_BUILD)
         bool                                                m_isOwnedByRuntime;
 #endif // EMFX_DEVELOPMENT_BUILD
-#if defined(CARBONATED)
-        bool m_paused                                       = false;
+#if defined(CARBONATED) && defined(CARBONATED_ANIMGRAPH_PAUSE_RESUME)
+        bool                                                m_paused;
 #endif
 
         AnimGraphInstance(AnimGraph* animGraph, ActorInstance* actorInstance, MotionSet* motionSet, const InitSettings* initSettings = nullptr);
