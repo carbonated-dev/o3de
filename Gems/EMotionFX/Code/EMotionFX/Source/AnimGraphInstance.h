@@ -77,6 +77,8 @@ namespace EMotionFX
         void Output(Pose* outputPose);
 
         void Start();
+        void Pause();
+        void Resume();
         void Stop();
 
         MCORE_INLINE ActorInstance* GetActorInstance() const            { return m_actorInstance; }
@@ -330,6 +332,7 @@ namespace EMotionFX
 #if defined(EMFX_DEVELOPMENT_BUILD)
         bool                                                m_isOwnedByRuntime;
 #endif // EMFX_DEVELOPMENT_BUILD
+        bool                                                m_paused = false;
 
         AnimGraphInstance(AnimGraph* animGraph, ActorInstance* actorInstance, MotionSet* motionSet, const InitSettings* initSettings = nullptr);
         ~AnimGraphInstance();
