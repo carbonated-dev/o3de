@@ -236,6 +236,11 @@ namespace EMotionFX
     {
         AZ_PROFILE_SCOPE(Animation, "AnimGraphInstance::Output");
 
+        if (m_paused)
+        {
+            return;
+        }
+
         // reset max used
         const uint32 threadIndex = m_actorInstance->GetThreadIndex();
         AnimGraphPosePool& posePool = GetEMotionFX().GetThreadData(threadIndex)->GetPosePool();
@@ -468,9 +473,19 @@ namespace EMotionFX
     // start the state machines at the entry state
     void AnimGraphInstance::Start()
     {
+        m_paused = false;
         RecursiveSwitchToEntryState(GetRootNode());
     }
 
+    void AnimGraphInstance::Pause()
+    {
+        m_paused = true;
+    }
+
+    void AnimGraphInstance::Resume()
+    {
+        m_paused = false;
+    }
 
     // reset all current states of all state machines recursively
     void AnimGraphInstance::RecursiveResetCurrentState(AnimGraphNode* node)
@@ -497,6 +512,7 @@ namespace EMotionFX
     // stop the state machines and reset the current state to nullptr
     void AnimGraphInstance::Stop()
     {
+        m_paused = false;
         RecursiveResetCurrentState(GetRootNode());
     }
 
@@ -868,13 +884,18 @@ namespace EMotionFX
         m_actorInstance->ApplyMotionExtractionDelta();
     }
 
-
     // synchronize all nodes, based on sync tracks etc
     void AnimGraphInstance::Update(float timePassedInSeconds)
     {
         AZ_PROFILE_SCOPE(Animation, "AnimGraphInstance::Update");
 
-        // pass 0: (Optional, networking only) When this instance is shared between network, restore the instance using an animgraph snapshot.
+        if (m_paused)
+        {
+            return;
+        }
+
+        // pass 0: (Optional, networking only) When this instance is shared between network, restore the instance using an animgraph
+        // snapshot.
         if (m_snapshot)
         {
             m_snapshot->Restore(*this);
