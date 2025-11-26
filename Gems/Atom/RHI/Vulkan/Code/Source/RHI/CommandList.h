@@ -122,6 +122,8 @@ namespace AZ
 
 #if defined(CARBONATED) && !defined(_RELEASE)
             void CollectGPUStatistics(double commitTime);
+
+            void DumpPendingCaptureToBmp();
 #endif
         private:
             struct Descriptor
@@ -195,6 +197,21 @@ namespace AZ
             const uint32_t m_timestampStartIndex = 0;
             const uint32_t m_timestampEndIndex = 1;
             VkTimeDomainEXT m_cpuTimeDomain = VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT;
+
+            struct DebugCaptureEntry
+            {
+                VkImage m_stagingImage = VK_NULL_HANDLE;
+                VkDeviceMemory m_stagingMemory = VK_NULL_HANDLE;
+                VkFormat m_format = VK_FORMAT_UNDEFINED;
+                uint32_t m_width = 0;
+                uint32_t m_height = 0;
+                size_t m_memorySize = 0;
+
+                int m_imageNumber = 0;
+                int m_captureIndex = 0; // от Device::GetCLNumber()
+            };
+
+            AZStd::vector<DebugCaptureEntry> m_debugCaptures;
 #endif
         };
 

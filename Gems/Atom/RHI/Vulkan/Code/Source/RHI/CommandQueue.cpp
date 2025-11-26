@@ -78,7 +78,7 @@ namespace AZ
                     fenceToSignal = fence.get();
                 }
 #if defined(CARBONATED) && !defined(_RELEASE)
-                else if (GetDevice().GatheringStatsEnabled())
+                else if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteCLasBMP())
                 {
                     // Create a temporary internal fence for GPU statistics callback
                     tempFenceCapture = Fence::Create();
@@ -128,17 +128,30 @@ namespace AZ
                     vulkanQueue->EndDebugLabel();
                 }
 #if defined(CARBONATED) && !defined(_RELEASE)
-                if (GetDevice().GatheringStatsEnabled())
+                if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteCLasBMP())
                 {
                     // Register callback - store tempFenceCapture in the pending entry to keep it alive
                     RegisterFenceCallback(
                         AZStd::move(tempFenceCapture),
                         fenceToSignal,
                         isTempFence,
-                        [cmdList = request.m_commandList, isTempFence, tempFenceCapture, commitTime]()
+                        [cmdList = request.m_commandList,
+                         isTempFence,
+                         tempFenceCapture,
+                         commitTime,
+                         gatheringStats = GetDevice().GatheringStatsEnabled(),
+                         writeCLasBMP = GetDevice().WriteCLasBMP()
+                        ]()
                         {
                             // This callback will be called from ProcessPendingFenceCallbacks when fence signaled
-                            cmdList->CollectGPUStatistics(commitTime);
+                            if (gatheringStats)
+                            {
+                                cmdList->CollectGPUStatistics(commitTime);
+                            }
+                            if (writeCLasBMP)
+                            {
+                                cmdList->DumpPendingCaptureToBmp();
+                            }
                             if (isTempFence && tempFenceCapture)
                             {
                                 tempFenceCapture->Shutdown();
@@ -149,7 +162,7 @@ namespace AZ
             });
 
 #if defined(CARBONATED) && !defined(_RELEASE)
-            if (GetDevice().GatheringStatsEnabled())
+            if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteCLasBMP())
             {
                 ProcessPendingFenceCallbacks();
             }

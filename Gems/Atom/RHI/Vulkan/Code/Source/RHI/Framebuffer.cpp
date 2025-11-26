@@ -201,5 +201,31 @@ namespace AZ
                 m_nativeFramebuffer = VK_NULL_HANDLE;
             }
         }
+
+
+#if defined(CARBONATED) && !defined(_RELEASE)
+        const ImageView* Framebuffer::GetFirstColorAttachment() const
+        {
+            for (auto& attachment : m_attachments)
+            {
+                if (!attachment)
+                    continue;
+
+                const auto& image = attachment->GetImage();
+                AZ::RHI::Format format = image.GetDescriptor().m_format;
+
+                // Проверяем, что формат — цветовой, а не depth/stencil
+                if (format != AZ::RHI::Format::D16_UNORM && format != AZ::RHI::Format::D24_UNORM_S8_UINT &&
+                    format != AZ::RHI::Format::D32_FLOAT && format != AZ::RHI::Format::D32_FLOAT_S8X24_UINT)
+                {
+                    return attachment.get();
+                }
+            }
+
+            return nullptr; // ни одного color-attachment
+        }
+
+#endif
+
     }
 }

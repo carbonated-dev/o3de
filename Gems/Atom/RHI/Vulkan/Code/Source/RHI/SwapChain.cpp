@@ -34,15 +34,17 @@
 #include <swappy/swappyVk.h>
 #endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS && CARBONATED_USE_SWAPPY
 
+
+#if defined(CARBONATED) && !defined(_RELEASE)
 #include <AzFramework/IO/LocalFileIO.h>
+#endif
 
 namespace AZ
 {
     namespace Vulkan
     {
-        static int ImageNumber = 0;
-
-static bool WriteBMP(
+#if defined(CARBONATED) && !defined(_RELEASE)
+        bool WriteBMP(
             const char* filePath,
             uint32_t width,
             uint32_t height,
@@ -138,7 +140,7 @@ static bool WriteBMP(
 
             return true;
         }
-
+#endif
         static bool IsDefaultSwapChainNeeded()
         {
             auto* xrSystem = RHI::RHISystemInterface::Get()->GetXRSystem();
@@ -206,10 +208,14 @@ static bool WriteBMP(
         }
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+        static int ImageNumber = 0;
+
         void SwapChain::SaveSetOfPresentImagesInternal()
         {
             m_currentImage = ++ImageNumber;
             m_currentPresentIndexToSave = (int)m_swapchainNativeImages.size();
+            auto& device = static_cast<Device&>(GetDevice());
+            device.StartWriteCLasBMP(m_currentImage);
         }
 
         void SwapChain::SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS)
@@ -571,7 +577,7 @@ static bool WriteBMP(
 
                     uint8_t* pixelData = reinterpret_cast<uint8_t*>(mapped) + layout.offset;
 
-                    AZStd::string path = AZStd::string::format("@user@/swapchain_%i_%u.bmp", m_currentImage, imageIndex);
+                    AZStd::string path = AZStd::string::format("@user@/BMPs/swapchain_%i_%u.bmp", m_currentImage, imageIndex);
 
                     WriteBMP(path.c_str(), width, height, pixelData, layout.rowPitch);
 
@@ -580,6 +586,11 @@ static bool WriteBMP(
                     device.GetContext().DestroyImage(vkDevice, dstImage, VkSystemAllocator::Get());
                     device.GetContext().FreeMemory(vkDevice, dstMemory, VkSystemAllocator::Get());
                     m_currentPresentIndexToSave--;
+
+                    if (!m_currentPresentIndexToSave)
+                    {
+                        device.StopWriteCLasBMP();
+                    }
                 }
                 // ---------------- END DEBUG SCREENSHOT ----------------
 

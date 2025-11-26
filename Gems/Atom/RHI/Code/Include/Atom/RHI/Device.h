@@ -28,6 +28,7 @@
 
 #if defined(CARBONATED)
 #include <Atom/RHI/DeviceAddon.h>
+#include <vulkan/vulkan.h>
 #endif
 
 namespace AZ::RHI
@@ -184,6 +185,26 @@ namespace AZ::RHI
         void EnableGatheringStats();
         void DisableGatheringStats();
         unsigned int GetLastFrameToLog() const { return m_lastFrameToLog; }
+
+        bool WriteCLasBMP() const { return m_write_CL_as_BMP; }
+        void StartWriteCLasBMP(int currentImage)
+        {
+            m_write_CL_as_BMP = true;
+            m_CL_number = 0;
+            m_ImageNumber = currentImage;
+        }
+        void StopWriteCLasBMP()
+        {
+            m_write_CL_as_BMP = false;
+        }
+
+        int GetImageNumber() const { return m_ImageNumber; }
+        int GetCLNumber()
+        {
+            int ret = m_CL_number;
+            m_CL_number++;
+            return ret;
+        }
 #endif
     protected:
 
@@ -276,6 +297,10 @@ namespace AZ::RHI
         bool m_statsEnabled = false;
         unsigned int m_lastFrameToLog = 0;
         double m_startLogTime = 0;
+
+        bool m_write_CL_as_BMP = false;
+        int m_CL_number = 0;
+        int m_ImageNumber = 0;
 #endif
     };
 }
