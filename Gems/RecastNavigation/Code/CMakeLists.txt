@@ -25,7 +25,7 @@ include(FetchContent)
 FetchContent_Declare(
         RecastNavigation
         GIT_REPOSITORY "https://github.com/recastnavigation/recastnavigation"
-        GIT_TAG "5a870d427e47abd4a8e4ce58a95582ec049434d5" # main branch
+        GIT_TAG "40ec6fcd6c0263a3d7798452aee531066072d15d" # main branch
 )
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 set(RECASTNAVIGATION_DEMO OFF)
