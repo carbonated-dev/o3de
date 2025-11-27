@@ -43,6 +43,8 @@ namespace AZ::RHI
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         //! Sets the desired frames per second.
         void SetDesiredFPS(uint32_t desiredFPS);
+#endif
+#if defined(CARBONATED) && !defined(_RELEASE)
         void SaveSetOfPresentImages();
 #endif
 
@@ -144,6 +146,8 @@ namespace AZ::RHI
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         virtual void SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS) {}
+#endif
+#if defined(CARBONATED) && !defined(_RELEASE)
         virtual void SaveSetOfPresentImagesInternal() {}
 #endif
 

@@ -156,11 +156,13 @@ namespace AZ::RHI
         SetVerticalSyncIntervalInternal(previousVsyncInterval);
     }
 
-#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+#if defined(CARBONATED) && !defined(_RELEASE)
     void SwapChain::SaveSetOfPresentImages()
     {
         SaveSetOfPresentImagesInternal();
     }
+#endif
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
     void SwapChain::SetDesiredFPS(uint32_t desiredFPS)
     {
         SetDesiredFPSInternal(desiredFPS);

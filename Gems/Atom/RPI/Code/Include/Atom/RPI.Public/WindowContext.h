@@ -84,6 +84,8 @@ namespace AZ
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
             void OnDesiredFPSChanged(uint32_t desiredFPS) override;
+#endif
+#if defined(CARBONATED) && !defined(_RELEASE)
             void OnSaveSetOfPresentImages() override;
 #endif
 

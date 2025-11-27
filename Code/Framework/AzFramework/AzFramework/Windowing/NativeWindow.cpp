@@ -44,13 +44,15 @@ void OnDesiredFPSChanged(uint32_t const& desiredFPS)
 // It takes into an account the device refresh rate and sets the interval accordingly to set desired FPS.
 // The default is 55, so any changes (for example to 30 or 60) will take place.
 AZ_CVAR(uint32_t, desired_fps, 55, OnDesiredFPSChanged, AZ::ConsoleFunctorFlags::Null, "Set desired frames per second rate");
+#endif
 
+#if defined(CARBONATED) && !defined(_RELEASE)
 void OnSaveSetOfPresentImages([[maybe_unused]]uint32_t const& dummy)
 {
     AzFramework::WindowNotificationBus::Broadcast(
         &AzFramework::WindowNotificationBus::Events::OnSaveSetOfPresentImages);
 }
-AZ_CVAR(uint32_t, save_vk_images, 0, OnSaveSetOfPresentImages, AZ::ConsoleFunctorFlags::Null, "Perform saving a set of images before ");
+AZ_CVAR(uint32_t, save_vk_images, 0, OnSaveSetOfPresentImages, AZ::ConsoleFunctorFlags::Null, "Perform saving a set of images (RenderPasses and SwapChains)");
 #endif
 
 namespace AzFramework

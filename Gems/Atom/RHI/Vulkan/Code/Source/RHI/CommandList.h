@@ -123,6 +123,7 @@ namespace AZ
 #if defined(CARBONATED) && !defined(_RELEASE)
             void CollectGPUStatistics(double commitTime);
 
+            void CheckCapturingToBmp();
             void DumpPendingCaptureToBmp();
 #endif
         private:
@@ -208,7 +209,7 @@ namespace AZ
                 size_t m_memorySize = 0;
 
                 int m_imageNumber = 0;
-                int m_captureIndex = 0; // Device::GetCLNumber()
+                int m_captureIndex = 0;
                 AZStd::string m_passName;
             };
 

@@ -1182,208 +1182,183 @@ namespace AZ
 
         void CommandList::EndRenderPass()
         {
-            auto& device = static_cast<Device&>(GetDevice());
-            auto& context = device.GetContext();
-            VkDevice vkDevice = device.GetNativeDevice();
-
-            const Framebuffer* framebuffer = m_state.m_framebuffer;
-
-            context.CmdEndRenderPass(m_nativeCommandBuffer);
+            static_cast<Device&>(GetDevice()).GetContext().CmdEndRenderPass(m_nativeCommandBuffer);
 
 #if defined(CARBONATED) && !defined(_RELEASE)
-            if (device.WriteCLasBMP() && framebuffer)
-            {
-                const ImageView* colorView = framebuffer->GetFirstAttachment();
-
-                if (colorView)
-                {
-                    const Image& colorImage = static_cast<const Image&>(colorView->GetImage());
-                    const auto& imgDesc = colorImage.GetDescriptor();
-
-                    AZ::RHI::Format rhiFormat = imgDesc.m_format;
-                    VkFormat vkFormat = AZ::Vulkan::ConvertFormat(rhiFormat);
-                    VkImage srcImage = colorImage.GetNativeImage();
-                    uint32_t width = framebuffer->GetSize().m_width;
-                    uint32_t height = framebuffer->GetSize().m_height;
-                    //uint32_t samples = imgDesc.m_multisampleState.m_samples;
-
-                    // ---------- FILTER unwanted passes ----------
-                    // мы смотрим только R8G8B8A8_UNORM, без MSAA, полное разрешение, 1 RTV
-                    //uint32_t rtCount = 0;
-                    const RenderPass* rp = framebuffer->GetRenderPass();
-                    const auto& rpDesc = rp->GetDescriptor();
-                    uint32_t subpassIndex = m_state.m_subpassIndex;
-                    if (subpassIndex < rpDesc.m_subpassCount)
-                    {
-                        //rtCount = rpDesc.m_subpassDescriptors[subpassIndex].m_rendertargetCount;
-                    }
-
-                    //bool interesting = (vkFormat == VK_FORMAT_R8G8B8A8_UNORM) && (samples == 1) &&
-                        //(width >= 600 && height >= 400) && // защищаемся от tiny RT
-                    //    (rtCount == 1);
-
-                    // if (interesting)
-                    {
-                        // --- staging image (как у тебя было) ---
-                        VkImageCreateInfo stagingInfo{};
-                        stagingInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-                        stagingInfo.imageType = VK_IMAGE_TYPE_2D;
-                        stagingInfo.format = vkFormat;
-                        stagingInfo.extent = { width, height, 1 };
-                        stagingInfo.mipLevels = 1;
-                        stagingInfo.arrayLayers = 1;
-                        stagingInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-                        stagingInfo.tiling = VK_IMAGE_TILING_LINEAR;
-                        stagingInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-                        stagingInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-                        VkImage stagingImage = VK_NULL_HANDLE;
-                        context.CreateImage(vkDevice, &stagingInfo, VkSystemAllocator::Get(), &stagingImage);
-
-                        VkMemoryRequirements stagingReq{};
-                        context.GetImageMemoryRequirements(vkDevice, stagingImage, &stagingReq);
-
-                        uint32_t stagingMemType = FindMemoryTypeIndex(
-                            device, stagingReq.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-                        VkMemoryAllocateInfo stagingAlloc{};
-                        stagingAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-                        stagingAlloc.allocationSize = stagingReq.size;
-                        stagingAlloc.memoryTypeIndex = stagingMemType;
-
-                        VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
-                        context.AllocateMemory(vkDevice, &stagingAlloc, VkSystemAllocator::Get(), &stagingMemory);
-                        context.BindImageMemory(vkDevice, stagingImage, stagingMemory, 0);
-
-                        // --- барьеры и копирование, как у тебя ---
-                        VkImageSubresourceRange range{};
-                        range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                        range.baseMipLevel = 0;
-                        range.levelCount = 1;
-                        range.baseArrayLayer = 0;
-                        range.layerCount = 1;
-
-                        VkImageMemoryBarrier b1{};
-                        b1.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                        b1.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                        b1.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-                        b1.image = srcImage;
-                        b1.subresourceRange = range;
-                        b1.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-                        b1.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-                        context.CmdPipelineBarrier(
-                            m_nativeCommandBuffer,
-                            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                            VK_PIPELINE_STAGE_TRANSFER_BIT,
-                            0,
-                            0,
-                            nullptr,
-                            0,
-                            nullptr,
-                            1,
-                            &b1);
-
-                        VkImageMemoryBarrier b2{};
-                        b2.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                        b2.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                        b2.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-                        b2.image = stagingImage;
-                        b2.subresourceRange = range;
-                        b2.srcAccessMask = 0;
-                        b2.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-                        context.CmdPipelineBarrier(
-                            m_nativeCommandBuffer,
-                            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                            VK_PIPELINE_STAGE_TRANSFER_BIT,
-                            0,
-                            0,
-                            nullptr,
-                            0,
-                            nullptr,
-                            1,
-                            &b2);
-
-                        VkImageCopy copyRegion{};
-                        copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-                        copyRegion.dstSubresource = copyRegion.srcSubresource;
-                        copyRegion.extent = { width, height, 1 };
-
-                        context.CmdCopyImage(
-                            m_nativeCommandBuffer,
-                            srcImage,
-                            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                            stagingImage,
-                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                            1,
-                            &copyRegion);
-
-                        VkImageMemoryBarrier b3{};
-                        b3.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                        b3.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-                        b3.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-                        b3.image = stagingImage;
-                        b3.subresourceRange = range;
-                        b3.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                        b3.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-
-                        context.CmdPipelineBarrier(
-                            m_nativeCommandBuffer,
-                            VK_PIPELINE_STAGE_TRANSFER_BIT,
-                            VK_PIPELINE_STAGE_HOST_BIT,
-                            0,
-                            0,
-                            nullptr,
-                            0,
-                            nullptr,
-                            1,
-                            &b3);
-
-                        // при желании можно вернуть src обратно:
-                        VkImageMemoryBarrier b4 = b1;
-                        b4.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-                        b4.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                        b4.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-                        b4.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-
-                        context.CmdPipelineBarrier(
-                            m_nativeCommandBuffer,
-                            VK_PIPELINE_STAGE_TRANSFER_BIT,
-                            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                            0,
-                            0,
-                            nullptr,
-                            0,
-                            nullptr,
-                            1,
-                            &b4);
-
-                        AZStd::string rawName = framebuffer->GetRenderPass()->GetName().GetStringView();
-                        AZStd::string cleanName = StripPipelinePrefix(rawName);
-
-                        DebugCaptureEntry entry;
-                        entry.m_stagingImage = stagingImage;
-                        entry.m_stagingMemory = stagingMemory;
-                        entry.m_format = vkFormat;
-                        entry.m_width = width;
-                        entry.m_height = height;
-                        entry.m_memorySize = stagingReq.size;
-                        entry.m_imageNumber = device.GetImageNumber();
-                        entry.m_captureIndex = device.GetCLNumber();
-                        entry.m_passName = cleanName;  
-                        m_debugCaptures.push_back(entry);
-                    }
-                }
-            }
+            CheckCapturingToBmp();
 #endif
             m_state.m_framebuffer = nullptr;
             m_state.m_subpassIndex = 0;
         }
 
+#if defined(CARBONATED) && !defined(_RELEASE)
+        void CommandList::CheckCapturingToBmp()
+        {
+            auto& device = static_cast<Device&>(GetDevice());
+            auto& context = device.GetContext();
+            const Framebuffer* framebuffer = m_state.m_framebuffer;
+
+            if (!device.WriteRenderPassToBmp() || !framebuffer)
+            {
+                return;
+            }
+            const ImageView* imageView = framebuffer->GetFirstAttachment();
+            if (!imageView)
+            {
+                return;
+            }
+            VkDevice vkDevice = device.GetNativeDevice();
+            const Image& image = static_cast<const Image&>(imageView->GetImage());
+            const auto& imgDesc = image.GetDescriptor();
+
+            VkFormat vkFormat = AZ::Vulkan::ConvertFormat(imgDesc.m_format);
+            VkImage srcImage = image.GetNativeImage();
+            uint32_t width = framebuffer->GetSize().m_width;
+            uint32_t height = framebuffer->GetSize().m_height;
+
+            // --- Staging image ---
+            VkImageCreateInfo stagingInfo{};
+            stagingInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+            stagingInfo.imageType = VK_IMAGE_TYPE_2D;
+            stagingInfo.format = vkFormat;
+            stagingInfo.extent = { width, height, 1 };
+            stagingInfo.mipLevels = 1;
+            stagingInfo.arrayLayers = 1;
+            stagingInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+            stagingInfo.tiling = VK_IMAGE_TILING_LINEAR;
+            stagingInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            stagingInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+            VkImage stagingImage = VK_NULL_HANDLE;
+            context.CreateImage(vkDevice, &stagingInfo, VkSystemAllocator::Get(), &stagingImage);
+
+            VkMemoryRequirements stagingReq{};
+            context.GetImageMemoryRequirements(vkDevice, stagingImage, &stagingReq);
+
+            uint32_t stagingMemType = FindMemoryTypeIndex(
+                device, stagingReq.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+            VkMemoryAllocateInfo stagingAlloc{};
+            stagingAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            stagingAlloc.allocationSize = stagingReq.size;
+            stagingAlloc.memoryTypeIndex = stagingMemType;
+
+            VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+            context.AllocateMemory(vkDevice, &stagingAlloc, VkSystemAllocator::Get(), &stagingMemory);
+            context.BindImageMemory(vkDevice, stagingImage, stagingMemory, 0);
+
+            // Barriers and copying
+            VkImageSubresourceRange range{};
+            range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            range.baseMipLevel = 0;
+            range.levelCount = 1;
+            range.baseArrayLayer = 0;
+            range.layerCount = 1;
+
+            VkImageMemoryBarrier b1{};
+            b1.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            b1.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            b1.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            b1.image = srcImage;
+            b1.subresourceRange = range;
+            b1.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            b1.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+            context.CmdPipelineBarrier(
+                m_nativeCommandBuffer,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                0,
+                0,
+                nullptr,
+                0,
+                nullptr,
+                1,
+                &b1);
+
+            VkImageMemoryBarrier b2{};
+            b2.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            b2.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            b2.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            b2.image = stagingImage;
+            b2.subresourceRange = range;
+            b2.srcAccessMask = 0;
+            b2.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            context.CmdPipelineBarrier(
+                m_nativeCommandBuffer,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                0,
+                0,
+                nullptr,
+                0,
+                nullptr,
+                1,
+                &b2);
+
+            VkImageCopy copyRegion{};
+            copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+            copyRegion.dstSubresource = copyRegion.srcSubresource;
+            copyRegion.extent = { width, height, 1 };
+
+            context.CmdCopyImage(
+                m_nativeCommandBuffer,
+                srcImage,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                stagingImage,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                1,
+                &copyRegion);
+
+            VkImageMemoryBarrier b3{};
+            b3.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            b3.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            b3.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+            b3.image = stagingImage;
+            b3.subresourceRange = range;
+            b3.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            b3.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+            context.CmdPipelineBarrier(
+                m_nativeCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 0, nullptr, 1, &b3);
+
+            VkImageMemoryBarrier b4 = b1;
+            b4.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            b4.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            b4.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            b4.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+            context.CmdPipelineBarrier(
+                m_nativeCommandBuffer,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                0,
+                0,
+                nullptr,
+                0,
+                nullptr,
+                1,
+                &b4);
+
+            AZStd::string rawName = framebuffer->GetRenderPass()->GetName().GetStringView();
+            AZStd::string cleanName = StripPipelinePrefix(rawName);
+
+            DebugCaptureEntry entry;
+            entry.m_stagingImage = stagingImage;
+            entry.m_stagingMemory = stagingMemory;
+            entry.m_format = vkFormat;
+            entry.m_width = width;
+            entry.m_height = height;
+            entry.m_memorySize = stagingReq.size;
+            entry.m_imageNumber = device.GetImageNumber();
+            entry.m_captureIndex = device.GetAndIncreaseRenderPassNumber();
+            entry.m_passName = cleanName;
+            m_debugCaptures.push_back(entry);
+        }
+
         void CommandList::DumpPendingCaptureToBmp()
         {
-#if defined(CARBONATED) && !defined(_RELEASE)
             auto& device = static_cast<Device&>(GetDevice());
             auto& context = device.GetContext();
             VkDevice vkDevice = device.GetNativeDevice();
@@ -1391,7 +1366,9 @@ namespace AZ
             for (const DebugCaptureEntry& entry : m_debugCaptures)
             {
                 if (entry.m_stagingImage == VK_NULL_HANDLE || entry.m_stagingMemory == VK_NULL_HANDLE)
+                {
                     continue;
+                }
 
                 void* mapped = nullptr;
                 context.MapMemory(vkDevice, entry.m_stagingMemory, 0, VK_WHOLE_SIZE, 0, &mapped);
@@ -1417,9 +1394,8 @@ namespace AZ
             }
 
             m_debugCaptures.clear();
-#endif
         }
-
+#endif
 
         bool CommandList::IsInsideRenderPass() const
         {

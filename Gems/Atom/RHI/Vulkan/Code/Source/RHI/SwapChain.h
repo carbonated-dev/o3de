@@ -70,6 +70,8 @@ namespace AZ
             void SetVerticalSyncIntervalInternal(uint32_t previousVsyncInterval) override;
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
             void SetDesiredFPSInternal(uint32_t desiredFPS) override;
+#endif
+#if defined(CARBONATED) && !defined(_RELEASE)
             void SaveSetOfPresentImagesInternal() override;
             int m_currentPresentIndexToSave = 0;
             int m_currentImage = 0;

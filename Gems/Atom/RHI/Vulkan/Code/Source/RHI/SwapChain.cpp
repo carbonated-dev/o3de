@@ -207,17 +207,24 @@ namespace AZ
             }
         }
 
-#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
+#if defined(CARBONATED) && !defined(_RELEASE)
         static int ImageNumber = 0;
 
         void SwapChain::SaveSetOfPresentImagesInternal()
         {
+            if (ImageNumber == 0)
+            {
+                // Let's delete BMPs subdirectory at the first usage at the current launch
+                AZ::IO::LocalFileIO::GetInstance()->DestroyPath("@user@/BMPs");
+            }
             m_currentImage = ++ImageNumber;
-            m_currentPresentIndexToSave = (int)m_swapchainNativeImages.size();
+            m_currentPresentIndexToSave = (int)m_swapchainNativeImages.size();  // Number of images to save at once
             auto& device = static_cast<Device&>(GetDevice());
-            device.StartWriteCLasBMP(m_currentImage);
+            device.StartWriteRenderPassToBmp(m_currentImage);
         }
+ #endif
 
+#if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         void SwapChain::SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS)
         {
 #if defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_USE_SWAPPY)
@@ -589,7 +596,7 @@ namespace AZ
 
                     if (!m_currentPresentIndexToSave)
                     {
-                        device.StopWriteCLasBMP();
+                        device.StopWriteRenderPassToBmp();
                     }
                 }
                 // ---------------- END DEBUG SCREENSHOT ----------------

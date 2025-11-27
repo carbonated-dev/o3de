@@ -51,26 +51,6 @@ namespace AZ
             const RHI::Size& GetSize() const;
 
 #if defined(CARBONATED) && !defined(_RELEASE)
-            const ImageView* GetAttachment(size_t index) const
-            {
-                if (index < m_attachments.size())
-                {
-                    return m_attachments[index].get();
-                }
-                return nullptr;
-            }
-
-            const ImageView* GetColorAttachment() const
-            {
-                // Usually the color attachment - the first
-                return m_attachments.empty() ? nullptr : m_attachments[0].get();
-            }
-
-            size_t GetAttachmentCount() const
-            {
-                return m_attachments.size();
-            }
-
             const ImageView* GetFirstAttachment() const;
 #endif
 

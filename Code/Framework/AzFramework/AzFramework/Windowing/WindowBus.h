@@ -172,6 +172,8 @@ namespace AzFramework
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         virtual void OnDesiredFPSChanged(uint32_t desiredFPS) { AZ_UNUSED(desiredFPS); };
+#endif
+#if defined(CARBONATED) && !defined(_RELEASE)
         virtual void OnSaveSetOfPresentImages() {};
 #endif
 

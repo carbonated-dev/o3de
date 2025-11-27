@@ -78,7 +78,7 @@ namespace AZ
                     fenceToSignal = fence.get();
                 }
 #if defined(CARBONATED) && !defined(_RELEASE)
-                else if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteCLasBMP())
+                else if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteRenderPassToBmp())
                 {
                     // Create a temporary internal fence for GPU statistics callback
                     tempFenceCapture = Fence::Create();
@@ -128,7 +128,7 @@ namespace AZ
                     vulkanQueue->EndDebugLabel();
                 }
 #if defined(CARBONATED) && !defined(_RELEASE)
-                if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteCLasBMP())
+                if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteRenderPassToBmp())
                 {
                     // Register callback - store tempFenceCapture in the pending entry to keep it alive
                     RegisterFenceCallback(
@@ -140,7 +140,7 @@ namespace AZ
                          tempFenceCapture,
                          commitTime,
                          gatheringStats = GetDevice().GatheringStatsEnabled(),
-                         writeCLasBMP = GetDevice().WriteCLasBMP()
+                         writeRPtoBmp = GetDevice().WriteRenderPassToBmp()
                         ]()
                         {
                             // This callback will be called from ProcessPendingFenceCallbacks when fence signaled
@@ -148,7 +148,7 @@ namespace AZ
                             {
                                 cmdList->CollectGPUStatistics(commitTime);
                             }
-                            if (writeCLasBMP)
+                            if (writeRPtoBmp)
                             {
                                 cmdList->DumpPendingCaptureToBmp();
                             }
@@ -162,7 +162,7 @@ namespace AZ
             });
 
 #if defined(CARBONATED) && !defined(_RELEASE)
-            if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteCLasBMP())
+            if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteRenderPassToBmp())
             {
                 ProcessPendingFenceCallbacks();
             }

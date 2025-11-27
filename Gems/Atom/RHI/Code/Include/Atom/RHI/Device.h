@@ -168,7 +168,7 @@ namespace AZ::RHI
         //! Builds an implementation specific XR device descriptor based on this graphics device.
         virtual Ptr<XRDeviceDescriptor> BuildXRDescriptor() const { return nullptr; }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(_RELEASE)
         unsigned int GetFrameCounter() const { return m_frameCounter; }
         double GetGPUFrameTime();         // returns sum of non-overlapping intervals
         double GetGPUSumFrameTime();  // returns total sum
@@ -186,23 +186,22 @@ namespace AZ::RHI
         void DisableGatheringStats();
         unsigned int GetLastFrameToLog() const { return m_lastFrameToLog; }
 
-        bool WriteCLasBMP() const { return m_write_CL_as_BMP; }
-        void StartWriteCLasBMP(int currentImage)
+        bool WriteRenderPassToBmp() const { return m_writeRenderPassToBmp; }
+        void StartWriteRenderPassToBmp(int currentImage)
         {
-            m_write_CL_as_BMP = true;
-            m_CL_number = 0;
-            m_ImageNumber = currentImage;
+            m_writeRenderPassToBmp = true;
+            m_renderPassNumber = 0;
+            m_imageNumber = currentImage;
         }
-        void StopWriteCLasBMP()
+        void StopWriteRenderPassToBmp()
         {
-            m_write_CL_as_BMP = false;
+            m_writeRenderPassToBmp = false;
         }
-
-        int GetImageNumber() const { return m_ImageNumber; }
-        int GetCLNumber()
+        const int GetImageNumber() const { return m_imageNumber; }
+        int GetAndIncreaseRenderPassNumber()
         {
-            int ret = m_CL_number;
-            m_CL_number++;
+            int ret = m_renderPassNumber;
+            m_renderPassNumber++;
             return ret;
         }
 #endif
@@ -298,9 +297,9 @@ namespace AZ::RHI
         unsigned int m_lastFrameToLog = 0;
         double m_startLogTime = 0;
 
-        bool m_write_CL_as_BMP = false;
-        int m_CL_number = 0;
-        int m_ImageNumber = 0;
+        bool m_writeRenderPassToBmp = false;
+        int m_renderPassNumber = 0;
+        int m_imageNumber = 0;
 #endif
     };
 }

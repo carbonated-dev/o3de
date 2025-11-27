@@ -202,7 +202,6 @@ namespace AZ
             }
         }
 
-
 #if defined(CARBONATED) && !defined(_RELEASE)
         const ImageView* Framebuffer::GetFirstAttachment() const
         {
@@ -213,10 +212,8 @@ namespace AZ
 
                 return attachment.get();
             }
-
-            return nullptr; // ни одного color-attachment
+            return nullptr;
         }
-
 #endif
 
     }
