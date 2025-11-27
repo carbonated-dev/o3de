@@ -71,7 +71,7 @@ namespace AZ
                 return m_attachments.size();
             }
 
-            const ImageView* GetFirstColorAttachment() const;
+            const ImageView* GetFirstAttachment() const;
 #endif
 
         private:

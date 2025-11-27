@@ -208,7 +208,8 @@ namespace AZ
                 size_t m_memorySize = 0;
 
                 int m_imageNumber = 0;
-                int m_captureIndex = 0; // от Device::GetCLNumber()
+                int m_captureIndex = 0; // Device::GetCLNumber()
+                AZStd::string m_passName;
             };
 
             AZStd::vector<DebugCaptureEntry> m_debugCaptures;

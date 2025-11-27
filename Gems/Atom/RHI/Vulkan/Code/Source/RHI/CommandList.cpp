@@ -47,7 +47,7 @@ namespace AZ
     namespace Vulkan
     {
 
-        //bool WriteBMP(const char* filePath, uint32_t width, uint32_t height, const uint8_t* rgbaData, size_t rowPitch);
+        bool WriteBMP(const char* filePath, uint32_t width, uint32_t height, const uint8_t* rgbaData, size_t rowPitch);
 #if defined(CARBONATED) && !defined(_RELEASE)
         static uint32_t FindMemoryTypeIndex(const Device& device, uint32_t typeBits, VkMemoryPropertyFlags requiredFlags)
         {
@@ -77,101 +77,228 @@ namespace AZ
             return 0;
         }
 
-        static bool WriteColorAttachmentBMP(
-            const char* filePath, uint32_t width, uint32_t height, const uint8_t* srcData, size_t rowPitch, VkFormat format)
+        static AZStd::string StripPipelinePrefix(const AZStd::string& name)
         {
-            const uint32_t bytesPerPixel = 4;
-            const uint32_t tightRowSize = width * bytesPerPixel;
+            constexpr const char* Prefix = "Root.MobilePipeline_-10.";
+            if (name.starts_with(Prefix))
+            {
+                return name.substr(strlen(Prefix));
+            }
+            return name;
+        }
+
+        static uint16_t ReadU16(const uint8_t* ptr)
+        {
+            return ptr[0] | (ptr[1] << 8);
+        }
+
+        // IEEE 754 half → float32
+        static float HalfToFloat(uint16_t h)
+        {
+            uint16_t h_exp = (h & 0x7C00u) >> 10;
+            uint16_t h_sig = (h & 0x03FFu);
+            uint16_t h_sign = (h & 0x8000u);
+
+            uint32_t f_sign = uint32_t(h_sign) << 16;
+
+            if (h_exp == 0)
+            {
+                // subnormal → normalize
+                if (h_sig == 0)
+                    return reinterpret_cast<float&>(f_sign);
+                float mant = (float)h_sig / 1024.0f;
+                float val = std::ldexp(mant, -14);
+                if (h_sign)
+                    val = -val;
+                return val;
+            }
+            else if (h_exp == 31)
+            {
+                // inf / nan
+                uint32_t f = f_sign | 0x7F800000u | (h_sig << 13);
+                return reinterpret_cast<float&>(f);
+            }
+            else
+            {
+                // normal
+                uint32_t f_exp = (h_exp + 112) << 23;
+                uint32_t f_sig = (uint32_t)h_sig << 13;
+                uint32_t f = f_sign | f_exp | f_sig;
+                return reinterpret_cast<float&>(f);
+            }
+        }
+
+        // simple linear → sRGB
+        static inline uint8_t LinearToSRGB8(float x)
+        {
+            x = std::max(0.0f, std::min(1.0f, x));
+            if (x <= 0.0031308f)
+                x = 12.92f * x;
+            else
+                x = 1.055f * std::pow(x, 1.f / 2.4f) - 0.055f;
+            return uint8_t(x * 255.0f + 0.5f);
+        }
+
+        static void ConvertR16G16B16A16ToBGRA8(uint8_t* dstRow, const uint8_t* srcRow, uint32_t width)
+        {
+            for (uint32_t x = 0; x < width; ++x)
+            {
+                uint16_t hR = ReadU16(srcRow + x * 8 + 0);
+                uint16_t hG = ReadU16(srcRow + x * 8 + 2);
+                uint16_t hB = ReadU16(srcRow + x * 8 + 4);
+                uint16_t hA = ReadU16(srcRow + x * 8 + 6);
+
+                float R = HalfToFloat(hR);
+                float G = HalfToFloat(hG);
+                float B = HalfToFloat(hB);
+                float A = HalfToFloat(hA);
+
+                dstRow[x * 4 + 0] = LinearToSRGB8(R);
+                dstRow[x * 4 + 1] = LinearToSRGB8(G);
+                dstRow[x * 4 + 2] = LinearToSRGB8(B);
+                dstRow[x * 4 + 3] = uint8_t(std::clamp(A, 0.f, 1.f) * 255);
+            }
+        }
+
+        // Читаем знаковый 16-битный
+        static inline int16_t ReadS16(const uint8_t* ptr)
+        {
+            return static_cast<int16_t>(ptr[0] | (ptr[1] << 8));
+        }
+
+        // Конвертация VK_FORMAT_R16G16_SNORM → 8-битный BGRA (grayscale)
+        static void ConvertR16G16SnormToBGRA8(uint8_t* dstRow, const uint8_t* srcRow, uint32_t width)
+        {
+            for (uint32_t x = 0; x < width; ++x)
+            {
+                // layout: R16 | G16
+                int16_t r16 = ReadS16(srcRow + x * 4 + 0);
+                int16_t g16 = ReadS16(srcRow + x * 4 + 2);
+
+                // SNORM: [-32768, 32767] → [-1, 1]
+                auto ToSnorm = [](int16_t v) -> float
+                {
+                    // по спецификации -32768 → -1.0, 32767 → ~1.0
+                    if (v <= -32768)
+                        return -1.0f;
+                    return static_cast<float>(v) / 32767.0f;
+                };
+
+                float r = ToSnorm(r16);
+                float g = ToSnorm(g16);
+
+                // делаем простую визуализацию: по яркости
+                // вариант 1: берём только R
+                // float gray = (r * 0.5f + 0.5f);
+
+                // вариант 2: усредняем R и G
+                float gray = (r + g) * 0.25f + 0.5f; // (r+g)/2 → [-1;1], потом в [0;1]
+
+                if (gray < 0.0f)
+                    gray = 0.0f;
+                if (gray > 1.0f)
+                    gray = 1.0f;
+
+                uint8_t v = static_cast<uint8_t>(gray * 255.0f + 0.5f);
+
+                dstRow[x * 4 + 0] = v; // B
+                dstRow[x * 4 + 1] = v; // G
+                dstRow[x * 4 + 2] = v; // R
+                dstRow[x * 4 + 3] = 255; // A
+            }
+        }
+
+        static void ConvertD32FloatToBGRA8(uint8_t* dstRow, const uint8_t* srcRow, uint32_t width)
+        {
+            for (uint32_t x = 0; x < width; ++x)
+            {
+                float depth = reinterpret_cast<const float*>(srcRow)[x];
+
+                // clamp to [0..1]
+                if (depth < 0.f)
+                    depth = 0.f;
+                if (depth > 1.f)
+                    depth = 1.f;
+
+                // классическая depth-визуализация: 0=черный, 1=белый
+                uint8_t v = static_cast<uint8_t>(depth * 255.f + 0.5f);
+
+                dstRow[x * 4 + 0] = v; // B
+                dstRow[x * 4 + 1] = v; // G
+                dstRow[x * 4 + 2] = v; // R
+                dstRow[x * 4 + 3] = 255; // A
+            }
+        }
+
+        static void FillSolidRedBGRA8(uint8_t* dstRow, uint32_t width)
+        {
+            for (uint32_t x = 0; x < width; ++x)
+            {
+                dstRow[x * 4 + 0] = 0; // B
+                dstRow[x * 4 + 1] = 0; // G
+                dstRow[x * 4 + 2] = 255; // R
+                dstRow[x * 4 + 3] = 255; // A
+            }
+        }
+
+        static bool WriteAnyFormatBMP(
+            const char* filePath,
+            uint32_t width,
+            uint32_t height,
+            const uint8_t* srcData,
+            VkDeviceSize rowPitch,
+            VkFormat format)
+        {
+            const uint32_t outBpp = 4;
+            const uint32_t tightRowSize = width * outBpp;
             const uint32_t dataSize = tightRowSize * height;
-
-#pragma pack(push, 1)
-            struct BMPHeader
-            {
-                uint16_t bfType{ 0x4D42 };
-                uint32_t bfSize;
-                uint16_t bfReserved1{ 0 };
-                uint16_t bfReserved2{ 0 };
-                uint32_t bfOffBits{ 54 };
-            };
-
-            struct BMPInfoHeader
-            {
-                uint32_t biSize{ 40 };
-                int32_t biWidth;
-                int32_t biHeight;
-                uint16_t biPlanes{ 1 };
-                uint16_t biBitCount{ 32 };
-                uint32_t biCompression{ 0 }; // BI_RGB
-                uint32_t biSizeImage;
-                int32_t biXPelsPerMeter{ 2835 };
-                int32_t biYPelsPerMeter{ 2835 };
-                uint32_t biClrUsed{ 0 };
-                uint32_t biClrImportant{ 0 };
-            };
-#pragma pack(pop)
-
-            BMPHeader header;
-            header.bfSize = header.bfOffBits + dataSize;
-
-            BMPInfoHeader info;
-            info.biWidth = static_cast<int32_t>(width);
-            info.biHeight = -static_cast<int32_t>(height); // top-down
-            info.biSizeImage = dataSize;
 
             AZStd::vector<uint8_t> tight(dataSize);
 
+            const size_t srcPitch = static_cast<size_t>(rowPitch);
+
             for (uint32_t y = 0; y < height; ++y)
             {
-                const uint8_t* srcRow = srcData + y * rowPitch;
-                uint8_t* dstRow = tight.data() + y * tightRowSize;
+                const uint8_t* src = srcData + srcPitch * size_t(y);
+                uint8_t* dst = tight.data() + tightRowSize * size_t(y);
 
-                for (uint32_t x = 0; x < width; ++x)
+                switch (format)
                 {
-                    const uint8_t* s = srcRow + x * 4;
-                    uint8_t* d = dstRow + x * 4;
+                case VK_FORMAT_R8G8B8A8_UNORM:
+                case VK_FORMAT_B8G8R8A8_UNORM:
+                    memcpy(dst, src, tightRowSize);
+                    break;
 
-                    uint8_t r, g, b, a;
-                    if (format == VK_FORMAT_R8G8B8A8_UNORM)
-                    {
-                        // [R,G,B,A]
-                        r = s[0];
-                        g = s[1];
-                        b = s[2];
-                        a = s[3];
-                    }
-                    else // VK_FORMAT_B8G8R8A8_UNORM
-                    {
-                        // [B,G,R,A]
-                        b = s[0];
-                        g = s[1];
-                        r = s[2];
-                        a = s[3];
-                    }
+                case VK_FORMAT_R16G16B16A16_SFLOAT:
+                    ConvertR16G16B16A16ToBGRA8(dst, src, width);
+                    break;
 
-                    // BMP: B,G,R,A
-                    d[0] = b;
-                    d[1] = g;
-                    d[2] = r;
-                    d[3] = a;
+                case VK_FORMAT_R16G16_SNORM:
+                    ConvertR16G16SnormToBGRA8(dst, src, width);
+                    break;
+
+                case VK_FORMAT_D32_SFLOAT:
+                    ConvertD32FloatToBGRA8(dst, src, width);
+                    break;
+
+                default:
+                    {
+                        // fallback: полностью красная текстура
+                        for (uint32_t y = 0; y < height; ++y)
+                        {
+                            uint8_t* d = tight.data() + tightRowSize * size_t(y);
+                            FillSolidRedBGRA8(d, width);
+                        }
+                        WriteBMP(filePath, width, height, tight.data(), tightRowSize);
+                        AZ_Warning("BMP", false, "Unsupported Vulkan format %u -> writing solid red", format);
+                        return true;
+                    }
                 }
+
             }
 
-            AZ::IO::HandleType handle;
-            AZ::IO::Result openRes =
-                AZ::IO::LocalFileIO::GetInstance()->Open(filePath, AZ::IO::OpenMode::ModeWrite | AZ::IO::OpenMode::ModeBinary, handle);
-
-            if (!openRes)
-            {
-                return false;
-            }
-
-            AZ::u64 written = 0;
-            AZ::IO::LocalFileIO::GetInstance()->Write(handle, &header, sizeof(header), &written);
-            AZ::IO::LocalFileIO::GetInstance()->Write(handle, &info, sizeof(info), &written);
-            AZ::IO::LocalFileIO::GetInstance()->Write(handle, tight.data(), dataSize, &written);
-            AZ::IO::LocalFileIO::GetInstance()->Close(handle);
-
-            return true;
+            // tightRowSize == width * 4
+            return WriteBMP(filePath, width, height, tight.data(), tightRowSize);
         }
 #endif
 
@@ -1066,7 +1193,7 @@ namespace AZ
 #if defined(CARBONATED) && !defined(_RELEASE)
             if (device.WriteCLasBMP() && framebuffer)
             {
-                const ImageView* colorView = framebuffer->GetFirstColorAttachment();
+                const ImageView* colorView = framebuffer->GetFirstAttachment();
 
                 if (colorView)
                 {
@@ -1078,24 +1205,24 @@ namespace AZ
                     VkImage srcImage = colorImage.GetNativeImage();
                     uint32_t width = framebuffer->GetSize().m_width;
                     uint32_t height = framebuffer->GetSize().m_height;
-                    uint32_t samples = imgDesc.m_multisampleState.m_samples;
+                    //uint32_t samples = imgDesc.m_multisampleState.m_samples;
 
                     // ---------- FILTER unwanted passes ----------
                     // мы смотрим только R8G8B8A8_UNORM, без MSAA, полное разрешение, 1 RTV
-                    uint32_t rtCount = 0;
+                    //uint32_t rtCount = 0;
                     const RenderPass* rp = framebuffer->GetRenderPass();
                     const auto& rpDesc = rp->GetDescriptor();
                     uint32_t subpassIndex = m_state.m_subpassIndex;
                     if (subpassIndex < rpDesc.m_subpassCount)
                     {
-                        rtCount = rpDesc.m_subpassDescriptors[subpassIndex].m_rendertargetCount;
+                        //rtCount = rpDesc.m_subpassDescriptors[subpassIndex].m_rendertargetCount;
                     }
 
-                    bool interesting = (vkFormat == VK_FORMAT_R8G8B8A8_UNORM) && (samples == 1) &&
+                    //bool interesting = (vkFormat == VK_FORMAT_R8G8B8A8_UNORM) && (samples == 1) &&
                         //(width >= 600 && height >= 400) && // защищаемся от tiny RT
-                        (rtCount == 1);
+                    //    (rtCount == 1);
 
-                    if (interesting)
+                    // if (interesting)
                     {
                         // --- staging image (как у тебя было) ---
                         VkImageCreateInfo stagingInfo{};
@@ -1232,7 +1359,9 @@ namespace AZ
                             1,
                             &b4);
 
-                        // --- тут главное изменение: пушим новую запись ---
+                        AZStd::string rawName = framebuffer->GetRenderPass()->GetName().GetStringView();
+                        AZStd::string cleanName = StripPipelinePrefix(rawName);
+
                         DebugCaptureEntry entry;
                         entry.m_stagingImage = stagingImage;
                         entry.m_stagingMemory = stagingMemory;
@@ -1242,14 +1371,12 @@ namespace AZ
                         entry.m_memorySize = stagingReq.size;
                         entry.m_imageNumber = device.GetImageNumber();
                         entry.m_captureIndex = device.GetCLNumber();
-
+                        entry.m_passName = cleanName;  
                         m_debugCaptures.push_back(entry);
                     }
                 }
             }
-
 #endif
-
             m_state.m_framebuffer = nullptr;
             m_state.m_subpassIndex = 0;
         }
@@ -1279,9 +1406,10 @@ namespace AZ
 
                 uint8_t* pixelData = reinterpret_cast<uint8_t*>(mapped) + layout.offset;
 
-                AZStd::string path = AZStd::string::format("@user@/BMPs/cmdlist_%i_pass_%i.bmp", entry.m_imageNumber, entry.m_captureIndex);
+                AZStd::string path = AZStd::string::format(
+                    "@user@/BMPs/cmdlist_%i_pass_%i_(%i)(%s).bmp", entry.m_imageNumber, entry.m_captureIndex, entry.m_format, entry.m_passName.cbegin());
 
-                WriteColorAttachmentBMP(path.c_str(), entry.m_width, entry.m_height, pixelData, layout.rowPitch, entry.m_format);
+                WriteAnyFormatBMP(path.c_str(), entry.m_width, entry.m_height, pixelData, layout.rowPitch, entry.m_format);
 
                 context.UnmapMemory(vkDevice, entry.m_stagingMemory);
                 context.DestroyImage(vkDevice, entry.m_stagingImage, VkSystemAllocator::Get());
