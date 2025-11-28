@@ -58,7 +58,7 @@ namespace AZ::RHI
 #endif
 #if defined(CARBONATED) && !defined(_RELEASE)
         //! Save RenderPasses and Present Images as BMPs
-        void SaveSetOfPresentImages();
+        void SaveRenderPassesAndPresentImages();
 #endif
 
         //! Resizes the display resolution of the swap chain. Ideally, this matches the platform window

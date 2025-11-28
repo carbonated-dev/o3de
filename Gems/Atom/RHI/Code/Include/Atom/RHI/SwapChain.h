@@ -45,7 +45,7 @@ namespace AZ::RHI
         void SetDesiredFPS(uint32_t desiredFPS);
 #endif
 #if defined(CARBONATED) && !defined(_RELEASE)
-        void SaveSetOfPresentImages();
+        void SaveRenderPassesAndPresentImages();
 #endif
 
         //! Resizes the display resolution of the swap chain. Ideally, this matches the platform window
@@ -148,7 +148,7 @@ namespace AZ::RHI
         virtual void SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS) {}
 #endif
 #if defined(CARBONATED) && !defined(_RELEASE)
-        virtual void SaveSetOfPresentImagesInternal() {}
+        virtual void SaveRenderPassesAndPresentImagesInternal() {}
 #endif
 
         //////////////////////////////////////////////////////////////////////////

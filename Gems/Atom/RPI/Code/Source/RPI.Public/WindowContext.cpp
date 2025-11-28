@@ -172,10 +172,10 @@ namespace AZ
         }
 
 #if defined(CARBONATED) && !defined(_RELEASE)
-        void WindowContext::OnSaveSetOfPresentImages()
+        void WindowContext::OnSaveRenderPassesAndPresentImages()
         {
             RHI::Ptr<RHI::SwapChain> defaultSwapChain = GetSwapChain(ViewType::Default);
-            defaultSwapChain->SaveSetOfPresentImages();
+            defaultSwapChain->SaveRenderPassesAndPresentImages();
         }
 #endif
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)

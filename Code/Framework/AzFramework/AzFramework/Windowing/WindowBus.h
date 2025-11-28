@@ -174,7 +174,7 @@ namespace AzFramework
         virtual void OnDesiredFPSChanged(uint32_t desiredFPS) { AZ_UNUSED(desiredFPS); };
 #endif
 #if defined(CARBONATED) && !defined(_RELEASE)
-        virtual void OnSaveSetOfPresentImages() {};
+        virtual void OnSaveRenderPassesAndPresentImages() {};
 #endif
 
         //! This is called if the main display's refresh rate changes

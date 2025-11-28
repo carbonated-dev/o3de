@@ -191,12 +191,12 @@ namespace AZ::RHI
     }
 
 #if defined(CARBONATED) && !defined(_RELEASE)
-    void MultiDeviceSwapChain::SaveSetOfPresentImages()
+    void MultiDeviceSwapChain::SaveRenderPassesAndPresentImages()
     {
         IterateObjects<SwapChain>(
             []([[maybe_unused]] auto deviceIndex, auto deviceSwapChain)
             {
-                deviceSwapChain->SaveSetOfPresentImages();
+                deviceSwapChain->SaveRenderPassesAndPresentImages();
             });
     }
  #endif

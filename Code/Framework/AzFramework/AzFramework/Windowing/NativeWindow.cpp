@@ -47,12 +47,12 @@ AZ_CVAR(uint32_t, desired_fps, 55, OnDesiredFPSChanged, AZ::ConsoleFunctorFlags:
 #endif
 
 #if defined(CARBONATED) && !defined(_RELEASE)
-void OnSaveSetOfPresentImages([[maybe_unused]]uint32_t const& dummy)
+void OnSaveRenderPassesAndPresentImages([[maybe_unused]]uint32_t const& dummy)
 {
     AzFramework::WindowNotificationBus::Broadcast(
-        &AzFramework::WindowNotificationBus::Events::OnSaveSetOfPresentImages);
+        &AzFramework::WindowNotificationBus::Events::OnSaveRenderPassesAndPresentImages);
 }
-AZ_CVAR(uint32_t, save_vk_images, 0, OnSaveSetOfPresentImages, AZ::ConsoleFunctorFlags::Null, "Perform saving a set of images (RenderPasses and SwapChains)");
+AZ_CVAR(uint32_t, save_vk_images, 0, OnSaveRenderPassesAndPresentImages, AZ::ConsoleFunctorFlags::Null, "Perform saving a set of images (RenderPasses and SwapChains)");
 #endif
 
 namespace AzFramework

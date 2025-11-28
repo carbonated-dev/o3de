@@ -168,6 +168,8 @@ set(FILES
     Source/RHI/RayTracingShaderTable.h
     Source/RHI/Conversion.cpp
     Source/RHI/Conversion.h
+	Source/RHI/VulkanBmpWriter.h
+	Source/RHI/VulkanBmpWriter.cpp
     Source/RHI/WindowSurfaceBus.h
     Source/RHI/SpecializationConstantData.cpp
     Source/RHI/SpecializationConstantData.h

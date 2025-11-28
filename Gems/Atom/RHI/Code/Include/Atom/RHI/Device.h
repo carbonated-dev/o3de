@@ -28,7 +28,6 @@
 
 #if defined(CARBONATED)
 #include <Atom/RHI/DeviceAddon.h>
-#include <vulkan/vulkan.h>
 #endif
 
 namespace AZ::RHI
@@ -193,17 +192,9 @@ namespace AZ::RHI
             m_renderPassNumber = 0;
             m_imageNumber = currentImage;
         }
-        void StopWriteRenderPassToBmp()
-        {
-            m_writeRenderPassToBmp = false;
-        }
+        void StopWriteRenderPassToBmp() { m_writeRenderPassToBmp = false; }
+        int GetAndIncreaseRenderPassNumber() { return ++m_renderPassNumber; }
         const int GetImageNumber() const { return m_imageNumber; }
-        int GetAndIncreaseRenderPassNumber()
-        {
-            int ret = m_renderPassNumber;
-            m_renderPassNumber++;
-            return ret;
-        }
 #endif
     protected:
 

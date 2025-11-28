@@ -157,9 +157,9 @@ namespace AZ::RHI
     }
 
 #if defined(CARBONATED) && !defined(_RELEASE)
-    void SwapChain::SaveSetOfPresentImages()
+    void SwapChain::SaveRenderPassesAndPresentImages()
     {
-        SaveSetOfPresentImagesInternal();
+        SaveRenderPassesAndPresentImagesInternal();
     }
 #endif
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
