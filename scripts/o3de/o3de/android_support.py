@@ -1007,7 +1007,7 @@ dependencies {{
 ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.firebase:firebase-core:21.1.1'
     implementation 'com.google.firebase:firebase-messaging:24.0.3'
-    implementation 'com.google.android.gms:play-services-games:23.2.0'
+    implementation 'com.google.android.gms:play-services-games-v2:21.0.0'
     implementation 'com.google.android.gms:play-services-auth:21.2.0'  
     implementation 'androidx.games:games-frame-pacing:2.1.3'
 """
