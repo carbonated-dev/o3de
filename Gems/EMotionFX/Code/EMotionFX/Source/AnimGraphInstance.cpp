@@ -44,6 +44,10 @@ namespace EMotionFX
             , motionSet ? motionSet->GetName() : "[missed]"
             , actorInstance && actorInstance->GetActor() ? actorInstance->GetActor()->GetName() : "[missed]"
             , animGraphName.c_str());
+
+    #if defined(CARBONATED_ANIMGRAPH_PAUSE_RESUME)
+        m_paused = false;
+    #endif
 #endif
 
         // register at the animgraph
@@ -236,10 +240,12 @@ namespace EMotionFX
     {
         AZ_PROFILE_SCOPE(Animation, "AnimGraphInstance::Output");
 
+#if defined(CARBONATED) && defined(CARBONATED_ANIMGRAPH_PAUSE_RESUME)
         if (m_paused)
         {
             return;
         }
+#endif
 
         // reset max used
         const uint32 threadIndex = m_actorInstance->GetThreadIndex();
@@ -473,10 +479,13 @@ namespace EMotionFX
     // start the state machines at the entry state
     void AnimGraphInstance::Start()
     {
+#if defined(CARBONATED) && defined(CARBONATED_ANIMGRAPH_PAUSE_RESUME)
         m_paused = false;
+#endif
         RecursiveSwitchToEntryState(GetRootNode());
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_ANIMGRAPH_PAUSE_RESUME)
     void AnimGraphInstance::Pause()
     {
         m_paused = true;
@@ -486,6 +495,7 @@ namespace EMotionFX
     {
         m_paused = false;
     }
+#endif
 
     // reset all current states of all state machines recursively
     void AnimGraphInstance::RecursiveResetCurrentState(AnimGraphNode* node)
@@ -512,7 +522,9 @@ namespace EMotionFX
     // stop the state machines and reset the current state to nullptr
     void AnimGraphInstance::Stop()
     {
+#if defined(CARBONATED) && defined(CARBONATED_ANIMGRAPH_PAUSE_RESUME)
         m_paused = false;
+#endif
         RecursiveResetCurrentState(GetRootNode());
     }
 
@@ -889,10 +901,12 @@ namespace EMotionFX
     {
         AZ_PROFILE_SCOPE(Animation, "AnimGraphInstance::Update");
 
+#if defined(CARBONATED) && defined(CARBONATED_ANIMGRAPH_PAUSE_RESUME)
         if (m_paused)
         {
             return;
         }
+#endif
 
         // pass 0: (Optional, networking only) When this instance is shared between network, restore the instance using an animgraph
         // snapshot.
