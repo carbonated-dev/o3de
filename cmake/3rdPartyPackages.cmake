@@ -152,7 +152,7 @@ function(download_file_internal)
         # code 0 means success, but we still need to hash the file.
         file(SHA256 ${download_file_internal_TARGET_FILE} hash_of_downloaded_file)
         if (NOT "${hash_of_downloaded_file}" STREQUAL "${download_file_internal_EXPECTED_HASH}" )
-            set(results "1;Downloaded successfully, but the file hash did not match expected hash!")
+            set(results "1;Downloaded successfully, but the file hash did not match expected hash! Received ${hash_of_downloaded_file}, expected ${download_file_internal_EXPECTED_HASH}")
             set(code_returned 1)
         endif()
     endif()
