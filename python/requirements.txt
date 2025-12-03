@@ -321,4 +321,6 @@ resolvelib==0.9.0 \
     --hash=sha256:40ab05117c3281b1b160105e10075094c5ab118315003c922b77673a365290e1 \
     --hash=sha256:597adcbdf81d62d0cde55d90faa8e79187ec0f18e5012df30bd7a751b26343ae
 
-pydantic==2.12.4
+# Carbonated Added
+pydantic==2.12.4 \ 
+    --hash=sha256:92d3d202a745d46f9be6df459ac5a064fdaa3c1c4cd8adcfa332ccf3c05f871e
