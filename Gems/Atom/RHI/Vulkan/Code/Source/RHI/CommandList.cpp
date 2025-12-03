@@ -911,6 +911,9 @@ namespace AZ
                         RHI::ShadingRateCombinators{ RHI::ShadingRateCombinerOp::Override, RHI::ShadingRateCombinerOp::Passthrough });
                 }
             }
+#if defined(CARBONATED) && !defined(_RELEASE)
+            m_captureIndex = device.GetAndIncreaseRenderPassNumber();
+#endif
         }
 
         void CommandList::NextSubpass(VkSubpassContents contents)
@@ -1506,6 +1509,7 @@ namespace AZ
             {
                 return;
             }
+
             const ImageView* imageView = framebuffer->GetFirstAttachment();
             if (!imageView)
             {
@@ -1656,9 +1660,60 @@ namespace AZ
             entry.m_height = height;
             entry.m_memorySize = stagingReq.size;
             entry.m_imageNumber = device.GetImageNumber();
-            entry.m_captureIndex = device.GetAndIncreaseRenderPassNumber();
+            entry.m_captureIndex = m_captureIndex;
             entry.m_passName = cleanName;
+            // Viewport
+            if (!m_state.m_viewportState.m_states.empty())
+            {
+                const RHI::Viewport& vp = m_state.m_viewportState.m_states[0];
+                entry.m_viewportX = static_cast<int>(vp.m_minX);
+                entry.m_viewportY = static_cast<int>(vp.m_minY);
+                entry.m_viewportW = static_cast<int>(vp.m_maxX - vp.m_minX);
+                entry.m_viewportH = static_cast<int>(vp.m_maxY - vp.m_minY);
+            }
+            else
+            {
+                entry.m_viewportX = entry.m_viewportY = 0;
+                entry.m_viewportW = entry.m_viewportH = -1;
+            }
+
+            // Scissor
+            if (!m_state.m_scissorState.m_states.empty())
+            {
+                const RHI::Scissor& sc = m_state.m_scissorState.m_states[0];
+                entry.m_scissorX = static_cast<int>(sc.m_minX);
+                entry.m_scissorY = static_cast<int>(sc.m_minY);
+                entry.m_scissorW = static_cast<int>(sc.m_maxX - sc.m_minX);
+                entry.m_scissorH = static_cast<int>(sc.m_maxY - sc.m_minY);
+            }
+            else
+            {
+                entry.m_scissorX = entry.m_scissorY = 0;
+                entry.m_scissorW = entry.m_scissorH = -1;
+            }
+
             m_debugCaptures.push_back(entry);
+        }
+
+        static const char* FormatToString(VkFormat f)
+        {
+            static char buff[64];
+            switch (f)
+            {
+            case VK_FORMAT_R8G8B8A8_UNORM:
+                return "R8G8B8A8";
+            case VK_FORMAT_B8G8R8A8_UNORM:
+                return "B8G8R8A8";
+            case VK_FORMAT_R16G16B16A16_SFLOAT:
+                return "R16G16B16A16F";
+            case VK_FORMAT_R16G16_SNORM:
+                return "R16G16_SNORM";
+            case VK_FORMAT_D32_SFLOAT:
+                return "D32";
+            default:
+                sprintf(buff, "%i", static_cast<int>(f));
+                return buff;
+            }
         }
 
         void CommandList::DumpPendingCaptureToBmp()
@@ -1688,11 +1743,27 @@ namespace AZ
                 uint8_t* pixelData = reinterpret_cast<uint8_t*>(mapped) + layout.offset;
 
                 AZStd::string path = AZStd::string::format(
-                    "@user@/BMPs/cmdlist_%i_pass_%i_(%i)(%s).bmp",
+                    "@user@/BMPs/"
+                    "cmdlist_%i_pass_%02i_(%s)(%s)"
+                    "rt_%ux%u_"
+                    "vp_%d_%d_%d_%d_"
+                    "sc_%d_%d_%d_%d_"
+                    "row_%lu.bmp",
                     entry.m_imageNumber,
                     entry.m_captureIndex,
-                    entry.m_format,
-                    entry.m_passName.cbegin());
+                    FormatToString(entry.m_format),
+                    entry.m_passName.c_str(),
+                    entry.m_width,
+                    entry.m_height,
+                    entry.m_viewportX,
+                    entry.m_viewportY,
+                    entry.m_viewportW,
+                    entry.m_viewportH,
+                    entry.m_scissorX,
+                    entry.m_scissorY,
+                    entry.m_scissorW,
+                    entry.m_scissorH,
+                    static_cast<unsigned long>(layout.rowPitch));
 
                 VulkanBmpWriter::WriteAnyFormatBMP(path.c_str(), entry.m_width, entry.m_height, pixelData, layout.rowPitch, entry.m_format);
 
