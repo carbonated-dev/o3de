@@ -321,6 +321,13 @@ resolvelib==0.9.0 \
     --hash=sha256:40ab05117c3281b1b160105e10075094c5ab118315003c922b77673a365290e1 \
     --hash=sha256:597adcbdf81d62d0cde55d90faa8e79187ec0f18e5012df30bd7a751b26343ae
 
+# ----------------------------------------------------------------------------------
 # Carbonated Added
-pydantic==2.12.4 \ 
-    --hash=sha256:92d3d202a745d46f9be6df459ac5a064fdaa3c1c4cd8adcfa332ccf3c05f871e
+# ----------------------------------------------------------------------------------
+
+# PYDANTIC:
+annotated-types==0.6.0 --hash=sha256:0641064de18ba7a25dee8f96403ebc39113d0cb953a01429249d5c7564666a43
+typing-inspection==0.4.2 --hash=sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7
+typing-extensions==4.14.1 --hash=sha256:d1e1e3b58374dc93031d6eda2420a48ea44a36c2b4766a4fdeb3710755731d76
+pydantic-core==2.41.5 --hash=sha256:62de39db01b8d593e45871af2af9e497295db8d73b085f6bfd0b18c83c70a8f9
+pydantic==2.12.4 --hash=sha256:92d3d202a745d46f9be6df459ac5a064fdaa3c1c4cd8adcfa332ccf3c05f871e
