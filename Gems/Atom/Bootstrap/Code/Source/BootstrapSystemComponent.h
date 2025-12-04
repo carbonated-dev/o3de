@@ -108,6 +108,10 @@ namespace AZ
                 void CreateViewportContext();
                 void SetWindowResolution();
 
+#if defined(CARBONATED)
+                void CheckAndApplyUseHalfOfMaxResWorkaround(const AZStd::string& gpuName);
+#endif
+
                 //! Run the BRDF pipeline to generate the BRDF texture
                 void RunBRDFPipeline(AZ::RPI::ScenePtr scene, AZ::RPI::ViewportContextPtr viewportContext);
 
