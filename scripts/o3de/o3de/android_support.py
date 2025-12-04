@@ -2302,7 +2302,7 @@ class AndroidProjectGenerator(object):
 
         for gem_name, gem_path in android_gems:
             try:
-                self.copy_gem_android_components(gem_name, gem_path, self._build_dir)
+                self.copy_gem_android_components(gem_name, gem_path, self._build_dir, self._project_path)
                 logger.info(f"Successfully integrated gem: {gem_name}")
             except Exception as e:
                 logger.error(f"Error integrating gem {gem_name}: {e}")
@@ -2489,12 +2489,13 @@ class AndroidProjectGenerator(object):
 
         logger.debug(f"Created folder structure for gem {gem_name}")
 
-    def copy_gem_android_components(self, gem_name: str, gem_path: Path, android_build_root: Path):
+    def copy_gem_android_components(self, gem_name: str, gem_path: Path, android_build_root: Path, project_source_path: Path):
         """
         Copies Android components from gem to Android project structure
 
         :param gem_name: Gem name
         :param gem_path: Path to gem
+        :param project_source_path: Path to project
         :param android_build_root: Android build root folder
         """
         gem_android_path = gem_path / '3rdParty' / 'Platform' / 'Android'
@@ -2525,7 +2526,7 @@ class AndroidProjectGenerator(object):
         self._copy_additional_gem_android_components(gem_name, gem_path, android_build_root)
 
         # Run additional settings
-        self._run_gem_additional_settings(gem_path, android_build_root)
+        self._run_gem_additional_settings(gem_path, android_build_root, project_source_path)
 
     @staticmethod
     def _copy_additional_gem_android_components(gem_name: str, gem_path: Path, android_build_root: Path):
@@ -2539,7 +2540,7 @@ class AndroidProjectGenerator(object):
         gem_build_path = android_build_root / gem_name
 
         # Copy res folder if exists
-        gem_res_path = gem_path / 'Resources' / 'Android' / 'res'
+        gem_res_path = gem_path / 'Resources' / 'Android'
         if gem_res_path.is_dir():
             dst_res_path = gem_build_path / 'src' / 'main' / 'res'
             if dst_res_path.exists():
@@ -2567,12 +2568,6 @@ class AndroidProjectGenerator(object):
             shutil.copytree(gem_java_path, dst_java_path)
             logger.info(f"Copied Assets files for gem {gem_name}")
 
-        # Copy AndroidManifest.xml if exists
-        gem_manifest = gem_path / 'Resources' / 'Android' / 'AndroidManifest.xml'
-        if gem_manifest.is_file():
-            dst_manifest = gem_build_path / 'src' / 'main' / 'AndroidManifest.xml'
-            shutil.copy2(gem_manifest, dst_manifest)
-            logger.info(f"Copied AndroidManifest.xml for gem {gem_name}")
 
     def create_engine_module(self) -> str:
         """
@@ -2604,13 +2599,38 @@ class AndroidProjectGenerator(object):
         logger.info("Engine module created successfully")
         return engine_project_name
 
-    def _run_gem_additional_settings(self, gem_path: Path, android_build_root: Path):
+    def _resolve_root_path(self, root_type: str, gem_root_path: Path,
+                           android_project_path: Path, project_source_path: Path) -> Path:
+        """
+        Resolve absolute path based on root type
+
+        :param root_type: Type of root - 'source', 'project', or 'gem'
+        :return: Absolute path to the root directory
+        """
+        root_mapping = {
+            'source': project_source_path,
+            'project': android_project_path,
+            'gem': gem_root_path
+        }
+
+        # Check which path type to use
+        if root_type in root_mapping:
+            resolved_path = root_mapping[root_type]
+        else:
+            logger.warning(f"Unknown root_type '{root_type}', defaulting to 'gem'")
+            resolved_path = gem_root_path
+
+        return resolved_path
+
+    def _run_gem_additional_settings(self, gem_root_path: Path, android_project_path: Path, project_source_path: Path):
         """
         Runs additional settings from the gem's JSON file
 
-        :param gem_path: Path to the gem
+        :param gem_root_path: Path to the gem root directory
+        :param android_project_path: Path to Android project directory (build/android)
+        :param project_source_path: Path to project source directory
         """
-        additional_deps_file = gem_path / '3rdParty' / 'Platform' / 'Android' / 'additional_settings.json'
+        additional_deps_file = gem_root_path / 'additional_settings.json'
 
         if not additional_deps_file.is_file():
             return
@@ -2619,37 +2639,98 @@ class AndroidProjectGenerator(object):
             with open(additional_deps_file, 'r', encoding=DEFAULT_READ_ENCODING) as f:
                 deps_data = json.load(f)
 
-            # Copy files to app module folder
-            files_to_copy = deps_data.get('files_to_copy_in_app_module_folder', [])
-            for file_name in files_to_copy:
-                src_file = gem_path / '3rdParty' / 'Platform' / 'Android' / file_name
-                dst_file = android_build_root / 'app' / file_name
+            android_settings = deps_data.get('android', {})
 
-                if src_file.is_file():
-                    dst_file.parent.mkdir(parents=True, exist_ok=True)
+            # Copy files based on configuration
+            files_to_copy = android_settings.get('files_to_copy', [])
+            for file_config in files_to_copy:
+                source_config = file_config.get('source', {})
+                destination_config = file_config.get('destination', {})
 
-                    shutil.copy2(src_file, dst_file)
-                    logger.info(f"Copied {file_name} to app module from gem {gem_path.name}")
+                # Get source parameters
+                source_root_type = source_config.get('root', 'gem')
+                source_location = source_config.get('path', '')
+
+                if not source_location:
+                    logger.warning(f"Missing 'path' in source configuration for gem {gem_root_path.name}")
+                    continue
+
+                # Determine the source path
+                source_root = self._resolve_root_path(
+                    root_type=source_root_type,
+                    gem_root_path=gem_root_path,
+                    android_project_path=android_project_path,
+                    project_source_path=project_source_path
+                )
+                source_path = source_root / source_location
+
+                # Get destination parameters
+                destination_root_type = destination_config.get('root', 'project')
+                destination_location = destination_config.get('path', '')
+
+                if not destination_location:
+                    logger.warning(f"Missing 'path' in destination configuration for gem {gem_root_path.name}")
+                    continue
+
+                # Determine the target path
+                destination_root = self._resolve_root_path(
+                    root_type=destination_root_type,
+                    gem_root_path=gem_root_path,
+                    android_project_path=android_project_path,
+                    project_source_path=project_source_path
+                )
+                destination_path = destination_root / destination_location
+
+                if source_path.is_file():
+                    if destination_path.suffix:
+                        destination_path.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(source_path, destination_path)
+                        logger.info(f"Copied file {source_location} to {destination_path}")
+                    else:
+                        destination_path.mkdir(parents=True, exist_ok=True)
+                        final_destination = destination_path / source_path.name
+                        shutil.copy2(source_path, final_destination)
+                        logger.info(f"Copied file {source_location} to directory {destination_path}")
+
+                elif source_path.is_dir():
+                    if destination_path.suffix:
+                        logger.error(f"Cannot copy directory {source_location} to file destination {destination_path}")
+                        continue
+
+                    destination_path.mkdir(parents=True, exist_ok=True)
+
+                    for item in source_path.iterdir():
+                        item_dest = destination_path / item.name
+                        if item.is_file():
+                            shutil.copy2(item, item_dest)
+                        elif item.is_dir():
+                            shutil.copytree(item, item_dest, dirs_exist_ok=True)
+
+                    logger.info(f"Copied directory {source_location} to {destination_path}")
+
                 else:
-                    logger.warning(f"File {file_name} not found in gem {gem_path.name} at path {src_file}")
+                    logger.warning(f"Source path not found for gem {gem_root_path.name}: {source_path}")
 
             # Add additional dependencies
-            additional_deps = deps_data.get('additional_dependencies', [])
+            additional_deps = android_settings.get('additional_dependencies', [])
             for dep in additional_deps:
                 if dep not in self._additional_dependencies:
                     self._additional_dependencies += f"    {dep}\n"
 
             # Add plugins
-            plugins = deps_data.get('plugins', [])
+            plugins = android_settings.get('plugins', [])
             for plugin in plugins:
                 if plugin not in self._plugins:
                     self._plugins += f"    {plugin}\n"
 
             logger.info(f"Loaded additional dependencies and plugins from {additional_deps_file}")
 
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in {additional_deps_file}: {e}")
+            logger.error("Please check for syntax errors (extra commas, missing quotes, etc.)")
         except Exception as e:
             logger.warning(f"Error loading additional dependencies from {additional_deps_file}: {e}")
-    # CARBONATED -- end
+# CARBONATED -- end
 
     class _Library:
         """
