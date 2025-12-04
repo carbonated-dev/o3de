@@ -302,7 +302,7 @@ namespace AZ
                     }
 
                     WriteBMP(filePath, width, height, tight.data(), tightRowSize);
-                    AZ_Warning("BMP", false, "Unsupported VkFormat %u – writing solid red BMP", format);
+                    AZ_Warning("BMP", false, "Unsupported VkFormat %u. Writing solid red BMP", format);
                     return true;
                 }
             }
