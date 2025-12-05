@@ -1449,9 +1449,9 @@ class AndroidProjectGenerator(object):
         app_dir = self._build_dir / "app"
         (playerengagement_dir / "src/main").mkdir(parents=True, exist_ok=True)
         app_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy(self._project_path / "Resources/PlayerEngagement/Platforms/Android/Project/build.gradle", playerengagement_dir)
-        shutil.copy(self._project_path / "Resources/PlayerEngagement/Platforms/Android/Project/google-services.json", app_dir)
-        shutil.copytree(self._project_path / "Resources/PlayerEngagement/Platforms/Android/Resources", playerengagement_dir / "src/main", dirs_exist_ok=True)       
+        shutil.copy(self._project_path / "Resources/PlayerEngagement/Platform/Android/Project/build.gradle", playerengagement_dir)
+        shutil.copy(self._project_path / "Resources/PlayerEngagement/Platform/Android/Project/google-services.json", app_dir)
+        shutil.copytree(self._project_path / "Resources/PlayerEngagement/Platform/Android/Resources", playerengagement_dir / "src/main", dirs_exist_ok=True)       
         project_names.append("playerengagement")        
 # CARBONATED -- end
 
