@@ -71,8 +71,8 @@ namespace AZ
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
             void SetDesiredFPSInternal(uint32_t desiredFPS) override;
 #endif
-#if defined(CARBONATED) && !defined(_RELEASE)
-            void SaveRenderPassesAndPresentImagesInternal() override;
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+            void SaveRenderPassesImagesInternal() override;
             void CapturePresentImageToBmp(uint32_t imageIndex, Queue* vulkanQueue);
 #endif
             //////////////////////////////////////////////////////////////////////
@@ -128,7 +128,7 @@ namespace AZ
                 bool m_isValid = false;
             } m_swapChainBarrier;
 
-#if defined(CARBONATED) && !defined(_RELEASE)
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
             int m_currentPresentIndexToSave = 0;
             int m_currentImage = 0;
 #endif

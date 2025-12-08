@@ -122,9 +122,10 @@ namespace AZ
 
 #if defined(CARBONATED) && !defined(_RELEASE)
             void CollectGPUStatistics(double commitTime);
-
+#if defined(CARBONATED_SAVE_RENDERPASSES)
             void CheckCapturingToBmp();
-            void DumpPendingCaptureToBmp();
+            void SavePendingCapturesToBmp();
+#endif
 #endif
         private:
             struct Descriptor
@@ -198,7 +199,7 @@ namespace AZ
             const uint32_t m_timestampStartIndex = 0;
             const uint32_t m_timestampEndIndex = 1;
             VkTimeDomainEXT m_cpuTimeDomain = VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT;
-
+#if defined(CARBONATED_SAVE_RENDERPASSES)
             int m_captureIndex; // Assigning in BeginRenderPass
 
             struct DebugCaptureEntry
@@ -226,6 +227,7 @@ namespace AZ
             };
 
             AZStd::vector<DebugCaptureEntry> m_debugCaptures;
+#endif
 #endif
         };
 

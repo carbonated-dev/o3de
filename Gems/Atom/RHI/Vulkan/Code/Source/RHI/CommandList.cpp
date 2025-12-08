@@ -39,7 +39,9 @@
 #if defined(CARBONATED) && !defined(_RELEASE)
 #include <RHI/ReleaseContainer.h>
 #include <AzCore/Time/ITime.h>
+#if defined(CARBONATED_SAVE_RENDERPASSES)
 #include "VulkanBmpWriter.h"
+#endif
 #endif
 namespace AZ
 {
@@ -911,8 +913,8 @@ namespace AZ
                         RHI::ShadingRateCombinators{ RHI::ShadingRateCombinerOp::Override, RHI::ShadingRateCombinerOp::Passthrough });
                 }
             }
-#if defined(CARBONATED) && !defined(_RELEASE)
-            m_captureIndex = device.GetAndIncreaseRenderPassNumber();
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+            m_captureIndex = device.GetAndIncrementRenderPassNumber();
 #endif
         }
 
@@ -929,7 +931,7 @@ namespace AZ
         {
             static_cast<Device&>(GetDevice()).GetContext().CmdEndRenderPass(m_nativeCommandBuffer);
 
-#if defined(CARBONATED) && !defined(_RELEASE)
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
             CheckCapturingToBmp();
 #endif
             m_state.m_framebuffer = nullptr;
@@ -1498,14 +1500,13 @@ namespace AZ
                     vkClearValue.i);
         }
 
-#if defined(CARBONATED) && !defined(_RELEASE)
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
         void CommandList::CheckCapturingToBmp()
         {
             auto& device = static_cast<Device&>(GetDevice());
-            auto& context = device.GetContext();
             const Framebuffer* framebuffer = m_state.m_framebuffer;
 
-            if (!device.WriteRenderPassToBmp() || !framebuffer)
+            if (!device.IsSavingRenderPassesToBmp() || !framebuffer)
             {
                 return;
             }
@@ -1515,9 +1516,10 @@ namespace AZ
             {
                 return;
             }
-            VkDevice vkDevice = device.GetNativeDevice();
+
             const Image& image = static_cast<const Image&>(imageView->GetImage());
             const auto& imgDesc = image.GetDescriptor();
+            auto& context = device.GetContext();
 
             VkFormat vkFormat = AZ::Vulkan::ConvertFormat(imgDesc.m_format);
             VkImage srcImage = image.GetNativeImage();
@@ -1537,6 +1539,7 @@ namespace AZ
             stagingInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
             stagingInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
+            VkDevice vkDevice = device.GetNativeDevice();
             VkImage stagingImage = VK_NULL_HANDLE;
             context.CreateImage(vkDevice, &stagingInfo, VkSystemAllocator::Get(), &stagingImage);
 
@@ -1716,7 +1719,7 @@ namespace AZ
             }
         }
 
-        void CommandList::DumpPendingCaptureToBmp()
+        void CommandList::SavePendingCapturesToBmp()
         {
             auto& device = static_cast<Device&>(GetDevice());
             auto& context = device.GetContext();
@@ -1749,20 +1752,10 @@ namespace AZ
                     "vp_%d_%d_%d_%d_"
                     "sc_%d_%d_%d_%d_"
                     "row_%lu.bmp",
-                    entry.m_imageNumber,
-                    entry.m_captureIndex,
-                    FormatToString(entry.m_format),
-                    entry.m_passName.c_str(),
-                    entry.m_width,
-                    entry.m_height,
-                    entry.m_viewportX,
-                    entry.m_viewportY,
-                    entry.m_viewportW,
-                    entry.m_viewportH,
-                    entry.m_scissorX,
-                    entry.m_scissorY,
-                    entry.m_scissorW,
-                    entry.m_scissorH,
+                    entry.m_imageNumber, entry.m_captureIndex, FormatToString(entry.m_format), entry.m_passName.c_str(),
+                    entry.m_width, entry.m_height,
+                    entry.m_viewportX, entry.m_viewportY, entry.m_viewportW, entry.m_viewportH,
+                    entry.m_scissorX, entry.m_scissorY, entry.m_scissorW, entry.m_scissorH,
                     static_cast<unsigned long>(layout.rowPitch));
 
                 VulkanBmpWriter::WriteAnyFormatBMP(path.c_str(), entry.m_width, entry.m_height, pixelData, layout.rowPitch, entry.m_format);

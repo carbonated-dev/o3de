@@ -34,7 +34,7 @@
 #include <swappy/swappyVk.h>
 #endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS && CARBONATED_USE_SWAPPY
 
-#if defined(CARBONATED) && !defined(_RELEASE)
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
 #include <AzFramework/IO/LocalFileIO.h>
 #include "VulkanBmpWriter.h"
 #endif
@@ -109,10 +109,10 @@ namespace AZ
             }
         }
 
-#if defined(CARBONATED) && !defined(_RELEASE)
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
         static int ImageNumber = 0;
 
-        void SwapChain::SaveRenderPassesAndPresentImagesInternal()
+        void SwapChain::SaveRenderPassesImagesInternal()
         {
             if (ImageNumber == 0)
             {
@@ -122,7 +122,7 @@ namespace AZ
             m_currentImage = ++ImageNumber;
             m_currentPresentIndexToSave = (int)m_swapchainNativeImages.size();  // Number of images to save at once
             auto& device = static_cast<Device&>(GetDevice());
-            device.StartWriteRenderPassToBmp(m_currentImage);
+            device.StartSavingRenderPassesToBmp(m_currentImage);
         }
  #endif
 
@@ -343,14 +343,14 @@ namespace AZ
                 }
 
 // ---------------- DEBUG SCREENSHOT ----------------
-#if defined(CARBONATED) && !defined(_RELEASE)
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
                 if (m_currentPresentIndexToSave > 0)
                 {
                     CapturePresentImageToBmp(imageIndex, vulkanQueue);
 
                     if (--m_currentPresentIndexToSave == 0)
                     {
-                        device.StopWriteRenderPassToBmp();
+                        device.StopSavingRenderPassesToBmp();
                     }
                 }
 #endif
@@ -755,7 +755,7 @@ namespace AZ
             return RHI::ResultCode::Success;
         }
 
-#if defined(CARBONATED) && !defined(_RELEASE)
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
         void SwapChain::CapturePresentImageToBmp(uint32_t imageIndex, Queue* vulkanQueue)
         {
             auto& device = static_cast<Device&>(GetDevice());

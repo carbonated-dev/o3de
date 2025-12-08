@@ -62,6 +62,12 @@ namespace AZ
                     semaphoresToSignal[index] = request.m_semaphoresToSignal[index]->GetNativeSemaphore();
                 }
 
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+                bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
+#else
+                bool isSavingRenderPassesToBmp = false;
+#endif
+
 #if defined(CARBONATED) && !defined(_RELEASE)
                 // Create a temporary internal fence if no external fence was provided.
                 // Keep the RHI::Ptr alive by capturing it into the lambda (tempFenceCapture).
@@ -78,7 +84,7 @@ namespace AZ
                     fenceToSignal = fence.get();
                 }
 #if defined(CARBONATED) && !defined(_RELEASE)
-                else if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteRenderPassToBmp())
+                else if (GetDevice().GatheringStatsEnabled() || isSavingRenderPassesToBmp)
                 {
                     // Create a temporary internal fence for GPU statistics callback
                     tempFenceCapture = Fence::Create();
@@ -128,7 +134,7 @@ namespace AZ
                     vulkanQueue->EndDebugLabel();
                 }
 #if defined(CARBONATED) && !defined(_RELEASE)
-                if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteRenderPassToBmp())
+                if (GetDevice().GatheringStatsEnabled() || isSavingRenderPassesToBmp)
                 {
                     // Register callback - store tempFenceCapture in the pending entry to keep it alive
                     RegisterFenceCallback(
@@ -139,8 +145,10 @@ namespace AZ
                          isTempFence,
                          tempFenceCapture,
                          commitTime,
-                         gatheringStats = GetDevice().GatheringStatsEnabled(),
-                         writeRPtoBmp = GetDevice().WriteRenderPassToBmp()
+                         gatheringStats = GetDevice().GatheringStatsEnabled()
+#if defined(CARBONATED_SAVE_RENDERPASSES)
+                        ,saveRPtoBmp = isSavingRenderPassesToBmp
+#endif
                         ]()
                         {
                             // This callback will be called from ProcessPendingFenceCallbacks when fence signaled
@@ -148,10 +156,12 @@ namespace AZ
                             {
                                 cmdList->CollectGPUStatistics(commitTime);
                             }
-                            if (writeRPtoBmp)
+#if defined(CARBONATED_SAVE_RENDERPASSES)
+                            if (saveRPtoBmp)
                             {
-                                cmdList->DumpPendingCaptureToBmp();
+                                cmdList->SavePendingCapturesToBmp();
                             }
+#endif
                             if (isTempFence && tempFenceCapture)
                             {
                                 tempFenceCapture->Shutdown();
@@ -162,7 +172,12 @@ namespace AZ
             });
 
 #if defined(CARBONATED) && !defined(_RELEASE)
-            if (GetDevice().GatheringStatsEnabled() || GetDevice().WriteRenderPassToBmp())
+#if defined(CARBONATED_SAVE_RENDERPASSES)
+            bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
+#else
+            bool isSavingRenderPassesToBmp = false;
+#endif
+            if (GetDevice().GatheringStatsEnabled() || isSavingRenderPassesToBmp)
             {
                 ProcessPendingFenceCallbacks();
             }

@@ -190,13 +190,13 @@ namespace AZ::RHI
         m_descriptor.m_verticalSyncInterval = verticalSyncInterval;
     }
 
-#if defined(CARBONATED) && !defined(_RELEASE)
-    void MultiDeviceSwapChain::SaveRenderPassesAndPresentImages()
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+    void MultiDeviceSwapChain::SaveRenderPassesImages()
     {
         IterateObjects<SwapChain>(
             []([[maybe_unused]] auto deviceIndex, auto deviceSwapChain)
             {
-                deviceSwapChain->SaveRenderPassesAndPresentImages();
+                deviceSwapChain->SaveRenderPassesImages();
             });
     }
  #endif

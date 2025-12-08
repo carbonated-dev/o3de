@@ -56,9 +56,9 @@ namespace AZ::RHI
         //! Sets the desired frames per second.
         void SetDesiredFPS(uint32_t desiredFPS);
 #endif
-#if defined(CARBONATED) && !defined(_RELEASE)
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
         //! Save RenderPasses and Present Images as BMPs
-        void SaveRenderPassesAndPresentImages();
+        void SaveRenderPassesImages();
 #endif
 
         //! Resizes the display resolution of the swap chain. Ideally, this matches the platform window

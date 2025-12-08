@@ -156,10 +156,10 @@ namespace AZ::RHI
         SetVerticalSyncIntervalInternal(previousVsyncInterval);
     }
 
-#if defined(CARBONATED) && !defined(_RELEASE)
-    void SwapChain::SaveRenderPassesAndPresentImages()
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+    void SwapChain::SaveRenderPassesImages()
     {
-        SaveRenderPassesAndPresentImagesInternal();
+        SaveRenderPassesImagesInternal();
     }
 #endif
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)

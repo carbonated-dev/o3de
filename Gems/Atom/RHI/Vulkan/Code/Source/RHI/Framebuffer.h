@@ -50,7 +50,7 @@ namespace AZ
 
             const RHI::Size& GetSize() const;
 
-#if defined(CARBONATED) && !defined(_RELEASE)
+#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
             const ImageView* GetFirstAttachment() const;
 #endif
 

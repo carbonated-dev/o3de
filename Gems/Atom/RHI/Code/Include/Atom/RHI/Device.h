@@ -184,17 +184,18 @@ namespace AZ::RHI
         void EnableGatheringStats();
         void DisableGatheringStats();
         unsigned int GetLastFrameToLog() const { return m_lastFrameToLog; }
-
-        bool WriteRenderPassToBmp() const { return m_writeRenderPassToBmp; }
-        void StartWriteRenderPassToBmp(int currentImage)
+#if defined(CARBONATED_SAVE_RENDERPASSES)
+        bool IsSavingRenderPassesToBmp() const { return m_savingRenderPassesToBmp; }
+        void StartSavingRenderPassesToBmp(int currentImage)
         {
-            m_writeRenderPassToBmp = true;
+            m_savingRenderPassesToBmp = true;
             m_renderPassNumber = 0;
             m_imageNumber = currentImage;
         }
-        void StopWriteRenderPassToBmp() { m_writeRenderPassToBmp = false; }
-        int GetAndIncreaseRenderPassNumber() { return ++m_renderPassNumber; }
+        void StopSavingRenderPassesToBmp() { m_savingRenderPassesToBmp = false; }
+        int GetAndIncrementRenderPassNumber() { return ++m_renderPassNumber; }
         const int GetImageNumber() const { return m_imageNumber; }
+#endif
 #endif
     protected:
 
@@ -287,10 +288,11 @@ namespace AZ::RHI
         bool m_statsEnabled = false;
         unsigned int m_lastFrameToLog = 0;
         double m_startLogTime = 0;
-
-        bool m_writeRenderPassToBmp = false;
+#if defined(CARBONATED_SAVE_RENDERPASSES)
+        bool m_savingRenderPassesToBmp = false;
         int m_renderPassNumber = 0;
         int m_imageNumber = 0;
+#endif
 #endif
     };
 }
