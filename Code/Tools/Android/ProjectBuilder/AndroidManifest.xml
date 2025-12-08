@@ -14,10 +14,10 @@
     <!-- Required for Kindle devices, which is based off Android 5.0, to access app specific public storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="21" />
 
-    <!-- Allow TCP/IP.  Needed for PerfHUD ES -->
+    <!-- Allow TCP/IP.  Needed for PerfHUD ES , Ironsource-->
     <uses-permission android:name="android.permission.INTERNET" />
 
-     <!-- Required to poll the state of the network connection and respond to changes (Obb Download)-->
+     <!-- Required to poll the state of the network connection and respond to changes (Obb Download), Ironsource-->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Required to check whether Wi-Fi is enabled (Obb Download) -->
@@ -28,6 +28,9 @@
 
     <!-- Required to for IAP -->
     <uses-permission android:name="com.android.vending.BILLING" />
+
+    <!-- Required for Ironsource Android API 33+ (Android 13+)-->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
 
     <application
         android:icon="@mipmap/app_icon"
@@ -66,6 +69,31 @@
         <!-- Services for downloading the Obb -->
         <service android:name="com.amazon.lumberyard.io.obb.ObbDownloaderService" />
         <receiver android:name="com.amazon.lumberyard.io.obb.ObbDownloaderAlarmReceiver" />
+
+        <!-- Services for Ironsource Ads -->
+        <activity
+            android:name="com.ironsource.sdk.controller.ControllerActivity"
+            android:configChanges="orientation|screenSize"
+            android:hardwareAccelerated="true"
+            android:theme="@android:style/Theme.NoTitleBar" />
+        <activity
+            android:name="com.ironsource.sdk.controller.InterstitialActivity"
+            android:configChanges="orientation|screenSize"
+            android:hardwareAccelerated="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <activity
+            android:name="com.ironsource.sdk.controller.OpenUrlActivity"
+            android:configChanges="orientation|screenSize"
+            android:hardwareAccelerated="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <activity
+            android:name="com.ironsource.mediationsdk.testSuite.TestSuiteActivity"
+            android:configChanges="orientation|screenSize"
+            android:hardwareAccelerated="true"
+            android:theme="@android:style/Theme.NoTitleBar" />
+        <provider
+            android:name="com.ironsource.lifecycle.IronsourceLifecycleProvider"
+            android:authorities="${applicationId}.IronsourceLifecycleProvider" />
 
         <!-- Samsung DEX specific properties, the following line(s) can be blank if not specified -->
         ${SAMSUNG_DEX_KEEP_ALIVE}
