@@ -2269,7 +2269,7 @@ class AndroidProjectGenerator(object):
     @staticmethod
     def generate_local_repositories_path(android_gems: List[Tuple[str, Path]]) -> str:
         """
-        Generates a local repositories block for all gems with jniLibs
+        Generates a local repositories block for all gems with libs
 
         :param android_gems: List of gems with Android components
         :return: String with local repository configurations
@@ -2277,9 +2277,9 @@ class AndroidProjectGenerator(object):
         local_repositories = ""
 
         for gem_name, gem_path in android_gems:
-            gem_jni_libs_path = gem_path / '3rdParty' / 'Platform' / 'Android' / 'jniLibs'
-            if gem_jni_libs_path.is_dir():
-                local_repo = f"url uri('../{gem_name}/src/main/jniLibs')"
+            gem_libs_path = gem_path / '3rdParty' / 'Platform' / 'Android'
+            if gem_libs_path.is_dir():
+                local_repo = f"url uri('../{gem_name}/src/main/libs')"
                 if local_repositories:
                     local_repositories = "\t\t\t" + local_repositories + "\n"
                 local_repositories += local_repo
@@ -2369,10 +2369,10 @@ class AndroidProjectGenerator(object):
 
             # Check each gem for Android components
             for gem_name, gem_path in all_gem_paths:
-                android_gem_path = gem_path / '3rdParty' / 'Platform' / 'Android'
+                android_resources_path = gem_path / 'Resources' / 'Platform' / 'Android'
 
-                has_build_gradle = (android_gem_path / 'build.gradle').is_file()
-                if has_build_gradle:# or has_jni_libs or has_java_code or res_folder:
+                has_build_gradle = (android_resources_path / 'build.gradle').is_file()
+                if has_build_gradle:# or has_libs or has_java_code or res_folder:
                     logger.info(f"Found Android component in gem: {gem_name}")
                     android_gems.append((gem_name, gem_path))
 
@@ -2498,7 +2498,7 @@ class AndroidProjectGenerator(object):
         :param project_source_path: Path to project
         :param android_build_root: Android build root folder
         """
-        gem_android_path = gem_path / '3rdParty' / 'Platform' / 'Android'
+        gem_android_path = gem_path / 'Resources' / 'Platform' / 'Android'
         gem_build_path = android_build_root / gem_name
         gem_src_main_path = gem_build_path / 'src' / 'main'
 
@@ -2509,18 +2509,18 @@ class AndroidProjectGenerator(object):
             shutil.copy2(gem_build_gradle, dst_build_gradle)
             logger.info(f"Copied build.gradle for gem {gem_name}")
 
-        # Copy jniLibs if exists
-        gem_jni_libs = gem_android_path / 'jniLibs'
-        if gem_jni_libs.is_dir():
-            dst_jni_libs = gem_src_main_path / 'jniLibs'
+        # Copy libs if exists
+        gem_libs = gem_path / '3rdParty' / 'Platform' / 'Android'
+        if gem_libs.is_dir():
+            dst_libs = gem_src_main_path / 'libs'
 
             # Clear target folder before copying
-            if dst_jni_libs.exists():
-                shutil.rmtree(dst_jni_libs)
+            if dst_libs.exists():
+                shutil.rmtree(dst_libs)
 
-            # Recursively copy jniLibs
-            shutil.copytree(gem_jni_libs, dst_jni_libs)
-            logger.info(f"Copied jniLibs for gem {gem_name}")
+            # Recursively copy libs
+            shutil.copytree(gem_libs, dst_libs)
+            logger.info(f"Copied libs for gem {gem_name}")
 
         # Copy other possible Android components
         self._copy_additional_gem_android_components(gem_name, gem_path, android_build_root)
@@ -2540,7 +2540,7 @@ class AndroidProjectGenerator(object):
         gem_build_path = android_build_root / gem_name
 
         # Copy res folder if exists
-        gem_res_path = gem_path / 'Resources' / 'Android'
+        gem_res_path = gem_path / 'Resources' / 'Platform' / 'Android' / 'res'
         if gem_res_path.is_dir():
             dst_res_path = gem_build_path / 'src' / 'main' / 'res'
             if dst_res_path.exists():
@@ -2568,6 +2568,12 @@ class AndroidProjectGenerator(object):
             shutil.copytree(gem_java_path, dst_java_path)
             logger.info(f"Copied Assets files for gem {gem_name}")
 
+        # Copy AndroidManifest.xml if exists
+        gem_manifest = gem_path / 'Resources' / 'Platform' / 'Android' / 'AndroidManifest.xml'
+        if gem_manifest.is_file():
+            dst_manifest = gem_build_path / 'src' / 'main' / 'AndroidManifest.xml'
+            shutil.copy2(gem_manifest, dst_manifest)
+            logger.info(f"Copied AndroidManifest.xml for gem {gem_name}")
 
     def create_engine_module(self) -> str:
         """
@@ -2608,8 +2614,8 @@ class AndroidProjectGenerator(object):
         :return: Absolute path to the root directory
         """
         root_mapping = {
-            'source': project_source_path,
-            'project': android_project_path,
+            'project': project_source_path,
+            'build': android_project_path,
             'gem': gem_root_path
         }
 
@@ -2642,7 +2648,7 @@ class AndroidProjectGenerator(object):
             android_settings = deps_data.get('android', {})
 
             # Copy files based on configuration
-            files_to_copy = android_settings.get('files_to_copy', [])
+            files_to_copy = android_settings.get('copy_files', [])
             for file_config in files_to_copy:
                 source_config = file_config.get('source', {})
                 destination_config = file_config.get('destination', {})
