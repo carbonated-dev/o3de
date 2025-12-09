@@ -1016,7 +1016,7 @@ ADDITIONAL_DEPENDENCIES = """
     implementation 'androidx.games:games-frame-pacing:2.1.3'
     implementation 'com.appsflyer:af-android-sdk:6.17.4'
     implementation 'com.android.installreferrer:installreferrer:2.2'
-    implementation 'com.unity3d.ads-mediation:mediation-sdk:9.2.0'
+    implementation 'com.unity3d.ads-mediation:mediation-sdk:8.2.1'
 
 """
 
