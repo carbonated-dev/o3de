@@ -51,6 +51,8 @@ ${NATIVE_CMAKE_SECTION_RELEASE_CONFIG}
 
 ${NATIVE_CMAKE_SECTION_ANDROID}
 
+    ${ADDITIONAL_MANIFEST}
+
     sourceSets {
         main {
 ${OVERRIDE_JAVA_SOURCESET}
@@ -58,6 +60,8 @@ ${OVERRIDE_JAVA_SOURCESET}
             jniLibs {
                 srcDirs = ["src/main/jniLibs"${OPTIONAL_JNI_SRC_LIB_SET}]
             }
+
+            ${ADDITIONAL_MANIFEST_SOURCE_SETS}
         }
     }
 
