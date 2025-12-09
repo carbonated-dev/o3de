@@ -70,28 +70,7 @@
         <service android:name="com.amazon.lumberyard.io.obb.ObbDownloaderService" />
         <receiver android:name="com.amazon.lumberyard.io.obb.ObbDownloaderAlarmReceiver" />
 
-        <!-- Services for Ironsource Ads -->
-        <activity
-            android:name="com.ironsource.sdk.controller.ControllerActivity"
-            android:configChanges="orientation|screenSize"
-            android:hardwareAccelerated="true"
-            android:theme="@android:style/Theme.NoTitleBar" />
-        <activity
-            android:name="com.ironsource.sdk.controller.InterstitialActivity"
-            android:configChanges="orientation|screenSize"
-            android:hardwareAccelerated="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-        <activity
-            android:name="com.ironsource.sdk.controller.OpenUrlActivity"
-            android:configChanges="orientation|screenSize"
-            android:hardwareAccelerated="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-        <activity
-            android:name="com.ironsource.mediationsdk.testSuite.TestSuiteActivity"
-            android:configChanges="orientation|screenSize"
-            android:hardwareAccelerated="true"
-            android:theme="@android:style/Theme.NoTitleBar" />
-            
+
         <!-- Samsung DEX specific properties, the following line(s) can be blank if not specified -->
         ${SAMSUNG_DEX_KEEP_ALIVE}
         ${SAMSUNG_DEX_LAUNCH_WIDTH}
