@@ -82,3 +82,11 @@ function(copy_assets_to_raw_asset_folder common_relative_path file_paths target_
     file(COPY ${asset_file_src} DESTINATION ${asset_file_dest})
   endforeach()
 endfunction()
+
+function(copy_file source destination)
+  foreach(file_path ${file_paths})
+    cmake_print_variables(source)
+    cmake_print_variables(destination)
+    file(COPY ${source} DESTINATION ${destination})
+  endforeach()
+endfunction()
