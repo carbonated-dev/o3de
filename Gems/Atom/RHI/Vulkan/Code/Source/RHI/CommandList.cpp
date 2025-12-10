@@ -1714,7 +1714,7 @@ namespace AZ
             case VK_FORMAT_D32_SFLOAT:
                 return "D32";
             default:
-                sprintf_s(buff, sizeof(buff)-1, "%i", static_cast<int>(f));
+                std::snprintf(buff, sizeof(buff) - 1, "%i", static_cast<int>(f));
                 return buff;
             }
         }
