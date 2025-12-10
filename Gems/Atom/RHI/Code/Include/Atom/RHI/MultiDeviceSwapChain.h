@@ -56,7 +56,7 @@ namespace AZ::RHI
         //! Sets the desired frames per second.
         void SetDesiredFPS(uint32_t desiredFPS);
 #endif
-#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
         //! Save RenderPasses and Present Images as BMPs
         void SaveRenderPassesImages();
 #endif

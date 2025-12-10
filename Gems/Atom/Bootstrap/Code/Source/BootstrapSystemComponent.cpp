@@ -143,7 +143,7 @@ AZ_CVAR(uint32_t, r_height, 1080, cvar_r_resolution_Changed, AZ::ConsoleFunctorF
 AZ_CVAR(uint32_t, r_maxwidth, 0, cvar_r_resolution_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "Max Width in pixels.  0 = disabled.");
 AZ_CVAR(uint32_t, r_maxheight, 0, cvar_r_resolution_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "Max Height in pixels. 0 = disabled");
 AZ_CVAR(uint32_t, r_reduced_maxheight, 0, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Reduced Max Height in pixels to increase FPS for game-specific modes. 0 = disabled");
-AZ_CVAR(int, r_specialCanvasWidth, 0, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Usage : r_specialCanvasWidth [0: r_maxwidth=according to quality.setreg | -1: r_maxwidth=ScreenWidth/2 | >0: r_maxwidth=r_specialCanvasWidth]");
+AZ_CVAR(int, r_maxWidthLimit, 0, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Usage : r_maxWidthLimit [0: r_maxwidth=according to quality.setreg | -1: r_maxwidth=ScreenWidth/2 | >0: r_maxwidth=r_maxWidthLimit]");
 #endif
 AZ_CVAR(uint32_t, r_fullscreen, false, nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Starting fullscreen state.");
 AZ_CVAR(uint32_t, r_resolutionMode, 0, cvar_r_resolution_Changed, AZ::ConsoleFunctorFlags::DontReplicate, "0: render resolution same as window client area size, 1: render resolution use the values specified by r_width and r_height");
@@ -566,7 +566,7 @@ namespace AZ
                     if (AZStd::regex_match(gpuName.c_str(), regexPattern))
                     {
                         AZ_Info(
-                            "BootstrapSystemComponent", "GPU \"%s\" matched VulkanUseSpecialCanvasWidth workaround rule \"%s\"", gpuName.c_str(), visitArgs.m_fieldName.cbegin());
+                            "BootstrapSystemComponent", "GPU \"%s\" matched VulkanUseSpecialMaxWidth workaround rule \"%s\"", gpuName.c_str(), visitArgs.m_fieldName.cbegin());
                         matched = true;
                         return AZ::SettingsRegistryInterface::VisitResponse::Done;
                     }
@@ -578,8 +578,8 @@ namespace AZ
                 AZ::SettingsRegistryVisitorUtils::VisitObject(*registry, callback, kRootKey);
 
                 // Apply workaround if matched
-                r_specialCanvasWidth = matched ? -1 : 0;
-                AZ_Info("BootstrapSystemComponent", "GPU: (%s). r_specialCanvasWidth = %d", gpuName.c_str(), matched);
+                r_maxWidthLimit = matched ? -1 : 0;
+                AZ_Info("BootstrapSystemComponent", "GPU: (%s). r_maxWidthLimit = %d", gpuName.c_str(), matched);
             }
 #endif
 
@@ -666,10 +666,10 @@ namespace AZ
                     // Apply the clamp before the renderscale is applied so we have more predictable results.
                     // We adjust width first, and then height, ensuring neither
                     // dimensions exceeds the max.
-                    int specialCanvasWidth = static_cast<int>(r_specialCanvasWidth);
+                    int specialMaxWidth = static_cast<int>(r_maxWidthLimit);
                     float aspect_ratio = static_cast<float>(resolution.m_width) / static_cast<float>(resolution.m_height);
-                    uint32_t maxwidth = specialCanvasWidth == 0 ? static_cast<uint32_t>(r_maxwidth) : specialCanvasWidth == -1 ? resolution.m_width / 2 : specialCanvasWidth;
-                    uint32_t maxheight = specialCanvasWidth != 0 ? 0 : static_cast<uint32_t>(r_maxheight);
+                    uint32_t maxwidth = specialMaxWidth == 0 ? static_cast<uint32_t>(r_maxwidth) : specialMaxWidth == -1 ? resolution.m_width / 2 : specialMaxWidth;
+                    uint32_t maxheight = specialMaxWidth != 0 ? 0 : static_cast<uint32_t>(r_maxheight);
 
                     if (maxwidth > 0 && resolution.m_width > maxwidth)
                     {

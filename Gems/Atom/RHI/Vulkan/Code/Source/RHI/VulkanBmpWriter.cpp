@@ -287,7 +287,23 @@ namespace AZ
                 switch (format)
                 {
                 case VK_FORMAT_R8G8B8A8_UNORM:
+                    {
+                        // Convert RGBA -> BGRA
+                        for (uint32_t i = 0; i < width; ++i)
+                        {
+                            const uint8_t* s = src + i * 4;
+                            uint8_t* d = dst + i * 4;
+
+                            d[0] = s[2]; // B = R_src
+                            d[1] = s[1]; // G = G_src
+                            d[2] = s[0]; // R = B_src
+                            d[3] = s[3]; // A
+                        }
+                    }
+                    break;
+
                 case VK_FORMAT_B8G8R8A8_UNORM:
+                    // Already BGRA — can memcpy safely
                     memcpy(dst, src, tightRowSize);
                     break;
 

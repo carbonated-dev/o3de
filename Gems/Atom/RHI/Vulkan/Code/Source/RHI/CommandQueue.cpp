@@ -62,7 +62,7 @@ namespace AZ
                     semaphoresToSignal[index] = request.m_semaphoresToSignal[index]->GetNativeSemaphore();
                 }
 
-#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
                 bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
 #else
                 bool isSavingRenderPassesToBmp = false;

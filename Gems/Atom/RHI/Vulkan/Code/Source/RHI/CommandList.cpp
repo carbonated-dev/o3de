@@ -913,7 +913,7 @@ namespace AZ
                         RHI::ShadingRateCombinators{ RHI::ShadingRateCombinerOp::Override, RHI::ShadingRateCombinerOp::Passthrough });
                 }
             }
-#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
             m_captureIndex = device.GetAndIncrementRenderPassNumber();
 #endif
         }
@@ -931,7 +931,7 @@ namespace AZ
         {
             static_cast<Device&>(GetDevice()).GetContext().CmdEndRenderPass(m_nativeCommandBuffer);
 
-#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
             CheckCapturingToBmp();
 #endif
             m_state.m_framebuffer = nullptr;

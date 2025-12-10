@@ -34,7 +34,7 @@
 #include <swappy/swappyVk.h>
 #endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS && CARBONATED_USE_SWAPPY
 
-#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
 #include <AzFramework/IO/LocalFileIO.h>
 #include "VulkanBmpWriter.h"
 #endif
@@ -109,7 +109,7 @@ namespace AZ
             }
         }
 
-#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
         static int ImageNumber = 0;
 
         void SwapChain::SaveRenderPassesImagesInternal()
@@ -343,7 +343,7 @@ namespace AZ
                 }
 
 // ---------------- DEBUG SCREENSHOT ----------------
-#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
                 if (m_currentPresentIndexToSave > 0)
                 {
                     CapturePresentImageToBmp(imageIndex, vulkanQueue);
@@ -755,7 +755,7 @@ namespace AZ
             return RHI::ResultCode::Success;
         }
 
-#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
         void SwapChain::CapturePresentImageToBmp(uint32_t imageIndex, Queue* vulkanQueue)
         {
             auto& device = static_cast<Device&>(GetDevice());

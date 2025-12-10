@@ -171,7 +171,7 @@ namespace AZ
             }
         }
 
-#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
         void WindowContext::OnSaveRenderPassesImages()
         {
             RHI::Ptr<RHI::SwapChain> defaultSwapChain = GetSwapChain(ViewType::Default);

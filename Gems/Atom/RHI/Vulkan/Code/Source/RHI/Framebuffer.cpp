@@ -202,7 +202,7 @@ namespace AZ
             }
         }
 
-#if defined(CARBONATED) && !defined(_RELEASE) && defined(CARBONATED_SAVE_RENDERPASSES)
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
         const ImageView* Framebuffer::GetFirstAttachment() const
         {
             for (auto& attachment : m_attachments)
