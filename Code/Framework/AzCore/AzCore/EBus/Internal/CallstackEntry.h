@@ -83,12 +83,8 @@ namespace AZ
                 }
                 else
                 {
-#if defined(CARBONATED)
-                    AZ_Assert(false,"Bus %s has multiple threads in its callstack records. Configure MutexType on the bus, or don't send to it from multiple threads", BusType::GetName());
-#else
                     AZ::Debug::Trace::Instance().Assert(__FILE__, __LINE__, AZ_FUNCTION_SIGNATURE,
                         "Bus %s has multiple threads in its callstack records. Configure MutexType on the bus, or don't send to it from multiple threads", BusType::GetName());
-#endif
                 }
             }
 
