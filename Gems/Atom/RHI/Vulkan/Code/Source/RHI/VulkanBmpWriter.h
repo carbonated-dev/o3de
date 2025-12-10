@@ -42,7 +42,7 @@ namespace AZ
             static float HalfToFloat(uint16_t h);
             static uint8_t LinearToSRGB8(float x);
 
-            static void ConvertR16G16B16A16ToBGRA8(uint8_t* dstRow, const uint8_t* srcRow, uint32_t width);
+            static void ConvertR16G16B16A16ToRGBA8(uint8_t* dstRow, const uint8_t* srcRow, uint32_t width);
             static void ConvertR16G16SnormToBGRA8(uint8_t* dstRow, const uint8_t* srcRow, uint32_t width);
             static void ConvertD32FloatToBGRA8(uint8_t* dstRow, const uint8_t* srcRow, uint32_t width);
 

@@ -86,7 +86,7 @@ namespace AZ
         // Converters to BGRA8
         //-------------------------------------------------------------------------
 
-        void VulkanBmpWriter::ConvertR16G16B16A16ToBGRA8(uint8_t* dst, const uint8_t* src, uint32_t width)
+        void VulkanBmpWriter::ConvertR16G16B16A16ToRGBA8(uint8_t* dst, const uint8_t* src, uint32_t width)
         {
             for (uint32_t x = 0; x < width; ++x)
             {
@@ -100,9 +100,9 @@ namespace AZ
                 const float B = HalfToFloat(hB);
                 const float A = HalfToFloat(hA);
 
-                dst[x * 4 + 0] = LinearToSRGB8(B);
+                dst[x * 4 + 0] = LinearToSRGB8(R);
                 dst[x * 4 + 1] = LinearToSRGB8(G);
-                dst[x * 4 + 2] = LinearToSRGB8(R);
+                dst[x * 4 + 2] = LinearToSRGB8(B);
                 dst[x * 4 + 3] = static_cast<uint8_t>(std::clamp(A, 0.f, 1.f) * 255);
             }
         }
@@ -286,9 +286,9 @@ namespace AZ
 
                 switch (format)
                 {
-                case VK_FORMAT_R8G8B8A8_UNORM:
+                case VK_FORMAT_B8G8R8A8_UNORM:
                     {
-                        // Convert RGBA -> BGRA
+                        // Convert BGRA -> RGBA
                         for (uint32_t i = 0; i < width; ++i)
                         {
                             const uint8_t* s = src + i * 4;
@@ -302,13 +302,12 @@ namespace AZ
                     }
                     break;
 
-                case VK_FORMAT_B8G8R8A8_UNORM:
-                    // Already BGRA — can memcpy safely
+                case VK_FORMAT_R8G8B8A8_UNORM:
                     memcpy(dst, src, tightRowSize);
                     break;
 
                 case VK_FORMAT_R16G16B16A16_SFLOAT:
-                    ConvertR16G16B16A16ToBGRA8(dst, src, width);
+                    ConvertR16G16B16A16ToRGBA8(dst, src, width);
                     break;
 
                 case VK_FORMAT_R16G16_SNORM:
