@@ -21,6 +21,20 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
     }
 
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        profile {
+            getIsDefault().set(true)
+            debuggable true
+        }
+        release {
+            debuggable false
+            minifyEnabled false
+        }
+    }
+
     sourceSets {
         main {
 
