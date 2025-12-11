@@ -1009,28 +1009,6 @@ ADDITIONAL_DEPENDENCIES = """
 """
 # CARBONATED -- end
 
-# CARBONATED -- begin
-ADDITIONAL_MANIFEST_FORMAT = """
-    flavorDimensions "{manifest_name}"
-    productFlavors {{
-        {flavor_name}
-        {{
-            dimension "{manifest_name}"
-        }}
-    }}
-"""
-
-ADDITIONAL_MANIFEST_SOURCE_SETS_FORMAT = """
-        {flavor_name} {{
-            manifest.srcFile file("{override_android_manifest}")
-
-            res {{
-                srcDirs = ["{project_resources_folder}"]
-            }}
-        }}
-"""
-# CARBONATED -- end
-
 NATIVE_CMAKE_SECTION_ANDROID_FORMAT = """
     externalNativeBuild {{
         cmake {{
@@ -1070,36 +1048,20 @@ NATIVE_CMAKE_SECTION_BUILD_TYPE_CONFIG_FORMAT_STR = """
             }}
 """
 
-# CARBONATED -- begin
-# CUSTOM_APPLY_ASSET_LAYOUT_TASK_FORMAT_STR = """
-#     task syncLYLayoutMode{config}(type:Exec) {{
-#         workingDir '{working_dir}'
-#         commandLine {full_command_line}
-#     }}
-#
-#     process{config}MainManifest.dependsOn syncLYLayoutMode{config}
-#
-#     syncLYLayoutMode{config}.mustRunAfter {{
-#         tasks.findAll {{ task->task.name.contains('strip{config}DebugSymbols') }}
-#     }}
-#
-#     merge{config}Assets.dependsOn syncLYLayoutMode{config}
-# """
 CUSTOM_APPLY_ASSET_LAYOUT_TASK_FORMAT_STR = """
-    tasks.register('syncLYLayoutMode{config}', Exec) {{
+    task syncLYLayoutMode{config}(type:Exec) {{
         workingDir '{working_dir}'
         commandLine {full_command_line}
     }}
 
-    process{flavor_name}{config}MainManifest.dependsOn syncLYLayoutMode{config}
+    process{config}MainManifest.dependsOn syncLYLayoutMode{config}
 
     syncLYLayoutMode{config}.mustRunAfter {{
         tasks.findAll {{ task->task.name.contains('strip{config}DebugSymbols') }}
     }}
-    
-    merge{flavor_name}{config}Assets.dependsOn syncLYLayoutMode{config}
+
+    merge{config}Assets.dependsOn syncLYLayoutMode{config}
 """
-# CARBONATED -- end
 
 DEFAULT_CONFIG_CHANGES = [
     'keyboard',
@@ -1366,9 +1328,6 @@ class AndroidProjectGenerator(object):
                  cmake_path: Path, cmake_version: str, gradle_path: Path, gradle_version: str, gradle_custom_jvm_args: str, android_gradle_plugin_version: str,
                  ninja_path: Path, asset_mode:str, signing_config: AndroidSigningConfig or None, extra_cmake_configure_args: str, src_pak_file_path: str,
                  strip_debug_symbols: bool = False, overwrite_existing: bool = True, oculus_project: bool = False,
-# CARBONATED -- begin
-                 engine_package_name: str = "com.o3de.engine", flavor_name: str = "Flavor"
-# CARBONATED -- end
                  ):
         """
         Initialize the object with all the required parameters needed to create an Android Project. The parameters should be verified before initializing this object
@@ -1399,10 +1358,6 @@ class AndroidProjectGenerator(object):
         :param strip_debug_symbols:             Option to strip the debug symbols from the native built libraries
         :param overwrite_existing:              Option to overwrite the any existing build script
         :param oculus_project:                  Option to indicate that we are building the android script for oculus devices.
-# CARBONATED -- begin
-        :param engine_package_name:             The engine module package name
-        :param flavor_name:                     Product flavor dimension name
-# CARBONATED -- end
         """
 
         # General properties
@@ -1453,8 +1408,6 @@ class AndroidProjectGenerator(object):
 # CARBONATED -- end
 
 # CARBONATED -- begin
-        self._engine_package_name = engine_package_name
-        self._flavor_name = flavor_name
         self._plugins = ""
         self._additional_dependencies = ""
 # CARBONATED -- end
@@ -1488,6 +1441,7 @@ class AndroidProjectGenerator(object):
 # CARBONATED -- begin
         android_gems = self.scan_and_integrate_gems()
         engine_project_name = self.create_engine_module()
+        data_project_name = self.create_data_module()
 # CARBONATED -- end
 
         self.create_platform_settings()
@@ -1498,6 +1452,7 @@ class AndroidProjectGenerator(object):
 
 # CARBONATED -- begin
         project_names.append(engine_project_name)
+        project_names.append(data_project_name)
         project_names.extend([gem_name for gem_name, _ in android_gems])
 # CARBONATED -- end
 
@@ -1837,15 +1792,6 @@ class AndroidProjectGenerator(object):
 # CARBONATED -- begin
         #gradle_build_env['OVERRIDE_JAVA_SOURCESET'] = OVERRIDE_JAVA_SOURCESET_STR.format(absolute_azandroid_path=absolute_azandroid_path)
         gradle_build_env['OVERRIDE_JAVA_SOURCESET'] = OVERRIDE_JAVA_SOURCESET_STR
-        project_resources_path = self._project_path / "Resources"
-        project_resources_android_path = project_resources_path / "Platform" / "Android"
-        override_android_manifest = os.path.normpath(project_resources_android_path / "AndroidManifest.xml")
-        project_resources_folder = os.path.normpath(project_resources_android_path / "res")
-        manifest_name = "manifest_base"
-        additional_manifest = ADDITIONAL_MANIFEST_FORMAT.format(manifest_name=manifest_name, flavor_name=self._flavor_name)
-        additional_manifest_source_sets = ADDITIONAL_MANIFEST_SOURCE_SETS_FORMAT.format(override_android_manifest=override_android_manifest, project_resources_folder=project_resources_folder, flavor_name=self._flavor_name).replace('\\', '/')
-        gradle_build_env['ADDITIONAL_MANIFEST'] = additional_manifest
-        gradle_build_env['ADDITIONAL_MANIFEST_SOURCE_SETS'] = additional_manifest_source_sets
 # CARBONATED -- end
 
         gradle_build_env['OPTIONAL_JNI_SRC_LIB_SET'] = ', "outputs/native-lib"'
@@ -1915,18 +1861,11 @@ class AndroidProjectGenerator(object):
 
             sync_layout_command_line = ','.join([f"'{arg}'" for arg in sync_layout_command_line_source])
 
-# CARBONATED -- begin
-            # gradle_build_env[f'CUSTOM_APPLY_ASSET_LAYOUT_{native_config_upper}_TASK'] = \
-            #    CUSTOM_APPLY_ASSET_LAYOUT_TASK_FORMAT_STR.format(working_dir=(self._engine_root / 'cmake/Tools/Platform/Android').resolve().as_posix(),
-            #                                                     full_command_line=sync_layout_command_line,
-            #                                                     config=native_config)
-
             gradle_build_env[f'CUSTOM_APPLY_ASSET_LAYOUT_{native_config_upper}_TASK'] = \
-                CUSTOM_APPLY_ASSET_LAYOUT_TASK_FORMAT_STR.format(working_dir=(self._engine_root / 'cmake/Tools/Platform/Android').resolve().as_posix(),
-                                                                 full_command_line=sync_layout_command_line,
-                                                                 config=native_config,
-                                                                 flavor_name=self._flavor_name)
-# CARBONATED -- end
+               CUSTOM_APPLY_ASSET_LAYOUT_TASK_FORMAT_STR.format(working_dir=(self._engine_root / 'cmake/Tools/Platform/Android').resolve().as_posix(),
+                                                                full_command_line=sync_layout_command_line,
+                                                                config=native_config)
+
             gradle_build_env[f'SIGNING_{native_config_upper}_CONFIG'] = f'signingConfig signingConfigs.{native_config_lower}' if self._signing_config else ''
 
         if self._signing_config:
@@ -2649,8 +2588,7 @@ class AndroidProjectGenerator(object):
 
         # Prepare environment for template
         engine_gradle_env = {
-            'ABSOLUTE_AZANDROID_PATH': absolute_azandroid_path,
-            'ENGINE_PACKAGE_NAME': self._engine_package_name
+            'ABSOLUTE_AZANDROID_PATH': absolute_azandroid_path
         }
 
         # Create build.gradle for engine module
@@ -2660,6 +2598,38 @@ class AndroidProjectGenerator(object):
 
         logger.info("Engine module created successfully")
         return engine_project_name
+
+    def create_data_module(self) -> str:
+        """
+        Creates an engine module to centralize engine-specific Android code
+        """
+        data_project_name = 'data'
+        data_module_path = self._build_dir / data_project_name
+
+        # Create folder structure
+        data_src_main_path = data_module_path / 'src' / 'main'
+        data_src_main_path.mkdir(parents=True, exist_ok=True)
+
+        project_resources_path = self._project_path / "Resources"
+        project_resources_android_path = project_resources_path / "Platform" / "Android"
+        data_android_manifest_path = project_resources_android_path / "AndroidManifest.xml"
+        data_resources_path = project_resources_android_path / "res"
+
+        logger.info(f"Creating engine module at {data_module_path}")
+
+        # Prepare environment for template
+        data_gradle_env = {
+            'DATA_ANDROID_MANIFEST_PATH': data_android_manifest_path.resolve().as_posix(),
+            'DATA_RESOURCES_PATH': data_resources_path.resolve().as_posix(),
+        }
+
+        # Create build.gradle for engine module
+        self.create_file_from_project_template(src_template_file='data.build.gradle.in',
+                                               template_env=data_gradle_env,
+                                               dst_file=data_module_path / 'build.gradle')
+
+        logger.info("Engine module created successfully")
+        return data_project_name
 
     def _resolve_root_path(self, root_type: str, gem_root_path: Path,
                            android_project_path: Path, project_source_path: Path) -> Path:
