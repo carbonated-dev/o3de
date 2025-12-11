@@ -1031,7 +1031,13 @@ NATIVE_CMAKE_SECTION_DEFAULT_CONFIG_NDK_FORMAT_STR = """
         }}
 """
 
-# CARBONATED -- begin
+# CARBONATED -- begin AzAndroid/java moved to engine module
+# ORIGINAL:
+# OVERRIDE_JAVA_SOURCESET_STR = """
+#             java {{
+#                 srcDirs = ['{absolute_azandroid_path}', 'src/main/java']
+#             }}
+# """
 OVERRIDE_JAVA_SOURCESET_STR = """
             java {{
                 srcDirs = ['src/main/java']
@@ -1059,7 +1065,7 @@ CUSTOM_APPLY_ASSET_LAYOUT_TASK_FORMAT_STR = """
     syncLYLayoutMode{config}.mustRunAfter {{
         tasks.findAll {{ task->task.name.contains('strip{config}DebugSymbols') }}
     }}
-
+    
     merge{config}Assets.dependsOn syncLYLayoutMode{config}
 """
 
@@ -1327,8 +1333,7 @@ class AndroidProjectGenerator(object):
                  android_ndk_package: str, project_name: str, project_path: Path, project_general_settings: dict, project_android_settings: dict,
                  cmake_path: Path, cmake_version: str, gradle_path: Path, gradle_version: str, gradle_custom_jvm_args: str, android_gradle_plugin_version: str,
                  ninja_path: Path, asset_mode:str, signing_config: AndroidSigningConfig or None, extra_cmake_configure_args: str, src_pak_file_path: str,
-                 strip_debug_symbols: bool = False, overwrite_existing: bool = True, oculus_project: bool = False,
-                 ):
+                 strip_debug_symbols: bool = False, overwrite_existing: bool = True, oculus_project: bool = False):
         """
         Initialize the object with all the required parameters needed to create an Android Project. The parameters should be verified before initializing this object
         
@@ -1776,7 +1781,10 @@ class AndroidProjectGenerator(object):
         #absolute_azandroid_path = (self._engine_root / 'Code/Framework/AzAndroid/java').resolve().as_posix()
 # CARBONATED -- end
         gradle_build_env['TARGET_TYPE'] = 'application'
+# CARBONATED -- begin : AzAndroid/java moved to engine module
+        # gradle_build_env['PROJECT_DEPENDENCIES'] = PROJECT_DEPENDENCIES_VALUE_FORMAT.format(dependencies='\n'.join(gradle_project_dependencies), additional_dependencies=ADDITIONAL_DEPENDENCIES, plugins=ADDITIONAL_PLUGINS) # CARBONATED: added implementations/plugins
         gradle_build_env['PROJECT_DEPENDENCIES'] = PROJECT_DEPENDENCIES_VALUE_FORMAT.format(dependencies='\n'.join(gradle_project_dependencies), additional_dependencies=self._additional_dependencies, plugins=self._plugins) # CARBONATED: added implementations/plugins
+# CARBONATED -- end
         gradle_build_env['NATIVE_CMAKE_SECTION_ANDROID'] = NATIVE_CMAKE_SECTION_ANDROID_FORMAT.format(cmake_version=str(self._cmake_version), native_build_path=native_build_path, absolute_cmakelist_path=absolute_cmakelist_path)
         gradle_build_env['NATIVE_CMAKE_SECTION_DEFAULT_CONFIG'] = NATIVE_CMAKE_SECTION_DEFAULT_CONFIG_NDK_FORMAT_STR.format(abi=ANDROID_ARCH)
 
@@ -1790,6 +1798,7 @@ class AndroidProjectGenerator(object):
 # CARBONATED -- end
 
 # CARBONATED -- begin
+# ORIGINAL:
         #gradle_build_env['OVERRIDE_JAVA_SOURCESET'] = OVERRIDE_JAVA_SOURCESET_STR.format(absolute_azandroid_path=absolute_azandroid_path)
         gradle_build_env['OVERRIDE_JAVA_SOURCESET'] = OVERRIDE_JAVA_SOURCESET_STR
 # CARBONATED -- end
@@ -1862,9 +1871,9 @@ class AndroidProjectGenerator(object):
             sync_layout_command_line = ','.join([f"'{arg}'" for arg in sync_layout_command_line_source])
 
             gradle_build_env[f'CUSTOM_APPLY_ASSET_LAYOUT_{native_config_upper}_TASK'] = \
-               CUSTOM_APPLY_ASSET_LAYOUT_TASK_FORMAT_STR.format(working_dir=(self._engine_root / 'cmake/Tools/Platform/Android').resolve().as_posix(),
-                                                                full_command_line=sync_layout_command_line,
-                                                                config=native_config)
+                CUSTOM_APPLY_ASSET_LAYOUT_TASK_FORMAT_STR.format(working_dir=(self._engine_root / 'cmake/Tools/Platform/Android').resolve().as_posix(),
+                                                                 full_command_line=sync_layout_command_line,
+                                                                 config=native_config)
 
             gradle_build_env[f'SIGNING_{native_config_upper}_CONFIG'] = f'signingConfig signingConfigs.{native_config_lower}' if self._signing_config else ''
 
@@ -2839,8 +2848,6 @@ class AndroidProjectGenerator(object):
                 'NATIVE_CMAKE_SECTION_RELEASE_CONFIG': '',
 # CARBONATED -- begin : the play delivery asset pack list is empty by default            
                 'AAB_ASSET_PACK_LIST': '',
-                'ADDITIONAL_MANIFEST': '',
-                'ADDITIONAL_MANIFEST_SOURCE_SETS': '',
 # CARBONATED -- end
                 'OVERRIDE_JAVA_SOURCESET': '',
                 'OPTIONAL_JNI_SRC_LIB_SET': '',
