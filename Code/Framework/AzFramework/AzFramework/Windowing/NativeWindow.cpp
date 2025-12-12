@@ -46,6 +46,15 @@ void OnDesiredFPSChanged(uint32_t const& desiredFPS)
 AZ_CVAR(uint32_t, desired_fps, 55, OnDesiredFPSChanged, AZ::ConsoleFunctorFlags::Null, "Set desired frames per second rate");
 #endif
 
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+void OnSaveRenderPassesImages(uint32_t const&)
+{
+    AzFramework::WindowNotificationBus::Broadcast(
+        &AzFramework::WindowNotificationBus::Events::OnSaveRenderPassesImages);
+}
+AZ_CVAR(uint32_t, save_vk_images, 0, OnSaveRenderPassesImages, AZ::ConsoleFunctorFlags::Null, "Perform saving a set of images (RenderPasses and SwapChains)");
+#endif
+
 namespace AzFramework
 {
     //////////////////////////////////////////////////////////////////////////
