@@ -1085,6 +1085,7 @@ DEFAULT_CONFIG_CHANGES = [
     'smallestScreenSize',
     'screenLayout',
     'uiMode',
+    'density',
 ]
 
 # Android Orientation Constants
