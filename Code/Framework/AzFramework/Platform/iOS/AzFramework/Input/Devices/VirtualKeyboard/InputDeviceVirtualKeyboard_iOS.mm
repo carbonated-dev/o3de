@@ -81,6 +81,28 @@
         return;
     }
 
+#if defined(CARBONATED)
+    UIView* hostView = m_textField.superview;
+
+    // Get the keyboard rect in terms of the view to account for orientation.
+    CGRect keyboardRect = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    keyboardRect = [hostView convertRect: keyboardRect fromView: nil];
+
+    // If we are actively editing but iOS reports an end frame that is fully off-screen,
+    // ignore this transient frame change (seen during emoji/123/shift transitions on some devices).
+    if (m_activeTextFieldNormalizedBottomY > 0.0f &&
+        keyboardRect.origin.y >= hostView.bounds.size.height)
+    {
+        return;
+    }
+
+    // Calculate the offset needed so the active text field is not being covered by the keyboard.
+    const double activeTextFieldBottom = (double)m_activeTextFieldNormalizedBottomY * (double)hostView.bounds.size.height;
+    const double offsetY = AZ::GetMin(0.0, (double)keyboardRect.origin.y - activeTextFieldBottom);
+
+    // Use a transform rather than rewriting the frame (more stable across keyboard transitions).
+    hostView.transform = CGAffineTransformMakeTranslation(0.0f, (CGFloat)offsetY);
+#else
     // Get the keyboard rect in terms of the view to account for orientation.
     CGRect keyboardRect = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
     keyboardRect = [m_textField.superview convertRect: keyboardRect fromView: nil];
@@ -99,6 +121,7 @@
     offsetViewRect.origin.y -= m_textField.superview.frame.origin.y;
 
     m_textField.superview.frame = offsetViewRect;
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
