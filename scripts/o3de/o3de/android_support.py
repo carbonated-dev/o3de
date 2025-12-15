@@ -1028,6 +1028,9 @@ ADDITIONAL_PLUGINS = """
     
     bugsnag {
         uploadNdkMappings = true
+        // 3 * 20 * 60 * 1000 = 1200000 * 2
+        requestTimeoutMs = 3600000
+        retryCount = 3
         sharedObjectPaths = [
             file('o3de'),
             file('build/intermediates/cxx')
