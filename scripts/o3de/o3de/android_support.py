@@ -1008,12 +1008,18 @@ ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.firebase:firebase-core:21.1.1'
     implementation 'com.google.firebase:firebase-messaging:24.0.3'
     implementation 'com.google.android.gms:play-services-games-v2:21.0.0'
-    implementation 'com.google.android.gms:play-services-auth:21.2.0'  
+    implementation 'com.google.android.gms:play-services-auth:21.2.0'
+    implementation fileTree(dir: 'libs', include: ['*.jar']) 
+    implementation 'com.google.android.gms:play-services-appset:16.0.0' 
+    implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0' 
+    implementation 'com.google.android.gms:play-services-basement:18.1.0'   
     implementation 'androidx.games:games-frame-pacing:2.1.3'
     implementation "com.bugsnag:bugsnag-android:6.+"
-    implementation "com.bugsnag:bugsnag-android-performance:1.+"    
+    implementation "com.bugsnag:bugsnag-android-performance:1.+"          
     implementation 'com.appsflyer:af-android-sdk:6.17.4'
     implementation 'com.android.installreferrer:installreferrer:2.2'
+    implementation 'com.unity3d.ads-mediation:mediation-sdk:8.2.1'
+
 """
 
 ADDITIONAL_PLUGINS = """
@@ -1081,6 +1087,7 @@ DEFAULT_CONFIG_CHANGES = [
     'smallestScreenSize',
     'screenLayout',
     'uiMode',
+    'density',
 ]
 
 # Android Orientation Constants
