@@ -1024,6 +1024,25 @@ ADDITIONAL_DEPENDENCIES = """
 
 ADDITIONAL_PLUGINS = """
     apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.bugsnag.android.gradle'
+    
+    bugsnag {
+        uploadNdkMappings = true
+        sharedObjectPaths = [
+            file('o3de'),
+            file('build/intermediates/cxx')
+        ]
+    }
+
+    afterEvaluate {
+        tasks.configureEach { task ->
+            if (task.name.startsWith('uploadBugsnagNdk')) {
+                boolean isRelease = task.name.contains('Release')
+                task.enabled = isRelease
+                println "BUGSNAG_CONFIG: Found task '${task.name}'. Setting enabled = ${isRelease}"
+            }
+        }
+    }
 """
 # CARBONATED -- end
 
@@ -1477,15 +1496,20 @@ class AndroidProjectGenerator(object):
         root_gradle_env = {
             'ANDROID_GRADLE_PLUGIN_VERSION': str(self._gradle_plugin_version),
             'SDK_VER': self._android_platform_sdk_api_level,
-# CARBONATED -- begin. MinSdk Version            
+# CARBONATED -- begin. MinSdk Version
             'MIN_SDK_VER': self._android_platform_min_sdk_version,
-# old code below:            
+# old code below:
 #            'MIN_SDK_VER': self._android_platform_sdk_api_level,            
 # CARBONATED -- end
             'NDK_VERSION': self._android_ndk.version,
             'SDK_BUILD_TOOL_VER': self._android_sdk_build_tool_version,
             'LY_ENGINE_ROOT': self._engine_root.as_posix(),
-            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # CARBONATED -- root dependencies
+# CARBONATED -- begin. bugsnag
+            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'\n" # CARBONATED -- root dependencies
+                                 "classpath 'com.bugsnag:bugsnag-android-gradle-plugin:8.+'", 
+# old code below:
+#           'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # CARBONATED -- root dependencies
+# CARBONATED -- end. bugsnag
 # CARBONATED -- begin
             'LOCAL_REPOSITORIES_PATH': "'src/main/libs'"
 # CARBONATED -- end
