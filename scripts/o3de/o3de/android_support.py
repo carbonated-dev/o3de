@@ -1046,16 +1046,14 @@ ADDITIONAL_PLUGINS = """
         }
         
         tasks.configureEach { task ->
-            // Names of the Bugsnag tasks: 
+            // Names of the Bugsnag tasks:
             //    generateBugsnagNdkProfileMapping - Generates NDK mapping files for upload to Bugsnag
             //    generateBugsnagNdkReleaseMapping - Generates NDK mapping files for upload to Bugsnag
             //    uploadBugsnagNdkProfileMapping - Uploads SO Symbol files to Bugsnag
-            //    uploadBugsnagNdkReleaseMapping - Uploads SO Symbol files to Bugsnag            
+            //    uploadBugsnagNdkReleaseMapping - Uploads SO Symbol files to Bugsnag
             if (task.name.contains('BugsnagNdk')) {
-                boolean isRelease = task.name.contains('Release')
-                boolean shouldEnable = isRelease && !forceDisableBugsnag
-                task.enabled = shouldEnable
-                println "BUGSNAG_CONFIG: Task '${task.name}' -> ENABLED = ${shouldEnable} (isRelease=${isRelease}, forceDisable=${forceDisableBugsnag})"                
+                task.enabled = !forceDisableBugsnag
+                println "BUGSNAG_CONFIG: Task '${task.name}' -> ENABLED = ${!forceDisableBugsnag}"
             }
         }
     }
