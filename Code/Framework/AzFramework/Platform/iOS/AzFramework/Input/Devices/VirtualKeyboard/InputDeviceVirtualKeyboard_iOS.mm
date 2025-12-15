@@ -68,6 +68,13 @@
                                                  selector: @selector(keyboardWillChangeFrame:)
                                                      name: UIKeyboardWillChangeFrameNotification
                                                    object: nil];
+
+#if defined(CARBONATED)
+        [[NSNotificationCenter defaultCenter] addObserver: self
+                                                 selector: @selector(keyboardWillChangeFrame:)
+                                                     name: UIKeyboardDidChangeFrameNotification
+                                                   object: nil];
+#endif
     }
 
     return self;
@@ -310,6 +317,10 @@ namespace AzFramework
         // Add the text field to the root view.
         [rootView addSubview: m_textField];
 
+#if defined(CARBONATED)
+        // Ensure no residual transform remains from a previous keyboard session
+        rootView.transform = CGAffineTransformIdentity;
+#endif
         // On iOS we must set m_activeTextFieldNormalizedBottomY before showing the virtual keyboard
         // by calling becomeFirstResponder, which then sends a UIKeyboardWillChangeFrameNotification.
         m_textFieldDelegate->m_activeTextFieldNormalizedBottomY = options.m_normalizedMinY;
@@ -356,6 +367,13 @@ namespace AzFramework
         // by calling resignFirstResponder, which then sends a UIKeyboardWillChangeFrameNotification.
         m_textFieldDelegate->m_activeTextFieldNormalizedBottomY = 0.0f;
 
+#if defined(CARBONATED)
+        //reset the transform
+        if (m_textField && m_textField.superview)
+        {
+            m_textField.superview.transform = CGAffineTransformIdentity;
+        }
+#endif
         [m_textField resignFirstResponder];
         [m_textField removeFromSuperview];
     }
