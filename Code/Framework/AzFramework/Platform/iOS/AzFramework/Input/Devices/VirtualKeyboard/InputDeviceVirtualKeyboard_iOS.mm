@@ -368,7 +368,7 @@ namespace AzFramework
         m_textFieldDelegate->m_activeTextFieldNormalizedBottomY = 0.0f;
 
 #if defined(CARBONATED)
-        //reset the transform
+        // reset the transform
         if (m_textField && m_textField.superview)
         {
             m_textField.superview.transform = CGAffineTransformIdentity;
