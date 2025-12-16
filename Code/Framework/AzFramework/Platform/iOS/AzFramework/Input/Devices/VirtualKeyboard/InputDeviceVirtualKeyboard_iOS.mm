@@ -15,7 +15,6 @@
 
 #include <UIKit/UIKit.h>
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 @interface VirtualKeyboardTextFieldDelegate : NSObject <UITextFieldDelegate>
 {
@@ -26,6 +25,8 @@
 
 #if defined(CARBONATED)
     bool m_showNativeTextField;
+    bool m_hasOriginalHostFrame;
+    CGRect m_originalHostFrameWindow;    
 #endif
 }
 
@@ -60,6 +61,12 @@
         self->m_inputDevice = inputDevice;
         self->m_textField = textField;
 
+#if defined(CARBONATED)
+        self->m_showNativeTextField = false;
+        self->m_hasOriginalHostFrame = false;
+        self->m_originalHostFrameWindow = CGRectZero;
+#endif        
+
         // Resgister to be notified when the keyboard frame size changes so we can then adjust the
         // position of the view accordingly to ensure we don't obscure the text field being edited.
         // We don't need to explicitly remove the observer:
@@ -68,13 +75,6 @@
                                                  selector: @selector(keyboardWillChangeFrame:)
                                                      name: UIKeyboardWillChangeFrameNotification
                                                    object: nil];
-
-#if defined(CARBONATED)
-        [[NSNotificationCenter defaultCenter] addObserver: self
-                                                 selector: @selector(keyboardWillChangeFrame:)
-                                                     name: UIKeyboardDidChangeFrameNotification
-                                                   object: nil];
-#endif
     }
 
     return self;
@@ -90,31 +90,60 @@
 
 #if defined(CARBONATED)
     UIView* hostView = m_textField.superview;
-
-    // Keyboard frame is in screen/window coordinates.
-    const CGRect keyboardRectWindow = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
-
-    // Host view rect in window coordinates (stable even if we transform hostView).
-    const CGRect hostRectWindow = [hostView convertRect:hostView.bounds toView:nil];
-
-    // If we are actively editing, ignore only true "keyboard gone" frames.
-    if (m_activeTextFieldNormalizedBottomY > 0.0f)
+    UIWindow* window = hostView.window;
+    if (!window)
     {
-        const CGFloat keyboardOverlap = CGRectGetMaxY(hostRectWindow) - CGRectGetMinY(keyboardRectWindow);
-        if (keyboardOverlap <= 0.0f)
-        {
-            return;
-        }
+        return;
     }
 
-    // Compute the active text field bottom in window coordinates.
-    const CGFloat activeBottomLocal = (CGFloat)(m_activeTextFieldNormalizedBottomY * hostView.bounds.size.height);
-    const CGPoint activeBottomWindowPt = [hostView convertPoint:CGPointMake(0.0f, activeBottomLocal) toView:nil];
+    // Keyboard frame from notification is in screen coordinates; convert to window coords.
+    const CGRect keyboardRectScreen = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    const CGRect keyboardRectWindow = [window convertRect:keyboardRectScreen fromWindow:nil];
 
-    const double offsetY = AZ::GetMin(0.0, (double)keyboardRectWindow.origin.y - (double)activeBottomWindowPt.y);
+    // If text entry is not active (or we are hiding), restore host frame (if we moved it) and bail.
+    if (m_activeTextFieldNormalizedBottomY <= 0.0f)
+    {
+        if (m_hasOriginalHostFrame)
+        {
+            CGRect originalSuperviewFrame =
+                [hostView.superview convertRect:m_originalHostFrameWindow fromView:window];
+            hostView.frame = originalSuperviewFrame;
 
-    // Apply translation (do not accumulate; set directly).
-    hostView.transform = CGAffineTransformMakeTranslation(0.0f, (CGFloat)offsetY);
+            m_hasOriginalHostFrame = false;
+            m_originalHostFrameWindow = CGRectZero;
+        }
+        return;
+    }
+
+    // Cache the host view's original frame in window coordinates once per keyboard session.
+    if (!m_hasOriginalHostFrame)
+    {
+        m_originalHostFrameWindow = [hostView.superview convertRect:hostView.frame toView:window];
+        m_hasOriginalHostFrame = true;
+    }
+
+    // Ignore only true "keyboard gone" frames while actively editing.
+    const CGFloat hostBottomWindow = CGRectGetMaxY(m_originalHostFrameWindow);
+    const CGFloat keyboardOverlap = hostBottomWindow - CGRectGetMinY(keyboardRectWindow);
+    if (keyboardOverlap <= 0.0f)
+    {
+        return;
+    }
+
+    // Compute the active bottom in window coords using the ORIGINAL cached host frame (not the current frame).
+    const CGFloat activeBottomWindowY =
+        m_originalHostFrameWindow.origin.y + (CGFloat)(m_activeTextFieldNormalizedBottomY * m_originalHostFrameWindow.size.height);
+
+    const CGFloat offsetY =
+        (CGFloat)AZ::GetMin(0.0, (double)keyboardRectWindow.origin.y - (double)activeBottomWindowY);
+
+    // Move hostView relative to the cached original frame (no accumulation).
+    CGRect desiredHostFrameWindow = m_originalHostFrameWindow;
+    desiredHostFrameWindow.origin.y += offsetY;
+
+    CGRect desiredHostFrameSuperview =
+        [hostView.superview convertRect:desiredHostFrameWindow fromView:window];
+    hostView.frame = desiredHostFrameSuperview;
 #else
     // Get the keyboard rect in terms of the view to account for orientation.
     CGRect keyboardRect = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
@@ -126,7 +155,7 @@
 
     // Create the offset view rect and transform it into the coordinate space of the main window.
     CGRect offsetViewRect = CGRectMake(0, offsetY, m_textField.superview.bounds.size.width,
-                                                   m_textField.superview.bounds.size.height);
+                                                     m_textField.superview.bounds.size.height);
     offsetViewRect = [m_textField.superview convertRect: offsetViewRect toView: nil];
 
     // Remove any existing offset applied in previous calls to this function.
@@ -261,6 +290,14 @@ namespace AzFramework
         if (m_textField)
         {
             m_textField.delegate = nullptr;
+            
+            // **FIX 1: Robustly remove observer to prevent potential EXC_BAD_ACCESS crash**
+            if (m_textFieldDelegate)
+            {
+                [[NSNotificationCenter defaultCenter] removeObserver:m_textFieldDelegate];
+            }
+            
+            // NOTE: Retaining original MRC release calls as per code pattern.
             [m_textFieldDelegate release];
             m_textFieldDelegate = nullptr;
 
@@ -286,20 +323,32 @@ namespace AzFramework
     ////////////////////////////////////////////////////////////////////////////////////////////////
     void InputDeviceVirtualKeyboardiOS::TextEntryStart(const InputTextEntryRequests::VirtualKeyboardOptions& options)
     {
-        UIWindow* foundWindow = nil;        
+        UIWindow* foundWindow = nil;         
 #if defined(__IPHONE_13_0) || defined(__TVOS_13_0)
         if(@available(iOS 13.0, tvOS 13.0, *))
         {
-#if defined(CARBONATED)  // remove deprecated API
-            NSArray *scenes = [[[UIApplication sharedApplication] connectedScenes] allObjects];
-            NSArray *windows = nil;
-            if (scenes && [scenes count] > 0)
+#if defined(CARBONATED) 
+            // **FIX 2: Robustly find the key window by iterating through all scenes (Better for iPadOS)**
+            NSArray *connectedScenes = [[[UIApplication sharedApplication] connectedScenes] allObjects];
+            for (UIScene *scene in connectedScenes)
             {
-                windows = [[scenes objectAtIndex:0] windows];
+                if ([scene isKindOfClass:[UIWindowScene class]])
+                {
+                    UIWindowScene *windowScene = (UIWindowScene *)scene;
+                    for (UIWindow *window in windowScene.windows)
+                    {
+                        if (window.isKeyWindow)
+                        {
+                            foundWindow = window;
+                            break;
+                        }
+                    }
+                }
+                if (foundWindow)
+                    break;
             }
 #else
             NSArray* windows = [[UIApplication sharedApplication] windows];
-#endif
             for (UIWindow* window in windows)
             {
                 if (window.isKeyWindow)
@@ -308,6 +357,7 @@ namespace AzFramework
                     break;
                 }
             }
+#endif
         }
 #else
         foundWindow = [[UIApplication sharedApplication] keyWindow];
@@ -324,8 +374,9 @@ namespace AzFramework
         [rootView addSubview: m_textField];
 
 #if defined(CARBONATED)
-        // Ensure no residual transform remains from a previous keyboard session
-        rootView.transform = CGAffineTransformIdentity;
+        // Start-of-session reset so we never reuse stale cached geometry
+        m_textFieldDelegate->m_hasOriginalHostFrame = false;
+        m_textFieldDelegate->m_originalHostFrameWindow = CGRectZero;
 #endif
         // On iOS we must set m_activeTextFieldNormalizedBottomY before showing the virtual keyboard
         // by calling becomeFirstResponder, which then sends a UIKeyboardWillChangeFrameNotification.
@@ -373,15 +424,24 @@ namespace AzFramework
         // by calling resignFirstResponder, which then sends a UIKeyboardWillChangeFrameNotification.
         m_textFieldDelegate->m_activeTextFieldNormalizedBottomY = 0.0f;
 
-        [m_textField resignFirstResponder];
-
 #if defined(CARBONATED)
         if (m_textField && m_textField.superview)
         {
-            m_textField.superview.transform = CGAffineTransformIdentity;
-        }
-#endif        
+            UIView* hostView = m_textField.superview;
+            UIWindow* window = hostView.window;
+            if (window && m_textFieldDelegate->m_hasOriginalHostFrame)
+            {
+                CGRect originalSuperviewFrame = [hostView.superview convertRect:m_textFieldDelegate->m_originalHostFrameWindow
+                                                                        fromView:window];
+                hostView.frame = originalSuperviewFrame;
+            }
 
+            m_textFieldDelegate->m_hasOriginalHostFrame = false;
+            m_textFieldDelegate->m_originalHostFrameWindow = CGRectZero;
+        }
+#endif
+
+        [m_textField resignFirstResponder];     
         [m_textField removeFromSuperview];
     }
 
