@@ -41,7 +41,7 @@ android {
             manifest.srcFile file("${DATA_ANDROID_MANIFEST_PATH}")
 
             res {
-                srcDirs = ["${DATA_RESOURCES_PATH}"]
+                srcDirs = ["${DATA_RESOURCES_PATH}", "src/main/res"]
             }
         }
     }
