@@ -91,23 +91,29 @@
 #if defined(CARBONATED)
     UIView* hostView = m_textField.superview;
 
-    // Get the keyboard rect in terms of the view to account for orientation.
-    CGRect keyboardRect = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
-    keyboardRect = [hostView convertRect: keyboardRect fromView: nil];
+    // Keyboard frame is in screen/window coordinates.
+    const CGRect keyboardRectWindow = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
 
-    // If we are actively editing but iOS reports an end frame that is fully off-screen,
-    // ignore this transient frame change (seen during emoji/123/shift transitions on some devices).
-    if (m_activeTextFieldNormalizedBottomY > 0.0f &&
-        keyboardRect.origin.y >= hostView.bounds.size.height)
+    // Host view rect in window coordinates (stable even if we transform hostView).
+    const CGRect hostRectWindow = [hostView convertRect:hostView.bounds toView:nil];
+
+    // If we are actively editing, ignore only true "keyboard gone" frames.
+    if (m_activeTextFieldNormalizedBottomY > 0.0f)
     {
-        return;
+        const CGFloat keyboardOverlap = CGRectGetMaxY(hostRectWindow) - CGRectGetMinY(keyboardRectWindow);
+        if (keyboardOverlap <= 0.0f)
+        {
+            return;
+        }
     }
 
-    // Calculate the offset needed so the active text field is not being covered by the keyboard.
-    const double activeTextFieldBottom = (double)m_activeTextFieldNormalizedBottomY * (double)hostView.bounds.size.height;
-    const double offsetY = AZ::GetMin(0.0, (double)keyboardRect.origin.y - activeTextFieldBottom);
+    // Compute the active text field bottom in window coordinates.
+    const CGFloat activeBottomLocal = (CGFloat)(m_activeTextFieldNormalizedBottomY * hostView.bounds.size.height);
+    const CGPoint activeBottomWindowPt = [hostView convertPoint:CGPointMake(0.0f, activeBottomLocal) toView:nil];
 
-    // Use a transform rather than rewriting the frame (more stable across keyboard transitions).
+    const double offsetY = AZ::GetMin(0.0, (double)keyboardRectWindow.origin.y - (double)activeBottomWindowPt.y);
+
+    // Apply translation (do not accumulate; set directly).
     hostView.transform = CGAffineTransformMakeTranslation(0.0f, (CGFloat)offsetY);
 #else
     // Get the keyboard rect in terms of the view to account for orientation.
@@ -367,14 +373,15 @@ namespace AzFramework
         // by calling resignFirstResponder, which then sends a UIKeyboardWillChangeFrameNotification.
         m_textFieldDelegate->m_activeTextFieldNormalizedBottomY = 0.0f;
 
+        [m_textField resignFirstResponder];
+
 #if defined(CARBONATED)
-        // reset the transform
         if (m_textField && m_textField.superview)
         {
             m_textField.superview.transform = CGAffineTransformIdentity;
         }
-#endif
-        [m_textField resignFirstResponder];
+#endif        
+
         [m_textField removeFromSuperview];
     }
 
