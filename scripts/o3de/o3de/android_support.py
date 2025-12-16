@@ -1608,36 +1608,15 @@ class AndroidProjectGenerator(object):
         else:
             template_cmake_path = None
 
-        # --- CARBONATED START: Universal Bugsnag Disable Check ---
-        disable_bugsnag = False
+        # --- CARBONATED START: Bugsnag Configuration ---
+        disable_bugsnag = True  # <-- Bugsnag is disabled by default
 
-        # 1. Check command line arguments (for Jenkins/CI)
-        # Look for the flag in cmake arguments, e.g.: -DCARBONATED_DISABLE_BUGSNAG=ON
+        # Check command line arguments
+        # Absence of flag = bugsnag disabled, presence = bugsnag enabled
         if self._extra_cmake_configure_args:
-            if re.search(r"CARBONATED_DISABLE_BUGSNAG=(ON|TRUE|1)", self._extra_cmake_configure_args, re.IGNORECASE):
-                disable_bugsnag = True
-                logger.info("Bugsnag disabled via CLI arguments (Jenkins).")
-
-        # 2. Check android_project.json (global project setting)
-        if not disable_bugsnag and self._project_android_settings:
-             if self._project_android_settings.get('disable_bugsnag', False):
-                 disable_bugsnag = True
-                 logger.info("Bugsnag disabled via android_project.json.")
-
-        # 3. Check CMakeLists.txt content (for local work)
-        # If the developer manually changed OPTION(... OFF) to OPTION(... ON) in the file
-        if not disable_bugsnag:
-            cmake_lists_path = self._project_path / 'CMakeLists.txt'
-            if cmake_lists_path.exists():
-                try:
-                    content = cmake_lists_path.read_text(encoding='utf-8', errors='ignore')
-                    # Look for the string: OPTION(CARBONATED_DISABLE_BUGSNAG "..." ON)
-                    # The regex accounts for any whitespace and quotes.
-                    if re.search(r'OPTION\s*\(\s*CARBONATED_DISABLE_BUGSNAG\s+.*ON\s*\)', content, re.IGNORECASE):
-                        disable_bugsnag = True
-                        logger.info("Bugsnag disabled via CMakeLists.txt option modification.")
-                except Exception as e:
-                    logger.warning(f"Could not parse CMakeLists.txt: {e}")
+            if re.search(r"CARBONATED_DISABLE_BUGSNAG=(OFF|FALSE|0)", self._extra_cmake_configure_args, re.IGNORECASE):
+                disable_bugsnag = False
+                logger.info("Bugsnag ENABLED via CLI arguments (CARBONATED_DISABLE_BUGSNAG=OFF).")
 
         bugsnag_disabled_str = 'true' if disable_bugsnag else 'false'
         # --- CARBONATED END ---
@@ -1649,13 +1628,15 @@ class AndroidProjectGenerator(object):
         }
 
         src_template_file_path = self._android_project_builder_path / 'local.properties.in'
+        # Load template manually to append custom properties
         default_local_properties_content = utils.load_template_file(template_file_path=src_template_file_path,
                                                                     template_env=local_properties_env)
-        
-        # Write the check result to local.properties
+
+        # Write the bugsnag configuration to local.properties so Gradle can read it
         default_local_properties_content += f"\nbugsnag.upload.disabled={bugsnag_disabled_str}\n"
 
         dst_file = self._build_dir / 'local.properties'
+        # Always overwrite to ensure the file reflects the current configuration
         dst_file.write_text(default_local_properties_content,
                             encoding=DEFAULT_WRITE_ENCODING,
                             errors=ENCODING_ERROR_HANDLINGS)
