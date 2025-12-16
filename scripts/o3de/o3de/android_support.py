@@ -1025,40 +1025,28 @@ ADDITIONAL_DEPENDENCIES = """
 ADDITIONAL_PLUGINS = """
     apply plugin: 'com.google.gms.google-services'
     apply plugin: 'com.bugsnag.android.gradle'
+
+    def localProps = new Properties()
+    def localPropsFile = project.rootProject.file('local.properties')
+    boolean shouldUpload = true
+    if (localPropsFile.exists()) {
+        localProps.load(localPropsFile.newInputStream())
+        if (localProps.getProperty('bugsnag.upload.disabled') == 'true') {
+            shouldUpload = false
+        }
+    }
+    
+    println "BUGSNAG_CONFIG: Global NDK Upload Enabled: ${shouldUpload}"
     
     bugsnag {
-        uploadNdkMappings = true
-        // (60 + 30) * 60 * 1000 = 5,400,000. 90 minutes
-        requestTimeoutMs = 5400000
+        uploadNdkMappings = shouldUpload
+        // 3 * 60 * 1000 = 180000. 3 minutes
+        requestTimeoutMs = 180000
         retryCount = 3
         sharedObjectPaths = [
             file('o3de'),
             file('build/intermediates/cxx')
         ]
-    }
-
-    afterEvaluate {
-        def localProps = new Properties()
-        def localPropsFile = project.rootProject.file('local.properties')
-        boolean forceDisableBugsnag = false
-        if (localPropsFile.exists()) {
-            localProps.load(localPropsFile.newInputStream())
-            if (localProps.getProperty('bugsnag.upload.disabled') == 'true') {
-                forceDisableBugsnag = true
-            }
-        }
-        
-        tasks.configureEach { task ->
-            // Names of the Bugsnag tasks:
-            //    generateBugsnagNdkProfileMapping - Generates NDK mapping files for upload to Bugsnag
-            //    generateBugsnagNdkReleaseMapping - Generates NDK mapping files for upload to Bugsnag
-            //    uploadBugsnagNdkProfileMapping - Uploads SO Symbol files to Bugsnag
-            //    uploadBugsnagNdkReleaseMapping - Uploads SO Symbol files to Bugsnag
-            if (task.name.contains('BugsnagNdk')) {
-                task.enabled = !forceDisableBugsnag
-                println "BUGSNAG_CONFIG: Task '${task.name}' -> ENABLED = ${!forceDisableBugsnag}"
-            }
-        }
     }
 """
 # CARBONATED -- end
@@ -1521,13 +1509,13 @@ class AndroidProjectGenerator(object):
             'NDK_VERSION': self._android_ndk.version,
             'SDK_BUILD_TOOL_VER': self._android_sdk_build_tool_version,
             'LY_ENGINE_ROOT': self._engine_root.as_posix(),
-# CARBONATED -- begin. bugsnag
-            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'\n" # CARBONATED -- root dependencies
+# CARBONATED
+# bugsnag -- begin.
+            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'\n" # root dependencies
                                  "classpath 'com.bugsnag:bugsnag-android-gradle-plugin:8.+'", 
 # old code below:
-#           'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # CARBONATED -- root dependencies
-# CARBONATED -- end. bugsnag
-# CARBONATED -- begin
+#           'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # root dependencies
+# bugsnag -- end.
             'LOCAL_REPOSITORIES_PATH': "'src/main/libs'"
 # CARBONATED -- end
         }
