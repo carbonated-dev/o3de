@@ -1003,7 +1003,7 @@ dependencies {{
 {plugins}
 """
 
-# CARBONATED -- begin : additional libs for messaging, Swappy. and AppsFlyer
+# CARBONATED -- begin : additional libs for messaging, Swappy, AppsFlyer, Bugsnag
 ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.firebase:firebase-core:21.1.1'
     implementation 'com.google.firebase:firebase-messaging:24.0.3'
@@ -1014,6 +1014,8 @@ ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0' 
     implementation 'com.google.android.gms:play-services-basement:18.1.0'   
     implementation 'androidx.games:games-frame-pacing:2.1.3'
+    implementation "com.bugsnag:bugsnag-android:6.+"
+    implementation "com.bugsnag:bugsnag-android-performance:1.+"          
     implementation 'com.appsflyer:af-android-sdk:6.17.4'
     implementation 'com.android.installreferrer:installreferrer:2.2'
     implementation 'com.unity3d.ads-mediation:mediation-sdk:8.2.1'
@@ -1022,6 +1024,30 @@ ADDITIONAL_DEPENDENCIES = """
 
 ADDITIONAL_PLUGINS = """
     apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.bugsnag.android.gradle'
+
+    def localProps = new Properties()
+    def localPropsFile = project.rootProject.file('local.properties')
+    boolean shouldUpload = true
+    if (localPropsFile.exists()) {
+        localProps.load(localPropsFile.newInputStream())
+        if (localProps.getProperty('bugsnag.upload.disabled') == 'true') {
+            shouldUpload = false
+        }
+    }
+    
+    println "BUGSNAG_CONFIG: Global NDK Upload Enabled: ${shouldUpload}"
+    
+    bugsnag {
+        uploadNdkMappings = shouldUpload
+        // 3 * 60 * 1000 = 180000. 3 minutes
+        requestTimeoutMs = 180000
+        retryCount = 3
+        sharedObjectPaths = [
+            file('o3de'),
+            file('build/intermediates/cxx')
+        ]
+    }
 """
 # CARBONATED -- end
 
@@ -1475,16 +1501,21 @@ class AndroidProjectGenerator(object):
         root_gradle_env = {
             'ANDROID_GRADLE_PLUGIN_VERSION': str(self._gradle_plugin_version),
             'SDK_VER': self._android_platform_sdk_api_level,
-# CARBONATED -- begin. MinSdk Version            
+# CARBONATED -- begin. MinSdk Version
             'MIN_SDK_VER': self._android_platform_min_sdk_version,
-# old code below:            
+# old code below:
 #            'MIN_SDK_VER': self._android_platform_sdk_api_level,            
 # CARBONATED -- end
             'NDK_VERSION': self._android_ndk.version,
             'SDK_BUILD_TOOL_VER': self._android_sdk_build_tool_version,
             'LY_ENGINE_ROOT': self._engine_root.as_posix(),
-            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # CARBONATED -- root dependencies
-# CARBONATED -- begin
+# CARBONATED
+# bugsnag -- begin.
+            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'\n" # root dependencies
+                                 "classpath 'com.bugsnag:bugsnag-android-gradle-plugin:8.+'", 
+# old code below:
+#           'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # root dependencies
+# bugsnag -- end.
             'LOCAL_REPOSITORIES_PATH': "'src/main/libs'"
 # CARBONATED -- end
         }
@@ -1577,15 +1608,38 @@ class AndroidProjectGenerator(object):
         else:
             template_cmake_path = None
 
+        # --- CARBONATED START: Bugsnag Configuration ---
+        disable_bugsnag = True  # <-- Bugsnag is disabled by default
+
+        # Check command line arguments
+        # Absence of flag = bugsnag disabled, presence = bugsnag enabled
+        if self._extra_cmake_configure_args:
+            if re.search(r"CARBONATED_DISABLE_BUGSNAG=(OFF|FALSE|0)", self._extra_cmake_configure_args, re.IGNORECASE):
+                disable_bugsnag = False
+                logger.info("Bugsnag ENABLED via CLI arguments (CARBONATED_DISABLE_BUGSNAG=OFF).")
+
+        bugsnag_disabled_str = 'true' if disable_bugsnag else 'false'
+        # --- CARBONATED END ---
+
         local_properties_env = {
             "GENERATION_TIMESTAMP": str(datetime.datetime.now().strftime("%c")),
             "ANDROID_SDK_PATH": self._android_sdk_path.resolve().as_posix(),
             "CMAKE_DIR_LINE": f'cmake.dir={template_cmake_path}' if template_cmake_path else ''
         }
 
-        self.create_file_from_project_template(src_template_file='local.properties.in',
-                                               template_env=local_properties_env,
-                                               dst_file=self._build_dir / 'local.properties')
+        src_template_file_path = self._android_project_builder_path / 'local.properties.in'
+        # Load template manually to append custom properties
+        default_local_properties_content = utils.load_template_file(template_file_path=src_template_file_path,
+                                                                    template_env=local_properties_env)
+
+        # Write the bugsnag configuration to local.properties so Gradle can read it
+        default_local_properties_content += f"\nbugsnag.upload.disabled={bugsnag_disabled_str}\n"
+
+        dst_file = self._build_dir / 'local.properties'
+        # Always overwrite to ensure the file reflects the current configuration
+        dst_file.write_text(default_local_properties_content,
+                            encoding=DEFAULT_WRITE_ENCODING,
+                            errors=ENCODING_ERROR_HANDLINGS)
 
     def patch_and_transfer_android_libs(self):
         """
