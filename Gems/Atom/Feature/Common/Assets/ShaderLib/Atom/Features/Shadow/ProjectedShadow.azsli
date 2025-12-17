@@ -46,8 +46,10 @@ class ProjectedShadow
     // private methods
     float GetVisibilityNoFilter();
     float GetVisibilityPcf();
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_ESM_SHADOW
     float GetVisibilityEsm();
     float GetVisibilityEsmPcf();
+#endif    
     float GetThickness();
 
     bool IsShadowed(float3 shadowPosition);
@@ -95,12 +97,14 @@ float ProjectedShadow::GetVisibility(
         case ViewSrg::ShadowFilterMethodPcf:
             visibility = shadow.GetVisibilityPcf();
             break;
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_ESM_SHADOW
         case ViewSrg::ShadowFilterMethodEsm:
             visibility = shadow.GetVisibilityEsm();
             break;
         case ViewSrg::ShadowFilterMethodEsmPcf:
             visibility = shadow.GetVisibilityEsmPcf();
             break;
+#endif            
     }
 
     return saturate(visibility);
@@ -169,6 +173,7 @@ float ProjectedShadow::GetVisibilityPcf()
     }
 }
 
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_ESM_SHADOW
 float ProjectedShadow::GetVisibilityEsm()
 {
     static const float PixelMargin = 1.5; // avoiding artifact on the edge of shadowmap.
@@ -251,6 +256,7 @@ float ProjectedShadow::GetVisibilityEsmPcf()
 
     return 1.;
 }
+#endif  //# !defined(FORCE_SMALL_SRGS) || ENABLE_ESM_SHADOW
 
 float ProjectedShadow::GetThickness()
 {
