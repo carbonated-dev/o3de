@@ -86,6 +86,7 @@ float2 DirectionalLightShadow::GetVisibilityThickTransmission(uint lightIndex, r
     float visibility;
     DirectionalShadowCalculator calc = MakeShadowCalculator(lightIndex, worldPos, normalVector);
     
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_FULLSCREEN_SHADOW
     if (UseFullscreenShadows())
     {
         visibility = PassSrg::m_fullscreenShadow.Load(int3(screenUv.xy, 0)).x;
@@ -94,6 +95,7 @@ float2 DirectionalLightShadow::GetVisibilityThickTransmission(uint lightIndex, r
         calc.ComputeShadowCoords();
     }
     else
+#endif
     {    
         visibility = calc.GetVisibility();
     }
@@ -108,11 +110,13 @@ float2 DirectionalLightShadow::GetVisibilityThinTransmission(uint lightIndex, re
     float visibility;
     DirectionalShadowCalculator calc = MakeShadowCalculator(lightIndex, worldPos, normalVector);
 
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_FULLSCREEN_SHADOW
     if (UseFullscreenShadows())
     {
         visibility = PassSrg::m_fullscreenShadow.Load(int3(screenUv.xy, 0)).x;
     }
     else
+#endif    
     {    
         visibility = calc.GetVisibility();
     }
@@ -129,11 +133,13 @@ float2 DirectionalLightShadow::GetVisibilityThinTransmission(uint lightIndex, re
 
 real DirectionalLightShadow::GetVisibility(uint lightIndex, float3 worldPos, real3 normalVector, float4 screenUv)
 {
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_FULLSCREEN_SHADOW
     if (UseFullscreenShadows())
     {
         return real(PassSrg::m_fullscreenShadow.Load(int3(screenUv.xy, 0)).x);
     }
     else
+#endif
     {
         DirectionalShadowCalculator calc = MakeShadowCalculator(lightIndex, worldPos, normalVector);
         return calc.GetVisibility();
