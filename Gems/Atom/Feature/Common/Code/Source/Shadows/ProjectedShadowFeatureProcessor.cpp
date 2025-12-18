@@ -831,51 +831,27 @@ namespace AZ::Render
         // Implementing a "High Water Mark" strategy: do not release the large buffer if the new requirement is smaller.
         // Recreate the atlas only if it is needed *more* space or if the format changes.
 
-        // 1. Get current Allocated specs
-        uint32_t allocatedSize = 0;
-        uint32_t allocatedArrayCount = 0;
-        RHI::Format allocatedFormat = RHI::Format::Unknown;
-
+        bool needsRecreate = false;
         if (m_atlasImage)
         {
+            // 1. Get current Allocated specs
             const RHI::ImageDescriptor& desc = m_atlasImage->GetDescriptor();
-            allocatedSize = desc.m_size.m_width;
-            allocatedArrayCount = desc.m_arraySize;
-            allocatedFormat = desc.m_format;
+            const uint32_t allocatedSize = desc.m_size.m_width;
+            const uint32_t allocatedArrayCount = desc.m_arraySize;
+            const RHI::Format allocatedFormat = desc.m_format;
+
+            // 2. Get Required specs
+            const uint32_t requiredSize = static_cast<uint32_t>(m_atlas.GetBaseShadowmapSize());
+            const uint32_t requiredArrayCount = m_atlas.GetArraySliceCount();
+
+            // 3. Determine if recreation is needed
+            needsRecreate = (m_atlasImage == nullptr) || (requiredSize > allocatedSize) || (requiredArrayCount > allocatedArrayCount) ||
+                (allocatedFormat != RHI::Format::D32_FLOAT);
         }
-
-        // 2. Get Required specs
-        const uint32_t requiredSize = static_cast<uint32_t>(m_atlas.GetBaseShadowmapSize());
-        const uint16_t requiredArrayCount = m_atlas.GetArraySliceCount();
-
-        // 3. Determine if recreation is needed
-        bool needsRecreate = (m_atlasImage == nullptr) || (requiredSize > allocatedSize) || (requiredArrayCount > allocatedArrayCount) || (allocatedFormat != RHI::Format::D32_FLOAT);
 
         if (needsRecreate)
         {
-            // Detach atlas from passes first so they don't hold references to the old image.
-            for (auto& [key, projectedShadowmapsPass] : m_projectedShadowmapsPasses)
-            {
-                projectedShadowmapsPass->SetAtlasAttachmentImage({});
-            }
-
-            // If we have an existing atlas image, unregister it from the ImageSystem (if registered) and
-            // release our reference so the instance can be destroyed.
-            if (m_atlasImage)
-            {
-                if (auto* imageSystem = RPI::ImageSystemInterface::Get())
-                {
-                    // UnregisterAttachmentImage is safe to call even if the image wasn't registered.
-                    imageSystem->UnregisterAttachmentImage(m_atlasImage.get());
-                }
-
-                // Drop our Data::Instance reference to allow destruction.
-                m_atlasImage = {};
-            }
-
-            // Create new atlas and attach to passes.
             m_atlasImage = createAtlas(RHI::Format::D32_FLOAT, RHI::ImageBindFlags::Depth, RHI::ImageAspectFlags::Depth, "ProjectedShadowAtlas");
-
         } // else: Reuse existing buffer.
 #else
         m_atlasImage = createAtlas(RHI::Format::D32_FLOAT, RHI::ImageBindFlags::Depth, RHI::ImageAspectFlags::Depth, "ProjectedShadowAtlas");
