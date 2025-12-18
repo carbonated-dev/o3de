@@ -7,10 +7,11 @@
                 , "--namespace=mt"
                 , "--namespace=vk"
                 , "--pad-root-const"
-		, "--subpass-input-offset=100"
+		        , "--subpass-input-offset=100"
         ],
         "dxc": ["-spirv"
               , "-enable-16bit-types"
+              , "-Wno-conversion"
         ],
         "spirv-cross": ["--msl-framebuffer-fetch", "--msl-ios"],
         "metalair": ["-sdk", "iphoneos", "metal", "-std=ios-metal2.2", "-target air64-apple-ios14.0" // For xcrun
