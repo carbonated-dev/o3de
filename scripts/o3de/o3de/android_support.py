@@ -1026,27 +1026,53 @@ ADDITIONAL_PLUGINS = """
     apply plugin: 'com.google.gms.google-services'
     apply plugin: 'com.bugsnag.android.gradle'
 
-    def localProps = new Properties()
-    def localPropsFile = project.rootProject.file('local.properties')
-    boolean shouldUpload = true
-    if (localPropsFile.exists()) {
-        localProps.load(localPropsFile.newInputStream())
-        if (localProps.getProperty('bugsnag.upload.disabled') == 'true') {
-            shouldUpload = false
-        }
-    }
-    
-    println "BUGSNAG_CONFIG: Global NDK Upload Enabled: ${shouldUpload}"
-    
     bugsnag {
-        uploadNdkMappings = shouldUpload
-        // 3 * 60 * 1000 = 180000. 3 minutes
-        requestTimeoutMs = 180000
+        uploadNdkMappings = true
+        requestTimeoutMs = 1200000 
         retryCount = 3
         sharedObjectPaths = [
-            file('o3de'),
-            file('build/intermediates/cxx')
+            file('build/intermediates/cxx'),
+            file('o3de')
         ]
+    }
+
+    afterEvaluate {
+        tasks.configureEach { task ->
+            if (task.name.contains('BugsnagNdk')) {
+                
+                task.onlyIf {
+                    // 1. Define the variant from the task name
+                    // uploadBugsnagNdkProfileMapping -> profile
+                    // uploadBugsnagNdkReleaseMapping -> release
+                    String variantName = ""
+                    if (task.name.toLowerCase().contains("release")) {
+                        variantName = "release"
+                    } else if (task.name.toLowerCase().contains("profile")) {
+                        variantName = "profile"
+                    } else if (task.name.toLowerCase().contains("debug")) {
+                        variantName = "debug"
+                    }
+                    
+                    if (variantName.isEmpty()) return true
+
+                    // 2. Make a path to the correct subdirectory
+                    // app/o3de/profile/...
+                    def variantBuildDir = project.file("o3de/${variantName}")
+                    
+                    if (variantBuildDir.exists()) {
+                        // Find the marker only inside that subdirectory
+                        def markers = project.fileTree(dir: variantBuildDir, include: '**/bugsnag_disabled.marker')
+                        
+                        if (!markers.isEmpty()) {
+                            println "BUGSNAG_CONFIG: Found disable marker in '${variantName}' build! Skipping task ${task.name}."
+                            return false
+                        }
+                    }
+                    
+                    return true
+                }
+            }
+        }
     }
 """
 # CARBONATED -- end
@@ -1608,19 +1634,6 @@ class AndroidProjectGenerator(object):
         else:
             template_cmake_path = None
 
-        # --- CARBONATED START: Bugsnag Configuration ---
-        disable_bugsnag = True  # <-- Bugsnag is disabled by default
-
-        # Check command line arguments
-        # Absence of flag = bugsnag disabled, presence = bugsnag enabled
-        if self._extra_cmake_configure_args:
-            if re.search(r"CARBONATED_DISABLE_BUGSNAG=(OFF|FALSE|0)", self._extra_cmake_configure_args, re.IGNORECASE):
-                disable_bugsnag = False
-                logger.info("Bugsnag ENABLED via CLI arguments (CARBONATED_DISABLE_BUGSNAG=OFF).")
-
-        bugsnag_disabled_str = 'true' if disable_bugsnag else 'false'
-        # --- CARBONATED END ---
-
         local_properties_env = {
             "GENERATION_TIMESTAMP": str(datetime.datetime.now().strftime("%c")),
             "ANDROID_SDK_PATH": self._android_sdk_path.resolve().as_posix(),
@@ -1631,10 +1644,6 @@ class AndroidProjectGenerator(object):
         # Load template manually to append custom properties
         default_local_properties_content = utils.load_template_file(template_file_path=src_template_file_path,
                                                                     template_env=local_properties_env)
-
-        # Write the bugsnag configuration to local.properties so Gradle can read it
-        default_local_properties_content += f"\nbugsnag.upload.disabled={bugsnag_disabled_str}\n"
-
         dst_file = self._build_dir / 'local.properties'
         # Always overwrite to ensure the file reflects the current configuration
         dst_file.write_text(default_local_properties_content,
