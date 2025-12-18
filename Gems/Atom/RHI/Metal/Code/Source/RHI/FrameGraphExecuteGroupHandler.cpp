@@ -51,9 +51,19 @@ namespace AZ
             cmdQueue->ExecuteWork(AZStd::move(m_workRequest));
 #if defined(AZ_FORCE_CPU_GPU_INSYNC)
             //Cache the name of the scope we just queued and wait for it to finish on the cpu
+#if defined(CARBONATED)
+            for (int i = 0; i <  m_workRequest.m_commandLists.size(); i++)
+            {
+                CommandList* commandList = m_workRequest.m_commandLists[i];
+                m_device->SetLastExecutingScope(commandList->GetName().GetStringView());
+                cmdQueue->FlushCommands();
+                cmdQueue->WaitForIdle();
+            }
+#else
             m_device->SetLastExecutingScope(m_workRequest.m_commandList->GetName().GetStringView());
             cmdQueue->FlushCommands();
             cmdQueue->WaitForIdle();
+#endif
 #endif
             m_isExecuted = true;
         }
