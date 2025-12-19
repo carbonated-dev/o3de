@@ -1003,7 +1003,7 @@ dependencies {{
 {plugins}
 """
 
-# CARBONATED -- begin : additional libs for messaging and Swappy
+# CARBONATED -- begin : additional libs for Swappy
 ADDITIONAL_DEPENDENCIES = """
     implementation 'androidx.games:games-frame-pacing:2.1.3'
 """
@@ -1484,7 +1484,8 @@ class AndroidProjectGenerator(object):
             'NDK_VERSION': self._android_ndk.version,
             'SDK_BUILD_TOOL_VER': self._android_sdk_build_tool_version,
             'LY_ENGINE_ROOT': self._engine_root.as_posix(),
-            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # CARBONATED -- root dependencies
+            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'\n" # CARBONATED -- root dependencies
+                                 "classpath 'com.bugsnag:bugsnag-android-gradle-plugin:8.+'",
 # CARBONATED -- begin
             'LOCAL_REPOSITORIES_PATH': local_repositories_path
 # CARBONATED -- end
