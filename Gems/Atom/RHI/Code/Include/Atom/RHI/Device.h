@@ -167,7 +167,7 @@ namespace AZ::RHI
         //! Builds an implementation specific XR device descriptor based on this graphics device.
         virtual Ptr<XRDeviceDescriptor> BuildXRDescriptor() const { return nullptr; }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && !defined(_RELEASE)
         unsigned int GetFrameCounter() const { return m_frameCounter; }
         double GetGPUFrameTime();         // returns sum of non-overlapping intervals
         double GetGPUSumFrameTime();  // returns total sum
@@ -184,6 +184,18 @@ namespace AZ::RHI
         void EnableGatheringStats();
         void DisableGatheringStats();
         unsigned int GetLastFrameToLog() const { return m_lastFrameToLog; }
+#if defined(CARBONATED_SAVE_RENDERPASSES)
+        bool IsSavingRenderPassesToBmp() const { return m_savingRenderPassesToBmp; }
+        void StartSavingRenderPassesToBmp(int currentImage)
+        {
+            m_savingRenderPassesToBmp = true;
+            m_renderPassNumber = 0;
+            m_imageNumber = currentImage;
+        }
+        void StopSavingRenderPassesToBmp() { m_savingRenderPassesToBmp = false; }
+        int GetAndIncrementRenderPassNumber() { return ++m_renderPassNumber; }
+        const int GetImageNumber() const { return m_imageNumber; }
+#endif
 #endif
     protected:
 
@@ -276,6 +288,11 @@ namespace AZ::RHI
         bool m_statsEnabled = false;
         unsigned int m_lastFrameToLog = 0;
         double m_startLogTime = 0;
+#if defined(CARBONATED_SAVE_RENDERPASSES)
+        bool m_savingRenderPassesToBmp = false;
+        int m_renderPassNumber = 0;
+        int m_imageNumber = 0;
+#endif
 #endif
     };
 }
