@@ -1028,7 +1028,8 @@ ADDITIONAL_PLUGINS = """
 
     bugsnag {
         uploadNdkMappings = true
-        requestTimeoutMs = 1200000 
+        // 3 * 60 * 1000 = 180000. 3 minutes
+        requestTimeoutMs = 180000        
         retryCount = 3
         sharedObjectPaths = [
             file('build/intermediates/cxx'),
@@ -1037,6 +1038,8 @@ ADDITIONAL_PLUGINS = """
     }
 
     afterEvaluate {
+        println "Performing 'afterEvaluate' for BUGSNAG"
+    
         tasks.configureEach { task ->
             if (task.name.contains('BugsnagNdk')) {
                 
@@ -1045,28 +1048,17 @@ ADDITIONAL_PLUGINS = """
                     // uploadBugsnagNdkProfileMapping -> profile
                     // uploadBugsnagNdkReleaseMapping -> release
                     String variantName = ""
-                    if (task.name.toLowerCase().contains("release")) {
-                        variantName = "release"
-                    } else if (task.name.toLowerCase().contains("profile")) {
-                        variantName = "profile"
-                    } else if (task.name.toLowerCase().contains("debug")) {
-                        variantName = "debug"
-                    }
+                    if (task.name.toLowerCase().contains("release")) variantName = "release"
+                    else if (task.name.toLowerCase().contains("profile")) variantName = "profile"
+                    else if (task.name.toLowerCase().contains("debug")) variantName = "debug"
                     
                     if (variantName.isEmpty()) return true
 
-                    // 2. Make a path to the correct subdirectory
-                    // app/o3de/profile/...
-                    def variantBuildDir = project.file("o3de/${variantName}")
+                    File markerFile = project.file("o3de/${variantName}/bugsnag_disabled.marker")
                     
-                    if (variantBuildDir.exists()) {
-                        // Find the marker only inside that subdirectory
-                        def markers = project.fileTree(dir: variantBuildDir, include: '**/bugsnag_disabled.marker')
-                        
-                        if (!markers.isEmpty()) {
-                            println "BUGSNAG_CONFIG: Found disable marker in '${variantName}' build! Skipping task ${task.name}."
-                            return false
-                        }
+                    if (markerFile.exists()) {
+                        println "BUGSNAG_CONFIG: Found marker at '${markerFile.name}' for ${variantName}. Skipping task. ${task.name}"
+                        return false
                     }
                     
                     return true
