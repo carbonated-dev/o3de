@@ -65,7 +65,7 @@ namespace AZ
 #if defined(CARBONATED) && !defined(_RELEASE)
 
 #if defined(CARBONATED_SAVE_RENDERPASSES)
-                bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
+                const bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
 #else
                 const bool isSavingRenderPassesToBmp = false;
 #endif
@@ -174,7 +174,7 @@ namespace AZ
 
 #if defined(CARBONATED) && !defined(_RELEASE)
 #if defined(CARBONATED_SAVE_RENDERPASSES)
-            bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
+            const bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
 #else
             const bool isSavingRenderPassesToBmp = false;
 #endif
