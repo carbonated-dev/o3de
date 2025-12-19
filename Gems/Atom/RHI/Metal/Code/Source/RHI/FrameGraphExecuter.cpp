@@ -80,10 +80,8 @@ namespace AZ
                 {
 #if defined(CARBONATED)
                     mergedScopes.push_back(&scope);
-                    //FrameGraphExecuteGroupPrimary* scopeContextGroup = AddGroup<FrameGraphExecuteGroupPrimary>();
-                    //scopeContextGroup->Init(static_cast<Device&>(scope.GetDevice()), AZStd::move(mergedScopes));
-                    //FrameGraphExecuteGroupSecondary* scopeContextGroup = AddGroup<FrameGraphExecuteGroupSecondary>();
-                    //scopeContextGroup->Init(static_cast<Device&>(scope.GetDevice()), AZStd::move(mergedScopes));
+                    FrameGraphExecuteGroupPrimary* multiScopeContextGroup = AddGroup<FrameGraphExecuteGroupPrimary>();
+                    multiScopeContextGroup->Init(static_cast<Device&>(mergedScopes.front()->GetDevice()), AZStd::move(mergedScopes));
 #else
                     mergedScopes.push_back(static_cast<const Scope*>(scopeBase));
                     FrameGraphExecuteGroupMerged* scopeContextGroup = AddGroup<FrameGraphExecuteGroupMerged>();
@@ -91,13 +89,7 @@ namespace AZ
 #endif
                 }
 #if defined(CARBONATED)
-                if (mergedScopes.size())
-                {
-                    FrameGraphExecuteGroupPrimary* scopeContextGroup = AddGroup<FrameGraphExecuteGroupPrimary>();
-                    scopeContextGroup->Init(static_cast<Device&>(scope.GetDevice()), AZStd::move(mergedScopes));
-                    //FrameGraphExecuteGroupSecondary* scopeContextGroup = AddGroup<FrameGraphExecuteGroupSecondary>();
-                    //scopeContextGroup->Init(static_cast<Device&>(scope.GetDevice()), AZStd::move(mergedScopes));
-                }
+                scopePrev = &scope;
 #endif
             }
 #else
