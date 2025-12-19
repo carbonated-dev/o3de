@@ -69,7 +69,11 @@ namespace AZ
             uint32_t PresentInternal() override;
             void SetVerticalSyncIntervalInternal(uint32_t previousVsyncInterval) override;
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
-            virtual void SetDesiredFPSInternal(uint32_t desiredFPS) override;
+            void SetDesiredFPSInternal(uint32_t desiredFPS) override;
+#endif
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+            void SaveRenderPassesImagesInternal() override;
+            void CapturePresentImageToBmp(uint32_t imageIndex, Queue* vulkanQueue);
 #endif
             //////////////////////////////////////////////////////////////////////
 
@@ -124,6 +128,10 @@ namespace AZ
                 bool m_isValid = false;
             } m_swapChainBarrier;
 
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+            int m_currentPresentIndexToSave = 0;
+            int m_currentImage = 0;
+#endif
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && defined(AZ_PLATFORM_ANDROID) && defined(CARBONATED_USE_SWAPPY)
             // Display refresh rate in nanoseconds, assigned when SwappyVk is initialized.
             uint64_t m_refreshNs = 0;

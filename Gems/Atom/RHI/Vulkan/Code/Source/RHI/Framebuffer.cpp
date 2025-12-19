@@ -201,5 +201,20 @@ namespace AZ
                 m_nativeFramebuffer = VK_NULL_HANDLE;
             }
         }
+
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+        const ImageView* Framebuffer::GetFirstAttachment() const
+        {
+            for (auto& attachment : m_attachments)
+            {
+                if (!attachment)
+                    continue;
+
+                return attachment.get();
+            }
+            return nullptr;
+        }
+#endif
+
     }
 }

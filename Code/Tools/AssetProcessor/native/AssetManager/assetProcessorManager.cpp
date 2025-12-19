@@ -3270,6 +3270,9 @@ namespace AssetProcessor
                     }
                 }
                 m_jobEntries.clear();
+#if defined(CARBONATED) && defined(AZ_AP_OPTIMIZATION)
+                m_jobAssetPaths.clear();
+#endif
                 ProcessJobs();
             }
         }
@@ -3293,6 +3296,17 @@ namespace AssetProcessor
         {
             return;
         }
+
+#if defined(CARBONATED) && defined(AZ_AP_OPTIMIZATION)
+        {
+            const AZStd::string sourcePath = fullFile.toUtf8().constData();
+            if (m_jobAssetPaths.find(sourcePath) != m_jobAssetPaths.end())
+            {
+                AZ_Trace(AssetProcessor::DebugChannel, "Ignoring file: %s, job exists", sourcePath.c_str());
+                return;
+            }
+        }
+#endif
 
         QString normalizedFullFile = AssetUtilities::NormalizeFilePath(fullFile);
 
@@ -3913,18 +3927,18 @@ namespace AssetProcessor
         int maxPerIteration = 50;
 
         // Burn through all pending files
-        const FileEntry* firstEntry = &m_activeFiles.front();
         while (m_filesToExamine.size() < maxPerIteration)
         {
-            m_alreadyActiveFiles.remove(firstEntry->m_fileName);
-            CheckSource(*firstEntry);
+            // CheckSource modifies m_activeFiles, so we need to work with a copy of the current entry
+            FileEntry firstEntry = m_activeFiles.front();
+            m_alreadyActiveFiles.remove(firstEntry.m_fileName);
+            CheckSource(firstEntry);
             m_activeFiles.pop_front();
 
             if (m_activeFiles.size() == 0)
             {
                 break;
             }
-            firstEntry = &m_activeFiles.front();
         }
 
         if (!m_alreadyScheduledUpdate)
@@ -4526,7 +4540,9 @@ namespace AssetProcessor
         // now we can update the database with this new information:
         UpdateSourceFileDependenciesDatabase(entry);
         m_jobEntries.push_back(entry);
-
+#if defined(CARBONATED) && defined(AZ_AP_OPTIMIZATION)
+        m_jobAssetPaths.emplace(entry.m_sourceFileInfo.m_sourceAssetReference.AbsolutePath().c_str());
+#endif
         // Signals SourceAssetTreeModel so it can update the CreateJobs duration change
         Q_EMIT CreateJobsDurationChanged(sourceAsset.RelativePath().c_str(), sourceAsset.ScanFolderId());
     }
