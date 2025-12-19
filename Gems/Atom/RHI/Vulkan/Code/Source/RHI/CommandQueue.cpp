@@ -63,9 +63,9 @@ namespace AZ
                 }
 
 #if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
-                bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
+                [[maybe_unused]] bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
 #else
-                bool isSavingRenderPassesToBmp = false;
+                [[maybe_unused]] bool isSavingRenderPassesToBmp = false;
 #endif
 
 #if defined(CARBONATED) && !defined(_RELEASE)
@@ -173,9 +173,9 @@ namespace AZ
 
 #if defined(CARBONATED) && !defined(_RELEASE)
 #if defined(CARBONATED_SAVE_RENDERPASSES)
-            bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
+            [[maybe_unused]] bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
 #else
-            bool isSavingRenderPassesToBmp = false;
+            [[maybe_unused]] bool isSavingRenderPassesToBmp = false;
 #endif
             if (GetDevice().GatheringStatsEnabled() || isSavingRenderPassesToBmp)
             {
