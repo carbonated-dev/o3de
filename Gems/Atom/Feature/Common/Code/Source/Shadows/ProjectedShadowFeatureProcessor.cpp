@@ -845,7 +845,7 @@ namespace AZ::Render
             const uint32_t requiredArrayCount = m_atlas.GetArraySliceCount();
 
             // 3. Determine if recreation is needed
-            if ((requiredSize <= allocatedSize) && (requiredArrayCount <= allocatedArrayCount) && (allocatedFormat == RHI::Format::D32_FLOAT))
+            if (requiredSize <= allocatedSize && requiredArrayCount <= allocatedArrayCount && allocatedFormat == RHI::Format::D32_FLOAT)
             {
                 needsRecreate = false;
             }
