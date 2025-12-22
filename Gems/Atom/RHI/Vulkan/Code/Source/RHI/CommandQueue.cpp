@@ -62,13 +62,14 @@ namespace AZ
                     semaphoresToSignal[index] = request.m_semaphoresToSignal[index]->GetNativeSemaphore();
                 }
 
-#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
-                bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
+#if defined(CARBONATED) && !defined(_RELEASE)
+
+#if defined(CARBONATED_SAVE_RENDERPASSES)
+                const bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
 #else
-                bool isSavingRenderPassesToBmp = false;
+                const bool isSavingRenderPassesToBmp = false;
 #endif
 
-#if defined(CARBONATED) && !defined(_RELEASE)
                 // Create a temporary internal fence if no external fence was provided.
                 // Keep the RHI::Ptr alive by capturing it into the lambda (tempFenceCapture).
                 RHI::Ptr<Fence> tempFenceCapture = nullptr;
@@ -173,9 +174,9 @@ namespace AZ
 
 #if defined(CARBONATED) && !defined(_RELEASE)
 #if defined(CARBONATED_SAVE_RENDERPASSES)
-            bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
+            const bool isSavingRenderPassesToBmp = GetDevice().IsSavingRenderPassesToBmp();
 #else
-            bool isSavingRenderPassesToBmp = false;
+            const bool isSavingRenderPassesToBmp = false;
 #endif
             if (GetDevice().GatheringStatsEnabled() || isSavingRenderPassesToBmp)
             {

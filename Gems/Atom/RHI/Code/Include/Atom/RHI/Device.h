@@ -167,7 +167,7 @@ namespace AZ::RHI
         //! Builds an implementation specific XR device descriptor based on this graphics device.
         virtual Ptr<XRDeviceDescriptor> BuildXRDescriptor() const { return nullptr; }
 
-#if defined(CARBONATED) && !defined(_RELEASE)
+#if defined(CARBONATED)
         unsigned int GetFrameCounter() const { return m_frameCounter; }
         double GetGPUFrameTime();         // returns sum of non-overlapping intervals
         double GetGPUSumFrameTime();  // returns total sum
@@ -274,7 +274,7 @@ namespace AZ::RHI
 
         // Cache the name of the last executing scope name. Used within AZ_FORCE_CPU_GPU_INSYNC
         AZStd::string m_lastExecutingScope;
-        
+
 #if defined(CARBONATED)
         unsigned int m_frameCounter = 0;
         AZStd::mutex m_FrameTimeLock;
