@@ -40,7 +40,7 @@ namespace ImageProcessingAtom
             uint32_t iValue = ((uint32_t*)(&value))[0];
             const uint32_t sign = (iValue & 0x80000000U) >> 16U;
 
-            iValue = iValue & 0x7FFFFFFFU;
+            iValue &= 0x7FFFFFFFU;
 
             if (iValue > 0x47FFEFFFU)
             {
@@ -131,6 +131,10 @@ namespace ImageProcessingAtom
                                 lutSize = AZ::StringFunc::ToInt(tokens[1].c_str());
                                 lutData.resize(lutSize * lutSize * lutSize);
                             }
+                            else
+                            {
+                                AZ_Error("ImageProcessing", false, "lut_3d_size is not properly set in %s", filename.c_str());
+                            }
                         }
                         else if (AZ::StringFunc::StartsWith(line, "domain_min", false))
                         {
@@ -142,6 +146,10 @@ namespace ImageProcessingAtom
                                                                     AZ::StringFunc::ToFloat(tokens[2].c_str()),
                                                                     AZ::StringFunc::ToFloat(tokens[3].c_str()) };
                             }
+                            else
+                            {
+                                AZ_Error("ImageProcessing", false, "domain_min is not properly set in %s", filename.c_str());
+                            }
                         }
                         else if (AZ::StringFunc::StartsWith(line, "domain_max", false))
                         {
@@ -152,6 +160,10 @@ namespace ImageProcessingAtom
                                 domainMax = AZStd::array<float, 3>{ AZ::StringFunc::ToFloat(tokens[1].c_str()),
                                                                     AZ::StringFunc::ToFloat(tokens[2].c_str()),
                                                                     AZ::StringFunc::ToFloat(tokens[3].c_str()) };
+                            }
+                            else
+                            {
+                                AZ_Error("ImageProcessing", false, "domain_max is not properly set in %s", filename.c_str());
                             }
                         }
                         else
@@ -194,6 +206,15 @@ namespace ImageProcessingAtom
             }
             cubeStream.Close();
 
+            AZ_Error(
+                "ImageProcessing",
+                (domainMin && domainMax) || (!domainMin && !domainMax),
+                "One of domainMin [%s], domainMax [%s] is not set in %s",
+                (domainMin ? "set" : "unset"),
+                (domainMax ? "set" : "unset"),
+                filename.c_str()
+            );
+
             const EPixelFormat imagePixelFormat = ePixelFormat_R16G16B16A16F;
             IImageObject* pImage = IImageObject::CreateImage(lutSize, lutSize, lutSize, 1, imagePixelFormat);
 
@@ -203,13 +224,15 @@ namespace ImageProcessingAtom
 
             uint16_t* texData = reinterpret_cast<uint16_t*>(texBuffer);
 
+            const uint16_t hfOne = ConvertFloatToHalf(1.0f);
+
             for (int i = 0; i < lutData.size(); ++i)
             {
                 const auto& color = lutData[i];
                 texData[4 * i + 0] = ConvertFloatToHalf(color.GetX());
                 texData[4 * i + 1] = ConvertFloatToHalf(color.GetY());
                 texData[4 * i + 2] = ConvertFloatToHalf(color.GetZ());
-                texData[4 * i + 3] = ConvertFloatToHalf(1.0f);
+                texData[4 * i + 3] = hfOne;
             }
 
             return pImage;
@@ -219,38 +242,3 @@ namespace ImageProcessingAtom
 } // namespace ImageProcessingAtom
 
 #endif
-
-/* Example of creation Cube file
-static void CreateIdentityLUT(const AZStd::string& filename, int lutSize)
-{
-    AZ::IO::SystemFileStream cubeStream(filename.c_str(), AZ::IO::OpenMode::ModeWrite);
-    if (!cubeStream.IsOpen())
-    {
-        AZ_Warning("Image Processing", false, "%s: failed to open file %s", __FUNCTION__, filename.c_str());
-        return;
-    }
-
-    const AZStd::string_view desc{ "#Identity LUT. RGB to RGB identity transform (no color transformation)\n" };
-    const AZStd::string_view title{ "TITLE \"Identity LUT - RGB to RGB\"\n" };
-    const AZStd::string lut3DSize = AZStd::string::format("LUT_3D_SIZE %d\n", lutSize);
-    const AZStd::string_view startRGB{ "\n#R G B\n" };
-
-    cubeStream.Write(desc.length(), desc.data());
-    cubeStream.Write(title.length(), title.data());
-    cubeStream.Write(lut3DSize.length(), lut3DSize.c_str());
-    cubeStream.Write(startRGB.length(), startRGB.data());
-
-    const float ooLutSize = 1.0f / (lutSize - 1);
-    for (int b = 0; b < lutSize; ++b)
-    {
-        for (int g = 0; g < lutSize; ++g)
-        {
-            for (int r = 0; r < lutSize; ++r)
-            {
-                const AZStd::string rgbData = AZStd::string::format("%.4f %.4f %.4f\n", r * ooLutSize, g * ooLutSize, b * ooLutSize);
-                cubeStream.Write(rgbData.length(), rgbData.c_str());
-            }
-        }
-    }
-    cubeStream.Close();
-}*/

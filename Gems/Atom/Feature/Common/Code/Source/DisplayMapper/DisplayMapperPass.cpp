@@ -454,8 +454,8 @@ namespace AZ
                     type = ToneMapperType::Filmic;
                     break;
 #if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
-                case DisplayMapperOperationType::LUT:
-                    type = ToneMapperType::LUT;
+                case DisplayMapperOperationType::JustLUT:
+                    type = ToneMapperType::None;
                     break;
 #endif
                 default:
@@ -577,7 +577,7 @@ namespace AZ
                 m_displayMapperConfigurationDescriptor.m_operationType == DisplayMapperOperationType::Filmic ||
                 m_displayMapperConfigurationDescriptor.m_operationType == DisplayMapperOperationType::AcesFilmic
 #if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
-                || m_displayMapperConfigurationDescriptor.m_operationType == DisplayMapperOperationType::LUT
+                || m_displayMapperConfigurationDescriptor.m_operationType == DisplayMapperOperationType::JustLUT
 #endif
                 ;
         }

@@ -151,7 +151,7 @@ namespace AZ
             AcesFitted,
             AcesFilmic,
             Filmic,
-            LUT
+            JustLUT
         );
 #else
         AZ_ENUM_CLASS_WITH_UNDERLYING_TYPE(
@@ -187,9 +187,6 @@ namespace AZ
             AcesFitted,
             AcesFilmic,
             Filmic
-#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
-            , LUT
-#endif
         };
 
         enum class TransferFunctionType
