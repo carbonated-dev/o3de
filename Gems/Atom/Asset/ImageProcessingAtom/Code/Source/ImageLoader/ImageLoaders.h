@@ -20,6 +20,16 @@ namespace ImageProcessingAtom
     bool IsExtensionSupported(const char* extension);
     const AZStd::string LoadEmbeddedSettingFromFile(const AZStd::string& filename);
 
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+    // Cube loader.
+    namespace CUBELoader
+    {
+        bool IsExtensionSupported(const char* extension);
+        // Load a cube file to an image object.
+        IImageObject* LoadImageFromCube(const AZStd::string& filename);
+    }; // namespace CUBELoader
+#endif
+
     // Tiff loader. The loader support uncompressed tiff with with 1~4 channels and 8bit and 16bit uint or 16bits and 32bits float per channel
     // QImage also support tiff (tiff plugin), but it only supports 8bits uint
     namespace TIFFLoader

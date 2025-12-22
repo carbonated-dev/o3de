@@ -10,7 +10,11 @@
 
 #include <AzCore/Component/Component.h>
 #include <Atom/Feature/DisplayMapper/DisplayMapperConfigurationDescriptor.h>
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+#include <Atom/RPI.Reflect/Image/StreamingImageAsset.h>
+#else
 #include <Atom/RPI.Reflect/System/AnyAsset.h>
+#endif
 
 namespace AZ
 {
@@ -27,7 +31,11 @@ namespace AZ
 
             DisplayMapperOperationType m_displayMapperOperation = DisplayMapperOperationType::Aces;
             bool m_ldrColorGradingLutEnabled = false;
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+            Data::Asset<RPI::StreamingImageAsset> m_ldrColorGradingLut = {};
+#else
             Data::Asset<RPI::AnyAsset> m_ldrColorGradingLut = {};
+#endif
             AcesParameterOverrides m_acesParameterOverrides;
         };
     }
