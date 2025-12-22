@@ -831,7 +831,7 @@ namespace AZ::Render
         // Implementing a "High Water Mark" strategy: do not release the large buffer if the new requirement is smaller.
         // Recreate the atlas only if it is needed *more* space or if the format changes.
 
-        bool needsRecreate = false;
+        bool needsRecreate = true;
         if (m_atlasImage)
         {
             // 1. Get current Allocated specs
@@ -845,8 +845,10 @@ namespace AZ::Render
             const uint32_t requiredArrayCount = m_atlas.GetArraySliceCount();
 
             // 3. Determine if recreation is needed
-            needsRecreate = (m_atlasImage == nullptr) || (requiredSize > allocatedSize) || (requiredArrayCount > allocatedArrayCount) ||
-                (allocatedFormat != RHI::Format::D32_FLOAT);
+            if ((requiredSize <= allocatedSize) && (requiredArrayCount <= allocatedArrayCount) && (allocatedFormat == RHI::Format::D32_FLOAT))
+            {
+                needsRecreate = false;
+            }
         }
 
         if (needsRecreate)
