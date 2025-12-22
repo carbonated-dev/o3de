@@ -1022,12 +1022,16 @@ ADDITIONAL_DEPENDENCIES = """
 
 """
 
+# additional plugin for bugsnag. It should be at the top level of the project to create bugsnag tasks at the proper time
 ADDITIONAL_PLUGINS = """
     apply plugin: 'com.google.gms.google-services'
     apply plugin: 'com.bugsnag.android.gradle'
 
     bugsnag {
+        // Always enable upload so tasks are created in the Gradle graph.
+        // Actual execution is controlled via 'onlyIf' below using the marker file.
         uploadNdkMappings = true
+        
         // 3 * 60 * 1000 = 180000. 3 minutes
         requestTimeoutMs = 180000        
         retryCount = 3
@@ -1041,23 +1045,34 @@ ADDITIONAL_PLUGINS = """
         println "Performing 'afterEvaluate' for BUGSNAG"
     
         tasks.configureEach { task ->
-            if (task.name.contains('BugsnagNdk')) {
-                
+            // Capture both NDK tasks (C++ symbols) and Release tasks (Java/Kotlin mappings)
+            // Examples: uploadBugsnagNdkProfileMapping, bugsnagReleaseProfileTask
+            boolean isBugsnagTask = task.name.contains('BugsnagNdk') || task.name.startsWith('bugsnagRelease')
+
+            if (isBugsnagTask) {
                 task.onlyIf {
-                    // 1. Define the variant from the task name
-                    // uploadBugsnagNdkProfileMapping -> profile
-                    // uploadBugsnagNdkReleaseMapping -> release
                     String variantName = ""
-                    if (task.name.toLowerCase().contains("release")) variantName = "release"
-                    else if (task.name.toLowerCase().contains("profile")) variantName = "profile"
-                    else if (task.name.toLowerCase().contains("debug")) variantName = "debug"
+                    String taskNameLower = task.name.toLowerCase()
+
+                    // CRITICAL: Check specific variants first!
+                    // 'bugsnagReleaseProfileTask' contains both 'release' and 'profile'.
+                    // We must check 'profile' or 'debug' before 'release' to avoid incorrect classification.
+                    if (taskNameLower.contains("profile")) {
+                        variantName = "profile"
+                    } else if (taskNameLower.contains("debug")) {
+                        variantName = "debug"
+                    } else if (taskNameLower.contains("release")) {
+                        variantName = "release"
+                    }
                     
                     if (variantName.isEmpty()) return true
 
+                    // Check for the marker file created by CMake (if CARBONATED_DISABLE_BUGSNAG=ON)
+                    // Path: build/android/app/o3de/<variant>/bugsnag_disabled.marker
                     File markerFile = project.file("o3de/${variantName}/bugsnag_disabled.marker")
                     
                     if (markerFile.exists()) {
-                        println "BUGSNAG_CONFIG: Found marker at '${markerFile.name}' for ${variantName}. Skipping task. ${task.name}"
+                        println "BUGSNAG_CONFIG: Found marker at '${markerFile.name}' for ${variantName}. Skipping task ${task.name}"
                         return false
                     }
                     
