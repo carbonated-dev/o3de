@@ -205,6 +205,14 @@ namespace AZ::RHI
             }
         }
 
+#if defined(CARBONATED)
+        if (m_devices.empty())
+        {
+            AZ_Error("RHISystem", false, "Failed to initialize RHI device.");
+            return ResultCode::Fail;
+        }
+#endif
+
         for (auto index{ 0 }; m_devices.size() < deviceCount; index++)
         {
             // We do not have enough physical devices for the requested device count
@@ -221,17 +229,28 @@ namespace AZ::RHI
 #if defined(CARBONATED)
         // This code snippet is available in the latest version of the engine and is taken from there.
         // Register device GPUs attributes
+        // Check if the registrar is available.
         if (auto deviceRegistrar = AzFramework::DeviceAttributeRegistrar::Get())
         {
+            // The constructor explicitly requires a vector of string_views.
             AZStd::vector<AZStd::string_view> gpuList;
-            AZStd::transform(
-                m_devices.begin(),
-                m_devices.end(),
-                std::back_inserter(gpuList),
-                [](const auto& device)
+
+            // Reserve memory to optimize performance.
+            gpuList.reserve(m_devices.size());
+
+            for (const auto& device : m_devices)
+            {
+                if (device)
                 {
-                    return device->GetPhysicalDevice().GetDescriptor().m_description.c_str();
-                });
+                    // Taking a string_view from the device description.
+                    // This is safe because 'm_devices' stores pointers (RHI::Ptr),
+                    // so the underlying device objects and their description strings
+                    // won't move in memory during this operation.
+                    gpuList.push_back(device->GetPhysicalDevice().GetDescriptor().m_description);
+                }
+            }
+
+            // Register the attribute with the populated list.
             deviceRegistrar->RegisterDeviceAttribute(AZStd::make_shared<AzFramework::DeviceAttributeGPUModel>(gpuList));
         }
 #endif
