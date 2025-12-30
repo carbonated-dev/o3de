@@ -134,14 +134,27 @@ public class LumberyardNativeUI
 
         try
         {
+            // Wait for the dialog to show
             boolean completed = latchShow.await(TIMEOUT, TimeUnit.SECONDS);
             if (completed && currentDialog != null && currentDialog.isShowing() && IsActivityResumed(activity))
             {
-                latchUserSelection.await();
+                // CRITICAL FIX: DO NOT WAIT FOREVER
+                // If the user minimizes the app, 'onPause' runs on UI thread.
+                // We must unblock this thread so it can process the Pause command.
+            
+                // Wait for selection OR for the activity to stop being resumed
+                while (selection.get().equals("") && IsActivityResumed(activity)) {
+                    // Wait in small chunks to allow checking activity state
+                    boolean selected = latchUserSelection.await(500, TimeUnit.MILLISECONDS);
+                    if (selected) break;
+                
+                    // Double check dialog state
+                    if (currentDialog == null || !currentDialog.isShowing()) break;
+                }
             }
             else
             {
-                Log.e(TAG, "Can't show dialog");
+                Log.e(TAG, "Can't show dialog or activity not resumed");
                 return "";
             }
         }
@@ -150,6 +163,14 @@ public class LumberyardNativeUI
             Log.e(TAG, "Interrupted while waiting for dialog", e);
             return "";
         }
+		
+        // Force dismiss if we fell through due to activity pause
+        if (currentDialog != null && currentDialog.isShowing()) {
+            final AlertDialog dialogToDismiss = currentDialog;
+            activity.runOnUiThread(() -> {
+                try { dialogToDismiss.dismiss(); } catch (Exception ignored) {}
+            });
+		}
 
         return selection.get();
     }
