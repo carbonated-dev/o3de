@@ -17,10 +17,11 @@ ${SIGNING_CONFIGS}
         abortOnError false
         checkReleaseBuilds false
     }
-    
+// CARBONTATED -- begin buildFeatures enable   
     buildFeatures {
         buildConfig true
     }
+// CARBONTATED -- end buildFeatures enable 
 
     defaultConfig {
         minSdkVersion minSdkVer
