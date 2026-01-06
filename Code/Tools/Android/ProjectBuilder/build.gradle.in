@@ -17,6 +17,10 @@ ${SIGNING_CONFIGS}
         abortOnError false
         checkReleaseBuilds false
     }
+    
+    buildFeatures {
+        buildConfig true
+    }
 
     defaultConfig {
         minSdkVersion minSdkVer
