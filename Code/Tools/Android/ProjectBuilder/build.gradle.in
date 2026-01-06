@@ -26,9 +26,9 @@ ${SIGNING_CONFIGS}
     defaultConfig {
         minSdkVersion minSdkVer
         targetSdkVersion sdkVer
-// CARBONATED -- begin default config
+// CARBONATED -- begin default config buildConfigField
         buildConfigField "boolean", "CARBONATED", "true"
-// CARBONATED -- end default config
+// CARBONATED -- end default config buildConfigField
 ${NATIVE_CMAKE_SECTION_DEFAULT_CONFIG}
     }
 
