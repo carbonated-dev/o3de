@@ -9,7 +9,8 @@
             "Slots": [
                 {
                     "Name": "InputOutput",
-                    "SlotType": "InputOutput"
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget"
                 },
                 {
                     "Name": "DepthInputOutput",
