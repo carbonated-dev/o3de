@@ -31,6 +31,9 @@ namespace AZ::RHI
 
     ResultCode SwapChain::Init(int deviceIndex, const SwapChainDescriptor& descriptor)
     {
+        AZ_Info("ppp", "SwapChain::Init device %d, %d x %d, handle %x",
+                deviceIndex, descriptor.m_dimensions.m_imageWidth, descriptor.m_dimensions.m_imageWidth, descriptor.m_window);
+        
         if (!ValidateDescriptor(descriptor))
         {
             return ResultCode::InvalidArgument;

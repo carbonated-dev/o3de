@@ -46,6 +46,9 @@ namespace AZ
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
             void SetDesiredFPSInternal(uint32_t desiredFPS) override;
 #endif
+            
+            void LogDrawable(const char* name, id<MTLTexture> readTexture);
+
             //////////////////////////////////////////////////////////////////////////
             
             void AddSubView();

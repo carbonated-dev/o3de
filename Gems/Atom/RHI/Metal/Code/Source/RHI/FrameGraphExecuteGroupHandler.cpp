@@ -121,9 +121,22 @@ namespace AZ
                         break;
                     }
                 }
+                
+                needsImageView = true;  // "rrr"
+                
                 // This call may block if the presentation system doesn't have any drawables available.
                 id<MTLTexture> drawableTexture = metalSwapChain->RequestDrawable(needsImageView);
+                
                 context.m_renderPassDescriptor.colorAttachments[context.m_swapChainAttachmentIndex].texture = drawableTexture;
+
+                AZ_Info("rrr", "FrameGraphExecuteGroupHandler::UpdateSwapChain force need image view, index %d, texture %x",
+                        context.m_swapChainAttachmentIndex, drawableTexture);
+                const int size = 3;
+                for (int i = 0; i < size; i++)
+                {
+                    const auto& ca = context.m_renderPassDescriptor.colorAttachments[i];
+                    AZ_Info("rrr", "  index %d, texture %x", i, ca.texture);
+                }
              }
         }
     

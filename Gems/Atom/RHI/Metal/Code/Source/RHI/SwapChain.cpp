@@ -142,15 +142,110 @@ namespace AZ
             image.m_memoryView = {};
         }
 
+    
+        void SwapChain::LogDrawable(const char* name, id<MTLTexture> readTexture)
+        {
+            AZ_Info("rrr", "LogDrawable %s", name);
+            
+            MTLPixelFormat pixelFormat = readTexture.pixelFormat;
+            switch (pixelFormat)
+            {
+                case MTLPixelFormatBGRA8Unorm:
+                    break;
+                default:
+                    AZ_Info("rrr", "  unsupported format %d", (uint32_t)pixelFormat);
+                    return;
+            }
+            
+            int bytesPerPixel = 4;
+            int bytesPerRow   = readTexture.width * bytesPerPixel;
+            int bytesPerImage = readTexture.height * bytesPerRow;
+            
+            id<MTLBuffer> readBuffer;
+            //readBuffer = [readTexture.device newBufferWithLength:bytesPerImage options:MTLResourceStorageModeShared];
+            readBuffer = [GetDevice().GetMtlDevice() newBufferWithLength:bytesPerImage options:MTLResourceStorageModeShared];
+            if (!readBuffer)
+            {
+                AZ_Info("rrr", "  cannot create buffer");
+                return;
+            }
+            
+            static id<MTLDevice> sDevice;
+            static id<MTLCommandQueue> sCommandQueue;
+            static bool sCreated = false;
+            
+            if (!sCreated)
+            {
+                sCreated = true;
+                sDevice = MTLCreateSystemDefaultDevice();
+                sCommandQueue = [sDevice newCommandQueue];
+            }
+            
+            id<MTLCommandBuffer> commandBuffer = [sCommandQueue commandBuffer];
+            
+            id <MTLBlitCommandEncoder> blitEncoder = [commandBuffer blitCommandEncoder];
+            MTLOrigin readOrigin = MTLOriginMake(0, 0, 0);
+            MTLSize readSize = MTLSizeMake(readTexture.width, readTexture.height, 1);
+            
+            {
+                uint32_t* p = (uint32_t*)readBuffer.contents;
+                memset(p, 0xff, readSize.height * readSize.width);
+            }
+            
+            [blitEncoder pushDebugGroup:@"CopyDrawableTexture"];
+            [blitEncoder copyFromTexture:readTexture
+                             sourceSlice:0
+                             sourceLevel:0
+                            sourceOrigin:readOrigin
+                              sourceSize:readSize
+                                toBuffer:readBuffer
+                       destinationOffset:0
+                  destinationBytesPerRow:bytesPerRow
+                destinationBytesPerImage:bytesPerImage];
+            
+            [blitEncoder endEncoding];
+            
+            [commandBuffer commit];
+            [commandBuffer waitUntilCompleted];
+            
+            uint32_t* pixels = (uint32_t*)readBuffer.contents;
+            
+            uint32_t* row = pixels;
+            for (int y = 0;  y < 2 /*readSize.height*/;  y++)
+            {
+                AZ_Info("rrr", "  row %d: %x %x %x %x", y, row[0], row[1], row[2], row[3]);
+                /*
+                 for (int x = 0;  x < readSize.width;  x++)
+                 {
+                 uint32_t pixel = row[x];
+                 AZ_Info("rrr", "%d,%d %x\n", x, y, pixel);
+                 }
+                 */
+                row += readSize.width;
+            }
+            
+            [readBuffer release];
+        }
+    
         uint32_t SwapChain::PresentInternal()
         {
             const uint32_t currentImageIndex = GetCurrentImageIndex();
             
+            AZ_Info("rrr", "SwapChain::PresentInternal %d of %d", currentImageIndex, GetImageCount());
+            
+            //if (currentImageIndex == 2)
+            //static int counter = 0;
+            //if (++counter % 10 == 0)
+            {
+                id<MTLTexture> readTexture = m_drawables[currentImageIndex].texture;
+                LogDrawable("SwapChain::PresentInternal", readTexture);
+            }
+            
             //Preset the drawable
             Platform::PresentInternal(
-                m_mtlCommandBuffer,
-                m_drawables[currentImageIndex], GetDescriptor().m_verticalSyncInterval,
-                m_refreshRate);
+                                          m_mtlCommandBuffer,
+                                          m_drawables[currentImageIndex], GetDescriptor().m_verticalSyncInterval,
+                                          m_refreshRate);
             
             [m_drawables[currentImageIndex] release];
             m_drawables[currentImageIndex] = nil;
@@ -197,6 +292,7 @@ namespace AZ
             const uint32_t currentImageIndex = GetCurrentImageIndex();
             if(m_drawables[currentImageIndex])
             {
+                AZ_Info("rrr", "SwapChain::RequestDrawable already has drawable %d", currentImageIndex);
                 //We already have a drawable for this frame. Lets return that
                 //This can happen if a pass comes after Swapchain and wants to write to the swapchain texture
                 return m_drawables[currentImageIndex].texture;
@@ -236,6 +332,13 @@ namespace AZ
                         swapChainImage->m_memoryView = MemoryView(resc, 0, mtlDrawableTexture.allocatedSize, 0);
                     }
                 }
+                
+                {
+                    const int maximumDrawableCount = [m_metalView.metalLayer maximumDrawableCount];
+                    AZ_Info("rrr", "SwapChain::RequestDrawable got new drawable %d (metal count %d)", currentImageIndex, maximumDrawableCount);
+                    LogDrawable("SwapChain::RequestDrawable", mtlDrawableTexture);
+                }
+
                 return mtlDrawableTexture;
             }
         }

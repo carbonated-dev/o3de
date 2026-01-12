@@ -72,6 +72,8 @@ namespace AZ
             m_groupAutoreleasePool = [[NSAutoreleasePool alloc] init];
             if (m_handler)
             {
+                AZ_Info("rrr", "FrameGraphExecuteGroup::BeginInternal group %d", m_groupId);
+                
                 m_handler->BeginGroup(this);
             }
             

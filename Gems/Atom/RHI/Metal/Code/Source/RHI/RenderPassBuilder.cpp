@@ -16,11 +16,13 @@ namespace AZ::Metal
 {
     RenderPassBuilder::~RenderPassBuilder()
     {
+        AZ_Info("ttt", "~RenderPassBuilder %p", this);
         Reset();
     }
 
     void RenderPassBuilder::Init()
     {
+        AZ_Info("ttt", "RenderPassBuilder::Init %p", this);
         Reset();
         m_renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     }
@@ -30,6 +32,14 @@ namespace AZ::Metal
         AZStd::unordered_map<RHI::AttachmentId, ResolveAttachmentData> attachmentsIndex;
         id<MTLTexture> depthAttachmentTexture = m_renderPassDescriptor.depthAttachment.texture;
         id<MTLTexture> stencilAttachmentTexture = m_renderPassDescriptor.stencilAttachment.texture;
+        
+        if (scope->GetImageAttachments().size() > 0)
+        {
+            AZ_Info("ttt", "RenderPassBuilder::AddScopeAttachments %p size=%d, device %d, existing attachments %d",
+                    this, scope->GetImageAttachments().size(), scope->GetDeviceIndex(), m_colorAttachmentsIndex.size());
+        }
+        
+        int index = 0;
         for (RHI::ImageScopeAttachment* scopeAttachment : scope->GetImageAttachments())
         {
             const ImageView* imageView = static_cast<const ImageView*>(scopeAttachment->GetImageView()->GetDeviceImageView(scope->GetDeviceIndex()).get());
@@ -86,47 +96,87 @@ namespace AZ::Metal
             {
                 case RHI::ScopeAttachmentUsage::Shader:
                 {
+                    AZ_Info("ttt", "  Shader: %s, type %s, N%d",
+                            scopeAttachment->GetDescriptor().m_attachmentId.GetCStr(), scopeAttachment->GetTypeName(), index);
                     break;
                 }
                 case RHI::ScopeAttachmentUsage::RenderTarget:
                 {
                     uint32_t colorAttachmentIndex = m_currentColorAttachmentIndex;
+                    
+                    AZ_Info("ttt", "  RenderTarget: %s, type %s, N%d",
+                            scopeAttachment->GetDescriptor().m_attachmentId.GetCStr(), scopeAttachment->GetTypeName(), index);
+                    
                     auto findIter = m_colorAttachmentsIndex.find(attachmentId);
                     if (findIter == m_colorAttachmentsIndex.end())
                     {
                         id<MTLTexture> renderTargetTexture = imageViewMtlTexture;
                         m_renderPassDescriptor.colorAttachments[colorAttachmentIndex].texture = renderTargetTexture;
+
+                        float r = 0.0;
+                        float g = 0.0;
+                        float b = 0.0;
+                        static int counter = 0;
+                        double v = (double)(++counter & 255) / 255.0;
+                        if (renderTargetTexture)
+                        {
+                            b = v;
+                            AZ_Info("ttt", "    RenderTarget: cannot find index for %s, create new idx %d, texture %x, load action %d",
+                                    attachmentId.GetCStr(), colorAttachmentIndex, renderTargetTexture, mtlLoadAction);
+                        }
+                        else
+                        {
+                            r = v;
+                            AZ_Info("ttt", "    RenderTarget: cannot find index for %s, create new idx %d, NO texture, load action %d",
+                                    attachmentId.GetCStr(), colorAttachmentIndex, mtlLoadAction);
+                        }
+                        
+                        for (auto iter : m_colorAttachmentsIndex)
+                        {
+                            AZ_Info("ttt", "      has %s %d", iter.first.GetCStr(), iter.second);
+                        }
                         
                         MTLRenderPassColorAttachmentDescriptor* colorAttachment = m_renderPassDescriptor.colorAttachments[colorAttachmentIndex];
                         colorAttachment.loadAction = mtlLoadAction;
-                        
+
                         RHI::ClearValue clearVal = bindingDescriptor.m_loadStoreAction.m_clearValue;
                         if (mtlLoadAction == MTLLoadActionClear)
                         {
                              if(clearVal.m_type == RHI::ClearValueType::Vector4Float)
                             {
-                                colorAttachment.clearColor = MTLClearColorMake(clearVal.m_vector4Float[0], clearVal.m_vector4Float[1], clearVal.m_vector4Float[2], clearVal.m_vector4Float[3]);
+                                //colorAttachment.clearColor = MTLClearColorMake(clearVal.m_vector4Float[0], clearVal.m_vector4Float[1], clearVal.m_vector4Float[2], clearVal.m_vector4Float[3]);
+                                // "rrr"
+                                colorAttachment.clearColor = MTLClearColorMake(r, g, b, clearVal.m_vector4Float[3]);
                             }
                             else if(clearVal.m_type == RHI::ClearValueType::Vector4Uint)
                             {
-                                colorAttachment.clearColor = MTLClearColorMake(clearVal.m_vector4Uint[0], clearVal.m_vector4Uint[1], clearVal.m_vector4Uint[2], clearVal.m_vector4Uint[3]);
+                                // "rrr"
+                                //colorAttachment.clearColor = MTLClearColorMake(clearVal.m_vector4Uint[0], clearVal.m_vector4Uint[1], clearVal.m_vector4Uint[2], clearVal.m_vector4Uint[3]);
+                                colorAttachment.clearColor = MTLClearColorMake(r, g, b, clearVal.m_vector4Uint[3]);
                             }
                         }
- 
-                        //Cubemap/cubemaparray and 3d textures have restrictions placed on them by the
-                        //drivers when creating a new texture view. Hence we cant get a view with subresource range
-                        //of the original texture. As a result in order to write into specific slice or depth plane
-                        //we specify it here. It also means that we cant write into these texturee types via a compute shader
-                        const RHI::ImageViewDescriptor& imgViewDescriptor = imageView->GetDescriptor();
-                        if(renderTargetTexture.textureType == MTLTextureTypeCube || renderTargetTexture.textureType == MTLTextureTypeCubeArray)
-                        {
-                            m_renderPassDescriptor.colorAttachments[colorAttachmentIndex].slice = imgViewDescriptor.m_arraySliceMin;
-                        }
-                        else if(renderTargetTexture.textureType == MTLTextureType3D)
-                        {
-                            m_renderPassDescriptor.colorAttachments[colorAttachmentIndex].depthPlane = imgViewDescriptor.m_depthSliceMin;
-                        }
                         
+#if defined(CARBONATED)
+                        if (renderTargetTexture)
+                        {
+#endif
+                            //Cubemap/cubemaparray and 3d textures have restrictions placed on them by the
+                            //drivers when creating a new texture view. Hence we cant get a view with subresource range
+                            //of the original texture. As a result in order to write into specific slice or depth plane
+                            //we specify it here. It also means that we cant write into these texturee types via a compute shader
+                            const RHI::ImageViewDescriptor& imgViewDescriptor = imageView->GetDescriptor();
+                            if(renderTargetTexture.textureType == MTLTextureTypeCube || renderTargetTexture.textureType == MTLTextureTypeCubeArray)
+                            {
+                                m_renderPassDescriptor.colorAttachments[colorAttachmentIndex].slice = imgViewDescriptor.m_arraySliceMin;
+                            }
+                            else if(renderTargetTexture.textureType == MTLTextureType3D)
+                            {
+                                m_renderPassDescriptor.colorAttachments[colorAttachmentIndex].depthPlane = imgViewDescriptor.m_depthSliceMin;
+                            }
+#if defined(CARBONATED)
+                        }
+#endif
+
                         ApplyMSAACustomPositions(imageView);
                         m_colorAttachmentsIndex[attachmentId] = colorAttachmentIndex;
                         m_currentColorAttachmentIndex++;
@@ -134,18 +184,30 @@ namespace AZ::Metal
                     else
                     {
                         colorAttachmentIndex = findIter->second;
+                        AZ_Info("ttt", "    RenderTarget: found colorAttachmentIndex %d for %s", colorAttachmentIndex, attachmentId.GetCStr());
                     }
                     m_renderPassDescriptor.colorAttachments[colorAttachmentIndex].storeAction = mtlStoreAction;
                     attachmentsIndex[attachmentId] = ResolveAttachmentData{colorAttachmentIndex, m_renderPassDescriptor, RHI::ScopeAttachmentUsage::RenderTarget, isStoreAction};
-                    if(auto* swapChainFrameAttachment = (azrtti_cast<const RHI::SwapChainFrameAttachment*>(&scopeAttachment->GetFrameAttachment())))
+                    
+                    const RHI::SwapChainFrameAttachment* swapChainFrameAttachment = azrtti_cast<const RHI::SwapChainFrameAttachment*>(&scopeAttachment->GetFrameAttachment());
+                    if (swapChainFrameAttachment != nullptr)
                     {
+                        if (m_swapChainAttachmentIndex >= 0)
+                        {
+                            AZ_Assert(m_swapChainAttachmentIndex == colorAttachmentIndex, "SwapChain attachment index mismatch %d %d", m_swapChainAttachmentIndex, colorAttachmentIndex);
+                            AZ_Assert(m_swapChainFrameAttachment == swapChainFrameAttachment, "Frame attachment pointer mismatch");
+                        }
                         m_swapChainFrameAttachment = swapChainFrameAttachment;
                         m_swapChainAttachmentIndex = colorAttachmentIndex;
+                        AZ_Info("ttt", "    RenderTarget: swap chain frame attachment %d", colorAttachmentIndex);
                     }
                     break;
                 }
                 case RHI::ScopeAttachmentUsage::DepthStencil:
                 {
+                    AZ_Info("ttt", "  DepthStencil: %s, type %s, N%d",
+                            scopeAttachment->GetDescriptor().m_attachmentId.GetCStr(), scopeAttachment->GetTypeName(), index);
+
                     // We can have multiple DepthStencil attachments in order to specify depth and stencil access separately.
                     // One attachment is depth only, and the other is stencil only.
                     const RHI::ImageViewDescriptor& viewDescriptor = imageView->GetDescriptor();
@@ -194,6 +256,9 @@ namespace AZ::Metal
                 }
                 case RHI::ScopeAttachmentUsage::Resolve:
                 {
+                    AZ_Info("ttt", "  Resolve: %s, type %s, N%d",
+                            scopeAttachment->GetDescriptor().m_attachmentId.GetCStr(), scopeAttachment->GetTypeName(), index);
+
                     auto resolveScopeAttachment = static_cast<const RHI::ResolveScopeAttachment*>(scopeAttachment);
                     auto resolveAttachmentId = resolveScopeAttachment->GetDescriptor().m_resolveAttachmentId;
                     AZ_Assert(attachmentsIndex.find(resolveAttachmentId) != attachmentsIndex.end(), "Failed to find resolvable attachment %s", resolveAttachmentId.GetCStr());
@@ -221,12 +286,17 @@ namespace AZ::Metal
                 }
                 case RHI::ScopeAttachmentUsage::SubpassInput:
                 {
+                    AZ_Info("ttt", "  SubpassInput: %s, type %s, N%d",
+                            scopeAttachment->GetDescriptor().m_attachmentId.GetCStr(), scopeAttachment->GetTypeName(), index);
+                    
                     auto findIter = m_colorAttachmentsIndex.find(attachmentId);
                     AZ_Assert(findIter != m_colorAttachmentsIndex.end(), "Failed to find input attachment %s", attachmentId.GetCStr());
                     m_renderPassDescriptor.colorAttachments[findIter->second].storeAction = mtlStoreAction;
                     break;
                 }
             }
+            
+            index++;
         }
         m_scopes.push_back(scope);
     }
@@ -249,6 +319,7 @@ namespace AZ::Metal
 
     void RenderPassBuilder::Reset()
     {
+        AZ_Info("ttt", "RenderPassBuilder::Reset %p", this);
         if (m_renderPassDescriptor)
         {
             m_renderPassDescriptor = nil;

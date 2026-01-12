@@ -16,6 +16,7 @@ namespace AZ::Metal
     RHI::ResultCode FrameGraphExecuteGroupSecondaryHandler::InitInternal(
         Device& device, const AZStd::vector<RHI::FrameGraphExecuteGroup*>& executeGroups)
     {
+        AZ_Info("ttt", "FrameGraphExecuteGroupSecondaryHandler::InitInternal for %d groups", executeGroups.size());
         // We first need to build the renderpass that will be used by all groups.
         RenderPassBuilder builder;
         builder.Init();
