@@ -453,6 +453,11 @@ namespace AZ
                 case DisplayMapperOperationType::Filmic:
                     type = ToneMapperType::Filmic;
                     break;
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+                case DisplayMapperOperationType::JustLUT:
+                    type = ToneMapperType::None;
+                    break;
+#endif
                 default:
                     AZ_Assert(false, "Invalid tonemapper type %d", m_displayMapperConfigurationDescriptor.m_operationType);
                     break;
@@ -570,7 +575,11 @@ namespace AZ
             return m_displayMapperConfigurationDescriptor.m_operationType == DisplayMapperOperationType::Reinhard ||
                 m_displayMapperConfigurationDescriptor.m_operationType == DisplayMapperOperationType::AcesFitted ||
                 m_displayMapperConfigurationDescriptor.m_operationType == DisplayMapperOperationType::Filmic ||
-                m_displayMapperConfigurationDescriptor.m_operationType == DisplayMapperOperationType::AcesFilmic;
+                m_displayMapperConfigurationDescriptor.m_operationType == DisplayMapperOperationType::AcesFilmic
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+                || m_displayMapperConfigurationDescriptor.m_operationType == DisplayMapperOperationType::JustLUT
+#endif
+                ;
         }
     }   // namespace Render
 }   // namespace AZ

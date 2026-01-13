@@ -278,6 +278,10 @@ namespace AzToolsFramework
         {
             switch (AZStd::hash<AZStd::string_view>{}(str))
             {
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+            case ".cube"_hash:
+                return "CUBE";
+#endif
             case ".png"_hash:
                 return "PNG";
             case ".scriptcanvas"_hash:
