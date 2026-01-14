@@ -95,13 +95,15 @@ float4 SampleBSpline3D(Texture3D<float4> texture, SamplerState linearSampler, fl
     float totalWeight = sw0 + sw1 + sw2 + sw3 + sw4 + sw5 + sw6;
 
     float4 result = 0.0f;
-    result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x,  tc0.y, tc12.z), 0.0, 1.0), 0.0) * sw0; // CARBONATED Clamp is added
-    result += texture.SampleLevel(linearSampler, clamp(float3( tc0.x, tc12.y, tc12.z), 0.0, 1.0), 0.0) * sw1; // CARBONATED Clamp is added
-    result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x, tc12.y, tc12.z), 0.0, 1.0), 0.0) * sw2; // CARBONATED Clamp is added
-    result += texture.SampleLevel(linearSampler, clamp(float3( tc3.x, tc12.y, tc12.z), 0.0, 1.0), 0.0) * sw3; // CARBONATED Clamp is added
-    result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x,  tc3.y, tc12.z), 0.0, 1.0), 0.0) * sw4; // CARBONATED Clamp is added
-    result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x,  tc12.y, tc0.z), 0.0, 1.0), 0.0) * sw5; // CARBONATED Clamp is added
-    result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x,  tc12.y, tc3.z), 0.0, 1.0), 0.0) * sw6; // CARBONATED Clamp is added
+    // CARBONATED Beg. Clamp is added
+    result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x,  tc0.y, tc12.z), 0.0, 1.0), 0.0) * sw0;
+    result += texture.SampleLevel(linearSampler, clamp(float3( tc0.x, tc12.y, tc12.z), 0.0, 1.0), 0.0) * sw1;
+    result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x, tc12.y, tc12.z), 0.0, 1.0), 0.0) * sw2;
+    result += texture.SampleLevel(linearSampler, clamp(float3( tc3.x, tc12.y, tc12.z), 0.0, 1.0), 0.0) * sw3;
+    result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x,  tc3.y, tc12.z), 0.0, 1.0), 0.0) * sw4;
+    result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x,  tc12.y, tc0.z), 0.0, 1.0), 0.0) * sw5;
+    result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x,  tc12.y, tc3.z), 0.0, 1.0), 0.0) * sw6;
+    // CARBONATED End
 
     if (o_lutSampleQuality == 2)
     {
@@ -124,20 +126,22 @@ float4 SampleBSpline3D(Texture3D<float4> texture, SamplerState linearSampler, fl
 
         totalWeight += sw7 + sw8 + sw9 + sw10 + sw11 + sw12 + sw13 + sw14 + sw15 + sw16 + sw17 + sw18;
 
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc0.x, tc0.y, tc12.z), 0.0, 1.0), 0.0) * sw7; // CARBONATED Clamp is added
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc0.x, tc3.y, tc12.z), 0.0, 1.0), 0.0) * sw8; // CARBONATED Clamp is added
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc3.x, tc0.y, tc12.z), 0.0, 1.0), 0.0) * sw9; // CARBONATED Clamp is added
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc3.x, tc3.y, tc12.z), 0.0, 1.0), 0.0) * sw10; // CARBONATED Clamp is added
+        // CARBONATED Beg. Clamp is added
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc0.x, tc0.y, tc12.z), 0.0, 1.0), 0.0) * sw7;
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc0.x, tc3.y, tc12.z), 0.0, 1.0), 0.0) * sw8;
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc3.x, tc0.y, tc12.z), 0.0, 1.0), 0.0) * sw9;
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc3.x, tc3.y, tc12.z), 0.0, 1.0), 0.0) * sw10;
 
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x, tc0.y, tc0.z), 0.0, 1.0), 0.0) * sw11; // CARBONATED Clamp is added
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x, tc0.y, tc3.z), 0.0, 1.0), 0.0) * sw12; // CARBONATED Clamp is added
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x, tc3.y, tc0.z), 0.0, 1.0), 0.0) * sw13; // CARBONATED Clamp is added
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x, tc3.y, tc3.z), 0.0, 1.0), 0.0) * sw14; // CARBONATED Clamp is added
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x, tc0.y, tc0.z), 0.0, 1.0), 0.0) * sw11;
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x, tc0.y, tc3.z), 0.0, 1.0), 0.0) * sw12;
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x, tc3.y, tc0.z), 0.0, 1.0), 0.0) * sw13;
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc12.x, tc3.y, tc3.z), 0.0, 1.0), 0.0) * sw14;
 
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc0.x,  tc12.y, tc0.z), 0.0, 1.0), 0.0) * sw15; // CARBONATED Clamp is added
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc0.x,  tc12.y, tc3.z), 0.0, 1.0), 0.0) * sw16; // CARBONATED Clamp is added
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc3.x,  tc12.y, tc0.z), 0.0, 1.0), 0.0) * sw17; // CARBONATED Clamp is added
-        result += texture.SampleLevel(linearSampler, clamp(float3(tc3.x,  tc12.y, tc3.z), 0.0, 1.0), 0.0) * sw18; // CARBONATED Clamp is added
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc0.x,  tc12.y, tc0.z), 0.0, 1.0), 0.0) * sw15;
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc0.x,  tc12.y, tc3.z), 0.0, 1.0), 0.0) * sw16;
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc3.x,  tc12.y, tc0.z), 0.0, 1.0), 0.0) * sw17;
+        result += texture.SampleLevel(linearSampler, clamp(float3(tc3.x,  tc12.y, tc3.z), 0.0, 1.0), 0.0) * sw18;
+        // CARBONATED End
     }
     return result / totalWeight;
 }
