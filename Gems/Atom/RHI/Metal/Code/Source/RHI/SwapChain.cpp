@@ -238,7 +238,8 @@ namespace AZ
             //if (++counter % 10 == 0)
             {
                 id<MTLTexture> readTexture = m_drawables[currentImageIndex].texture;
-                LogDrawable("SwapChain::PresentInternal", readTexture);
+                const AZStd::string s = AZStd::string::format("SwapChain::PresentInternal %d, texture %p", currentImageIndex, readTexture);
+                LogDrawable(s.c_str(), readTexture);
             }
             
             //Preset the drawable
