@@ -68,10 +68,12 @@ namespace AZ
                 Scope& scope = *static_cast<Scope*>(*it);
                 auto nextIter = it + 1;
                 scopeNext = nextIter != scopes.end() ? static_cast<Scope*>(*nextIter) : nullptr;
+                
                 const bool subpassGroup = (scopeNext && scopeNext->GetFrameGraphGroupId() == scope.GetFrameGraphGroupId()) ||
                                           (scopePrev && scopePrev->GetFrameGraphGroupId() == scope.GetFrameGraphGroupId());
                 
-                if (subpassGroup)
+                // kill parallel render
+                if (subpassGroup /*&& false*/)
                 {
                     FrameGraphExecuteGroupSecondary* scopeContextGroup = AddGroup<FrameGraphExecuteGroupSecondary>();
                     scopeContextGroup->Init(static_cast<Device&>(scope.GetDevice()), scope, 1, GetJobPolicy());

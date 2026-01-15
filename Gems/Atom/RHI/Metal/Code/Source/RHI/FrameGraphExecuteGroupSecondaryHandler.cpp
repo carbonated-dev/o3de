@@ -22,7 +22,10 @@ namespace AZ::Metal
         builder.Init();
         for (auto executeGroupBase : executeGroups)
         {
+            // kill parallel render
             FrameGraphExecuteGroupSecondary* executeGroup = static_cast<FrameGraphExecuteGroupSecondary*>(executeGroupBase);
+            //FrameGraphExecuteGroupPrimary* executeGroup = static_cast<FrameGraphExecuteGroupPrimary*>(executeGroupBase);
+            
             AZ_Assert(executeGroup, "Invalid execute group on FrameGraphExecuteGroupHandler");
             AZ_Assert(executeGroup->GetScopes().size() == 1, "Incorrect number of scopes (%d) in group on FrameGraphExecuteGroupHandler", executeGroup->GetScopes().size());
             auto* scope = static_cast<Scope*>(executeGroup->GetScopes()[0]);
