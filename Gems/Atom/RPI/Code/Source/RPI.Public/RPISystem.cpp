@@ -82,7 +82,17 @@ namespace AZ
         {
             // Init RHI device(s)
             auto commandLineMultipleDevicesValue{ RHI::GetCommandLineValue("device-count") };
-            m_rhiSystem.InitDevices((commandLineMultipleDevicesValue != "") ? AZStd::stoi(commandLineMultipleDevicesValue) : 1);
+            const int deviceCount = (commandLineMultipleDevicesValue != "") ? AZStd::stoi(commandLineMultipleDevicesValue) : 1;
+
+#if defined(CARBONATED)
+            if (m_rhiSystem.InitDevices(deviceCount) != RHI::ResultCode::Success)
+            {
+                AZ_Error("RPISystem", false, "RPISystem::Initialize aborted: RHISystem::InitDevices(%d) failed (device-count='%s'). RHI device could not be created.", deviceCount, commandLineMultipleDevicesValue.c_str());
+                return;
+            }
+#else
+            m_rhiSystem.InitDevices(deviceCount);
+#endif
 
             // Gather asset handlers from sub-systems.
             ImageSystem::GetAssetHandlers(m_assetHandlers);

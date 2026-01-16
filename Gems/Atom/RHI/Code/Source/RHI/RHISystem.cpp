@@ -40,13 +40,33 @@ namespace AZ::RHI
 
     ResultCode RHISystem::InitDevices(int deviceCount)
     {
+#if defined(CARBONATED)
+        const ResultCode rc = InitInternalDevices(deviceCount);
+        if (rc != ResultCode::Success)
+        {
+            return rc;
+        }
+
+        Interface<RHISystemInterface>::Register(this);
+        Interface<RHIMemoryStatisticsInterface>::Register(this);
+        return rc;
+#else
         Interface<RHISystemInterface>::Register(this);
         Interface<RHIMemoryStatisticsInterface>::Register(this);
         return InitInternalDevices(deviceCount);
+#endif
     }
     
     void RHISystem::Init(RHI::Ptr<RHI::ShaderResourceGroupLayout> bindlessSrgLayout)
     {
+#if defined(CARBONATED)
+        // Fail-fast: InitDevices() did not produce a valid default device.
+        if (m_devices.empty() || !m_devices[MultiDevice::DefaultDeviceIndex])
+        {
+            AZ_Error("RHISystem", false, "RHISystem::Init called without a valid RHI device (InitDevices likely failed).");
+            return;
+        }
+#endif
         //! If a bindless srg layout is not provided we simply skip initialization with the assumption that no one will use bindless srg
         if (bindlessSrgLayout && m_devices[MultiDevice::DefaultDeviceIndex]->InitBindlessSrg(bindlessSrgLayout) != RHI::ResultCode::Success)
         {
@@ -197,13 +217,54 @@ namespace AZ::RHI
             }
 
             AZ_Printf("RHISystem", "\tUsing physical device: %s\n", physicalDevice->GetDescriptor().m_description.c_str());
-
             RHI::Ptr<RHI::Device> device = RHI::Factory::Get().CreateDevice();
+#if defined(CARBONATED)
+            if (!device)
+            {
+                AZ_Error("RHISystem", false, "Factory::CreateDevice() returned null.");
+                return ResultCode::Fail;
+            }
+
+            if (device->Init(static_cast<int>(m_devices.size()), *physicalDevice) != RHI::ResultCode::Success)
+            {
+                AZ_Error("RHISystem", false, "Failed to initialize RHI device for physical device: %s",
+                    physicalDevice->GetDescriptor().m_description.c_str());
+                return ResultCode::Fail;
+            }
+
+            m_devices.emplace_back(AZStd::move(device));
+#else
             if (device->Init(static_cast<int>(m_devices.size()), *physicalDevice) == RHI::ResultCode::Success)
             {
                 m_devices.emplace_back(AZStd::move(device));
             }
+#endif
         }
+
+#if defined(CARBONATED)
+        if (m_devices.empty())
+        {
+            AZ_Error("RHISystem", false, "Failed to initialize RHI device.");
+            return ResultCode::Fail;
+        }
+        for (auto index{ 0 }; m_devices.size() < deviceCount; index++)
+        {
+            if (index >= m_devices.size())
+            {
+                AZ_Error("RHISystem", false, "Unable to virtualize devices (index out of range).");
+                return ResultCode::Fail;
+            }
+
+            auto deviceIndex{ AddVirtualDevice(m_devices[index]->GetDeviceIndex()) };
+            if (!deviceIndex)
+            {
+                AZ_Error("RHISystem", false, "Failed to add virtual device.");
+                return ResultCode::Fail;
+            }
+
+            AZ_Printf("RHISystem", "\tVirtualized device %d from device %d\n", deviceIndex.value(), m_devices[index]->GetDeviceIndex());
+        }
+#else
 
         for (auto index{ 0 }; m_devices.size() < deviceCount; index++)
         {
@@ -212,6 +273,7 @@ namespace AZ::RHI
             auto deviceIndex{ AddVirtualDevice(m_devices[index]->GetDeviceIndex()) };
             AZ_Printf("RHISystem", "\tVirtualized device %d from device %d\n", deviceIndex.value(), m_devices[index]->GetDeviceIndex());
         }
+#endif
 
         if (m_devices.empty())
         {
@@ -250,6 +312,9 @@ namespace AZ::RHI
             m_devices.pop_back();
         }
         Interface<RHISystemInterface>::Unregister(this);
+#if defined(CARBONATED)
+        Interface<RHIMemoryStatisticsInterface>::Unregister(this);
+#endif
     }
 
     void RHISystem::FrameUpdate(FrameGraphCallback frameGraphCallback)
