@@ -1523,6 +1523,17 @@ class AndroidProjectGenerator(object):
         project_names.append("playerengagement")        
 # CARBONATED -- end
 
+# CARBONATED -- begin : Bugsnag gem Android project staging
+        bugsnag_dir = self._build_dir / "bugsnag"
+        (bugsnag_dir / "src/main").mkdir(parents=True, exist_ok=True)
+
+        shutil.copy(self._project_path / "Gems/Bugsnag/Projects/Android/build.gradle", bugsnag_dir)
+        shutil.copytree(self._project_path / "Gems/Bugsnag/Resources/Android", bugsnag_dir / "src/main", dirs_exist_ok=True)
+
+        project_names.append("bugsnag")
+# CARBONATED -- end
+
+
         project_names.extend(self.create_lumberyard_app(project_names))
         
 # CARBONATED -- begin : generate/append asset pack project to the project list 

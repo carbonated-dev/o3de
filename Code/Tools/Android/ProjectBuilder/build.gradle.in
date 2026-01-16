@@ -17,10 +17,18 @@ ${SIGNING_CONFIGS}
         abortOnError false
         checkReleaseBuilds false
     }
+// CARBONTATED -- begin buildFeatures enable   
+    buildFeatures {
+        buildConfig true
+    }
+// CARBONTATED -- end buildFeatures enable 
 
     defaultConfig {
         minSdkVersion minSdkVer
         targetSdkVersion sdkVer
+// CARBONATED -- begin default config buildConfigField
+        buildConfigField "boolean", "CARBONATED", "true"
+// CARBONATED -- end default config buildConfigField
 ${NATIVE_CMAKE_SECTION_DEFAULT_CONFIG}
     }
 
