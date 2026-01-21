@@ -1104,10 +1104,6 @@ NATIVE_CMAKE_SECTION_ANDROID_FORMAT = """
             buildStagingDirectory "{native_build_path}"
             version "{cmake_version}"
             path "{absolute_cmakelist_path}"
-            // CARBONATED -- begin
-            // This ensures libc++_shared.so is always used and bundled, needed for bugsnag
-            arguments "-DANDROID_STL=c++_shared"
-            // CARBONATED -- end
         }}
     }}
 """
@@ -2423,7 +2419,14 @@ class AndroidProjectGenerator(object):
                 'PROJECT_DEPENDENCIES': project_dependencies,
                 'PROJECT_NAMESPACE': name_space,
                 'TARGET_TYPE': 'library',
-                'NATIVE_CMAKE_SECTION_DEFAULT_CONFIG': '',
+# CARBONATED --begin: include c++_shared stl
+                'NATIVE_CMAKE_SECTION_DEFAULT_CONFIG': """
+                    externalNativeBuild {
+                        cmake {
+                            arguments "-DANDROID_STL=c++_shared"
+                        }
+                    }""",
+# CARBONATED --end
                 'NATIVE_CMAKE_SECTION_ANDROID': '',
                 'NATIVE_CMAKE_SECTION_DEBUG_CONFIG': '',
                 'NATIVE_CMAKE_SECTION_PROFILE_CONFIG': '',
