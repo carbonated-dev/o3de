@@ -1014,8 +1014,19 @@ ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0' 
     implementation 'com.google.android.gms:play-services-basement:18.1.0'   
     implementation 'androidx.games:games-frame-pacing:2.1.3'
+    
+    // Core Bugsnag SDK
     implementation "com.bugsnag:bugsnag-android:6.+"
+
+    // Needed for NDK crash reporting + NDK symbol mapping tasks
+    implementation "com.bugsnag:bugsnag-android-ndk:6.+"
+
+    // Needed for ANR native reporting
+    implementation "com.bugsnag:bugsnag-android-anr:6.+"
+    
+    // Bugsnag Performance is separate -- doesn't have to follow same version as bugsnag-android Core, NDK and ANR. 1.x is the correct version
     implementation "com.bugsnag:bugsnag-android-performance:1.+"          
+    
     implementation 'com.appsflyer:af-android-sdk:6.17.4'
     implementation 'com.android.installreferrer:installreferrer:2.2'
     implementation 'com.unity3d.ads-mediation:mediation-sdk:8.2.1'
@@ -1031,6 +1042,9 @@ ADDITIONAL_PLUGINS = """
         // Always enable upload so tasks are created in the Gradle graph.
         // Actual execution is controlled via 'onlyIf' below using the marker file.
         uploadNdkMappings = true
+
+        // We are using ndk > than r23 so we should use the newer recommended method (disable legacy upload)
+        useLegacyNdkSymbolUpload = false
         
         // 3 * 60 * 1000 = 180000. 3 minutes
         requestTimeoutMs = 180000        
