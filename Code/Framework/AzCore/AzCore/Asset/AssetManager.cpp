@@ -403,8 +403,12 @@ namespace AZ::Data
                     {
                         if (!m_waitEvent.try_acquire_for(AZStd::chrono::milliseconds(m_timeoutMillis)))
                         {
-                            AZ_Info("AssetManager", "Non-main thread blocking loading wait timeout %d exceeded for %s",
-                                    m_timeoutMillis, m_assetData.GetHint().c_str());
+                            AZStd::string path = m_assetData.GetHint();
+                            if (path.empty())
+                            {
+                                EBUS_EVENT_RESULT(path, AZ::Data::AssetCatalogRequestBus, GetAssetPathById, m_assetData.GetId());
+                            }
+                            AZ_Info("AssetManager", "Non-main thread blocking loading wait timeout %d exceeded for %s", m_timeoutMillis, path.c_str());
                         }
                     }
                     else
