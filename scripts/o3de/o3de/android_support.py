@@ -1016,16 +1016,16 @@ ADDITIONAL_DEPENDENCIES = """
     implementation 'androidx.games:games-frame-pacing:2.1.3'
     
     // Core Bugsnag SDK
-    implementation "com.bugsnag:bugsnag-android:6.+"
+    implementation "com.bugsnag:bugsnag-android:6.21.0"
 
     // Needed for NDK crash reporting + NDK symbol mapping tasks
-    implementation "com.bugsnag:bugsnag-android-ndk:6.+"
+    implementation "com.bugsnag:bugsnag-plugin-android-ndk:6.21.0"
 
     // Needed for ANR native reporting
-    implementation "com.bugsnag:bugsnag-android-anr:6.+"
+    implementation "com.bugsnag:bugsnag-plugin-android-anr:6.21.0"
     
-    // Bugsnag Performance is separate -- doesn't have to follow same version as bugsnag-android Core, NDK and ANR. 1.x is the correct version
-    implementation "com.bugsnag:bugsnag-android-performance:1.+"          
+    // Latest stable as of Jan 2026 is 2.2.0 for bugsnag performance reporting
+    implementation "com.bugsnag:bugsnag-android-performance:2.2.0"     
     
     implementation 'com.appsflyer:af-android-sdk:6.17.4'
     implementation 'com.android.installreferrer:installreferrer:2.2'
