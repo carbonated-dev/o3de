@@ -1104,6 +1104,10 @@ NATIVE_CMAKE_SECTION_ANDROID_FORMAT = """
             buildStagingDirectory "{native_build_path}"
             version "{cmake_version}"
             path "{absolute_cmakelist_path}"
+            # CARBONATED -- begin
+            # This ensures libc++_shared.so is always used and bundled, needed for bugsnag
+            arguments "-DANDROID_STL=c++_shared"
+            # CARBONATED -- end
         }}
     }}
 """
