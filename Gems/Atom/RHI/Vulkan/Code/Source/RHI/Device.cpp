@@ -350,7 +350,6 @@ namespace AZ
             deviceInfo.flags = 0;
             deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreationInfo.size());
             deviceInfo.pQueueCreateInfos = queueCreationInfo.data();
-
             deviceInfo.enabledLayerCount = static_cast<uint32_t>(requiredLayers.size());
             deviceInfo.ppEnabledLayerNames = requiredLayers.data();
             deviceInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());

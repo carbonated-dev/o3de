@@ -212,7 +212,6 @@ namespace AZ::RHI
             return ResultCode::Fail;
         }
 #endif
-
         for (auto index{ 0 }; m_devices.size() < deviceCount; index++)
         {
             // We do not have enough physical devices for the requested device count
