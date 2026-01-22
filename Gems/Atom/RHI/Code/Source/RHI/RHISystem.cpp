@@ -237,7 +237,7 @@ namespace AZ::RHI
                 m_devices.end(),
                 std::back_inserter(gpuList),
                 [](const auto& device)
-				{
+                {
                     return device->GetPhysicalDevice().GetDescriptor().m_description.c_str();
                 });
             deviceRegistrar->RegisterDeviceAttribute(AZStd::make_shared<AzFramework::DeviceAttributeGPUModel>(gpuList));
