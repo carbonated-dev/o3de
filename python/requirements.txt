@@ -5,14 +5,10 @@ attrs==20.1.0 \
     --hash=sha256:0ef97238856430dcf9228e07f316aefc17e8939fc8507e18c6501b761ef1a42a \
     --hash=sha256:2867b7b9f8326499ab5b0e2d12801fa5c98842d2cbd22b35112ae04bf85b4dff
     # via -r .\requirements.txt
-boto3==1.20.44 \
-    --hash=sha256:26f18ca7411615f33d8d1bf60cc8efe5b331a57b3013d5f8f3587cd5350c27cb \
-    --hash=sha256:4470f64e4af609ff678055338c96a6f7cbe601d1fb06a4ea7dc8d9223c2e527a \
-    # via -r .\requirements.txt
-botocore==1.23.44 \
-    --hash=sha256:11483a493de4a76ef218d8cd3980c63550d006a0d082c10d53c0954184ca542a \
-    --hash=sha256:8e5317f84fc1118bff58fa6fa79a9b62083e75a2a9c62feb3ea73694c550b99d \
-    # via -r .\requirements.txt, boto3, s3transfer
+boto3==1.40.69 \
+     --hash=sha256:c3f710a1990c4be1c0db43b938743d4e404c7f1f06d5f1fa0c8e9b1cea4290b2
+botocore==1.40.69 \
+     --hash=sha256:5d810efeb9e18f91f32690642fa81ae60e482eefeea0d35ec72da2e3d924c1a5
 certifi==2022.12.7 \
     --hash=sha256:35824b4c3a97115964b408844d64aa14db1cc518f6562e8d7261699d1350a9e3 \
     --hash=sha256:4ad3232f5e926d6718ec31cfc1fcadfde020920e278684144551c91769c7bc18 \
@@ -267,9 +263,8 @@ requests==2.31.0 \
     --hash=sha256:58cd2187c01e70e6e26505bca751777aa9f2ee0b7f4300988b709f44e013003f \
     --hash=sha256:942c5a758f98d790eaed1a29cb6eefc7ffb0d1cf7af05c3d2791656dbd6ad1e1 \
     # via -r requirements.txt
-s3transfer==0.5.0 \
-    --hash=sha256:50ed823e1dc5868ad40c8dc92072f757aa0e653a192845c94a3b676f4a62da4c \
-    --hash=sha256:9c1dc369814391a6bda20ebbf4b70a0f34630592c9aa520856bf384916af2803 \
+s3transfer==0.14.0 \
+    --hash=sha256:ea3b790c7077558ed1f02a3072fb3cb992bbbd253392f4b6e9e8976941c7d456
     # boto3
 scipy==1.8.1 \
     --hash=sha256:02b567e722d62bddd4ac253dafb01ce7ed8742cf8031aea030a41414b86c1125 \
@@ -325,3 +320,17 @@ toml==0.10.2 \
 resolvelib==0.9.0 \
     --hash=sha256:40ab05117c3281b1b160105e10075094c5ab118315003c922b77673a365290e1 \
     --hash=sha256:597adcbdf81d62d0cde55d90faa8e79187ec0f18e5012df30bd7a751b26343ae
+
+# ----------------------------------------------------------------------------------
+# Carbonated Added
+# ----------------------------------------------------------------------------------
+
+# PYDANTIC:
+annotated-types==0.6.0 --hash=sha256:0641064de18ba7a25dee8f96403ebc39113d0cb953a01429249d5c7564666a43
+typing-inspection==0.4.2 --hash=sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7
+typing-extensions==4.14.1 --hash=sha256:d1e1e3b58374dc93031d6eda2420a48ea44a36c2b4766a4fdeb3710755731d76
+pydantic-core==2.41.5 \
+    --hash=sha256:62de39db01b8d593e45871af2af9e497295db8d73b085f6bfd0b18c83c70a8f9 \
+    --hash=sha256:100baa204bb412b74fe285fb0f3a385256dad1d1879f0a5cb1499ed2e83d132a \
+    --hash=sha256:77b63866ca88d804225eaa4af3e664c5faf3568cea95360d21f4725ab6e07146
+pydantic==2.12.4 --hash=sha256:92d3d202a745d46f9be6df459ac5a064fdaa3c1c4cd8adcfa332ccf3c05f871e

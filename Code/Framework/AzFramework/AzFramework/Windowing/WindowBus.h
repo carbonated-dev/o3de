@@ -173,6 +173,9 @@ namespace AzFramework
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         virtual void OnDesiredFPSChanged(uint32_t desiredFPS) { AZ_UNUSED(desiredFPS); };
 #endif
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+        virtual void OnSaveRenderPassesImages() {};
+#endif
 
         //! This is called if the main display's refresh rate changes
         virtual void OnRefreshRateChanged([[maybe_unused]] uint32_t refreshRate) {}

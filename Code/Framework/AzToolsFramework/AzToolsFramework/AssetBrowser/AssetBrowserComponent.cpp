@@ -325,7 +325,12 @@ namespace AzToolsFramework
                     }
                 }
 
-                static const char* sourceFormats[] = { ".tif", ".bmp", ".gif", ".jpg", ".jpeg", ".jpe", ".tga", ".png", ".exr", ".svg" };
+                static const char* sourceFormats[] = {
+                    ".tif", ".bmp", ".gif", ".jpg", ".jpeg", ".jpe", ".tga", ".png", ".exr", ".svg"
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+                    , ".cube"
+#endif
+                };
 
                 for (unsigned int sourceImageFormatIndex = 0, numSources = AZ_ARRAY_SIZE(sourceFormats); sourceImageFormatIndex < numSources; ++sourceImageFormatIndex)
                 {

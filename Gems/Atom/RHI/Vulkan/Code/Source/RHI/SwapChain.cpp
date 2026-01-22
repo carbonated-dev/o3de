@@ -34,6 +34,11 @@
 #include <swappy/swappyVk.h>
 #endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS && CARBONATED_USE_SWAPPY
 
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+#include <AzFramework/IO/LocalFileIO.h>
+#include "VulkanBmpWriter.h"
+#endif
+
 namespace AZ
 {
     namespace Vulkan
@@ -103,6 +108,23 @@ namespace AZ
                 m_pendingRecreation = true;
             }
         }
+
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+        static int ImageNumber = 0;
+
+        void SwapChain::SaveRenderPassesImagesInternal()
+        {
+            if (ImageNumber == 0)
+            {
+                // Let's delete BMPs subdirectory at the first usage at the current launch
+                AZ::IO::LocalFileIO::GetInstance()->DestroyPath("@user@/BMPs");
+            }
+            m_currentImage = ++ImageNumber;
+            m_currentPresentIndexToSave = (int)m_swapchainNativeImages.size();  // Number of images to save at once
+            auto& device = static_cast<Device&>(GetDevice());
+            device.StartSavingRenderPassesToBmp(m_currentImage);
+        }
+ #endif
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
         void SwapChain::SetDesiredFPSInternal([[maybe_unused]] uint32_t desiredFPS)
@@ -319,6 +341,20 @@ namespace AZ
                     device.GetSwapChainSemaphoreAllocator().DeAllocate(transferSemaphore);
                     m_swapChainBarrier.m_isValid = false;
                 }
+
+// ---------------- DEBUG SCREENSHOT ----------------
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+                if (m_currentPresentIndexToSave > 0)
+                {
+                    CapturePresentImageToBmp(imageIndex, vulkanQueue);
+
+                    if (--m_currentPresentIndexToSave == 0)
+                    {
+                        device.StopSavingRenderPassesToBmp();
+                    }
+                }
+#endif
+// ---------------- END DEBUG SCREENSHOT ----------------
 
                 VkPresentInfoKHR info{};
                 info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -718,5 +754,162 @@ namespace AZ
 #endif // CARBONATED && AZ_PLATFORM_ANDROID && CARBONATED_DESIRED_FPS && CARBONATED_USE_SWAPPY
             return RHI::ResultCode::Success;
         }
+
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+        void SwapChain::CapturePresentImageToBmp(uint32_t imageIndex, Queue* vulkanQueue)
+        {
+            auto& device = static_cast<Device&>(GetDevice());
+            auto& context = device.GetContext();
+            VkDevice vkDevice = device.GetNativeDevice();
+
+            VkImage srcImage = m_swapchainNativeImages[imageIndex];
+            uint32_t width = m_dimensions.m_imageWidth;
+            uint32_t height = m_dimensions.m_imageHeight;
+
+            // Create linear-tiled staging image
+            VkImageCreateInfo imgInfo{};
+            imgInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+            imgInfo.imageType = VK_IMAGE_TYPE_2D;
+            imgInfo.format = m_surfaceFormat.format;
+            imgInfo.extent = { width, height, 1 };
+            imgInfo.mipLevels = 1;
+            imgInfo.arrayLayers = 1;
+            imgInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+            imgInfo.tiling = VK_IMAGE_TILING_LINEAR;
+            imgInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            imgInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+            VkImage dstImage = VK_NULL_HANDLE;
+            context.CreateImage(vkDevice, &imgInfo, VkSystemAllocator::Get(), &dstImage);
+
+            VkMemoryRequirements memReq{};
+            context.GetImageMemoryRequirements(vkDevice, dstImage, &memReq);
+
+            // Select host-visible memory
+            uint32_t memoryTypeIndex = 0;
+            {
+                VkPhysicalDeviceMemoryProperties memProps;
+                context.GetPhysicalDeviceMemoryProperties(
+                    static_cast<const PhysicalDevice&>(device.GetPhysicalDevice()).GetNativePhysicalDevice(), &memProps);
+
+                for (uint32_t i = 0; i < memProps.memoryTypeCount; ++i)
+                {
+                    if ((memReq.memoryTypeBits & (1 << i)) &&
+                        (memProps.memoryTypes[i].propertyFlags &
+                         (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)))
+                    {
+                        memoryTypeIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            VkMemoryAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            allocInfo.allocationSize = memReq.size;
+            allocInfo.memoryTypeIndex = memoryTypeIndex;
+
+            VkDeviceMemory dstMemory = VK_NULL_HANDLE;
+            context.AllocateMemory(vkDevice, &allocInfo, VkSystemAllocator::Get(), &dstMemory);
+            context.BindImageMemory(vkDevice, dstImage, dstMemory, 0);
+
+            // Build a command buffer for layout transitions & copy
+            auto cmdList = device.AcquireCommandList(vulkanQueue->GetId().m_familyIndex);
+            cmdList->BeginCommandBuffer();
+            VkCommandBuffer cmd = cmdList->GetNativeCommandBuffer();
+
+            // src: PRESENT_SRC -> TRANSFER_SRC
+            VkImageMemoryBarrier b1{};
+            b1.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            b1.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            b1.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            b1.image = srcImage;
+            b1.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+            b1.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+            b1.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+            context.CmdPipelineBarrier(
+                cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &b1);
+
+            // dst: UNDEFINED -> TRANSFER_DST
+            VkImageMemoryBarrier b2{};
+            b2.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            b2.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            b2.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            b2.image = dstImage;
+            b2.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+            b2.srcAccessMask = 0;
+            b2.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            context.CmdPipelineBarrier(
+                cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &b2);
+
+            // Copy
+            VkImageCopy region{};
+            region.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+            region.dstSubresource = region.srcSubresource;
+            region.extent = { width, height, 1 };
+
+            context.CmdCopyImage(
+                cmd, srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+            // dst -> GENERAL (for CPU read)
+            VkImageMemoryBarrier b3{};
+            b3.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            b3.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            b3.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+            b3.image = dstImage;
+            b3.subresourceRange = b2.subresourceRange;
+            b3.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            b3.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+            context.CmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 0, nullptr, 1, &b3);
+
+            // src back to PRESENT
+            VkImageMemoryBarrier b4 = b1;
+            b4.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            b4.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            b4.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            b4.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+            context.CmdPipelineBarrier(
+                cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &b4);
+
+            cmdList->EndCommandBuffer();
+
+            // Submit and wait
+            VkFenceCreateInfo fi{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+            VkFence fence;
+            context.CreateFence(vkDevice, &fi, VkSystemAllocator::Get(), &fence);
+
+            VkSubmitInfo si{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+            VkCommandBuffer nativeCmd = cmd;
+            si.commandBufferCount = 1;
+            si.pCommandBuffers = &nativeCmd;
+
+            context.QueueSubmit(vulkanQueue->GetNativeQueue(), 1, &si, fence);
+            context.WaitForFences(vkDevice, 1, &fence, VK_TRUE, UINT64_MAX);
+            context.DestroyFence(vkDevice, fence, VkSystemAllocator::Get());
+
+            // Map and write BMP
+            void* mapped = nullptr;
+            context.MapMemory(vkDevice, dstMemory, 0, VK_WHOLE_SIZE, 0, &mapped);
+
+            VkImageSubresource sub{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
+            VkSubresourceLayout layout{};
+            context.GetImageSubresourceLayout(vkDevice, dstImage, &sub, &layout);
+
+            uint8_t* pixelData = reinterpret_cast<uint8_t*>(mapped) + layout.offset;
+
+            AZStd::string path = AZStd::string::format("@user@/BMPs/swapchain_%i_%u.bmp", m_currentImage, imageIndex);
+
+            VulkanBmpWriter::WriteBMP(path.c_str(), width, height, pixelData, layout.rowPitch);
+
+            context.UnmapMemory(vkDevice, dstMemory);
+
+            context.DestroyImage(vkDevice, dstImage, VkSystemAllocator::Get());
+            context.FreeMemory(vkDevice, dstMemory, VkSystemAllocator::Get());
+        }
+#endif
     }
 }

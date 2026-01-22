@@ -70,7 +70,7 @@ float3 ApplyShaperLookupTable(
     float3 coordScale = (outputDimensions - 1.0) / outputDimensions;
     lutCoordinate = (lutCoordinate * coordScale) + coordBias;
 
-    float3 lutColor = lutTex.Sample(linearSampler, lutCoordinate).rgb;
+    float3 lutColor = lutTex.Sample(linearSampler, clamp(lutCoordinate, 0.0, 1.0)).rgb; // CARBONATED Clamp is added
 
     // Apply the inverse of the shaper function to give the color in the working color space
     float3 finalColor = ShaperToLinear(lutColor, shaperType, shaperBias, shaperScale);

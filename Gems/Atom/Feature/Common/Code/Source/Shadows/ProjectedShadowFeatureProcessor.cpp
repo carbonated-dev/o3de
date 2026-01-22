@@ -159,7 +159,7 @@ namespace AZ::Render
     void ProjectedShadowFeatureProcessor::SetNearFarPlanes(ShadowId id, float nearPlaneDistance, float farPlaneDistance)
     {
         AZ_Assert(id.IsValid(), "Invalid ShadowId passed to ProjectedShadowFeatureProcessor::SetFrontBackPlanes().");
-        
+
         ShadowProperty& shadowProperty = GetShadowPropertyFromShadowId(id);
         shadowProperty.m_desc.m_nearPlaneDistance = GetMax(nearPlaneDistance, 0.0001f);
         shadowProperty.m_desc.m_farPlaneDistance = GetMax(farPlaneDistance, nearPlaneDistance + 0.0001f);
@@ -826,8 +826,38 @@ namespace AZ::Render
             return RPI::AttachmentImage::Create(createImageRequest);
         };
 
-        m_atlasImage = createAtlas(RHI::Format::D32_FLOAT, RHI::ImageBindFlags::Depth, RHI::ImageAspectFlags::Depth, "ProjectedShadowAtlas");
+#if defined(CARBONATED)
+        // Fix for memory fragmentation/leak.
+        // Implementing a "High Water Mark" strategy: do not release the large buffer if the new requirement is smaller.
+        // Recreate the atlas only if it is needed *more* space or if the format changes.
 
+        bool needsRecreate = true;
+        if (m_atlasImage)
+        {
+            // 1. Get current Allocated specs
+            const RHI::ImageDescriptor& desc = m_atlasImage->GetDescriptor();
+            const uint32_t allocatedSize = desc.m_size.m_width;
+            const uint32_t allocatedArrayCount = desc.m_arraySize;
+            const RHI::Format allocatedFormat = desc.m_format;
+
+            // 2. Get Required specs
+            const uint32_t requiredSize = static_cast<uint32_t>(m_atlas.GetBaseShadowmapSize());
+            const uint32_t requiredArrayCount = m_atlas.GetArraySliceCount();
+
+            // 3. Determine if recreation is needed
+            if (requiredSize <= allocatedSize && requiredArrayCount <= allocatedArrayCount && allocatedFormat == RHI::Format::D32_FLOAT)
+            {
+                needsRecreate = false;
+            }
+        }
+
+        if (needsRecreate)
+        {
+            m_atlasImage = createAtlas(RHI::Format::D32_FLOAT, RHI::ImageBindFlags::Depth, RHI::ImageAspectFlags::Depth, "ProjectedShadowAtlas");
+        } // else: Reuse existing buffer.
+#else
+        m_atlasImage = createAtlas(RHI::Format::D32_FLOAT, RHI::ImageBindFlags::Depth, RHI::ImageAspectFlags::Depth, "ProjectedShadowAtlas");
+#endif
         for (auto& [key, projectedShadowmapsPass] : m_projectedShadowmapsPasses)
         {
             projectedShadowmapsPass->SetAtlasAttachmentImage(m_atlasImage);
@@ -836,7 +866,19 @@ namespace AZ::Render
 
         if (needsEsm)
         {
+#if defined(CARBONATED)
+            // Apply the same reuse logic for ESM atlas.
+            // If the main atlas needed recreation (needsRecreate) or if we don't have an ESM atlas yet, create it.
+            // Otherwise, we reuse the existing one to avoid memory thrashing.
+            bool esmRecreate = (m_esmAtlasImage == nullptr) || needsRecreate;
+
+            if (esmRecreate)
+            {
+                m_esmAtlasImage = createAtlas(RHI::Format::R16_FLOAT, RHI::ImageBindFlags::ShaderReadWrite, RHI::ImageAspectFlags::Color, "ProjectedShadowAtlasESM");
+            }
+#else
             m_esmAtlasImage = createAtlas(RHI::Format::R16_FLOAT, RHI::ImageBindFlags::ShaderReadWrite, RHI::ImageAspectFlags::Color, "ProjectedShadowAtlasESM");
+#endif
             for (auto& [key, esmShadowmapsPass] : m_esmShadowmapsPasses)
             {
                 esmShadowmapsPass->SetAtlasAttachmentImage(m_esmAtlasImage);

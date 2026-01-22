@@ -112,6 +112,9 @@ namespace CopyDependencyBuilder
             {".tif", AssetBuilderSDK::ProductPathDependencyType::SourceFile },
             {".tiff", AssetBuilderSDK::ProductPathDependencyType::SourceFile },
             {".tga", AssetBuilderSDK::ProductPathDependencyType::SourceFile },
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+            {".cube", AssetBuilderSDK::ProductPathDependencyType::SourceFile },
+#endif
             // Only need to look for DDS as a product, if it's in the source it gets copied to the cache.
             {".dds", AssetBuilderSDK::ProductPathDependencyType::ProductFile }
         };
