@@ -173,7 +173,7 @@ public class LumberyardNativeUI
             Log.e(TAG, "Interrupted while waiting for dialog", e);
             return "";
         }
-		
+
         if (CARBONATED) {
             // Force dismiss if we fell through due to activity pause
             if (currentDialog != null && currentDialog.isShowing()) {
