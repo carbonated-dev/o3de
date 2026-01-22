@@ -229,28 +229,17 @@ namespace AZ::RHI
 #if defined(CARBONATED)
         // This code snippet is available in the latest version of the engine and is taken from there.
         // Register device GPUs attributes
-        // Check if the registrar is available.
         if (auto deviceRegistrar = AzFramework::DeviceAttributeRegistrar::Get())
         {
-            // The constructor explicitly requires a vector of string_views.
             AZStd::vector<AZStd::string_view> gpuList;
-
-            // Reserve memory to optimize performance.
-            gpuList.reserve(m_devices.size());
-
-            for (const auto& device : m_devices)
-            {
-                if (device)
-                {
-                    // Taking a string_view from the device description.
-                    // This is safe because 'm_devices' stores pointers (RHI::Ptr),
-                    // so the underlying device objects and their description strings
-                    // won't move in memory during this operation.
-                    gpuList.push_back(device->GetPhysicalDevice().GetDescriptor().m_description);
-                }
-            }
-
-            // Register the attribute with the populated list.
+            AZStd::transform(
+                m_devices.begin(),
+                m_devices.end(),
+                std::back_inserter(gpuList),
+                [](const auto& device)
+				{
+                    return device->GetPhysicalDevice().GetDescriptor().m_description.c_str();
+                });
             deviceRegistrar->RegisterDeviceAttribute(AZStd::make_shared<AzFramework::DeviceAttributeGPUModel>(gpuList));
         }
 #endif
