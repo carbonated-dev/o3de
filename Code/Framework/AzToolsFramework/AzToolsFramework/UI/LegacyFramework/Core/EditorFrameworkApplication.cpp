@@ -28,12 +28,6 @@
 
 #include <AzFramework/CommandLine/CommandLine.h>
 
-// carbonated begin (akostin/mp226): Add NetworkContext to ReflectionManager instance
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-#include <AzFramework/Network/NetworkContext.h>
-#endif
-// carbonated end
-
 #include <AzToolsFramework/UI/LegacyFramework/UIFramework.hxx>
 #include <AzToolsFramework/UI/LegacyFramework/CustomMenus/CustomMenusAPI.h>
 
@@ -168,12 +162,6 @@ namespace LegacyFramework
     {
         AZ::ComponentApplication::CreateReflectionManager();
 
-// carbonated begin (akostin/mp226): Add NetworkContext to ReflectionManager instance
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-        // Setup NetworkContext
-        AZ::ReflectionEnvironment::GetReflectionManager()->AddReflectContext<AzFramework::NetworkContext>();
-#endif
-// carbonated end
         GetSerializeContext()->CreateEditContext();
     }
 

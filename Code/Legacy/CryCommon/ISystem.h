@@ -47,7 +47,6 @@ namespace AZ::IO
 }
 // carbonated begin (akostin/mp-402-1): Revert pNetwork in SSystemGlobalEnvironment
 #if defined(CARBONATED)
-struct INetwork;
 struct IGame;
 #endif
 // carbonated end
@@ -623,7 +622,6 @@ struct SSystemGlobalEnvironment
 {
     // carbonated begin (akostin/mp-402-1): Revert pNetwork in SSystemGlobalEnvironment
 #if defined(CARBONATED)
-    INetwork* pNetwork;
     IGame* pGame;
     // Used to tell if this is a server/multiplayer instance
     bool bServer;

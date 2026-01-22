@@ -38,7 +38,7 @@
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <CryCommon/CrySystemPostTickBus.h>
 #include <CryCommon/CrySystemPreTickBus.h>
-#include "CryNetwork/CryNetwork.h"
+// #include "CryNetwork/CryNetwork.h"
 #endif
 // carbonated end
 
@@ -381,10 +381,6 @@ void CSystem::ShutDown()
     SAFE_RELEASE(m_env.pMovieSystem);
     SAFE_RELEASE(m_env.pCryFont);
 
-    // carbonated begin (akostin/mp-402-1): Revert pNetwork in SSystemGlobalEnvironment
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-    CryNetwork::NetworkInstance::Release();
-#endif
     // carbonated end
     if (m_env.pConsole)
     {

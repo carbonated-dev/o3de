@@ -12,7 +12,6 @@ add_subdirectory(XML)
 
 if(CARBONATED_ENGINE_ADDONS)
 set(azcommonaddon_dependency Legacy::CryCommonAddon)
-set(aznetworkaddon_dependency Legacy::CryNetworkAddon)
 endif()
 
 ly_add_target(
@@ -38,7 +37,6 @@ ly_add_target(
             Legacy::RemoteConsoleCore
             AZ::AzFramework
             ${azcommonaddon_dependency}
-            ${aznetworkaddon_dependency}
         PUBLIC
             Gem::AudioSystem.API
 )

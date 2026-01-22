@@ -7,7 +7,7 @@
  */
 
 #pragma once
-
+/* LVBM
 #if defined(CARBONATED)
 
 #include <AzCore/Component/EntityId.h>
@@ -68,3 +68,4 @@ namespace AZ
 }
 
 #endif
+*/

@@ -303,10 +303,6 @@ namespace AZ
         //! Set the behavior at runtime when this entity's parent's transform changes.
         virtual void SetOnParentChangedBehavior([[maybe_unused]] OnParentChangedBehavior onParentChangedBehavior) {}
 
-#if defined(CARBONATED)
-        // Ignore network updates... currently
-        virtual void SetClientSimulated(bool /* clientSim */){};
-#endif
     };
 
     //! The EBus for requests to position and parent an entity.
