@@ -1014,8 +1014,19 @@ ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0' 
     implementation 'com.google.android.gms:play-services-basement:18.1.0'   
     implementation 'androidx.games:games-frame-pacing:2.1.3'
-    implementation "com.bugsnag:bugsnag-android:6.+"
-    implementation "com.bugsnag:bugsnag-android-performance:1.+"          
+    
+    // Core Bugsnag SDK
+    implementation "com.bugsnag:bugsnag-android:6.21.0"
+
+    // Needed for NDK crash reporting + NDK symbol mapping tasks
+    implementation "com.bugsnag:bugsnag-plugin-android-ndk:6.21.0"
+
+    // Needed for ANR native reporting
+    implementation "com.bugsnag:bugsnag-plugin-android-anr:6.21.0"
+    
+    // Latest stable as of Jan 2026 is 2.2.0 for bugsnag performance reporting
+    implementation "com.bugsnag:bugsnag-android-performance:2.2.0"     
+    
     implementation 'com.appsflyer:af-android-sdk:6.17.4'
     implementation 'com.android.installreferrer:installreferrer:2.2'
     implementation 'com.unity3d.ads-mediation:mediation-sdk:8.2.1'
@@ -1031,6 +1042,9 @@ ADDITIONAL_PLUGINS = """
         // Always enable upload so tasks are created in the Gradle graph.
         // Actual execution is controlled via 'onlyIf' below using the marker file.
         uploadNdkMappings = true
+
+        // We are using ndk > than r23 so we should use the newer recommended method (disable legacy upload)
+        useLegacyNdkSymbolUpload = false
         
         // 3 * 60 * 1000 = 180000. 3 minutes
         requestTimeoutMs = 180000        
@@ -2405,7 +2419,14 @@ class AndroidProjectGenerator(object):
                 'PROJECT_DEPENDENCIES': project_dependencies,
                 'PROJECT_NAMESPACE': name_space,
                 'TARGET_TYPE': 'library',
-                'NATIVE_CMAKE_SECTION_DEFAULT_CONFIG': '',
+# CARBONATED --begin: include c++_shared stl
+                'NATIVE_CMAKE_SECTION_DEFAULT_CONFIG': """
+                    externalNativeBuild {
+                        cmake {
+                            arguments "-DANDROID_STL=c++_shared"
+                        }
+                    }""",
+# CARBONATED --end
                 'NATIVE_CMAKE_SECTION_ANDROID': '',
                 'NATIVE_CMAKE_SECTION_DEBUG_CONFIG': '',
                 'NATIVE_CMAKE_SECTION_PROFILE_CONFIG': '',
