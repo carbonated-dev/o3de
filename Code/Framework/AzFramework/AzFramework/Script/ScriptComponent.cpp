@@ -921,7 +921,11 @@ namespace AzFramework
                 };
 
                 serializeContext->Class<ScriptComponent, AZ::Component>()
+#if defined(CARBONATED)
                     ->Version(5, converter)                             // LVBM Version is 5 after removing GridMate
+#else
+                    ->Version(4, converter)
+#endif
                     ->Field("ContextID", &ScriptComponent::m_contextId)
                     ->Field("Properties", &ScriptComponent::m_properties)
                     ->Field("Script", &ScriptComponent::m_script)

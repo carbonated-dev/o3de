@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
-/* LVBM
+
 #if defined(CARBONATED)
 
 #include <AzCore/Script/ScriptContext.h>
@@ -68,4 +68,3 @@ namespace AZ
 }
 
 #endif
-*/

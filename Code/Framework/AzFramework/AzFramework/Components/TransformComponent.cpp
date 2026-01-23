@@ -720,7 +720,11 @@ namespace AzFramework
         {
             serializeContext->ClassDeprecate("NetBindable", AZ::Uuid("{80206665-D429-4703-B42E-94434F82F381}"));
             serializeContext->Class<TransformComponent, AZ::Component>()
+#if defined(CARBONATED)
                 ->Version(6, &TransformComponentVersionConverter)   // LVBM. Version is 6 after removing GridMate
+#else
+                ->Version(5, &TransformComponentVersionConverter)
+#endif
                 ->Field("Parent", &TransformComponent::m_parentId)
                 ->Field("Transform", &TransformComponent::m_worldTM)
                 ->Field("LocalTransform", &TransformComponent::m_localTM)

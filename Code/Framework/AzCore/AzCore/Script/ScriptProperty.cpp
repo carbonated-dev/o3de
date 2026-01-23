@@ -12,6 +12,10 @@
 #include <AzCore/Script/lua/lua.h>
 #include <AzCore/Script/ScriptProperty.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Script/ScriptPropertyEntityRef.h>
+#endif
+
 namespace AZ
 {
     // Add TypeInfo and RTTI Reflection within the cpp file
@@ -75,6 +79,10 @@ namespace AZ
         ScriptPropertyGenericClassArray::Reflect(reflection);
 
         ScriptPropertyAsset::Reflect(reflection);
+
+#if defined(CARBONATED)
+        ScriptPropertyEntityRef::Reflect(reflection);
+#endif
     }
 
     template<class Iterator>
