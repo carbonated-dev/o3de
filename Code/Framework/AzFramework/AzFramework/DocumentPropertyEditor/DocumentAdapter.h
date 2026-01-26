@@ -8,6 +8,10 @@
 
 #pragma once
 
+#if defined CARBONATED
+#include "AzCore/EBus/EBus.h"
+#endif
+
 #include <AzCore/DOM/DomPatch.h>
 #include <AzCore/DOM/DomValue.h>
 #include <AzCore/EBus/Event.h>
@@ -91,6 +95,21 @@ namespace AZ::DocumentPropertyEditor
         //! Returns the BoundAdapterMessage if successful.
         static AZStd::optional<BoundAdapterMessage> TryMarshalFromDom(const Dom::Value& value);
     };
+
+#if defined CARBONATED
+    class DocumentAdapterEventBusTraits : public AZ::EBusTraits
+    {
+    public:
+        static constexpr AZ::EBusHandlerPolicy HandlerPolicy = AZ::EBusHandlerPolicy::Multiple;
+        static constexpr AZ::EBusAddressPolicy AddressPolicy = AZ::EBusAddressPolicy::Single;
+
+        virtual ~DocumentAdapterEventBusTraits() = default;
+        virtual void SuspendInput() = 0;
+        virtual void ResumeInput() = 0;
+    };
+
+    using DocumentAdapterEventBus = AZ::EBus<DocumentAdapterEventBusTraits>;
+#endif
 
     //! A DocumentAdapter provides an interface for transforming data from an arbitrary
     //! source into a DOM hierarchy that can be viewed and edited by a DocumentPropertyView.

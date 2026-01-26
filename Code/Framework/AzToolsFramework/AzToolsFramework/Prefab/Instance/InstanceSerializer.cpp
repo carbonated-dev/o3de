@@ -175,6 +175,9 @@ namespace AzToolsFramework
 
             if (instanceDomMetadata == nullptr || cachedInstanceDom == AZStd::nullopt)
             {
+#if defined CARBONATED
+                AZ::DocumentPropertyEditor::DocumentAdapterEventBus::Broadcast(&AZ::DocumentPropertyEditor::DocumentAdapterEventBus::Events::SuspendInput);
+#endif
                 ClearAndLoadInstances(inputValue, context, instance, result);
 
                 if (idMapper && *idMapper)

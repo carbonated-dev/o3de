@@ -25,6 +25,9 @@ namespace AzToolsFramework
 {
     class PropertyStringLineEditCtrl
         : public QWidget
+#if defined CARBONATED
+        , private AZ::DocumentPropertyEditor::DocumentAdapterEventBus::Handler
+#endif
     {
         friend class StringPropertyLineEditHandler;
         Q_OBJECT
@@ -53,6 +56,13 @@ namespace AzToolsFramework
         virtual void focusInEvent(QFocusEvent* e);
 
         QLineEdit* m_pLineEdit;
+#if defined CARBONATED
+    private:
+        void SuspendInput() override;
+        void ResumeInput() override;
+
+        bool m_suspended = false;
+#endif
     };
 
     class StringPropertyLineEditHandler
@@ -71,6 +81,11 @@ namespace AzToolsFramework
         virtual void UpdateWidgetInternalTabbing(PropertyStringLineEditCtrl* widget) override { widget->UpdateTabOrder(); }
 
         virtual QWidget* CreateGUI(QWidget* pParent) override;
+
+#if defined CARBONATED
+        virtual void OnEditingFinished(PropertyStringLineEditCtrl* ctrl);
+#endif
+
         virtual void ConsumeAttribute(PropertyStringLineEditCtrl* GUI, AZ::u32 attrib, PropertyAttributeReader* attrValue, const char* debugName) override;
         virtual void WriteGUIValuesIntoProperty(size_t index, PropertyStringLineEditCtrl* GUI, property_t& instance, InstanceDataNode* node) override;
         virtual bool ReadValuesIntoGUI(size_t index, PropertyStringLineEditCtrl* GUI, const property_t& instance, InstanceDataNode* node)  override;
