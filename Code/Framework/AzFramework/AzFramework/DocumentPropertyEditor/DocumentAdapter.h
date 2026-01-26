@@ -97,6 +97,12 @@ namespace AZ::DocumentPropertyEditor
     };
 
 #if defined CARBONATED
+    // EventBus for fixing a crash in the editor when editing a string field in a prefab.
+    // When modifying a string input field in a prefab, all entities in the scene reload,
+    // and if a repeated input is made from the string field,
+    // there is an attempt to write data into an already destroyed prefab.
+    // The string input field may trigger twice if input is completed by pressing the Enter key
+    // or after entering text and switching to another input field.
     class DocumentAdapterEventBusTraits : public AZ::EBusTraits
     {
     public:
@@ -104,8 +110,8 @@ namespace AZ::DocumentPropertyEditor
         static constexpr AZ::EBusAddressPolicy AddressPolicy = AZ::EBusAddressPolicy::Single;
 
         virtual ~DocumentAdapterEventBusTraits() = default;
-        virtual void SuspendInput() = 0;
-        virtual void ResumeInput() = 0;
+        virtual void SuspendInput() = 0;    // Event to suspend input in the editor.
+        virtual void ResumeInput() = 0;     // Event to resume input in the editor.
     };
 
     using DocumentAdapterEventBus = AZ::EBus<DocumentAdapterEventBusTraits>;

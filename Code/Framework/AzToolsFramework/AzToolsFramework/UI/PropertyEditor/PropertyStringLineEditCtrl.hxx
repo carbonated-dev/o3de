@@ -58,8 +58,11 @@ namespace AzToolsFramework
         QLineEdit* m_pLineEdit;
 #if defined CARBONATED
     private:
+        ////////////////////////////////////////////////////////////////////////
+        // DocumentAdapterEventBus interface implementation
         void SuspendInput() override;
         void ResumeInput() override;
+        ////////////////////////////////////////////////////////////////////////
 
         bool m_suspended = false;
 #endif
