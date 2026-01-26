@@ -52,6 +52,10 @@ namespace AZ
             AZ_DISABLE_COPY(AreaLightComponentController);
 
             // AreaLightRequestBus::Handler overrides ...
+#if defined(CARBONATED) && defined(CARBONATED_LIGHTGROUPS)
+            void SetVisible(bool isVisible) override;
+            bool GetVisible() const override;
+#endif
             const Color& GetColor() const override;
             void SetColor(const Color& color) override;
             bool GetLightEmitsBothDirections() const override;
