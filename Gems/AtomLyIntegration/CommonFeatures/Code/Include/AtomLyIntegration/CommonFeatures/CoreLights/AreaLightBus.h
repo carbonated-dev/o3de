@@ -30,7 +30,7 @@ namespace AZ
 
             virtual ~AreaLightRequests() {}
 
-#if defined(CARBONATED) && defined(CARBONATED_LIGHTGROUPS)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_VIZ)
             //! Sets an area light's visibility
             virtual void SetVisible(bool isVisible) = 0;
 

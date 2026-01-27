@@ -192,7 +192,7 @@ namespace AZ::Render
         }
     }
 
-#if defined(CARBONATED) && defined(CARBONATED_LIGHTGROUPS)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_VIZ)
 
     void AreaLightComponentController::SetVisible(bool isVisible)
     {
