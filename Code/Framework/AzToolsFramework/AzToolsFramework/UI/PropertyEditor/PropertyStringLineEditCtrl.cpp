@@ -38,6 +38,10 @@ namespace AzToolsFramework
         setLayout(pLayout);
         setFocusProxy(m_pLineEdit);
         setFocusPolicy(m_pLineEdit->focusPolicy());
+
+#if defined CARBONATED
+        AZ::DocumentPropertyEditor::DocumentAdapterEventBus::Handler::BusConnect();
+#endif
     };
 
     void PropertyStringLineEditCtrl::setValue(AZStd::string& value)
@@ -85,6 +89,9 @@ namespace AzToolsFramework
 
     PropertyStringLineEditCtrl::~PropertyStringLineEditCtrl()
     {
+#if defined CARBONATED
+        AZ::DocumentPropertyEditor::DocumentAdapterEventBus::Handler::BusDisconnect();
+#endif
     }
 
 
@@ -102,16 +109,43 @@ namespace AzToolsFramework
         // There's only one QT widget on this property.
     }
 
+#if defined CARBONATED
+    void PropertyStringLineEditCtrl::SuspendInput()
+    {
+        m_suspended = true;
+    }
+
+    void PropertyStringLineEditCtrl::ResumeInput()
+    {
+        m_suspended = false;
+    }
+#endif
+
     QWidget* StringPropertyLineEditHandler::CreateGUI(QWidget* pParent)
     {
         PropertyStringLineEditCtrl* newCtrl = aznew PropertyStringLineEditCtrl(pParent);
+#if defined CARBONATED
+        connect(newCtrl->GetLineEdit(), &QLineEdit::editingFinished, this, [this, newCtrl]() { OnEditingFinished(newCtrl); });
+#else
         connect(newCtrl->GetLineEdit(), &QLineEdit::editingFinished, this, [newCtrl]()
             {
                 PropertyEditorGUIMessagesBus::Broadcast(&PropertyEditorGUIMessages::RequestWrite, newCtrl);
                 PropertyEditorGUIMessagesBus::Broadcast(&PropertyEditorGUIMessages::OnEditingFinished, newCtrl);
             });
+#endif
         return newCtrl;
     }
+
+#if defined CARBONATED
+    void StringPropertyLineEditHandler::OnEditingFinished(PropertyStringLineEditCtrl* ctrl)
+    {
+        if (!ctrl->m_suspended)
+        {
+            PropertyEditorGUIMessagesBus::Broadcast(&PropertyEditorGUIMessages::RequestWrite, ctrl);
+            PropertyEditorGUIMessagesBus::Broadcast(&PropertyEditorGUIMessages::OnEditingFinished, ctrl);
+        }
+    }
+#endif
 
     void StringPropertyLineEditHandler::ConsumeAttribute(PropertyStringLineEditCtrl* GUI, AZ::u32 attrib, PropertyAttributeReader* attrValue, const char* debugName)
     {
