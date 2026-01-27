@@ -114,7 +114,7 @@ namespace AZ
                 DisplayMapperOperationTypeReflect(*serializeContext);
                 
                 serializeContext->Class<DisplayMapperConfigurationDescriptor>()
-                    ->Version(3)
+                    ->Version(4)
                     ->Field("Name", &DisplayMapperConfigurationDescriptor::m_name)
                     ->Field("OperationType", &DisplayMapperConfigurationDescriptor::m_operationType)
                     ->Field("LdrGradingLutEnabled", &DisplayMapperConfigurationDescriptor::m_ldrGradingLutEnabled)
