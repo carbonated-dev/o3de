@@ -624,8 +624,8 @@ struct SSystemGlobalEnvironment
 #if defined(CARBONATED)
     IGame* pGame;
     // Used to tell if this is a server/multiplayer instance
-    bool bServer;
-    bool bMultiplayer;
+    // LVBM bool bServer;
+    // LVBM bool bMultiplayer;
 #endif
     // carbonated end
     AZ::IO::IArchive*          pCryPak;
