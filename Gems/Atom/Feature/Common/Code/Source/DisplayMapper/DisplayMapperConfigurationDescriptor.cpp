@@ -114,7 +114,11 @@ namespace AZ
                 DisplayMapperOperationTypeReflect(*serializeContext);
                 
                 serializeContext->Class<DisplayMapperConfigurationDescriptor>()
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+                    ->Version(4)
+#else
                     ->Version(3)
+#endif
                     ->Field("Name", &DisplayMapperConfigurationDescriptor::m_name)
                     ->Field("OperationType", &DisplayMapperConfigurationDescriptor::m_operationType)
                     ->Field("LdrGradingLutEnabled", &DisplayMapperConfigurationDescriptor::m_ldrGradingLutEnabled)
