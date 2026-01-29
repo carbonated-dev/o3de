@@ -1782,11 +1782,19 @@ namespace AZ
         void Pass::ReplaceSubpassInputs(RHI::SubpassInputSupportType supportedTypes)
         {
             m_flags.m_hasSubpassInput = false;
+            
+            //int nSubpassInputs = 0;
+            //int nSetTrue = 0;
+            //int nShader = 0;
+            
             for (size_t slotIndex = 0; slotIndex < m_attachmentBindingsSize; ++slotIndex)
             {
                 PassAttachmentBinding& binding = m_attachmentBindings[slotIndex];
                 if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::SubpassInput)
                 {
+                    //nSubpassInputs++;
+                    //binding.m_scopeAttachmentUsage = RHI::ScopeAttachmentUsage::Shader;
+                    
                     const RHI::ImageViewDescriptor& descriptor = binding.m_unifiedScopeDesc.GetImageViewDescriptor();
                     if ((RHI::CheckBitsAny(descriptor.m_aspectFlags, RHI::ImageAspectFlags::Color) &&
                          RHI::CheckBitsAny(supportedTypes, RHI::SubpassInputSupportType::Color)) ||
@@ -1794,14 +1802,17 @@ namespace AZ
                          RHI::CheckBitsAny(supportedTypes, RHI::SubpassInputSupportType::DepthStencil)))
                     {
                         m_flags.m_hasSubpassInput = true;
+                        //nSetTrue++;
                     }
                     else
                     {
                         binding.m_scopeAttachmentUsage = RHI::ScopeAttachmentUsage::Shader;
-                        continue;
+                        //nShader++;
+                        continue;  // why? I believe there should be break after the condition
                     }
                 }
             }
+            //AZ_Info("rrr", "nSubpassInputs=%d nSetTrue=%d nShader=%d", nSubpassInputs, nSetTrue, nShader);
         }
 
         void Pass::PrintIndent(AZStd::string& stringOutput, uint32_t indent) const

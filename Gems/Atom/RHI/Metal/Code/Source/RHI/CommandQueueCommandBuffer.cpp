@@ -40,6 +40,9 @@ namespace AZ
                     MTLCommandBufferDescriptor* mtlCommandBufferDesc = [[MTLCommandBufferDescriptor alloc] init];
                     mtlCommandBufferDesc.errorOptions = MTLCommandBufferErrorOptionEncoderExecutionStatus;
                     m_mtlCommandBuffer = [m_hwQueue commandBufferWithDescriptor:mtlCommandBufferDesc];
+                    
+                    AZ_Info("ddd", "got command buffer %p (debug) at %f", m_mtlCommandBuffer, double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0);
+                    
                     [mtlCommandBufferDesc release];
                     mtlCommandBufferDesc = nil;
                 }
@@ -49,6 +52,8 @@ namespace AZ
             if(m_mtlCommandBuffer == nil)
             {
                 m_mtlCommandBuffer = [m_hwQueue commandBuffer];
+
+                AZ_Info("ddd", "got command buffer %p (normal) at %f", m_mtlCommandBuffer, double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0);
             }
             
             // Add a addCompletedHandler which can be used for outputting useful information in case of an error
@@ -141,6 +146,12 @@ namespace AZ
 #if defined(CARBONATED)
                     else
                     {
+                        /*
+                        {
+                            const char * cbLabel = [ buffer.label UTF8String ];
+                            AZ_Info("rrr", "completed %s at %f", cbLabel, double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0);
+                        }
+                        */
                         CFTimeInterval begin = buffer.GPUStartTime;
                         CFTimeInterval end = buffer.GPUEndTime;
                         RHI::Device* pDevice = RHI::RHISystemInterface::Get()->GetDevice();
@@ -211,9 +222,19 @@ namespace AZ
                 pDevice->MarkCommandBufferCommit(static_cast<const void*>(m_mtlCommandBuffer));
 #endif
                 [m_mtlCommandBuffer commit];
+#if defined(CARBONATED)
+                AZ_Info("sss", "CommandQueueCommandBuffer::CommitMetalCommandBuffer %p at %f", m_mtlCommandBuffer, double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0);
+                //swapchain->ReleaseDrawable(m_mtlCommandBuffer);
+#endif
 #if defined (AZ_FORCE_CPU_GPU_INSYNC)
                 // Wait for the gpu to finish executing the work related to the command buffer
+                const double start = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
                 [m_mtlCommandBuffer waitUntilCompleted];
+                {
+                    const char * label = [ m_mtlCommandBuffer.label UTF8String ];
+                    AZ_Info("rrr", "buffer %p (%s) started at %f, completed at %f", m_mtlCommandBuffer, label,
+                            start, double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0);
+                }
 #endif
             }
             

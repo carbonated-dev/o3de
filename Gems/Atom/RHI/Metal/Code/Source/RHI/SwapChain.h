@@ -31,7 +31,10 @@ namespace AZ
             void SetCommandBuffer(id <MTLCommandBuffer> mtlCommandBuffer);
             
             id<MTLTexture> RequestDrawable(bool isFrameCaptureEnabled); 
-            
+
+#if defined(CARBONATED)
+            void ReleaseDrawable(id <MTLCommandBuffer>   mtlCommandBuffer);
+#endif
         private:
             SwapChain() = default;
             
@@ -48,6 +51,7 @@ namespace AZ
 #endif
             
             void LogDrawable(const char* name, id<MTLTexture> readTexture);
+            void AffectDrawable(const char* name, id<MTLTexture> writeTexture);
 
             //////////////////////////////////////////////////////////////////////////
             
@@ -62,6 +66,17 @@ namespace AZ
             uint32_t m_refreshRate = 0;
             CGSize m_drawableSize;
             mutable AZStd::mutex m_drawablesMutex;
+#if defined(CARBONATED)
+            struct StoredDrawable
+            {
+                id<CAMetalDrawable> m_drawable;
+                id <MTLCommandBuffer>   m_mtlCommandBuffer;
+                StoredDrawable(id<CAMetalDrawable> drawable, id <MTLCommandBuffer>   mtlCommandBuffer)
+                    : m_drawable(drawable), m_mtlCommandBuffer(mtlCommandBuffer)
+                {}
+            };
+            AZStd::vector<StoredDrawable> m_storedDrawables;
+#endif
         };
     }
 }

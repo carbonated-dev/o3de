@@ -144,6 +144,16 @@ namespace AZ
                      
                      //Commit the command buffer to the command queue
                      request.m_commandBuffer->CommitMetalCommandBuffer(isCommitNeeded);
+                     
+#if defined(CARBONATED)
+                     if (isCommitNeeded)
+                     {
+                         for (RHI::DeviceSwapChain* swapChain : request.m_swapChainsToPresent)
+                         {
+                             static_cast<SwapChain*>(swapChain)->ReleaseDrawable(workRequestCommandBuffer);
+                         }
+                     }
+#endif
                  }
              });
         }

@@ -39,12 +39,15 @@ namespace Platform
     {
         //seconds per frame (1/refreshrate) * num frames (sync interval)
         float presentAfterMinimumDuration = syncInterval / refreshRate;
+        const double t = double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0;
         if (presentAfterMinimumDuration > 0.0f)
         {
+            AZ_Info("ddd", "present drawable %p at %f, with delay %f", drawable.texture, t, t + presentAfterMinimumDuration);
             [mtlCommandBuffer presentDrawable:drawable afterMinimumDuration:presentAfterMinimumDuration];
         }
         else
         {
+            AZ_Info("ddd", "present drawable %p at %f", drawable.texture, t);
             [mtlCommandBuffer presentDrawable:drawable];
         }
     }

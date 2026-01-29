@@ -56,7 +56,7 @@ namespace AZ
             {
                 CommandList* commandList = m_workRequest.m_commandLists[i];
                 m_device->SetLastExecutingScope(commandList->GetName().GetStringView());
-                cmdQueue->FlushCommands();
+                //cmdQueue->FlushCommands();  // it is called from WaitForIdle()
                 cmdQueue->WaitForIdle();
             }
 #else
@@ -122,7 +122,7 @@ namespace AZ
                     }
                 }
                 
-                needsImageView = true;  // "rrr"
+                //needsImageView = true;  // make drawable readable for debug purposes, see "rrr" "ddd" log messages
                 
                 // This call may block if the presentation system doesn't have any drawables available.
                 id<MTLTexture> drawableTexture = metalSwapChain->RequestDrawable(needsImageView);
@@ -135,7 +135,7 @@ namespace AZ
                 for (int i = 0; i < size; i++)
                 {
                     const auto& ca = context.m_renderPassDescriptor.colorAttachments[i];
-                    AZ_Info("rrr", "  index %d, texture %x", i, ca.texture);
+                    AZ_Info("rrr", "  index %d, texture %p", i, ca.texture);
                 }
              }
         }

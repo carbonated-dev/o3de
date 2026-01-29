@@ -145,7 +145,7 @@ namespace AZ
     
         void SwapChain::LogDrawable(const char* name, id<MTLTexture> readTexture)
         {
-            AZ_Info("rrr", "LogDrawable %s", name);
+            AZ_Info("ddd", "LogDrawable %s", name);
             
             MTLPixelFormat pixelFormat = readTexture.pixelFormat;
             switch (pixelFormat)
@@ -153,7 +153,7 @@ namespace AZ
                 case MTLPixelFormatBGRA8Unorm:
                     break;
                 default:
-                    AZ_Info("rrr", "  unsupported format %d", (uint32_t)pixelFormat);
+                    AZ_Info("ddd", "  unsupported format %d", (uint32_t)pixelFormat);
                     return;
             }
             
@@ -166,7 +166,7 @@ namespace AZ
             readBuffer = [GetDevice().GetMtlDevice() newBufferWithLength:bytesPerImage options:MTLResourceStorageModeShared];
             if (!readBuffer)
             {
-                AZ_Info("rrr", "  cannot create buffer");
+                AZ_Info("ddd", "  cannot create buffer");
                 return;
             }
             
@@ -213,12 +213,12 @@ namespace AZ
             uint32_t* row = pixels;
             for (int y = 0;  y < 2 /*readSize.height*/;  y++)
             {
-                AZ_Info("rrr", "  row %d: %x %x %x %x", y, row[0], row[1], row[2], row[3]);
+                AZ_Info("ddd", "  row %d: %x %x %x %x", y, row[0], row[1], row[2], row[3]);
                 /*
                  for (int x = 0;  x < readSize.width;  x++)
                  {
                  uint32_t pixel = row[x];
-                 AZ_Info("rrr", "%d,%d %x\n", x, y, pixel);
+                 AZ_Info("ddd", "%d,%d %x\n", x, y, pixel);
                  }
                  */
                 row += readSize.width;
@@ -226,20 +226,212 @@ namespace AZ
             
             [readBuffer release];
         }
-    
+
+    void SwapChain::AffectDrawable(const char* name, id<MTLTexture> writeTexture)
+    {
+        AZ_Info("ddd", "AffectDrawable %s", name);
+        
+        MTLPixelFormat pixelFormat = writeTexture.pixelFormat;
+        switch (pixelFormat)
+        {
+            case MTLPixelFormatBGRA8Unorm:
+                break;
+            default:
+                AZ_Info("ddd", "  unsupported format %d", (uint32_t)pixelFormat);
+                return;
+        }
+        
+        size_t sourceWidth = writeTexture.width ;
+        size_t sourceHeight = writeTexture.height;
+        size_t resultWidth = sourceWidth;
+        size_t resultHeight = sourceHeight;
+        
+        static id<MTLDevice> sDevice;
+        static id<MTLCommandQueue> sCommandQueue;
+        static bool sCreated = false;
+        
+        static const float sVerticesR180[4 * 4] =
+        {
+            -1.0f, -1.0f,  1.0f, 0.0f,
+             1.0f, -1.0f,  0.0f, 0.0f,
+            -1.0f,  1.0f,  1.0f, 1.0f,
+             1.0f,  1.0f,  0.0f, 1.0f
+        };
+        const float* vertexData = sVerticesR180;
+        
+        if (!sCreated)
+        {
+            sCreated = true;
+            sDevice = MTLCreateSystemDefaultDevice();
+            sCommandQueue = [sDevice newCommandQueue];
+        }
+
+        @autoreleasepool
+        {
+            id<MTLBuffer> vertexBuffer = [sDevice newBufferWithBytes:vertexData length:sizeof(sVerticesR180) options:MTLResourceCPUCacheModeDefaultCache];
+            vertexBuffer.label = @"TestVertices";
+
+            MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
+            textureDescriptor.textureType = MTLTextureType2D;
+            textureDescriptor.width = resultWidth;
+            textureDescriptor.height = resultHeight;
+            textureDescriptor.depth = 1;
+            textureDescriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;
+            textureDescriptor.storageMode = MTLStorageModeShared;
+            //textureDescriptor.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
+            textureDescriptor.usage = MTLTextureUsageShaderRead;
+            id<MTLTexture> sourceTexture = [sDevice newTextureWithDescriptor:textureDescriptor];
+            [textureDescriptor release];
+            if (!sourceTexture)
+            {
+                AZ_Error("ddd", false, "Texture creation error");
+                return;
+            }
+
+            MTLRenderPassDescriptor *renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+            MTLRenderPassColorAttachmentDescriptor* colorAttachment = renderPassDescriptor.colorAttachments[0];
+            colorAttachment.texture = writeTexture;
+            colorAttachment.loadAction = MTLLoadActionClear;
+            colorAttachment.storeAction = MTLStoreActionStore;
+            colorAttachment.clearColor = MTLClearColorMake(1.0f, 0.0f, 0.0f, 1.0f);
+
+            id<MTLCommandBuffer> commandBuffer = [sCommandQueue commandBuffer];
+            commandBuffer.label = @"TestCommand";
+            
+            // ***************************
+            // render source texture
+
+            id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+            renderEncoder.label = @"TestRenderEncoder";
+
+            MTLDepthStencilDescriptor *depthStencilDesc = [[MTLDepthStencilDescriptor alloc] init];
+            depthStencilDesc.depthCompareFunction = MTLCompareFunctionAlways;
+            depthStencilDesc.depthWriteEnabled = NO;
+            id<MTLDepthStencilState> depthStencilState = [sDevice newDepthStencilStateWithDescriptor:depthStencilDesc];
+
+            [renderEncoder setDepthStencilState:depthStencilState];
+            
+            [renderEncoder pushDebugGroup:@"AffectTexture"];
+            [renderEncoder setViewport:(MTLViewport){0.0, 0.0, (double)resultWidth, (double)resultHeight, 0.0, 1.0 }];
+        
+
+            //id<MTLLibrary> defaultLibrary = [sDevice newDefaultLibrary];
+        
+            NSString* libraryShaders = @"\n\
+#include <metal_stdlib>\n\
+using namespace metal;\n\
+\n\
+typedef struct\n\
+{\n\
+    packed_float2 position;\n\
+    packed_float2 texcoord;\n\
+} Vertex;\n\
+\n\
+typedef struct\n\
+{\n\
+    float4 position [[position]];\n\
+    float2 texcoord;\n\
+} Varyings;\n\
+\n\
+vertex Varyings TestVertexProgram(constant Vertex* verticies [[ buffer(0) ]], unsigned int vid [[ vertex_id ]])\n\
+{\n\
+    Varyings out;\n\
+    constant Vertex& v = verticies[vid];\n\
+    out.position = float4(v.position.x, v.position.y, 0.0, 1.0);\n\
+    out.texcoord = v.texcoord;\n\
+    return out;\n\
+}\n\
+\n\
+fragment half4 TestFragmentProgram(Varyings in [[ stage_in ]], texture2d<float, access::sample> texture [[ texture(0) ]])\n\
+{\n\
+    constexpr sampler s(address::clamp_to_edge, filter::linear);\n\
+    float3 color = float3(texture.sample(s, in.texcoord).rgb);\n\
+    color = float3(1.0, 0.0, 0.0);\n\
+    return half4(half3(color), 1.0);\n\
+}";
+            NSError* error = nil;
+            id<MTLLibrary> defaultLibrary = [sDevice newLibraryWithSource:libraryShaders options:nil error:&error];
+            if (error)
+            {
+                AZ_Error("ddd", false, "Cannot ctreate test library (might be shader error)");
+                return;
+            }
+
+            id<MTLFunction> fragmentProgram = [defaultLibrary newFunctionWithName:@"TestFragmentProgram"];
+            id<MTLFunction> vertexProgram = [defaultLibrary newFunctionWithName:@"TestVertexProgram"];
+        
+            MTLRenderPipelineDescriptor *pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+            pipelineStateDescriptor.label = @"TestPipeline";
+            pipelineStateDescriptor.rasterSampleCount = 1;
+            [pipelineStateDescriptor setVertexFunction:vertexProgram];
+            [pipelineStateDescriptor setFragmentFunction:fragmentProgram];
+            pipelineStateDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+            pipelineStateDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
+            pipelineStateDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
+        
+            id<MTLRenderPipelineState> pipelineState = [sDevice newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
+            if (!pipelineState)
+            {
+                AZ_Error("ddd", false, "Cannot create pipeline state, error %@", error);
+                return;
+            }
+            [pipelineStateDescriptor release];
+        
+            [renderEncoder setRenderPipelineState:pipelineState];
+        
+            [renderEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
+            [renderEncoder setFragmentTexture:sourceTexture atIndex:0];
+            [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:1];
+            [renderEncoder popDebugGroup];
+            
+            [renderEncoder endEncoding];
+            
+            __block bool commandSuccess = true;
+            [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer)
+             {
+                if (buffer.status == MTLCommandBufferStatusError)
+                {
+                    [[maybe_unused]] const char * cbLabel = [ buffer.label UTF8String ];
+                    [[maybe_unused]] const int errorCode = static_cast<int>(buffer.error.code);
+                    AZ_Error("ddd", false, "Command buffer %s failed to execute: %d", cbLabel, errorCode);
+                    commandSuccess = false;
+                }
+            }];
+            
+            [commandBuffer commit];
+            [commandBuffer waitUntilCompleted];
+
+            AZ_Info("ddd", "Painted drawable red at %f", double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0);
+
+            if (!commandSuccess)
+            {
+                AZ_Error("ddd", false, "Command buffer failed");
+                return;
+            }
+
+            [vertexBuffer release];
+            [vertexProgram release];
+            [fragmentProgram release];
+            [defaultLibrary release];
+        }
+    }
+
         uint32_t SwapChain::PresentInternal()
         {
             const uint32_t currentImageIndex = GetCurrentImageIndex();
             
-            AZ_Info("rrr", "SwapChain::PresentInternal %d of %d", currentImageIndex, GetImageCount());
-            
-            //if (currentImageIndex == 2)
-            //static int counter = 0;
-            //if (++counter % 10 == 0)
             {
                 id<MTLTexture> readTexture = m_drawables[currentImageIndex].texture;
-                const AZStd::string s = AZStd::string::format("SwapChain::PresentInternal %d, texture %p", currentImageIndex, readTexture);
-                LogDrawable(s.c_str(), readTexture);
+                const char * label = [ m_mtlCommandBuffer.label UTF8String ];
+                AZ_Info("ddd", "SwapChain::PresentInternal %d of %d, texture %p, buffer %p (%s), at %f",
+                        currentImageIndex, GetImageCount(),
+                        readTexture, m_mtlCommandBuffer, label,
+                        double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0);
+                
+                //const AZStd::string s = AZStd::string::format("SwapChain::PresentInternal %d, texture %p, at %f", currentImageIndex, readTexture);
+                //LogDrawable(s.c_str(), readTexture);
+                //AffectDrawable(s.c_str(), readTexture);
+                //LogDrawable(s.c_str(), readTexture);
             }
             
             //Preset the drawable
@@ -248,7 +440,14 @@ namespace AZ
                                           m_drawables[currentImageIndex], GetDescriptor().m_verticalSyncInterval,
                                           m_refreshRate);
             
+#if defined(CARBONATED)
+            {
+                AZStd::lock_guard<AZStd::mutex> lock(m_drawablesMutex);
+                m_storedDrawables.push_back(StoredDrawable(m_drawables[currentImageIndex] , m_mtlCommandBuffer));
+            }
+#else
             [m_drawables[currentImageIndex] release];
+#endif
             m_drawables[currentImageIndex] = nil;
             
 #if defined(CARBONATED)
@@ -257,6 +456,23 @@ namespace AZ
             return (GetCurrentImageIndex() + 1) % GetImageCount();
 #endif
         }
+
+#if defined(CARBONATED)
+        void SwapChain::ReleaseDrawable(id <MTLCommandBuffer>   mtlCommandBuffer)
+        {
+            AZStd::lock_guard<AZStd::mutex> lock(m_drawablesMutex);
+            AZ_Info("sss", "SwapChain::ReleaseDrawable for buffer %p (has %d) at %f",
+                    mtlCommandBuffer, m_storedDrawables.size(), double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0);
+            for (auto it = m_storedDrawables.begin(); it != m_storedDrawables.end(); it++)
+                if (mtlCommandBuffer == it->m_mtlCommandBuffer)
+                {
+                    AZ_Info("sss", "  release texture %p", it->m_drawable.texture);
+                    [it->m_drawable release];
+                    m_storedDrawables.erase(it);
+                    break;
+                }
+        }
+#endif
 
         RHI::ResultCode SwapChain::ResizeInternal(const RHI::SwapChainDimensions& dimensions, RHI::SwapChainDimensions* nativeDimensions)
         {
@@ -293,7 +509,7 @@ namespace AZ
             const uint32_t currentImageIndex = GetCurrentImageIndex();
             if(m_drawables[currentImageIndex])
             {
-                AZ_Info("rrr", "SwapChain::RequestDrawable already has drawable %d", currentImageIndex);
+                AZ_Info("ddd", "SwapChain::RequestDrawable already has drawable %d", currentImageIndex);
                 //We already have a drawable for this frame. Lets return that
                 //This can happen if a pass comes after Swapchain and wants to write to the swapchain texture
                 return m_drawables[currentImageIndex].texture;
@@ -311,7 +527,7 @@ namespace AZ
                 
                 //Need this to make sure the drawable is alive for Present call
                 [m_drawables[currentImageIndex] retain];
-                
+
                 id<MTLTexture> mtlDrawableTexture =  m_drawables[currentImageIndex].texture;
                 if(isFrameCaptureEnabled)
                 {
@@ -336,8 +552,10 @@ namespace AZ
                 
                 {
                     const int maximumDrawableCount = [m_metalView.metalLayer maximumDrawableCount];
-                    AZ_Info("rrr", "SwapChain::RequestDrawable got new drawable %d (metal count %d)", currentImageIndex, maximumDrawableCount);
-                    LogDrawable("SwapChain::RequestDrawable", mtlDrawableTexture);
+                    AZ_Info("ddd", "SwapChain::RequestDrawable got new drawable %d (metal count %d), texture %p, capture enabled %d, at %f",
+                            currentImageIndex, maximumDrawableCount, mtlDrawableTexture, isFrameCaptureEnabled,
+                            double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0);
+                    //LogDrawable("SwapChain::RequestDrawable", mtlDrawableTexture);
                 }
 
                 return mtlDrawableTexture;

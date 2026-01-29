@@ -141,6 +141,8 @@ namespace AZ::Metal
 
     RHI::ResultCode ClearAttachments::Clear(CommandList& commandList, MTLRenderPassDescriptor* renderpassDesc, const AZStd::vector<ClearAttachments::ClearData>& clearAttachmentsData)
     {
+        return RHI::ResultCode::Success;  //???
+        
         if (renderpassDesc == nil)
         {
             return RHI::ResultCode::InvalidArgument;

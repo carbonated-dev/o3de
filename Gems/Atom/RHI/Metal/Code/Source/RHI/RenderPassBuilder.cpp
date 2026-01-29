@@ -121,7 +121,7 @@ namespace AZ::Metal
                         if (renderTargetTexture)
                         {
                             b = v;
-                            AZ_Info("ttt", "    RenderTarget: cannot find index for %s, create new idx %d, texture %x, load action %d",
+                            AZ_Info("ttt", "    RenderTarget: cannot find index for %s, create new idx %d, texture %p, load action %d",
                                     attachmentId.GetCStr(), colorAttachmentIndex, renderTargetTexture, mtlLoadAction);
                         }
                         else
@@ -142,6 +142,8 @@ namespace AZ::Metal
                         RHI::ClearValue clearVal = bindingDescriptor.m_loadStoreAction.m_clearValue;
                         if (mtlLoadAction == MTLLoadActionClear)
                         {
+                            //colorAttachment.loadAction = MTLLoadActionDontCare;  // test
+                            
                              if(clearVal.m_type == RHI::ClearValueType::Vector4Float)
                             {
                                 //colorAttachment.clearColor = MTLClearColorMake(clearVal.m_vector4Float[0], clearVal.m_vector4Float[1], clearVal.m_vector4Float[2], clearVal.m_vector4Float[3]);
