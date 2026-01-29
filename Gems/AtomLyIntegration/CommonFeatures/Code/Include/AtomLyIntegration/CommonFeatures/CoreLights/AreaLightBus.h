@@ -30,6 +30,14 @@ namespace AZ
 
             virtual ~AreaLightRequests() {}
 
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_VIZ)
+            //! Sets an area light's visibility
+            virtual void SetVisible(bool isVisible) = 0;
+
+            //! Gets an area light's visibility
+            virtual bool GetVisible() const = 0;
+#endif
+
             //! Gets an area light's color. This value is independent from its intensity.
             virtual const Color& GetColor() const = 0;
 
