@@ -52,6 +52,7 @@ namespace AZ
             
             void LogDrawable(const char* name, id<MTLTexture> readTexture);
             void AffectDrawable(const char* name, id<MTLTexture> writeTexture);
+            void AffectDrawable(id<MTLTexture> writeTexture);
 
             //////////////////////////////////////////////////////////////////////////
             

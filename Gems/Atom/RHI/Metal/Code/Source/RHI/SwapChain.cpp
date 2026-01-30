@@ -208,6 +208,8 @@ namespace AZ
             [commandBuffer commit];
             [commandBuffer waitUntilCompleted];
             
+            [blitEncoder release];
+            
             uint32_t* pixels = (uint32_t*)readBuffer.contents;
             
             uint32_t* row = pixels;
@@ -227,8 +229,8 @@ namespace AZ
             [readBuffer release];
         }
 
-    void SwapChain::AffectDrawable(const char* name, id<MTLTexture> writeTexture)
-    {
+        void SwapChain::AffectDrawable(const char* name, id<MTLTexture> writeTexture)
+        {
         AZ_Info("ddd", "AffectDrawable %s", name);
         
         MTLPixelFormat pixelFormat = writeTexture.pixelFormat;
@@ -401,6 +403,12 @@ fragment half4 TestFragmentProgram(Varyings in [[ stage_in ]], texture2d<float, 
             [commandBuffer commit];
             [commandBuffer waitUntilCompleted];
 
+            [renderEncoder release];
+            [vertexBuffer release];
+            [vertexProgram release];
+            [fragmentProgram release];
+            [defaultLibrary release];
+
             AZ_Info("ddd", "Painted drawable red at %f", double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0);
 
             if (!commandSuccess)
@@ -408,13 +416,173 @@ fragment half4 TestFragmentProgram(Varyings in [[ stage_in ]], texture2d<float, 
                 AZ_Error("ddd", false, "Command buffer failed");
                 return;
             }
-
-            [vertexBuffer release];
-            [vertexProgram release];
-            [fragmentProgram release];
-            [defaultLibrary release];
         }
-    }
+}
+
+        void SwapChain::AffectDrawable(id<MTLTexture> writeTexture)
+        {
+            AZ_Info("ddd", "AffectDrawable");
+            
+            MTLPixelFormat pixelFormat = writeTexture.pixelFormat;
+            switch (pixelFormat)
+            {
+                case MTLPixelFormatBGRA8Unorm:
+                    break;
+                default:
+                    AZ_Info("ddd", "  unsupported format %d", (uint32_t)pixelFormat);
+                    return;
+            }
+            
+            size_t sourceWidth = writeTexture.width ;
+            size_t sourceHeight = writeTexture.height;
+            size_t resultWidth = sourceWidth;
+            size_t resultHeight = sourceHeight;
+            
+            static id<MTLDevice> sDevice;
+            static bool sCreated = false;
+            
+            if (!sCreated)
+            {
+                sCreated = true;
+                sDevice = MTLCreateSystemDefaultDevice();
+            }
+
+            static const float sVerticesR180[4 * 4] =
+            {
+                -1.0f, -1.0f,  1.0f, 0.0f,
+                 1.0f, -1.0f,  0.0f, 0.0f,
+                -1.0f,  1.0f,  1.0f, 1.0f,
+                 1.0f,  1.0f,  0.0f, 1.0f
+            };
+            const float* vertexData = sVerticesR180;
+            
+            @autoreleasepool
+            {
+                id<MTLBuffer> vertexBuffer = [sDevice newBufferWithBytes:vertexData length:sizeof(sVerticesR180) options:MTLResourceCPUCacheModeDefaultCache];
+                vertexBuffer.label = @"TestVertices";
+
+                MTLTextureDescriptor *textureDescriptor = [[MTLTextureDescriptor alloc] init];
+                textureDescriptor.textureType = MTLTextureType2D;
+                textureDescriptor.width = resultWidth;
+                textureDescriptor.height = resultHeight;
+                textureDescriptor.depth = 1;
+                textureDescriptor.pixelFormat = MTLPixelFormatBGRA8Unorm;
+                textureDescriptor.storageMode = MTLStorageModeShared;
+                //textureDescriptor.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
+                textureDescriptor.usage = MTLTextureUsageShaderRead;
+                id<MTLTexture> sourceTexture = [sDevice newTextureWithDescriptor:textureDescriptor];
+                [textureDescriptor release];
+                if (!sourceTexture)
+                {
+                    AZ_Error("ddd", false, "Texture creation error");
+                    return;
+                }
+
+                MTLRenderPassDescriptor *renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+                MTLRenderPassColorAttachmentDescriptor* colorAttachment = renderPassDescriptor.colorAttachments[0];
+                colorAttachment.texture = writeTexture;
+                colorAttachment.loadAction = MTLLoadActionClear;
+                colorAttachment.storeAction = MTLStoreActionStore;
+                colorAttachment.clearColor = MTLClearColorMake(1.0f, 0.0f, 0.0f, 1.0f);
+
+                // ***************************
+                // render source texture
+
+                id<MTLRenderCommandEncoder> renderEncoder = [m_mtlCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+                renderEncoder.label = @"TestRenderEncoder";
+
+                MTLDepthStencilDescriptor *depthStencilDesc = [[MTLDepthStencilDescriptor alloc] init];
+                depthStencilDesc.depthCompareFunction = MTLCompareFunctionAlways;
+                depthStencilDesc.depthWriteEnabled = NO;
+                id<MTLDepthStencilState> depthStencilState = [sDevice newDepthStencilStateWithDescriptor:depthStencilDesc];
+
+                [renderEncoder setDepthStencilState:depthStencilState];
+                
+                [renderEncoder pushDebugGroup:@"AffectTexture"];
+                [renderEncoder setViewport:(MTLViewport){0.0, 0.0, (double)resultWidth, (double)resultHeight, 0.0, 1.0 }];
+            
+
+                //id<MTLLibrary> defaultLibrary = [sDevice newDefaultLibrary];
+            
+                NSString* libraryShaders = @"\n\
+    #include <metal_stdlib>\n\
+    using namespace metal;\n\
+    \n\
+    typedef struct\n\
+    {\n\
+        packed_float2 position;\n\
+        packed_float2 texcoord;\n\
+    } Vertex;\n\
+    \n\
+    typedef struct\n\
+    {\n\
+        float4 position [[position]];\n\
+        float2 texcoord;\n\
+    } Varyings;\n\
+    \n\
+    vertex Varyings TestVertexProgram(constant Vertex* verticies [[ buffer(0) ]], unsigned int vid [[ vertex_id ]])\n\
+    {\n\
+        Varyings out;\n\
+        constant Vertex& v = verticies[vid];\n\
+        out.position = float4(v.position.x, v.position.y, 0.0, 1.0);\n\
+        out.texcoord = v.texcoord;\n\
+        return out;\n\
+    }\n\
+    \n\
+    fragment half4 TestFragmentProgram(Varyings in [[ stage_in ]], texture2d<float, access::sample> texture [[ texture(0) ]])\n\
+    {\n\
+        constexpr sampler s(address::clamp_to_edge, filter::linear);\n\
+        float3 color = float3(texture.sample(s, in.texcoord).rgb);\n\
+        color = float3(1.0, 0.0, 0.0);\n\
+        return half4(half3(color), 1.0);\n\
+    }";
+                NSError* error = nil;
+                id<MTLLibrary> defaultLibrary = [sDevice newLibraryWithSource:libraryShaders options:nil error:&error];
+                if (error)
+                {
+                    AZ_Error("ddd", false, "Cannot ctreate test library (might be shader error)");
+                    return;
+                }
+
+                id<MTLFunction> fragmentProgram = [defaultLibrary newFunctionWithName:@"TestFragmentProgram"];
+                id<MTLFunction> vertexProgram = [defaultLibrary newFunctionWithName:@"TestVertexProgram"];
+            
+                MTLRenderPipelineDescriptor *pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+                pipelineStateDescriptor.label = @"TestPipeline";
+                pipelineStateDescriptor.rasterSampleCount = 1;
+                [pipelineStateDescriptor setVertexFunction:vertexProgram];
+                [pipelineStateDescriptor setFragmentFunction:fragmentProgram];
+                pipelineStateDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+                pipelineStateDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
+                pipelineStateDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
+            
+                id<MTLRenderPipelineState> pipelineState = [sDevice newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
+                if (!pipelineState)
+                {
+                    AZ_Error("ddd", false, "Cannot create pipeline state, error %@", error);
+                    return;
+                }
+                [pipelineStateDescriptor release];
+            
+                [renderEncoder setRenderPipelineState:pipelineState];
+
+                [renderEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
+                [renderEncoder setFragmentTexture:sourceTexture atIndex:0];
+                [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4 instanceCount:1];
+                [renderEncoder popDebugGroup];
+                
+                [renderEncoder endEncoding];
+                
+                [renderEncoder release];
+                //[pipelineState release];
+                //[vertexBuffer release];
+                //[vertexProgram release];
+                //[fragmentProgram release];
+                //[defaultLibrary release];
+
+                AZ_Info("ddd", "Added paint drawable red");
+            }
+        }
 
         uint32_t SwapChain::PresentInternal()
         {
@@ -427,13 +595,15 @@ fragment half4 TestFragmentProgram(Varyings in [[ stage_in ]], texture2d<float, 
                         currentImageIndex, GetImageCount(),
                         readTexture, m_mtlCommandBuffer, label,
                         double(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)) / 1000000000.0);
-                
+
+                //AffectDrawable(readTexture);
+
                 //const AZStd::string s = AZStd::string::format("SwapChain::PresentInternal %d, texture %p, at %f", currentImageIndex, readTexture);
                 //LogDrawable(s.c_str(), readTexture);
                 //AffectDrawable(s.c_str(), readTexture);
                 //LogDrawable(s.c_str(), readTexture);
             }
-            
+
             //Preset the drawable
             Platform::PresentInternal(
                                           m_mtlCommandBuffer,

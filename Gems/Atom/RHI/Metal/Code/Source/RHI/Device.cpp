@@ -404,6 +404,7 @@ namespace AZ
             AZ_Assert(m_metalDevice.argumentBuffersSupport >= MTLArgumentBuffersTier1, "Atom needs Argument buffer support to run");
             
             m_features.m_subpassInputSupport = RHI::SubpassInputSupportType::Color;
+            //m_features.m_subpassInputSupport = RHI::SubpassInputSupportType::None;  //???
         }
 
         CommandList* Device::AcquireCommandList(RHI::HardwareQueueClass hardwareQueueClass)

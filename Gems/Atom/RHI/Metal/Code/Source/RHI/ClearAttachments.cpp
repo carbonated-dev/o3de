@@ -71,6 +71,9 @@ namespace AZ::Metal
 {
     RHI::ResultCode ClearAttachments::Init(RHI::Device& device)
     {
+        return RHI::ResultCode::Success;  //???
+
+        
         RHI::DeviceObject::Init(device);
         
         // No streams required. We calculate the vertices positions in the vertex shader.
@@ -135,6 +138,8 @@ namespace AZ::Metal
 
     void ClearAttachments::Shutdown()
     {
+        return;  //???
+
         m_pipelineStateDescriptor = {};
         m_pipelineCache.clear();
     }
