@@ -56,9 +56,19 @@
 // Since read accesses tend to be used in flow-control logic, constants allow for better optimization by the compiler.
 #define LOG_CONST_CVAR_ACCESS 0
 
+#if defined(CARBONATED)
+
 #if (defined(WIN32) || defined(WIN64) || LOG_CONST_CVAR_ACCESS) && !defined(RELEASE_LOGGING)
     #define RELEASE_LOGGING
 #endif
+
+#else // defined(CARBONATED)
+
+#if (defined(WIN32) || defined(WIN64) || LOG_CONST_CVAR_ACCESS)
+#define RELEASE_LOGGING
+#endif
+
+#endif // defined(CARBONATED)
 
 #if defined(_RELEASE) && !defined(RELEASE_LOGGING)
     #define EXCLUDE_NORMAL_LOG
