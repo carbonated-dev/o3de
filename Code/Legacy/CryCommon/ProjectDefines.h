@@ -56,7 +56,7 @@
 // Since read accesses tend to be used in flow-control logic, constants allow for better optimization by the compiler.
 #define LOG_CONST_CVAR_ACCESS 0
 
-#if defined(WIN32) || defined(WIN64) || LOG_CONST_CVAR_ACCESS
+#if (defined(WIN32) || defined(WIN64) || LOG_CONST_CVAR_ACCESS) && !defined(RELEASE_LOGGING)
     #define RELEASE_LOGGING
 #endif
 
