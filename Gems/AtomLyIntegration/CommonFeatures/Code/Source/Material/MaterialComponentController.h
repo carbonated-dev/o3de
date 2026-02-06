@@ -13,7 +13,9 @@
 #include <Atom/RPI.Public/Material/Material.h>
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentBus.h>
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentConfig.h>
-
+#if defined(CARBONATED)
+#include <AzFramework/API/ApplicationAPI.h>
+#endif
 namespace AZ
 {
     namespace Render
@@ -23,6 +25,9 @@ namespace AZ
         class MaterialComponentController final
             : MaterialComponentRequestBus::Handler
             , MaterialConsumerNotificationBus::Handler
+#if defined(CARBONATED)
+            , public AzFramework::ApplicationLifecycleEvents::Bus::Handler
+#endif
             , Data::AssetBus::MultiHandler
             , SystemTickBus::Handler
         {
@@ -82,7 +87,7 @@ namespace AZ
 
             //! MaterialConsumerNotificationBus::Handler overrides...
             void OnMaterialAssignmentSlotsChanged() override;
-
+            
         private:
 
             AZ_DISABLE_COPY(MaterialComponentController);
@@ -95,6 +100,12 @@ namespace AZ
 
             // AZ::SystemTickBus overrides...
             void OnSystemTick() override;
+
+#if defined(CARBONATED)
+            // ApplicationLifecycleEvents::Bus overrides
+            void OnApplicationConstrained(AzFramework::ApplicationLifecycleEvents::Event /*lastEvent*/) override;
+            void OnApplicationUnconstrained(AzFramework::ApplicationLifecycleEvents::Event /*lastEvent*/) override;
+#endif
 
             void LoadMaterials();
             // Typically called from thread context of Data::AssetBus::MultiHandler::OnAssetXXX.
@@ -147,6 +158,10 @@ namespace AZ
             bool m_queuedMaterialsCreatedNotification = false;
             bool m_queuedMaterialsUpdatedNotification = false;
             bool m_queuedLoadMaterials = false;
+            
+#if defined(CARBONATED)
+            bool m_onPause = false;
+#endif
         };
     } // namespace Render
 } // namespace AZ
