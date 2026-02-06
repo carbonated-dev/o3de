@@ -87,7 +87,7 @@ namespace AZ
 
             //! MaterialConsumerNotificationBus::Handler overrides...
             void OnMaterialAssignmentSlotsChanged() override;
-            
+
         private:
 
             AZ_DISABLE_COPY(MaterialComponentController);
