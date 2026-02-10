@@ -826,17 +826,13 @@ namespace EMotionFX
 
     void AnimGraphMotionNode::RecursiveOnChangeMotionSet(AnimGraphInstance* animGraphInstance, MotionSet* newMotionSet)
     {
-        AnimGraphNode::RecursiveOnChangeMotionSet(animGraphInstance, newMotionSet);
-#if defined(CARBONATED)
-        ReloadAndInvalidateUniqueDatas();// Gruber patch begin : EmotionFX version in o3de is not compatible
-#else
+        AnimGraphNode::RecursiveOnChangeMotionSet(animGraphInstance, newMotionSet); 
         UniqueData* uniqueData = static_cast<UniqueData*>(animGraphInstance->GetUniqueObjectData(m_objectIndex));
         if (uniqueData)
         {
             uniqueData->m_reload = true;
             uniqueData->Invalidate();
         }
-#endif
     }
 
     void AnimGraphMotionNode::OnMotionIdsChanged()

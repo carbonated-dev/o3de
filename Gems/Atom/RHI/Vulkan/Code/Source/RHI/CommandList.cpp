@@ -40,8 +40,16 @@
 #include <RHI/SwapChain.h>
 
 #if defined(CARBONATED) && !defined(_RELEASE)
+
 #include <Atom/RHI.Reflect/IndirectBufferLayout.h>
 #include <Atom/RHI/DispatchRaysItem.h>
+#include <RHI/ReleaseContainer.h>
+#include <AzCore/Time/ITime.h>
+
+#if defined(CARBONATED_SAVE_RENDERPASSES)
+#include "VulkanBmpWriter.h"
+#endif
+
 #endif
 
 namespace AZ
@@ -925,6 +933,9 @@ namespace AZ
                         RHI::ShadingRateCombinators{ RHI::ShadingRateCombinerOp::Override, RHI::ShadingRateCombinerOp::Passthrough });
                 }
             }
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+            m_captureIndex = device.GetAndIncrementRenderPassNumber();
+#endif
         }
 
         void CommandList::NextSubpass(VkSubpassContents contents)
@@ -939,6 +950,10 @@ namespace AZ
         void CommandList::EndRenderPass()
         {
             static_cast<Device&>(GetDevice()).GetContext().CmdEndRenderPass(m_nativeCommandBuffer);
+
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+            CheckCapturingToBmp();
+#endif
             m_state.m_framebuffer = nullptr;
             m_state.m_subpassIndex = 0;
         }
@@ -1581,5 +1596,273 @@ namespace AZ
                     vkClearValue.i);
         }
 
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+        void CommandList::CheckCapturingToBmp()
+        {
+            auto& device = static_cast<Device&>(GetDevice());
+            const Framebuffer* framebuffer = m_state.m_framebuffer;
+
+            if (!device.IsSavingRenderPassesToBmp() || !framebuffer)
+            {
+                return;
+            }
+
+            const ImageView* imageView = framebuffer->GetFirstAttachment();
+            if (!imageView)
+            {
+                return;
+            }
+
+            const Image& image = static_cast<const Image&>(imageView->GetImage());
+            const auto& imgDesc = image.GetDescriptor();
+            auto& context = device.GetContext();
+
+            VkFormat vkFormat = AZ::Vulkan::ConvertFormat(imgDesc.m_format);
+            VkImage srcImage = image.GetNativeImage();
+            uint32_t width = framebuffer->GetSize().m_width;
+            uint32_t height = framebuffer->GetSize().m_height;
+
+            // --- Staging image ---
+            VkImageCreateInfo stagingInfo{};
+            stagingInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+            stagingInfo.imageType = VK_IMAGE_TYPE_2D;
+            stagingInfo.format = vkFormat;
+            stagingInfo.extent = { width, height, 1 };
+            stagingInfo.mipLevels = 1;
+            stagingInfo.arrayLayers = 1;
+            stagingInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+            stagingInfo.tiling = VK_IMAGE_TILING_LINEAR;
+            stagingInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            stagingInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+            VkDevice vkDevice = device.GetNativeDevice();
+            VkImage stagingImage = VK_NULL_HANDLE;
+            context.CreateImage(vkDevice, &stagingInfo, VkSystemAllocator::Get(), &stagingImage);
+
+            VkMemoryRequirements stagingReq{};
+            context.GetImageMemoryRequirements(vkDevice, stagingImage, &stagingReq);
+
+            uint32_t stagingMemType = device.FindMemoryTypeIndex(
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingReq.memoryTypeBits);
+
+            VkMemoryAllocateInfo stagingAlloc{};
+            stagingAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            stagingAlloc.allocationSize = stagingReq.size;
+            stagingAlloc.memoryTypeIndex = stagingMemType;
+
+            VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+            context.AllocateMemory(vkDevice, &stagingAlloc, VkSystemAllocator::Get(), &stagingMemory);
+            context.BindImageMemory(vkDevice, stagingImage, stagingMemory, 0);
+
+            // Barriers and copying
+            VkImageSubresourceRange range{};
+            range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            range.baseMipLevel = 0;
+            range.levelCount = 1;
+            range.baseArrayLayer = 0;
+            range.layerCount = 1;
+
+            VkImageMemoryBarrier b1{};
+            b1.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            b1.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            b1.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            b1.image = srcImage;
+            b1.subresourceRange = range;
+            b1.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            b1.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+            context.CmdPipelineBarrier(
+                m_nativeCommandBuffer,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                0,
+                0,
+                nullptr,
+                0,
+                nullptr,
+                1,
+                &b1);
+
+            VkImageMemoryBarrier b2{};
+            b2.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            b2.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            b2.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            b2.image = stagingImage;
+            b2.subresourceRange = range;
+            b2.srcAccessMask = 0;
+            b2.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            context.CmdPipelineBarrier(
+                m_nativeCommandBuffer,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                0,
+                0,
+                nullptr,
+                0,
+                nullptr,
+                1,
+                &b2);
+
+            VkImageCopy copyRegion{};
+            copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+            copyRegion.dstSubresource = copyRegion.srcSubresource;
+            copyRegion.extent = { width, height, 1 };
+
+            context.CmdCopyImage(
+                m_nativeCommandBuffer,
+                srcImage,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                stagingImage,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                1,
+                &copyRegion);
+
+            VkImageMemoryBarrier b3{};
+            b3.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            b3.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            b3.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+            b3.image = stagingImage;
+            b3.subresourceRange = range;
+            b3.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            b3.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+            context.CmdPipelineBarrier(
+                m_nativeCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 0, nullptr, 1, &b3);
+
+            VkImageMemoryBarrier b4 = b1;
+            b4.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            b4.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            b4.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            b4.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+            context.CmdPipelineBarrier(
+                m_nativeCommandBuffer,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                0,
+                0,
+                nullptr,
+                0,
+                nullptr,
+                1,
+                &b4);
+
+            AZStd::string rawName = framebuffer->GetRenderPass()->GetName().GetStringView();
+            AZStd::string cleanName = VulkanBmpWriter::StripPipelinePrefix(rawName);
+
+            DebugCaptureEntry entry;
+            entry.m_stagingImage = stagingImage;
+            entry.m_stagingMemory = stagingMemory;
+            entry.m_format = vkFormat;
+            entry.m_width = width;
+            entry.m_height = height;
+            entry.m_memorySize = stagingReq.size;
+            entry.m_imageNumber = device.GetImageNumber();
+            entry.m_captureIndex = m_captureIndex;
+            entry.m_passName = cleanName;
+            // Viewport
+            if (!m_state.m_viewportState.m_states.empty())
+            {
+                const RHI::Viewport& vp = m_state.m_viewportState.m_states[0];
+                entry.m_viewportX = static_cast<int>(vp.m_minX);
+                entry.m_viewportY = static_cast<int>(vp.m_minY);
+                entry.m_viewportW = static_cast<int>(vp.m_maxX - vp.m_minX);
+                entry.m_viewportH = static_cast<int>(vp.m_maxY - vp.m_minY);
+            }
+            else
+            {
+                entry.m_viewportX = entry.m_viewportY = 0;
+                entry.m_viewportW = entry.m_viewportH = -1;
+            }
+
+            // Scissor
+            if (!m_state.m_scissorState.m_states.empty())
+            {
+                const RHI::Scissor& sc = m_state.m_scissorState.m_states[0];
+                entry.m_scissorX = static_cast<int>(sc.m_minX);
+                entry.m_scissorY = static_cast<int>(sc.m_minY);
+                entry.m_scissorW = static_cast<int>(sc.m_maxX - sc.m_minX);
+                entry.m_scissorH = static_cast<int>(sc.m_maxY - sc.m_minY);
+            }
+            else
+            {
+                entry.m_scissorX = entry.m_scissorY = 0;
+                entry.m_scissorW = entry.m_scissorH = -1;
+            }
+
+            m_debugCaptures.push_back(entry);
+        }
+
+        static const char* FormatToString(VkFormat f)
+        {
+            static char buff[64];
+            switch (f)
+            {
+            case VK_FORMAT_R8G8B8A8_UNORM:
+                return "R8G8B8A8";
+            case VK_FORMAT_B8G8R8A8_UNORM:
+                return "B8G8R8A8";
+            case VK_FORMAT_R16G16B16A16_SFLOAT:
+                return "R16G16B16A16F";
+            case VK_FORMAT_R16G16_SNORM:
+                return "R16G16_SNORM";
+            case VK_FORMAT_D32_SFLOAT:
+                return "D32";
+            default:
+                std::snprintf(buff, sizeof(buff) - 1, "%i", static_cast<int>(f));
+                return buff;
+            }
+        }
+
+        void CommandList::SavePendingCapturesToBmp()
+        {
+            auto& device = static_cast<Device&>(GetDevice());
+            auto& context = device.GetContext();
+            VkDevice vkDevice = device.GetNativeDevice();
+
+            for (const DebugCaptureEntry& entry : m_debugCaptures)
+            {
+                if (entry.m_stagingImage == VK_NULL_HANDLE || entry.m_stagingMemory == VK_NULL_HANDLE)
+                {
+                    continue;
+                }
+
+                void* mapped = nullptr;
+                context.MapMemory(vkDevice, entry.m_stagingMemory, 0, VK_WHOLE_SIZE, 0, &mapped);
+
+                VkImageSubresource sub{};
+                sub.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                sub.mipLevel = 0;
+                sub.arrayLayer = 0;
+
+                VkSubresourceLayout layout{};
+                context.GetImageSubresourceLayout(vkDevice, entry.m_stagingImage, &sub, &layout);
+
+                uint8_t* pixelData = reinterpret_cast<uint8_t*>(mapped) + layout.offset;
+
+                AZStd::string path = AZStd::string::format(
+                    "@user@/BMPs/"
+                    "cmdlist_%i_pass_%02i_(%s)(%s)"
+                    "rt_%ux%u_"
+                    "vp_%d_%d_%d_%d_"
+                    "sc_%d_%d_%d_%d_"
+                    "row_%lu.bmp",
+                    entry.m_imageNumber, entry.m_captureIndex, FormatToString(entry.m_format), entry.m_passName.c_str(),
+                    entry.m_width, entry.m_height,
+                    entry.m_viewportX, entry.m_viewportY, entry.m_viewportW, entry.m_viewportH,
+                    entry.m_scissorX, entry.m_scissorY, entry.m_scissorW, entry.m_scissorH,
+                    static_cast<unsigned long>(layout.rowPitch));
+
+                VulkanBmpWriter::WriteAnyFormatBMP(path.c_str(), entry.m_width, entry.m_height, pixelData, layout.rowPitch, entry.m_format);
+
+                context.UnmapMemory(vkDevice, entry.m_stagingMemory);
+                context.DestroyImage(vkDevice, entry.m_stagingImage, VkSystemAllocator::Get());
+                context.FreeMemory(vkDevice, entry.m_stagingMemory, VkSystemAllocator::Get());
+            }
+
+            m_debugCaptures.clear();
+        }
+#endif
     }
 }

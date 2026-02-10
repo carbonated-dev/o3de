@@ -11,7 +11,6 @@ ly_set(PAL_LINKOPTION_MODULE MODULE)
 
 ly_set(PAL_TRAIT_BUILD_HOST_GUI_TOOLS TRUE)
 ly_set(PAL_TRAIT_BUILD_HOST_TOOLS TRUE)
-# CARBONATED: set server supported on mac
 ly_set(PAL_TRAIT_BUILD_SERVER_SUPPORTED FALSE)
 ly_set(PAL_TRAIT_BUILD_UNIFIED_SUPPORTED FALSE)
 ly_set(PAL_TRAIT_BUILD_UNITY_SUPPORTED TRUE)
@@ -53,9 +52,6 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET ${LY_MAC_DEPLOYMENT_TARGET})
 
 # Set the python cmd tool
 ly_set(LY_PYTHON_CMD ${CMAKE_CURRENT_SOURCE_DIR}/python/python.sh)
-
-# Compiler flag to export all symbols from a library
-ly_set(PAL_TRAIT_EXPORT_ALL_SYMBOLS_COMPILE_OPTIONS -fvisibility=default)
 
 # Only x86_64 is currently supported on Mac
 ly_set(CMAKE_OSX_ARCHITECTURES "x86_64")

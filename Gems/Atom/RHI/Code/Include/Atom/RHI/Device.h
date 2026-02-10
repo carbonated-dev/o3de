@@ -187,6 +187,18 @@ namespace AZ::RHI
         void EnableGatheringStats();
         void DisableGatheringStats();
         unsigned int GetLastFrameToLog() const { return m_lastFrameToLog; }
+#if defined(CARBONATED_SAVE_RENDERPASSES)
+        bool IsSavingRenderPassesToBmp() const { return m_savingRenderPassesToBmp; }
+        void StartSavingRenderPassesToBmp(int currentImage)
+        {
+            m_savingRenderPassesToBmp = true;
+            m_renderPassNumber = 0;
+            m_imageNumber = currentImage;
+        }
+        void StopSavingRenderPassesToBmp() { m_savingRenderPassesToBmp = false; }
+        int GetAndIncrementRenderPassNumber() { return ++m_renderPassNumber; }
+        const int GetImageNumber() const { return m_imageNumber; }
+#endif
 #endif
     protected:
 
@@ -269,7 +281,7 @@ namespace AZ::RHI
 
         // Cache the name of the last executing scope name. Used within AZ_FORCE_CPU_GPU_INSYNC
         AZStd::string m_lastExecutingScope;
-        
+
 #if defined(CARBONATED)
         unsigned int m_frameCounter = 0;
         AZStd::mutex m_FrameTimeLock;
@@ -283,6 +295,11 @@ namespace AZ::RHI
         bool m_statsEnabled = false;
         unsigned int m_lastFrameToLog = 0;
         double m_startLogTime = 0;
+#if defined(CARBONATED_SAVE_RENDERPASSES)
+        bool m_savingRenderPassesToBmp = false;
+        int m_renderPassNumber = 0;
+        int m_imageNumber = 0;
+#endif
 #endif
     };
 }

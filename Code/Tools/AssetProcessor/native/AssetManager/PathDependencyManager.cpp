@@ -455,7 +455,12 @@ namespace AssetProcessor
         // Multiple systems use the AZ Serialization system to reference assets and collect these asset references. Not all of these systems
         // check if the references are to source or product asset types.
         // Instead requiring each of these systems to handle this (and failing in hard to track down ways later when they don't), check here, and clean things up.
-        const AZStd::vector<AZStd::string> sourceImageExtensions = { ".tif", ".tiff", ".bmp", ".gif", ".jpg", ".jpeg", ".tga", ".png" };
+        const AZStd::vector<AZStd::string> sourceImageExtensions = {
+            ".tif", ".tiff", ".bmp", ".gif", ".jpg", ".jpeg", ".tga", ".png"
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+            , ".cube"
+#endif
+        };
         for (const AZStd::string& sourceImageExtension : sourceImageExtensions)
         {
             if (AzFramework::StringFunc::Path::IsExtension(pathDependency.m_dependencyPath.c_str(), sourceImageExtension.c_str()))

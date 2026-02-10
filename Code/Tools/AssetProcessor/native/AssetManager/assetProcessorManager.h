@@ -590,6 +590,9 @@ namespace AssetProcessor
         AZStd::unordered_set<AZStd::string> m_processingProductInfoList;
         AZ::s64 m_highestJobRunKeySoFar = 0;
         AZStd::vector<JobToProcessEntry> m_jobEntries;
+#if defined(CARBONATED) && defined(AZ_AP_OPTIMIZATION)
+        AZStd::unordered_set<AZStd::string> m_jobAssetPaths;
+#endif
         AZStd::unordered_set<JobDetails> m_jobsToProcess;
         //! This map is required to prevent multiple sourceFile modified events been send by the APM
         AZStd::unordered_map<AZ::Uuid, qint64> m_sourceFileModTimeMap;

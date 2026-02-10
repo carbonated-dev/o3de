@@ -22,6 +22,7 @@ namespace
 {
     static const AZ::RHI::Format LutFormat = AZ::RHI::Format::R16G16B16A16_FLOAT;
 
+#if !(defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE))
     uint16_t ConvertFloatToHalf(const float Value)
     {
         uint32_t result;
@@ -54,6 +55,7 @@ namespace
         // Add back sign and return
         return static_cast<uint16_t>(result | sign);
     }
+#endif
 }
 
 namespace AZ::Render
@@ -256,6 +258,10 @@ namespace AZ::Render
             return;
         }
 
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+        Data::Asset<RPI::StreamingImageAsset> asset = RPI::AssetUtils::LoadAssetById<RPI::StreamingImageAsset>(assetId, RPI::AssetUtils::TraceLevel::Error);
+        Data::Instance<RPI::StreamingImage> lutStreamingImage = RPI::StreamingImage::FindOrCreate(asset);
+#else
         // Read the lut which is a .3dl file embedded within an azasset file.
         Data::Asset<RPI::AnyAsset> asset = RPI::AssetUtils::LoadAssetById<RPI::AnyAsset>(assetId, RPI::AssetUtils::TraceLevel::Error);
         const LookupTableAsset* lutAsset = RPI::GetDataFromAnyAsset<LookupTableAsset>(asset);
@@ -333,6 +339,7 @@ namespace AZ::Render
         Data::Instance<RPI::StreamingImage> lutStreamingImage = RPI::StreamingImage::CreateFromCpuData(
             *streamingImagePool, RHI::ImageDimension::Image3D, imageSize, LutFormat, u16Buffer.data(), imageDataSize);
 
+#endif
         AZ_Error("AcesDisplayMapperFeatureProcessor", lutStreamingImage, "Failed to initialize the lut assetId %s.", assetId.ToString<AZStd::string>().c_str());
 
         DisplayMapperAssetLut assetLut;

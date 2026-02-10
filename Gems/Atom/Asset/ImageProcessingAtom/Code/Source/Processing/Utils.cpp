@@ -257,12 +257,19 @@ namespace ImageProcessingAtom
 
             u32 width = imageDescriptor.m_size.m_width;
             u32 height = imageDescriptor.m_size.m_height;
+#if defined(CARBONATED)
+            u32 depth = imageDescriptor.m_size.m_depth;
+#endif
             u32 mipLevels = imageDescriptor.m_mipLevels;
             u32 arraySize = imageDescriptor.m_arraySize;
 
             height *= arraySize;
 
+#if defined(CARBONATED)
+            IImageObjectPtr outputImage = IImageObjectPtr(IImageObject::CreateImage(width, height, depth, mipLevels, format));
+#else
             IImageObjectPtr outputImage = IImageObjectPtr(IImageObject::CreateImage(width, height, mipLevels, format));
+#endif
 
             if (isSRGB)
             {

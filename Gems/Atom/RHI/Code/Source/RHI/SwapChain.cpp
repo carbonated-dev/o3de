@@ -197,6 +197,12 @@ namespace AZ::RHI
         m_descriptor.m_verticalSyncInterval = verticalSyncInterval;
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+    void SwapChain::SaveRenderPassesImages()
+    {
+        SaveRenderPassesImagesInternal();
+    }
+#endif
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
     void SwapChain::SetDesiredFPS(uint32_t desiredFPS)
     {

@@ -55,6 +55,9 @@ namespace AZ
             //! Returns the index of the image view that correspons to one used by the ImageScopeAttachment.
             //! If not found an empty optional is returned.
             AZStd::optional<uint32_t> FindImageViewIndex(RHI::ImageScopeAttachment& scopeAttachment) const;
+#if defined(CARBONATED) && defined(CARBONATED_SAVE_RENDERPASSES)
+            const ImageView* GetFirstAttachment() const;
+#endif
 
         private:
             Framebuffer() = default;

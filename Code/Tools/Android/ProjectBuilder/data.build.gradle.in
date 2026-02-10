@@ -1,0 +1,48 @@
+﻿apply plugin: "com.android.library"
+
+android {
+    namespace "com.o3de.data"
+
+    compileSdkVersion sdkVer
+    buildToolsVersion buildToolsVer
+    ndkVersion ndkPlatformVer
+    lintOptions {
+        abortOnError true
+        checkReleaseBuilds false
+    }
+
+    defaultConfig {
+        minSdkVersion minSdkVer
+        targetSdkVersion sdkVer
+    }
+
+    compileOptions {
+        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_8
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        profile {
+            getIsDefault().set(true)
+            debuggable true
+        }
+        release {
+            debuggable false
+            minifyEnabled false
+        }
+    }
+
+    sourceSets {
+        main {
+
+            manifest.srcFile file("${DATA_ANDROID_MANIFEST_PATH}")
+
+            res {
+                srcDirs = ["${DATA_RESOURCES_PATH}", "src/main/res"]
+            }
+        }
+    }
+}

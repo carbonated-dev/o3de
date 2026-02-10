@@ -32,8 +32,11 @@ include(FetchContent)
 FetchContent_Declare(
         RecastNavigation
         GIT_REPOSITORY ${RECAST_GIT_REPO}
+        # CARBONATED original o3de 2505.1
         GIT_TAG ${RECAST_GIT_TAG} # main branch as of March 17, 2022
         PATCH_COMMAND cmake -P "${LY_ROOT_FOLDER}/cmake/PatchIfNotAlreadyPatched.cmake" ${RECAST_GIT_PATCH}
+        # our version from 2409
+        #GIT_TAG "40ec6fcd6c0263a3d7798452aee531066072d15d" # main branch
 )
 
 # please always be really clear about what third parties your gem uses.

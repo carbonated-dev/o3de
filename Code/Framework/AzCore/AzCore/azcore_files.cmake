@@ -726,3 +726,14 @@ set(FILES
     XML/rapidxml_print.h
     XML/rapidxml_utils.h
 )
+
+# CARBONATED
+# Disabling -ffast-math for 'ScriptContext.cpp' file only.
+# After switching to NDK 28 we have a lot of errors 
+# 'error: use of infinity is undefined behavior due to the currently enabled floating-point options'
+# in many lines of this file
+ly_add_source_properties(
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/Script/ScriptContext.cpp
+    PROPERTY COMPILE_OPTIONS
+    VALUES -fno-fast-math
+)

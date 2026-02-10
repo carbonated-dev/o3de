@@ -38,6 +38,7 @@ OPTION(START_MEMORY_TRACING "Start memory tracing from app start" OFF)
 OPTION(ADVANCED_ASSET_TRACING "Take more CPU time to find asset names for precise asset size tracing" OFF)
 OPTION(LOD_REMOVAL "Enable conditional LOD removal at runtime to save RAM" ON)
 OPTION(MIP_REMOVAL "Enable conditional mipmap level removal at runtime to save RAM" ON)
+OPTION(AP_OPTIMIZATION "Improves AP startup scan speed, but next AP scan might be longer" ON)
 
 if(MEMORY_TAG_TRACING)
     add_compile_definitions(AZ_MEMORY_TAG_TRACING)
@@ -58,6 +59,10 @@ endif(LOD_REMOVAL)
 if(MIP_REMOVAL)
     add_compile_definitions(AZ_MIP_REMOVAL)  # enables dropping some high quality MIPs in runtime
 endif(MIP_REMOVAL)
+
+if(AP_OPTIMIZATION)
+    add_compile_definitions(AZ_AP_OPTIMIZATION)  # AP makes faster file assessment with no extra-analysis, but next AP scan might be longer
+endif(AP_OPTIMIZATION)
 
 include(cmake/LySet.cmake)
 include(cmake/GeneralSettings.cmake)

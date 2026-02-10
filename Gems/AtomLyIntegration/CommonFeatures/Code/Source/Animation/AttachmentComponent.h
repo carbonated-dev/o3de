@@ -82,6 +82,10 @@ namespace AZ
             const char* GetJointName() override;
             AZ::EntityId GetTargetEntityId() override;
             AZ::Transform GetOffset() override;
+
+#if defined(CARBONATED)
+            void AttachToDefaults() override;
+#endif
             ////////////////////////////////////////////////////////////////////////
 
         private:
@@ -134,6 +138,10 @@ namespace AZ
             int             m_targetBoneId; //!< negative when bone not found
 
             AttachmentConfiguration::ScaleSource m_scaleSource;
+
+#if defined(CARBONATED)
+            AttachmentConfiguration m_initialConfiguration;
+#endif
         };
 
         /*!
