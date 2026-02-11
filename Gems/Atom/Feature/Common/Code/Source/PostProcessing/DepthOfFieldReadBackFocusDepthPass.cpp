@@ -75,6 +75,10 @@ namespace AZ
             AZ_Assert(m_readbackPass, "DepthOfFieldReadBackFocusDepthPass : read back pass is invalid");
 
             AddChild(m_readbackPass);
+#if defined(CARBONATED)
+            AZ_Info("ppp", "Added DepthOfFieldReadBackPass as child to %s", GetName().GetCStr());
+            //m_flags.m_mergeChildrenAsSubpasses = false; // subpass merging produces an error on DepthOfFieldReadBackPass
+#endif
 
             // Find GetDepth pass on template
             auto pass = FindChildPass(Name("DepthOfFieldWriteFocusDepthFromGpu"));

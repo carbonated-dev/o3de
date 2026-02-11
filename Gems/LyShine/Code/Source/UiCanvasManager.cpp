@@ -310,10 +310,12 @@ void UiCanvasManager::OnFontTextureUpdated([[maybe_unused]] IFFont* font)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void UiCanvasManager::GetRenderTargets(LyShine::AttachmentImagesAndDependencies& attachmentImagesAndDependencies)
 {
+    AZ_Info("ccc", "UiCanvasManager::GetRenderTargets");
     for (auto canvas : m_loadedCanvases)
     {
         LyShine::AttachmentImagesAndDependencies canvasTargets;
         canvas->GetRenderTargets(canvasTargets);
+        AZ_Info("ccc", "  canvas %s has %d targets", canvas->GetPathname().c_str(), canvasTargets.size());
         attachmentImagesAndDependencies.insert(attachmentImagesAndDependencies.end(), canvasTargets.begin(), canvasTargets.end());
     }
 }

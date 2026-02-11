@@ -75,7 +75,7 @@ namespace AZ
 
         bool RenderPass::BuildSubpassLayout(RHI::RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder& subpassLayoutBuilder)
         {
-            AZ_Info("ppp", "RenderPass::BuildSubpassLayout for %s", GetPathName().GetCStr());
+            //AZ_Info("ppp", "RenderPass::BuildSubpassLayout for %s", GetPathName().GetCStr());
 
             // Replace all subpass inputs as shader inputs if we are the first subpass in the group.
             // This could happen if we have a subpass group that could be merged with other group(s), but it didn't happen
@@ -91,7 +91,7 @@ namespace AZ
 
                 if (!binding.GetAttachment())
                 {
-                    AZ_Info("ppp", "  slot %d %s not attached", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr());
+                    //AZ_Info("ppp", "  slot %d %s not attached", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr());
                     continue;
                 }
 
@@ -106,12 +106,12 @@ namespace AZ
                         binding.m_scopeAttachmentStage);
                     if (binding.m_connectedBinding)
                     {
-                        AZ_Info("ppp", "  slot %d %s / %s is DepthStencil", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr(),
-                                binding.m_connectedBinding->m_name.GetCStr());
+                        //AZ_Info("ppp", "  slot %d %s / %s is DepthStencil", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr(),
+                        //        binding.m_connectedBinding->m_name.GetCStr());
                     }
                     else
                     {
-                        AZ_Info("ppp", "  slot %d %s is DepthStencil", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr());
+                        //AZ_Info("ppp", "  slot %d %s is DepthStencil", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr());
                     }
                     continue;
                 }
@@ -119,7 +119,7 @@ namespace AZ
                 // Handle shading rate attachment. There should be only one.
                 if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::ShadingRate)
                 {
-                    AZ_Info("ppp", "  slot %d %s is ShadingRate", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr());
+                    //AZ_Info("ppp", "  slot %d %s is ShadingRate", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr());
                     subpassLayoutBuilder.ShadingRateAttachment(
                         binding.GetAttachment()->m_descriptor.m_image.m_format, binding.GetAttachment()->GetAttachmentId());
                     continue;
@@ -138,12 +138,12 @@ namespace AZ
                         binding.m_unifiedScopeDesc.m_loadStoreAction);
                     if (binding.m_connectedBinding)
                     {
-                        AZ_Info("ppp", "  slot %d %s / %s is SubpassInput", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr(),
-                                binding.m_connectedBinding->m_name.GetCStr());
+                        //AZ_Info("ppp", "  slot %d %s / %s is SubpassInput", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr(),
+                        //        binding.m_connectedBinding->m_name.GetCStr());
                     }
                     else
                     {
-                        AZ_Info("ppp", "  slot %d %s is SubpassInput", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr());
+                        //AZ_Info("ppp", "  slot %d %s is SubpassInput", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr());
                     }
                     continue;
                 }
@@ -158,12 +158,12 @@ namespace AZ
                         false /*resolve*/);
                     if (binding.m_connectedBinding)
                     {
-                        AZ_Info("ppp", "  slot %d %s / %s  is RenderTarget", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr(),
-                                binding.m_connectedBinding->m_name.GetCStr());
+                        //AZ_Info("ppp", "  slot %d %s / %s  is RenderTarget", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr(),
+                        //        binding.m_connectedBinding->m_name.GetCStr());
                     }
                     else
                     {
-                        AZ_Info("ppp", "  slot %d %s is RenderTarget", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr());
+                        //AZ_Info("ppp", "  slot %d %s is RenderTarget", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr());
                     }
                     continue;
                 }
@@ -179,7 +179,7 @@ namespace AZ
                     continue;
                 }
 
-                AZ_Info("ppp", "  slot %d %s is %d, unprocessed", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr(), int(binding.m_scopeAttachmentUsage));
+                //AZ_Info("ppp", "  slot %d %s is %d, unprocessed", slotIndex, binding.GetAttachment()->GetAttachmentId().GetCStr(), int(binding.m_scopeAttachmentUsage));
             }
 
             return true;

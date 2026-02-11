@@ -1292,12 +1292,15 @@ namespace LyShine
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     void RenderGraph::GetRenderTargetsAndDependencies(LyShine::AttachmentImagesAndDependencies& attachmentImagesAndDependencies)
     {
+        AZ_Info("ccc", "RenderGraph::GetRenderTargetsAndDependencies");
         for (RenderNode* renderNode : m_renderTargetRenderNodes)
         {
             const RenderTargetRenderNode* renderTargetRenderNode = static_cast<const RenderTargetRenderNode*>(renderNode);
 
             if (renderTargetRenderNode->GetNestLevel() == 0)
             {
+                AZ_Info("ccc", "  renderTargetRenderNode with target name %s", renderTargetRenderNode->GetRenderTargetName());
+
                 LyShine::AttachmentImages attachmentImages;
                 const AZStd::vector<RenderNode*>& childNodeList = renderTargetRenderNode->GetChildRenderNodeList();
                 for (auto& childNode : childNodeList)
@@ -1310,6 +1313,7 @@ namespace LyShine
                 }
                 if (renderTargetRenderNode->GetRenderTarget())
                 {
+                    AZ_Info("ccc", "    add render target");
                     attachmentImagesAndDependencies.emplace_back(
                         AttachmentImageAndDependentsPair(renderTargetRenderNode->GetRenderTarget(), attachmentImages));
                 }

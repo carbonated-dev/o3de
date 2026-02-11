@@ -372,6 +372,13 @@ namespace AZ
             {
             case RHI::DrawType::Indexed:
             {
+#if defined(CARBONATED)
+                if (!drawItem.m_geometryView->GetIndexBufferView().GetBuffer())
+                {
+                    //AZ_Info("rrr", "null buffer");
+                    break;  //???  FIXME temporary workaround for an unknown bug
+                }
+#endif
                 AZ_Assert(drawItem.m_geometryView->GetIndexBufferView().GetBuffer(), "IndexBufferView is null.");
 
                 const RHI::DrawIndexed& indexed = drawItem.m_geometryView->GetDrawArguments().m_indexed;
@@ -1085,8 +1092,14 @@ namespace AZ
             {
                 m_state.m_indexBufferHash = indexBufferHash;
                 const BufferMemoryView* indexBufferMemoryView = static_cast<const Buffer*>(indexBufferView.GetBuffer())->GetBufferMemoryView();
+#if defined(CARBONATED)
+                if (!indexBufferMemoryView)
+                {
+                    AZ_Error("rrr", false, "IndexBufferMemoryView is null.");
+                    return;  // FIXME temporray workaround, likely no more needed
+                }
+#endif
                 AZ_Assert(indexBufferMemoryView, "IndexBufferMemoryView is null.");
-
                 static_cast<Device&>(GetDevice())
                     .GetContext()
                     .CmdBindIndexBuffer(

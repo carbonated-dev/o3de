@@ -80,11 +80,13 @@ namespace AZ::RHI
             }
         };
 
+        using ReflectionPair = AZ::RHI::ReflectionNamePair<IndexType>;
+        const ReflectionPair& GetPair(int i) const { return m_reflectionMap[i]; }
     private:
         /// Sort by the hash value of names
         void Sort();
 
-        using ReflectionPair = AZ::RHI::ReflectionNamePair<IndexType>;
+        //using ReflectionPair = AZ::RHI::ReflectionNamePair<IndexType>;
 
         AZStd::vector<ReflectionPair> m_reflectionMap;
     };
