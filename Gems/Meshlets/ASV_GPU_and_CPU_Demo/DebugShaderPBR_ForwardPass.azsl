@@ -95,7 +95,12 @@ ForwardPassOutput DebugShaderPBR_MainPassPS(VSOutput IN)
     LightingData lightingData;
 
     // Light iterator
+#if ENABLE_LIGHT_CULLING
     lightingData.tileIterator.Init(IN.m_position, PassSrg::m_lightListRemapped, PassSrg::m_tileLightData);
+#else
+    // CARBONATED
+    lightingData.tileIterator.InitNoCulling();    
+#endif    
     lightingData.Init(surface.position, surface.normal, surface.roughnessLinear);
 
     // Diffuse and Specular response

@@ -154,14 +154,20 @@ ForwardPassOutput TerrainPBR_MainPassPS(VSOutput input)
     }
 
     // Clear Coat
+#if ENABLE_CLEAR_COAT  // CARBONATED
     surface.clearCoat.InitializeToZero();
-
+#endif
     // ------- LightingData -------
 
     LightingData lightingData;
 
     // Light iterator
+#if ENABLE_LIGHT_CULLING
     lightingData.tileIterator.Init(input.m_position, PassSrg::m_lightListRemapped, PassSrg::m_tileLightData);
+#else
+    // CARBONATED
+    lightingData.tileIterator.InitNoCulling();    
+#endif    
     lightingData.Init(surface.position, surface.normal, surface.roughnessLinear, ViewSrg::m_worldPosition.xyz);
 
     // Shadow, Occlusion
