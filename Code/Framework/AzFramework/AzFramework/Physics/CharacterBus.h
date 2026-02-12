@@ -11,6 +11,11 @@
 #include <AzCore/Component/ComponentBus.h>
 #include <AzCore/Component/Entity.h>
 
+#if defined(CARBONATED)
+#include <AzFramework/Physics/Common/PhysicsTypes.h>
+#include <AzFramework/Physics/Collision/CollisionEvents.h>
+#endif
+
 namespace AZ
 {
     class Vector3;
@@ -171,6 +176,12 @@ namespace Physics
         virtual void OnCharacterDeactivated([[maybe_unused]] const AZ::EntityId& entityId)
         {
         }
+
+        #if defined(CARBONATED)
+        virtual void OnShapeHit([[maybe_unused]]const AzPhysics::CollisionEvent& event)
+        {
+        }
+        #endif
     };
 
     using CharacterNotificationBus = AZ::EBus<CharacterNotifications>;
