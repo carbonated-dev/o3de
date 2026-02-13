@@ -83,9 +83,18 @@ namespace AZ::RHI
 
     void AsyncWorkQueue::ProcessQueue()
     {
+#if !defined(CARBONATED)
         WorkItem workItem;
+#endif
         for (;;)
         {
+#if defined(CARBONATED)
+            // destructor called eralier at the end of the cycle
+            // originally the old item destructor happens in operator = with workItem = AZStd::move(m_workQueue.front());
+            // that is under m_workQueueMutex lock, which might cause a deadlock
+            // it is fixed in the latest engine's development branch
+            WorkItem workItem;
+#endif
             {
                 AZStd::unique_lock<AZStd::mutex> lock(m_workQueueMutex);
 
