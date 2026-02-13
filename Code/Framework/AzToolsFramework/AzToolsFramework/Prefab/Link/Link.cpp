@@ -226,7 +226,7 @@ namespace AzToolsFramework
                         "\n   '%s',\npresent under the Target Template:\n    '%s'.",
                         sourceTemplateName->get().GetString(), targetTemplateName->get().GetString());
                     // TODO : possibly mark target DOM with failed patches as Dirty, filter out failed patches and propose to re-save
-#elif
+#else
                     AZ_Warning(
                         "Prefab", false,
                         "Link::UpdateTarget - Some of the patches couldn't be applied on the source template '%s' present under the  "

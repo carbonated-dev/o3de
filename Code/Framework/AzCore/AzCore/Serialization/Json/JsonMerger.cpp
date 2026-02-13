@@ -283,10 +283,10 @@ namespace AZ
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
             rapidjson::StringBuffer pointerPathString;
             path.Stringify(pointerPathString);
-            const auto message = R"(The required field "value" for "add" operation is missing at path:)";
+            constexpr const auto message = R"(The required field "value" for "add" operation is missing at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
-#elif
+#else
             return settings.m_reporting(R"(The required field "value" for "add" operation is missing.)",
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
 #endif // defined(CARBONATED)
@@ -325,10 +325,10 @@ namespace AZ
         if (!parentValue)
         {
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
-            const auto message = R"(The target path for "add" operation does not exist at path:)";
+            constexpr const auto message = R"(The target path for "add" operation does not exist at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
-#elif
+#else
             return settings.m_reporting(R"(The target path for "add" operation does not exist.)",
                 ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #endif // defined(CARBONATED)
@@ -365,7 +365,7 @@ namespace AZ
                     const auto message = R"(The target path for "add" operation is not an index value at path:)";
                     return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
                         ResultCode(Tasks::Merge, Outcomes::Missing), element);
-#elif
+#else
                     return settings.m_reporting(R"(The target path for "add" operation is not an index value.)",
                         ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #endif // defined(CARBONATED)
@@ -391,10 +391,10 @@ namespace AZ
                 else
                 {
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
-                    const auto message = R"(The target path for "add" operation is not a valid index at path:)";
+                    constexpr const auto message = R"(The target path for "add" operation is not a valid index at path:)";
                     return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
                         ResultCode(Tasks::Merge, Outcomes::Missing), element);
-#elif
+#else
                     return settings.m_reporting(R"(The target path for "add" operation is not a valid index.)",
                         ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #endif // defined(CARBONATED)
@@ -404,10 +404,10 @@ namespace AZ
         else
         {
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
-            const auto message = R"(The target for "add" operation is not an object or array at path:)";
+            constexpr const auto message = R"(The target for "add" operation is not an object or array at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
-#elif
+#else
             return settings.m_reporting(R"(The target for "add" operation is not an object or array.)",
                 ResultCode(Tasks::Merge, Outcomes::TypeMismatch), element);
 #endif // defined(CARBONATED)
@@ -443,10 +443,10 @@ namespace AZ
         if (!parentValue)
         {
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
-            const auto message = R"(The target path for "remove" operation does not exist at path:)";
+            constexpr const auto message = R"(The target path for "remove" operation does not exist at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
-#elif
+#else
             return settings.m_reporting(R"(The target path for "remove" operation does not exist.)",
                 ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #endif // defined(CARBONATED)
@@ -457,10 +457,10 @@ namespace AZ
             if (!parentValue->EraseMember(tokens[path.GetTokenCount() - 1].name))
             {
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
-            const auto message = R"(The "remove" operation failed to remove the member from object at path:)";
+            constexpr const auto message = R"(The "remove" operation failed to remove the member from object at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
-#elif
+#else
                 rapidjson::StringBuffer pathString;
                 path.Stringify(pathString);
                 return settings.m_reporting(
@@ -481,10 +481,10 @@ namespace AZ
             else
             {
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
-            const auto message = R"(The target path for "remove" operation has an invalid index at path:)";
+            constexpr const auto message = R"(The target path for "remove" operation has an invalid index at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
-#elif
+#else
                 return settings.m_reporting(R"(The target path for "remove" operation has an invalid index.)",
                     ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #endif // defined(CARBONATED)
@@ -493,10 +493,10 @@ namespace AZ
         else
         {
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
-            const auto message = R"(The target for "remove" operation is not an object or array at path:)";
+            constexpr const auto message = R"(The target for "remove" operation is not an object or array at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
-#elif
+#else
             return settings.m_reporting(R"(The target for "remove" operation is not an object or array.)",
                 ResultCode(Tasks::Merge, Outcomes::TypeMismatch), element);
 #endif // defined(CARBONATED)
@@ -526,10 +526,10 @@ namespace AZ
         {
             ScopedStackedString valueName(element, "value");
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
-            const auto message = R"(The required field "value" for "replace" operation is missing at path:)";
+            constexpr const auto message = R"(The required field "value" for "replace" operation is missing at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
-#elif
+#else
             return settings.m_reporting(R"(The required field "value" for "replace" operation is missing.)",
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
 #endif // defined(CARBONATED)
@@ -539,10 +539,10 @@ namespace AZ
         if (!memberValue)
         {
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
-            const auto message = R"(The target for "replace" operation doesn't exist at path:)";
+            constexpr const auto message = R"(The target for "replace" operation doesn't exist at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
-#elif
+#else
             return settings.m_reporting(R"(The target for "replace" operation doesn't exist.)",
                 ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #endif // defined(CARBONATED)
