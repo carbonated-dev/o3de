@@ -402,8 +402,12 @@ namespace AZ
  
             m_features.m_swapchainScalingFlags = RHI::ScalingFlags::Stretch;
             AZ_Assert(m_metalDevice.argumentBuffersSupport >= MTLArgumentBuffersTier1, "Atom needs Argument buffer support to run");
-            
+#if defined(CARBONATED)
+            // FIXME temporray turn off suvpasses optimization, it renders gray screen on some iOS devices
+            m_features.m_subpassInputSupport = RHI::SubpassInputSupportType::None;
+#else
             m_features.m_subpassInputSupport = RHI::SubpassInputSupportType::Color;
+#endif
         }
 
         CommandList* Device::AcquireCommandList(RHI::HardwareQueueClass hardwareQueueClass)
