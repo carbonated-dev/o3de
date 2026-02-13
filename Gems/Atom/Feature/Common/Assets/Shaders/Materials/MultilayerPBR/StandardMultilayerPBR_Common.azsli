@@ -22,6 +22,7 @@
 #include "../MaterialInputs/EmissiveInput.azsli"
 #include "../MaterialInputs/ParallaxInput.azsli"
 #include "../MaterialInputs/UvSetCount.azsli"
+#include "../MaterialInputs/WetInput.azsli"
 
 // ------ ShaderResourceGroup ----------------------------------------
 
@@ -34,7 +35,8 @@ COMMON_SRG_INPUTS_NORMAL(prefix)        \
 COMMON_SRG_INPUTS_CLEAR_COAT(prefix)    \
 COMMON_SRG_INPUTS_OCCLUSION(prefix)     \
 COMMON_SRG_INPUTS_EMISSIVE(prefix)      \
-COMMON_SRG_INPUTS_PARALLAX(prefix)
+COMMON_SRG_INPUTS_PARALLAX(prefix)      \
+COMMON_SRG_INPUTS_WET(prefix)      
 
 ShaderResourceGroup MaterialSrg : SRG_PerMaterial
 {

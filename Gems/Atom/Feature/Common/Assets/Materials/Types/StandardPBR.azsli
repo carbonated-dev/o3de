@@ -29,7 +29,8 @@
     COMMON_OPTIONS_OCCLUSION()
     COMMON_OPTIONS_EMISSIVE()
     COMMON_OPTIONS_PARALLAX()
-    
+    COMMON_OPTIONS_WET()
+   
     bool ShouldHandleParallax()
     {
         // Parallax mapping's non uniform uv transformations break screen space subsurface scattering, disable it when subsurface scattering is enabled.
