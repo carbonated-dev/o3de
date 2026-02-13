@@ -24,6 +24,9 @@ namespace AZ
         StackedString element(StackedString::Format::JsonPointer);
         if (!patch.IsArray())
         {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+            ScopedStackedString entryOp(element, "patches");
+#endif // defined(CARBONATED)
             return settings.m_reporting("JSON Patch only supports arrays at the root.",
                 ResultCode(Tasks::Merge, Outcomes::TypeMismatch), element);
         }
@@ -277,8 +280,16 @@ namespace AZ
         if (value == entry.MemberEnd())
         {
             ScopedStackedString valueName(element, "value");
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+            rapidjson::StringBuffer pointerPathString;
+            path.Stringify(pointerPathString);
+            constexpr const auto message = R"(The required field "value" for "add" operation is missing at path:)";
+            return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
+                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#else
             return settings.m_reporting(R"(The required field "value" for "add" operation is missing.)",
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#endif // defined(CARBONATED)
         }
 
         rapidjson::Value newValue;
@@ -292,11 +303,18 @@ namespace AZ
     {
         using namespace JsonSerializationResult;
 
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization : moved up for shared usage
+        rapidjson::StringBuffer pointerPathString;
+        path.Stringify(pointerPathString);
+#endif // defined(CARBONATED)
+
         const rapidjson::Pointer::Token* const tokens = path.GetTokens();
         if (path.GetTokenCount() == 0)
         {
+#if !defined(CARBONATED) // More readable warnings in prefab patches serialization : moved up for shared usage
             rapidjson::StringBuffer pointerPathString;
             path.Stringify(pointerPathString);
+#endif // !defined(CARBONATED)
             target = AZStd::move(newValue);
             return settings.m_reporting(R"(Successfully applied "add" operation.)",
                 ResultCode(Tasks::Merge, Outcomes::Success), pointerPathString.GetString());
@@ -306,8 +324,14 @@ namespace AZ
         rapidjson::Value* parentValue = parent.Get(target);
         if (!parentValue)
         {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+            constexpr const auto message = R"(The target path for "add" operation does not exist at path:)";
+            return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
+                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#else
             return settings.m_reporting(R"(The target path for "add" operation does not exist.)",
                 ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif // defined(CARBONATED)
         }
 
         if (parentValue->IsObject())
@@ -337,8 +361,14 @@ namespace AZ
                 }
                 else
                 {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+                    const auto message = R"(The target path for "add" operation is not an index value at path:)";
+                    return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
+                        ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#else
                     return settings.m_reporting(R"(The target path for "add" operation is not an index value.)",
                         ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif // defined(CARBONATED)
                 }
             }
             else
@@ -360,19 +390,33 @@ namespace AZ
                 }
                 else
                 {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+                    constexpr const auto message = R"(The target path for "add" operation is not a valid index at path:)";
+                    return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
+                        ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#else
                     return settings.m_reporting(R"(The target path for "add" operation is not a valid index.)",
                         ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif // defined(CARBONATED)
                 }
             }
         }
         else
         {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+            constexpr const auto message = R"(The target for "add" operation is not an object or array at path:)";
+            return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
+                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#else
             return settings.m_reporting(R"(The target for "add" operation is not an object or array.)",
                 ResultCode(Tasks::Merge, Outcomes::TypeMismatch), element);
+#endif // defined(CARBONATED)
         }
 
+#if !defined(CARBONATED) // More readable warnings in prefab patches serialization : moved up for shared usage
         rapidjson::StringBuffer pointerPathString;
         path.Stringify(pointerPathString);
+#endif // !defined(CARBONATED)
         return settings.m_reporting(R"(Successfully applied "add" operation.)",
             ResultCode(Tasks::Merge, Outcomes::Success), pointerPathString.GetString());
     }
@@ -381,6 +425,11 @@ namespace AZ
         StackedString& element, JsonApplyPatchSettings& settings)
     {
         using namespace JsonSerializationResult;
+
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization : moved up for shared usage
+        rapidjson::StringBuffer pointerPathString;
+        path.Stringify(pointerPathString);
+#endif // defined(CARBONATED)
 
         const rapidjson::Pointer::Token* const tokens = path.GetTokens();
         if (path.GetTokenCount() == 0)
@@ -393,14 +442,25 @@ namespace AZ
         rapidjson::Value* parentValue = parent.Get(target);
         if (!parentValue)
         {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+            constexpr const auto message = R"(The target path for "remove" operation does not exist at path:)";
+            return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
+                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#else
             return settings.m_reporting(R"(The target path for "remove" operation does not exist.)",
                 ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif // defined(CARBONATED)
         }
 
         if (parentValue->IsObject())
         {
             if (!parentValue->EraseMember(tokens[path.GetTokenCount() - 1].name))
             {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+            constexpr const auto message = R"(The "remove" operation failed to remove the member from object at path:)";
+            return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
+                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#else
                 rapidjson::StringBuffer pathString;
                 path.Stringify(pathString);
                 return settings.m_reporting(
@@ -408,6 +468,7 @@ namespace AZ
                         R"(The "remove" operation failed to remove member '%s' from object at path '%s'.)",
                         tokens[path.GetTokenCount() - 1].name, pathString.GetString()),
                     ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif // defined(CARBONATED)
             }
         }
         else if (parentValue->IsArray())
@@ -419,18 +480,32 @@ namespace AZ
             }
             else
             {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+            constexpr const auto message = R"(The target path for "remove" operation has an invalid index at path:)";
+            return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
+                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#else
                 return settings.m_reporting(R"(The target path for "remove" operation has an invalid index.)",
                     ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif // defined(CARBONATED)
             }
         }
         else
         {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+            constexpr const auto message = R"(The target for "remove" operation is not an object or array at path:)";
+            return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
+                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#else
             return settings.m_reporting(R"(The target for "remove" operation is not an object or array.)",
                 ResultCode(Tasks::Merge, Outcomes::TypeMismatch), element);
+#endif // defined(CARBONATED)
         }
 
+#if !defined(CARBONATED) // More readable warnings in prefab patches serialization : moved up for shared usage
         rapidjson::StringBuffer pointerPathString;
         path.Stringify(pointerPathString);
+#endif // !defined(CARBONATED)
         return settings.m_reporting(R"(Successfully applied "remove" operation.)",
             ResultCode(Tasks::Merge, Outcomes::Success), pointerPathString.GetString());
     }
@@ -441,25 +516,44 @@ namespace AZ
     {
         using namespace JsonSerializationResult;
 
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization : moved up for shared usage
+        rapidjson::StringBuffer pointerPathString;
+        path.Stringify(pointerPathString);
+#endif // defined(CARBONATED)
+
         auto value = entry.FindMember("value");
         if (value == entry.MemberEnd())
         {
             ScopedStackedString valueName(element, "value");
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+            constexpr const auto message = R"(The required field "value" for "replace" operation is missing at path:)";
+            return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
+                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#else
             return settings.m_reporting(R"(The required field "value" for "replace" operation is missing.)",
                 ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#endif // defined(CARBONATED)
         }
 
         rapidjson::Value* memberValue = path.Get(target);
         if (!memberValue)
         {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+            constexpr const auto message = R"(The target for "replace" operation doesn't exist at path:)";
+            return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
+                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+#else
             return settings.m_reporting(R"(The target for "replace" operation doesn't exist.)",
                 ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+#endif // defined(CARBONATED)
         }
 
         memberValue->CopyFrom(value->value, allocator, true);
 
+#if !defined(CARBONATED) // More readable warnings in prefab patches serialization : moved up for shared usage
         rapidjson::StringBuffer pointerPathString;
         path.Stringify(pointerPathString);
+#endif // !defined(CARBONATED)
         return settings.m_reporting(R"(Successfully applied "replace" operation.)",
             ResultCode(Tasks::Merge, Outcomes::Success), pointerPathString.GetString());
     }
