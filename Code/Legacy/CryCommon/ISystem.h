@@ -623,9 +623,6 @@ struct SSystemGlobalEnvironment
     // carbonated begin (akostin/mp-402-1): Revert pNetwork in SSystemGlobalEnvironment
 #if defined(CARBONATED)
     IGame* pGame;
-    // Used to tell if this is a server/multiplayer instance
-    // LVBM bool bServer;
-    // LVBM bool bMultiplayer;
 #endif
     // carbonated end
     AZ::IO::IArchive*          pCryPak;

@@ -1112,7 +1112,7 @@ namespace AzToolsFramework
                     Field("InterpolatePosition", &TransformComponent::m_interpolatePosition)->
                     Field("InterpolateRotation", &TransformComponent::m_interpolateRotation)->
 #if defined(CARBONATED)
-                    Version(11, &Internal::TransformComponentDataConverter);    // LVBM Version is 11 after removing GridMate
+                    Version(11, &Internal::TransformComponentDataConverter);    // Version is 11 after removing GridMate
 #else
                     Version(10, &Internal::TransformComponentDataConverter);
 #endif

@@ -922,7 +922,7 @@ namespace AzFramework
 
                 serializeContext->Class<ScriptComponent, AZ::Component>()
 #if defined(CARBONATED)
-                    ->Version(5, converter)                             // LVBM Version is 5 after removing GridMate
+                    ->Version(5, converter)                             // Version is 5 after removing GridMate
 #else
                     ->Version(4, converter)
 #endif
