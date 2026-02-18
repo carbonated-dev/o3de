@@ -124,8 +124,16 @@ namespace AZ
                         default:
                             break;
                         }
-                 
-                        NSLog(@"%@",buffer.error);
+#if defined(CARBONATED)
+                        NSLog(@"GPU error %@", buffer.error);
+                        if (buffer.error)
+                        {
+                            NSString* description = [buffer.error localizedDescription];
+                            AZ_Error("RHI", false, "GPU error '%s''",  [description UTF8String]);
+                        }
+#else
+                        NSLog(@"%@", buffer.error);
+#endif
 #if !defined (AZ_FORCE_CPU_GPU_INSYNC)
                         // When in cpu/gpu lockstep mode (i.e AZ_FORCE_CPU_GPU_INSYNC) we break in the main thread
                         // with proper logging and a dialog box with info related to the last executing scope before the crash
@@ -210,6 +218,7 @@ namespace AZ
                 RHI::Device* pDevice = RHI::RHISystemInterface::Get()->GetDevice();
                 pDevice->MarkCommandBufferCommit(static_cast<const void*>(m_mtlCommandBuffer));
 #endif
+                //AZ_Info("bbb", "%p commit buffer %x", this, m_mtlCommandBuffer);
                 [m_mtlCommandBuffer commit];
 #if defined (AZ_FORCE_CPU_GPU_INSYNC)
                 // Wait for the gpu to finish executing the work related to the command buffer

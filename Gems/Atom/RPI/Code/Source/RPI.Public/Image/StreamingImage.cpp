@@ -203,8 +203,12 @@ namespace AZ
 #endif
                                 
 #if defined (AZ_RPI_STREAMING_IMAGE_HOT_RELOADING)
+#if defined(CARBONATED)
+                BusConnect(m_imageAsset.GetId());
+#else
                 BusConnect(imageAsset.GetId());
-#endif                                
+#endif
+#endif
                 return RHI::ResultCode::Success;
             }
 

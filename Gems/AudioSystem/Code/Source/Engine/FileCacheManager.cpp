@@ -474,6 +474,11 @@ namespace Audio
     ///////////////////////////////////////////////////////////////////////////////////////////////
     bool CFileCacheManager::DoesRequestFitInternal(const size_t requestSize)
     {
+        if (m_currentByteTotal > m_maxByteTotal)
+        {
+            AZ_Error("eee", false, "FileCacheManager DoesRequestFitInternal %u, %u > %u", requestSize, m_currentByteTotal, m_maxByteTotal);
+        }
+        
         // Make sure these unsigned values don't flip around.
         AZ_Assert(m_currentByteTotal <= m_maxByteTotal, "FileCacheManager DoesRequestFitInternal - Unsigned wraparound detected!");
         bool success = false;
@@ -731,7 +736,20 @@ namespace Audio
             audioFileEntry->m_memoryBlockAlignment
         );
         audioFileEntry->m_flags.ClearFlags(eAFF_CACHED | eAFF_REMOVABLE);
+        AZ_Info("eee", "Uncache file size %u from %u", audioFileEntry->m_fileSize, m_currentByteTotal);
+#if defined(CARBONATED)
+        if (m_currentByteTotal > audioFileEntry->m_fileSize)
+        {
+            m_currentByteTotal -= audioFileEntry->m_fileSize;
+        }
+        else
+        {
+            AZ_Error("eee", false, "Uncache, but no data, has %u, uncache %u", m_currentByteTotal, audioFileEntry->m_fileSize)
+            //m_currentByteTotal = 0;  // do not zero the data, this is likely an attempt to uncache a file that could not fit previously
+        }
+#else
         m_currentByteTotal -= audioFileEntry->m_fileSize;
+#endif
         AZ_Warning("FileCacheManager", audioFileEntry->m_useCount == 0, "Use-count of file '%s' is non-zero while uncaching it! Use Count: %d", audioFileEntry->m_filePath.c_str(), audioFileEntry->m_useCount);
         audioFileEntry->m_useCount = 0;
 
@@ -803,6 +821,8 @@ namespace Audio
 
         if (!audioFileEntry->m_filePath.empty() && !audioFileEntry->m_flags.AreAnyFlagsActive(eAFF_CACHED | eAFF_LOADING))
         {
+            AZ_Info("eee", "Try cache %s %u to %u-%u=%u", audioFileEntry->m_filePath.c_str(), audioFileEntry->m_fileSize,
+                    m_maxByteTotal, m_currentByteTotal, m_maxByteTotal - m_currentByteTotal);
             if (DoesRequestFitInternal(audioFileEntry->m_fileSize) && AllocateMemoryBlockInternal(audioFileEntry))
             {
                 auto streamer = AZ::Interface<AZ::IO::IStreamer>::Get();
@@ -834,6 +854,7 @@ namespace Audio
                     AZ::IO::IStreamerTypes::RequestStatus status = streamer->GetRequestStatus(request);
                     if (FinishCachingFileInternal(audioFileEntry, audioFileEntry->m_fileSize, status))
                     {
+                        AZ_Info("eee", "Cache synch %u to %u", audioFileEntry->m_fileSize, m_currentByteTotal);
                         m_currentByteTotal += audioFileEntry->m_fileSize;
                         success = true;
                     }
@@ -867,6 +888,7 @@ namespace Audio
                     streamer->QueueRequest(audioFileEntry->m_asyncStreamRequest);
 
                     // Increase total size even though async request is processing...
+                    AZ_Info("eee", "Cache asynch file size %u from %u", audioFileEntry->m_fileSize, m_currentByteTotal);
                     m_currentByteTotal += audioFileEntry->m_fileSize;
                     success = true;
                 }
@@ -881,8 +903,13 @@ namespace Audio
                 audioFileEntry->m_flags.AddFlags(eAFF_MEMALLOCFAIL);
 
                 // The user should be made aware of it.
+#if defined(CARBONATED)
+                AZLOG_ERROR(
+                    "FileCacheManager - Could not cache '%s (size %zu) - out of memory", audioFileEntry->m_filePath.c_str(), audioFileEntry->m_fileSize);
+#else
                 AZLOG_ERROR(
                     "FileCacheManager - Could not cache '%s' - out of memory or fragmented memory!", audioFileEntry->m_filePath.c_str());
+#endif
             }
         }
         else if (audioFileEntry->m_flags.AreAnyFlagsActive(eAFF_CACHED | eAFF_LOADING))

@@ -149,7 +149,29 @@ namespace AZ
                 entryPointStr = nil;
                 [lib release];
                 lib = nil;
+#if defined(CARBONATED)
+                if (!pFunction)
+                {
+                    AZ_Error("sss", false, "Cannot get shader function %s, byte code %d, length %d, source code %s size %d",
+                             entryPoint.data(), loadFromByteCode, byteCodeLength,
+                             sourceStr.data(), sourceStr.size());
+                    if (error)
+                    {
+                        NSString* description = [error localizedDescription];
+                        AZ_Error("sss", false, "error '%s''",  [description UTF8String]);
+                    }
+                }
+#endif
             }
+#if defined(CARBONATED)
+            else
+            {
+                AZ_Error("sss", false, "Library did not compile, byte code %d, length %d, source code %s size %d, entry point %s",
+                         loadFromByteCode, byteCodeLength,
+                         sourceStr.data(), sourceStr.size(),
+                         entryPoint.data());
+            }
+#endif
             
             AZ_Assert(pFunction, "Shader did not compile");
             
@@ -392,23 +414,30 @@ namespace AZ
         MTLFunctionConstantValues* PipelineState::CreateFunctionConstantsValues(const RHI::PipelineStateDescriptor& pipelineDescriptor) const
         {
             MTLFunctionConstantValues* constantValues = [[MTLFunctionConstantValues alloc] init];
+            AZ_Info("sss", "Shader constants");
             for(const auto& specializationData : pipelineDescriptor.m_specializationData)
             {
                 uint32_t value = specializationData.m_value.GetIndex();
                 MTLDataType type;
+                
+                const char* tname = "none";
+                
                 switch(specializationData.m_type)
                 {
                     case RHI::SpecializationType::Integer:
                         type = MTLDataTypeInt;
+                        tname = "int";
                         break;
                     case RHI::SpecializationType::Bool:
                         type = MTLDataTypeBool;
+                        tname = "bool";
                         break;
                     default:
                         AZ_Assert(false, "Invalid specialization type %d", specializationData.m_type);
                         type = MTLDataTypeInt;
                         break;
                 }
+                AZ_Info("sss", "  %s %s = %d, id %d", tname, specializationData.m_name.GetCStr(), value, specializationData.m_id);
                 [constantValues setConstantValue:&value type:type atIndex:specializationData.m_id];
             }
             

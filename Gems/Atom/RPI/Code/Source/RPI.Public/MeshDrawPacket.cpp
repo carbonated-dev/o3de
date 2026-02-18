@@ -270,6 +270,9 @@ namespace AZ
             drawPacketBuilder.SetGeometryView(&mesh);
             drawPacketBuilder.AddShaderResourceGroup(m_objectSrg->GetRHIShaderResourceGroup());
             drawPacketBuilder.AddShaderResourceGroup(m_material->GetRHIShaderResourceGroup());
+            AZ_Info("sss", "added object SRG %s %d, material SRG %d",
+                    m_objectSrg->GetLayout()->GetName().GetCStr(), m_objectSrg->GetRHIShaderResourceGroup()->GetBindingSlot(),
+                    m_material->GetRHIShaderResourceGroup()->GetBindingSlot());
 
             // We build the list of used shaders in a local list rather than m_activeShaders so that
             // if DoUpdate() fails it won't modify any member data.
@@ -293,6 +296,8 @@ namespace AZ
 #if defined(CARBONATED)
                 ASSET_TAG(shaderItem.GetShaderAsset().GetHint().c_str());
 #endif
+                AZ_Info("sss", "start shader '%s' for pipeline '%s'", shaderItem.GetShaderAsset().GetHint().c_str(), materialPipelineName.GetCStr());
+
                 // Skip the shader item without creating the shader instance
                 // if the mesh is not going to be rendered based on the draw tag
                 RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get();
@@ -373,6 +378,7 @@ namespace AZ
                     if (index.IsValid())
                     {
                         shaderOptions.SetValue(name, value);
+                        //AZ_Info("sss", "  set shader option %s", name.GetCStr());
                     }
                 }
 
@@ -502,6 +508,29 @@ namespace AZ
                 shaderData.m_activeShaderVariantStableId = variant.GetStableId();
                 shaderList.emplace_back(AZStd::move(shaderData));
 
+                if (isRasterShader)
+                {
+                    const RHI::RenderAttachmentLayout& ral = pipelineStateDescriptorDraw.m_renderAttachmentConfiguration.m_renderAttachmentLayout;
+                    AZ_Info("sss", "  raster target formats, attachments %d, subpasses %d", ral.m_attachmentCount, ral.m_subpassCount);
+                    for (int i = 0; i < ral.m_attachmentFormats.size(); i++)
+                    {
+                        if (ral.m_attachmentFormats[i] != RHI::Format::Unknown)
+                        {
+                            AZ_Info("sss", "        attachment[%d] = %d", i, ral.m_attachmentFormats[i]);
+                        }
+                    }
+                    for (int i = 0; i < ral.m_subpassLayouts.size(); i++)
+                    {
+                        const RHI::SubpassRenderAttachmentLayout& sral = ral.m_subpassLayouts[i];
+                        const int rtc = sral.m_rendertargetCount;
+                        for (int j = 0; j < rtc; j++)
+                        {
+                            const RHI::RenderAttachmentDescriptor& rad = sral.m_rendertargetDescriptors[j];
+                            AZ_Info("sss", "        render target[%d] = index %d, resolve index %d", j, rad.m_attachmentIndex, rad.m_resolveAttachmentIndex);
+                        }
+                    }
+                }
+                
                 return true;
             }; // appendShader
 
@@ -529,7 +558,7 @@ namespace AZ
 #else
                         appendShader(shaderItem, materialPipelineName);
 #endif
-
+                        AZ_Info("sss", "appended shader '%s' for pipeline '%s'", shaderItem.GetShaderAsset().GetHint().c_str(), materialPipelineName.GetCStr());
                     }
 
                     return true;

@@ -309,6 +309,12 @@ namespace AZ
             default:
                 break;
             }
+            
+            auto att = attachmentBinding.GetAttachment();
+            //att->m_descriptor;
+            AZ_Info("ppp", "Pass %s add binding %s (type %d), shader %s, attachment %s", GetPathName().GetCStr(),
+                    attachmentBinding.m_name.GetCStr(), attachmentBinding.m_slotType, attachmentBinding.m_shaderInputName.GetCStr(),
+                    att ? att->m_name.GetCStr() : "null");
         }
 
         // --- Finders ---

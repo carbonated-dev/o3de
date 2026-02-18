@@ -405,6 +405,7 @@ namespace AZ
 #if defined(CARBONATED)
             // FIXME temporray turn off suvpasses optimization, it renders gray screen on some iOS devices
             m_features.m_subpassInputSupport = RHI::SubpassInputSupportType::None;
+            //m_features.m_subpassInputSupport = RHI::SubpassInputSupportType::Color;
 #else
             m_features.m_subpassInputSupport = RHI::SubpassInputSupportType::Color;
 #endif
