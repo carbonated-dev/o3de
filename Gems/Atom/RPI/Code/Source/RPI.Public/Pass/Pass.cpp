@@ -312,9 +312,37 @@ namespace AZ
             
             auto att = attachmentBinding.GetAttachment();
             //att->m_descriptor;
-            AZ_Info("ppp", "Pass %s add binding %s (type %d), shader %s, attachment %s", GetPathName().GetCStr(),
+            if (att)
+            {
+                RHI::Format format = RHI::Format::Unknown;
+                if (att->m_descriptor.m_type == RHI::AttachmentType::Buffer)
+                {
+                    format = att->m_descriptor.m_bufferView.m_elementFormat;
+                }
+                else if (att->m_descriptor.m_type == RHI::AttachmentType::Image)
+                {
+                    if (att->m_descriptor.m_imageView.m_overrideFormat != RHI::Format::Unknown)
+                    {
+                        format = att->m_descriptor.m_imageView.m_overrideFormat;
+                    }
+                    else
+                    {
+                        format = att->m_descriptor.m_image.m_format;
+                    }
+                }
+                /* if (att->GetAttachmentType() == RHI::AttachmentType::Image)
+                {
+                    format = att->GetTransientImageDescriptor().m_imageDescriptor.m_format;
+                }*/
+                AZ_Info("ppp", "Pass %s add binding %s (type %d), shader %s, attachment: %s, format %d", GetPathName().GetCStr(),
                     attachmentBinding.m_name.GetCStr(), attachmentBinding.m_slotType, attachmentBinding.m_shaderInputName.GetCStr(),
-                    att ? att->m_name.GetCStr() : "null");
+                    att->m_name.GetCStr(), int(format));
+            }
+            else
+            {
+                AZ_Info("ppp", "Pass %s add binding %s (type %d), shader %s", GetPathName().GetCStr(),
+                    attachmentBinding.m_name.GetCStr(), attachmentBinding.m_slotType, attachmentBinding.m_shaderInputName.GetCStr());
+            }
         }
 
         // --- Finders ---
