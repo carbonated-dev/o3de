@@ -22,6 +22,12 @@
 #include <AzFramework/Physics/Common/PhysicsSimulatedBody.h>
 #include <AzFramework/Physics/Collision/CollisionGroups.h>
 #include <AzFramework/Physics/Collision/CollisionLayers.h>
+#if defined(CARBONATED)
+#include <AzFramework/Physics/Collision/CollisionEvents.h>
+#include <PhysX/MathConversion.h>
+#include <PhysX/Utils.h>
+#include <PhysX/UserDataTypes.h>
+#endif
 
 namespace PhysX
 {
@@ -595,6 +601,48 @@ namespace PhysX
                 });
             sceneInterface->RegisterSimulationBodyRemovedHandler(m_attachedSceneHandle, m_onSimulatedBodyRemovedHandler);
         }
+
+#if defined(CARBONATED)
+        auto* pController = GetController();
+        if (pController)
+        {
+            auto* pCallbackManager = pController->GetCallbackManager();
+            if (pCallbackManager)
+            {
+                pCallbackManager->SetOnShapeHit([this](const physx::PxControllerShapeHit& hit)
+                    {
+                        auto* pSceneInterface = AZ::Interface<AzPhysics::SceneInterface>::Get();
+                        if (!pSceneInterface)
+                            return;
+
+                        AzPhysics::SimulatedBody* pSelfBody = pSceneInterface->GetSimulatedBodyFromHandle(m_attachedSceneHandle, m_controllerBodyHandle);
+                        if (!pSelfBody)
+                            return;
+
+                        if (!hit.shape)
+                            return;
+
+                        auto pShape = PhysX::Utils::GetUserData(hit.shape);
+                        if (!pShape)
+                            return;
+
+                        AzPhysics::Contact contact;
+                        contact.m_position = PxMathConvertExtended(hit.worldPos);
+                        contact.m_normal = PxMathConvert(hit.worldNormal);
+                        contact.m_separation = 0.0f;
+                        contact.m_impulse = AZ::Vector3::CreateZero();
+
+                        AzPhysics::CollisionEvent event;
+                        event.m_body1 = pSelfBody;
+                        event.m_bodyHandle1 = m_controllerBodyHandle;
+                        event.m_shape2 = pShape;
+                        event.m_contacts.push_back(contact);
+
+                        Physics::CharacterNotificationBus::Event(GetEntityId(), &Physics::CharacterNotificationBus::Events::OnShapeHit, event);
+                    });
+            }
+        }
+#endif
 
         CharacterControllerRequestBus::Handler::BusConnect(GetEntityId());
 
