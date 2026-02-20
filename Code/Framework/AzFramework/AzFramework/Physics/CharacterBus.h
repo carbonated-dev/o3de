@@ -177,11 +177,11 @@ namespace Physics
         {
         }
 
-        #if defined(CARBONATED)
+#if defined(CARBONATED)
         virtual void OnShapeHit([[maybe_unused]]const AzPhysics::CollisionEvent& event)
         {
         }
-        #endif
+#endif
     };
 
     using CharacterNotificationBus = AZ::EBus<CharacterNotifications>;
