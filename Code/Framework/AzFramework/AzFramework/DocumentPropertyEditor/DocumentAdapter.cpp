@@ -5,6 +5,9 @@
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
+#if defined CARBONATED
+#include "ReflectionAdapter.h"
+#endif
 
 #include <AzCore/Console/IConsole.h>
 #include <AzCore/DOM/DomComparison.h>
@@ -104,6 +107,10 @@ namespace AZ::DocumentPropertyEditor
             // If it's a hard reset, or we don't have any lazily cached contents, just send the reset signal.
             m_cachedContents.SetNull();
             m_resetEvent.Signal();
+
+#if defined CARBONATED
+            DocumentAdapterEventBus::Broadcast(&DocumentAdapterEventBus::Events::ResumeInput);
+#endif
         }
         else
         {
