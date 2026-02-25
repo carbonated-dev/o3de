@@ -38,7 +38,6 @@
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <CryCommon/CrySystemPostTickBus.h>
 #include <CryCommon/CrySystemPreTickBus.h>
-// #include "CryNetwork/CryNetwork.h"
 #endif
 // carbonated end
 

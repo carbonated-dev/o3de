@@ -721,7 +721,7 @@ namespace AzFramework
             serializeContext->ClassDeprecate("NetBindable", AZ::Uuid("{80206665-D429-4703-B42E-94434F82F381}"));
             serializeContext->Class<TransformComponent, AZ::Component>()
 #if defined(CARBONATED)
-                ->Version(6, &TransformComponentVersionConverter)   // Version is 6 after removing GridMate
+                ->Version(6, &TransformComponentVersionConverter)
 #else
                 ->Version(5, &TransformComponentVersionConverter)
 #endif
