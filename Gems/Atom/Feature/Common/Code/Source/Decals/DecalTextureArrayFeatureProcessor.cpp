@@ -648,6 +648,22 @@ namespace AZ
                     {
                         float d1 = (AZ::Vector3::CreateFromFloat3(dataVector[lhs].m_position.data()) - viewPos).GetLengthSq();
                         float d2 = (AZ::Vector3::CreateFromFloat3(dataVector[rhs].m_position.data()) - viewPos).GetLengthSq();
+
+                        // The check: NaN is not equal to itself. IEEE 754 floating point standard defines that any comparison with NaN
+                        // should return false, except for != which returns true. So this is a common way to check for NaN values.
+                        bool d1Invalid = (d1 != d1);
+                        bool d2Invalid = (d2 != d2);
+
+                        if (d1Invalid || d2Invalid)
+                        {
+                            // Log the error using standard O3DE logging
+                            AZ_Printf("MadWorld", "Decal Math Error: NaN detected! Indices: %u, %u", lhs, rhs);
+
+                            // Strict Weak Ordering requires a consistent result.
+                            // This pushes invalid entries to the back.
+                            return d1Invalid < d2Invalid;
+                        }
+
                         return d1 < d2;
                     });
             }
