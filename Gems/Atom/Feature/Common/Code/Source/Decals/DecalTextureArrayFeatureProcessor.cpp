@@ -646,6 +646,10 @@ namespace AZ
                     sortedDecals.end(),
                     [&dataVector, &viewPos](uint32_t lhs, uint32_t rhs)
                     {
+                        // It's possible that d1 or d2 could be NaN if the decal position data is invalid. We need to handle this case to
+                        // avoid undefined behavior in sorting and potential crashes. In this implementation, we will treat NaN values as
+                        // greater than any valid number, which effectively pushes decals with invalid positions to the end of the sorted
+                        // list.
                         float d1 = (AZ::Vector3::CreateFromFloat3(dataVector[lhs].m_position.data()) - viewPos).GetLengthSq();
                         float d2 = (AZ::Vector3::CreateFromFloat3(dataVector[rhs].m_position.data()) - viewPos).GetLengthSq();
 
