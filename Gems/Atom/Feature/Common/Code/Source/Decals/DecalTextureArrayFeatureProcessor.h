@@ -145,6 +145,7 @@ namespace AZ
             void UpdateBounds(const DecalHandle handle);
 #if defined(CARBONATED)
             void LogDecalDebugInfo(const AZStd::string& text, const DecalLocation& decalLocation) const;
+            // A helper function to check if the vector contains NaN or not. NaN can cause issues for GPU culling and sorting.
             bool IsVectorValid(const AZ::Vector3& vec) const
             {
                 // IEEE 754: NaN is the only value that does not equal itself.
