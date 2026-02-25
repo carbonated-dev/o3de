@@ -289,6 +289,10 @@ namespace AZ
 
         void DecalTextureArrayFeatureProcessor::SetDecalPosition(const DecalHandle handle, const AZ::Vector3& position)
         {
+#if defined(CARBONATED)
+            // setting the lock here to prevent potential tearing issues with the position being read for culling while it's being updated.
+            AZStd::unique_lock<AZStd::shared_mutex> writeLock(m_decalDataMutex);
+#endif
             if (handle.IsValid())
             {
 #if defined(CARBONATED)
@@ -317,6 +321,9 @@ namespace AZ
         {
             if (handle.IsValid())
             {
+#if defined(CARBONATED)
+                AZStd::unique_lock<AZStd::shared_mutex> writeLock(m_decalDataMutex);
+#endif
                 orientation.StoreToFloat4(m_decalData.GetData<0>(handle.GetIndex()).m_quaternion.data());
                 m_deviceBufferNeedsUpdate = true;
             }
@@ -361,6 +368,9 @@ namespace AZ
 
         void DecalTextureArrayFeatureProcessor::SetDecalHalfSize(DecalHandle handle, const Vector3& halfSize)
         {
+#if defined(CARBONATED)
+            AZStd::unique_lock<AZStd::shared_mutex> writeLock(m_decalDataMutex);
+#endif
             if (handle.IsValid())
             {
                 halfSize.StoreToFloat3(m_decalData.GetData<0>(handle.GetIndex()).m_halfSize.data());
@@ -440,6 +450,7 @@ namespace AZ
             if (handle.IsValid())
             {
 #if defined(CARBONATED)
+                // We don't lock SetDecalTransform, the other SetDecal functions used will handle their own locks.
                 if (!IsVectorValid(world.GetTranslation()))
                 {
                     AZ_Error("DecalTextureArrayFeatureProcessor", false, "SetDecalTransform rejected: NaN detected in world translation for handle %u.", handle.GetIndex());
