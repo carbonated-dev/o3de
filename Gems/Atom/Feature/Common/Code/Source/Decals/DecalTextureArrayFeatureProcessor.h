@@ -106,7 +106,11 @@ namespace AZ
                 RPI::ViewPtr previousView) override;
 
         private:
-
+#if defined(CARBONATED)
+            // Shared mutex to prevent race conditions during culling
+            mutable AZStd::shared_mutex m_decalDataMutex;
+            DecalTextureArrayFeatureProcessor::DecalHandle AcquireDecalInternal();
+#endif
             // Number of size and format permutations
             // This number should match the number of texture arrays in Decals/ViewSrg.azsli
             static constexpr int NumTextureArrays = 4;
