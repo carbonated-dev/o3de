@@ -145,6 +145,11 @@ namespace AZ
             void UpdateBounds(const DecalHandle handle);
 #if defined(CARBONATED)
             void LogDecalDebugInfo(const AZStd::string& text, const DecalLocation& decalLocation) const;
+            bool IsVectorValid(const AZ::Vector3& vec) const
+            {
+                // IEEE 754: NaN is the only value that does not equal itself.
+                return (vec.GetX() == vec.GetX()) && (vec.GetY() == vec.GetY()) && (vec.GetZ() == vec.GetZ());
+            }
 #endif
 
             MultiIndexedDataVector<DecalData, AZ::Aabb> m_decalData;
