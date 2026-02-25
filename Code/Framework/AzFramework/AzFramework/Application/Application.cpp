@@ -81,12 +81,6 @@
 #include <cctype>
 #include <stdio.h>
 
-// carbonated begin (akostin/mp226): Add NetworkContext to ReflectionManager instance
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-#include <AzFramework/Network/NetworkContext.h>
-#endif
-// carbonated end
-
 [[maybe_unused]] static const char* s_azFrameworkWarningWindow = "AzFramework";
 
 namespace AzFramework
@@ -168,11 +162,6 @@ namespace AzFramework
         ApplicationRequests::Bus::Handler::BusConnect();
         AZ::UserSettingsFileLocatorBus::Handler::BusConnect();
 
-        // carbonated begin (akostin/mp226): Add NetworkContext to ReflectionManager instance
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-        NetSystemRequestBus::Handler::BusConnect();
-#endif
-        // carbonated end
     }
 
     Application::~Application()
@@ -181,12 +170,6 @@ namespace AzFramework
         {
             Stop();
         }
-
-        // carbonated begin (akostin/mp226): Add NetworkContext to ReflectionManager instance
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-        NetSystemRequestBus::Handler::BusDisconnect();
-#endif
-        // carbonated end
 
         AZ::UserSettingsFileLocatorBus::Handler::BusDisconnect();
         ApplicationRequests::Bus::Handler::BusDisconnect();
@@ -457,12 +440,6 @@ namespace AzFramework
     void Application::CreateReflectionManager()
     {
         ComponentApplication::CreateReflectionManager();
-        // carbonated begin (akostin/mp305-1): Add NetworkContext to ReflectionManager instance
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-        // Setup NetworkContext
-        AZ::ReflectionEnvironment::GetReflectionManager()->AddReflectContext<AzFramework::NetworkContext>();
-#endif
-        // carbonated end
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -876,22 +853,4 @@ namespace AzFramework
         }
         return value;
     }
-
-    // carbonated begin (akostin/mp226): Add NetworkContext to ReflectionManager instance
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-    ////////////////////////////////////////////////////////////////////////////
-    NetworkContext* Application::GetNetworkContext()
-    {
-        NetworkContext* result = nullptr;
-
-        if (auto reflectionManager = AZ::ReflectionEnvironment::GetReflectionManager())
-        {
-            result = reflectionManager->GetReflectContext<AzFramework::NetworkContext>();
-        }
-
-        return result;
-    }
-#endif
-    // carbonated end
-
 } // namespace AzFramework

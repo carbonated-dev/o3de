@@ -12,11 +12,9 @@
 #include <AzCore/Script/lua/lua.h>
 #include <AzCore/Script/ScriptProperty.h>
 
-// carbonated begin (akostin/mp226-2): Add NetBindable to ScriptComponent
 #if defined(CARBONATED)
 #include <AzCore/Script/ScriptPropertyEntityRef.h>
 #endif
-// carbonated end
 
 namespace AZ
 {
@@ -82,11 +80,9 @@ namespace AZ
 
         ScriptPropertyAsset::Reflect(reflection);
 
-        // carbonated begin (akostin/mp226-2): Add NetBindable to ScriptComponent
-        #if defined(CARBONATED)
+#if defined(CARBONATED)
         ScriptPropertyEntityRef::Reflect(reflection);
-        #endif
-        // carbonated end
+#endif
     }
 
     template<class Iterator>

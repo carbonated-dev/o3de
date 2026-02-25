@@ -14,10 +14,6 @@
 #include <AzCore/Component/TickBus.h>
 #include <AzCore/EBus/Event.h>
 
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-#include <AzFramework/Network/NetBindable.h>
-#endif
-
 namespace AzToolsFramework
 {
     namespace Components
@@ -28,10 +24,6 @@ namespace AzToolsFramework
 
 namespace AzFramework
 {
-#if defined(CARBONATED)
-    class TransformReplicaChunk;
-#endif
-
     class GameEntityContextComponent;
 
     /// @deprecated Use AZ::TransformConfig
@@ -44,21 +36,10 @@ namespace AzFramework
         , public AZ::TransformBus::Handler
         , public AZ::TransformNotificationBus::Handler
         , private AZ::TransformHierarchyInformationBus::Handler
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-        , public AZ::TickBus::Handler
-        , public NetBindable
-#endif
     {
-#if defined(CARBONATED)
-        friend class TransformReplicaChunk;
-#endif
 
     public:
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-        AZ_COMPONENT(TransformComponent, AZ::TransformComponentTypeId, NetBindable, AZ::TransformInterface);
-#else
         AZ_COMPONENT(TransformComponent, AZ::TransformComponentTypeId, AZ::TransformInterface);
-#endif
 
         friend class AzToolsFramework::Components::TransformComponent;
 
@@ -210,74 +191,5 @@ namespace AzFramework
         bool m_isStatic = false; ///< If true, the transform is static and doesn't move while entity is active.
         /// Behavior for this entity's transform when its parent's transform changes.
         AZ::OnParentChangedBehavior m_onParentChangedBehavior = AZ::OnParentChangedBehavior::Update;
-
-#if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-    public:
-        //Ignore network updates... currently
-        void SetClientSimulated(bool clientSim) override;
-
-    protected:
-        bool IsPositionInterpolated();
-        bool IsRotationInterpolated();
-        
-        void OnEntityActivatedImpl(const AZ::EntityId& parentEntityId);
-
-        //////////////////////////////////////////////////////////////////////////
-        // NetBindable
-        GridMate::ReplicaChunkPtr GetNetworkBinding() override;
-        void SetNetworkBinding(GridMate::ReplicaChunkPtr chunk) override;
-        void UnbindFromNetwork() override;
-
-        //! Called by the net chunk when new transform data arrives from the network.
-        void OnNewNetTransformData(const AZ::Transform& transform, const GridMate::TimeContext& tc);
-
-        //! Called by the net chunk when new parent id arrives from the network.
-        void OnNewNetParentData(const AZ::u64& parentId, const GridMate::TimeContext& tc);
-
-        //! Returns true if this instance is non-authoritative.
-        bool    IsNetworkControlled() const;
-
-        //! Triggers an update of the chunk data. Should only be called on the authoritative instance.
-        void    UpdateReplicaChunk();
-        // End of NetBindable
-        //////////////////////////////////////////////////////////////////////////
-
-        //////////////////////////////////////////////////////////////////////////
-        // AZ::TickBus
-        void OnTick(float deltaTime, AZ::ScriptTimePoint time) override;
-        //////////////////////////////////////////////////////////////////////////
-        
-        GridMate::ReplicaChunkPtr               m_replicaChunk;
-        AZ::InterpolationMode                   m_interpolatePosition;      ///< Interpolation mode for net-synced position updates
-        AZ::InterpolationMode                   m_interpolateRotation;      ///< Interpolation mode for net-synced rotation updates
-
-        //////////////////////////////////////////////////////////////////////////////
-        // Feedback from corresponding replica chunk
-        void OnNewPositionData(const AZ::Vector3&, const GridMate::TimeContext&);
-        void OnNewRotationData(const AZ::Quaternion&, const GridMate::TimeContext&);
-        void OnNewScaleData(const AZ::Vector3&, const GridMate::TimeContext&);
-        //////////////////////////////////////////////////////////////////////////////
-
-        AZ::Transform GetInterpolatedTransform(unsigned int localTime);
-
-    private:
-
-        //////////////////////////////////////////////////////////////////////////////
-        bool HasAnyInterpolation();
-
-        void CreateTranslationSample();
-        void CreateRotationSample();
-        void CreateSamples();
-
-    private:
-
-        bool m_isClientSimulated = false;
-
-        AZStd::unique_ptr<AZ::Sample<AZ::Vector3>>    m_netTargetTranslation;
-        AZStd::unique_ptr<AZ::Sample<AZ::Quaternion>> m_netTargetRotation;
-        AZ::Vector3 m_netTargetScale;
-        //////////////////////////////////////////////////////////////////////////////
-#endif  
-
     };
 }   // namespace AZ

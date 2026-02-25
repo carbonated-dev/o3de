@@ -13,7 +13,6 @@ set(common_dir ${CMAKE_CURRENT_LIST_DIR}/Platform/Common)
 
 if(CARBONATED_ENGINE_ADDONS)
 set(azframeworkaddon_dependency AZ::AzFrameworkAddon.Static)
-set(gridmate_dependency AZ::GridMate)
 endif()
 
 ly_add_target(
@@ -38,7 +37,6 @@ ly_add_target(
             3rdParty::zstd
             3rdParty::lz4
             ${azframeworkaddon_dependency}
-            ${gridmate_dependency}
 )
 
 ly_add_target(
