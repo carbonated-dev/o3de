@@ -91,7 +91,10 @@ namespace Multiplayer
         }
 
         NotifyChildrenHierarchyDisbanded();
-
+#if defined(CARBONATED)
+        m_hierarchyRootNetIdChanged.Disconnect();
+        m_childChangedHandler.Disconnect();
+#endif
         NetworkHierarchyRequestBus::Handler::BusDisconnect();
     }
 

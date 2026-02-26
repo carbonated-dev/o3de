@@ -101,6 +101,11 @@ namespace Multiplayer
         m_parentChangedEventHandler.Disconnect();
         m_entityCorrectionEventHandler.Disconnect();
         m_entityPreRenderEventHandler.Disconnect();
+#if defined(CARBONATED)
+        m_rotationChangedEventHandler.Disconnect();
+        m_translationChangedEventHandler.Disconnect();
+        m_scaleChangedEventHandler.Disconnect();
+#endif
     }
 
     void NetworkTransformComponent::OnPreRender([[maybe_unused]] float deltaTime)
