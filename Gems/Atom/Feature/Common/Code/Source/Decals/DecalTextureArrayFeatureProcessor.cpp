@@ -298,11 +298,7 @@ namespace AZ
 #if defined(CARBONATED)
                 if (!IsVectorValid(position))
                 {
-                    AZ_Warning(
-                        "DecalTextureArrayFeatureProcessor",
-                        false,
-                        "SetDecalPosition rejected: NaN detected in position for handle %u.",
-                        handle.GetIndex());
+                    AZ_Warning("DecalTextureArrayFeatureProcessor", false, "SetDecalPosition rejected: NaN detected in position for handle %u.", handle.GetIndex());
                     return;
                 }
 #endif
