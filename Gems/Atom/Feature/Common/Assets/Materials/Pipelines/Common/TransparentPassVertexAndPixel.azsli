@@ -11,9 +11,11 @@
 struct ForwardPassOutput
 {
     [[vk::location(0), vk::index(0)]]
-    float4 m_color1 : SV_Target0;
+    //float4 m_color1 : SV_Target0;
+    real4 m_color1 : SV_Target0;  // CARBONATED
     [[vk::location(0), vk::index(1)]]
-    float4 m_color2 : SV_Target1;  // Used as the alternate blend source when dual-source blending is enabled for TintedTransparent
+    //float4 m_color2 : SV_Target1;  // Used as the alternate blend source when dual-source blending is enabled for TintedTransparent
+    real4 m_color2 : SV_Target1;  // CARBONATED
 };
 
 // --- Vertex Shader ---

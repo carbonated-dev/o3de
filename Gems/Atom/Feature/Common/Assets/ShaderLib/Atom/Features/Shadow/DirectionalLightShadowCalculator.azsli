@@ -30,11 +30,18 @@ class DirectionalShadowCalculator
         m_blendBetweenCascadesEnable = enable;
     }
 
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_ESM_SHADOW
     void SetShadowmaps(Texture2DArray<float> dirShadowMap, Texture2DArray<float> expShadowmap)
     {
         m_directionalLightShadowmap = dirShadowMap;
         m_directionalLightExponentialShadowmap = expShadowmap;
     }
+#else
+    void SetShadowmap(Texture2DArray<float> dirShadowMap)
+    {
+        m_directionalLightShadowmap = dirShadowMap;
+    }
+#endif
 
     void SetReceiverShadowPlaneBiasEnable(const bool enable)
     {
@@ -96,8 +103,10 @@ class DirectionalShadowCalculator
     ShadowFilterMethod m_filterMode;
     ShadowFilterSampleCount m_filteringSampleCountMode;
 
-    Texture2DArray<float> m_directionalLightShadowmap;   
+    Texture2DArray<float> m_directionalLightShadowmap;
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_ESM_SHADOW
     Texture2DArray<float> m_directionalLightExponentialShadowmap;        
+#endif    
 };
 
 // Find all shadow cascades which could affect a sample. Typically min and max will be the same, however in cases where the view direction lines up with the 
@@ -129,7 +138,8 @@ void DirectionalShadowCalculator::GetShadowCascadeRange(float3 shadowCoords[View
             {
                 ++index;
             }
-            maxShadowCascade = index;
+            //maxShadowCascade = index;
+            maxShadowCascade = min(index, m_cascadeCount - 1);  // CARBONATED it can be out of range from the original code above
             break;
         }
     }
@@ -305,7 +315,7 @@ real DirectionalShadowCalculator::SamplePcfBicubic(const float3 shadowCoord, con
 #else
     param.receiverPlaneDepthBias = m_receiverShadowPlaneBiasEnable ? ComputeReceiverPlaneDepthBias(m_shadowPosDX[indexOfCascade], m_shadowPosDY[indexOfCascade]) : 0;
 #endif
-    
+
     switch(filteringSampleCountMode)
     {
         case ShadowFilterSampleCount::PcfTap4:
@@ -348,6 +358,7 @@ real DirectionalShadowCalculator::GetVisibilityFromLightPcf()
 
 float DirectionalShadowCalculator::GetVisibilityFromLightEsm()
 {
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_ESM_SHADOW
     for (int indexOfCascade = m_minCascade; indexOfCascade <= m_maxCascade; ++indexOfCascade)
     {
         const float3 shadowCoord = m_shadowCoords[indexOfCascade];
@@ -368,11 +379,13 @@ float DirectionalShadowCalculator::GetVisibilityFromLightEsm()
             }
         }
     }
+#endif    
     return 1.;
 }
 
 float DirectionalShadowCalculator::GetVisibilityFromLightEsmPcf()
 {
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_ESM_SHADOW
     for (int indexOfCascade = m_minCascade; indexOfCascade <= m_maxCascade; ++indexOfCascade)
     {
         const float3 shadowCoord = m_shadowCoords[indexOfCascade];
@@ -400,6 +413,7 @@ float DirectionalShadowCalculator::GetVisibilityFromLightEsmPcf()
             }
         }
     }
+#endif    
     return 1.;
 }
 

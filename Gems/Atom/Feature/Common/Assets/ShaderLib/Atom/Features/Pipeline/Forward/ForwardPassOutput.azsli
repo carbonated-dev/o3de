@@ -24,7 +24,8 @@
 
 struct ForwardPassOutput
 {
-    float4 m_color  : SV_Target0;
+    //float4 m_color  : SV_Target0;
+    real4 m_color : SV_Target0;  // CARBONATED respect float16 target format for mobile
 
 #if OUTPUT_DEPTH
     float m_depth : SV_Depth;

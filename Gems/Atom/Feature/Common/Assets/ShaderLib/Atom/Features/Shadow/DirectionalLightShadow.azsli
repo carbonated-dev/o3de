@@ -73,6 +73,8 @@ DirectionalShadowCalculator DirectionalLightShadow::MakeShadowCalculator(uint li
     calc.SetBlendBetweenCascadesEnable(o_blend_between_cascades_enable);
 #if !defined(FORCE_SMALL_SRGS) || ENABLE_ESM_SHADOW    
     calc.SetShadowmaps(PassSrg::m_directionalLightShadowmap, PassSrg::m_directionalLightExponentialShadowmap);
+#else    
+    calc.SetShadowmap(PassSrg::m_directionalLightShadowmap);
 #endif    
     calc.SetReceiverShadowPlaneBiasEnable(o_directional_shadow_receiver_plane_bias_enable);
     calc.SetWorldNormal(normalVector);
