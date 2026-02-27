@@ -20,7 +20,7 @@
 
 // Enable this define to print the shader variants used by MeshDrawPacket every time the draw packet get rebuilt.
 // Note: the log can be extremely long if there are too many mesh instances (for example, >5K).  
-// #define DEBUG_MESH_SHADERVARIANTS
+//#define DEBUG_MESH_SHADERVARIANTS
 
 namespace AZ
 {

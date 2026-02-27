@@ -50,7 +50,7 @@ namespace AZ::RHI
                 AZ_Error("DevicePipelineState", false, "Invalid subpassIndex %d. SubpassCount is %d.", renderTargetConfiguration.m_subpassIndex, renderTargetConfiguration.m_renderAttachmentLayout.m_subpassCount);
                 return ResultCode::InvalidOperation;
             }
-
+            
             if (descriptor.m_renderStates.m_depthStencilState.m_depth.m_enable || descriptor.m_renderStates.m_depthStencilState.m_stencil.m_enable)
             {
                 if (renderTargetConfiguration.GetDepthStencilFormat() == RHI::Format::Unknown)
@@ -59,9 +59,15 @@ namespace AZ::RHI
                     error = true;
                 }
             }
-
+            /*
+            AZ_Info("sss", "subpassIndex %d of %d, %d targets, %d inputs, hash %x",
+                    renderTargetConfiguration.m_subpassIndex, renderTargetConfiguration.m_renderAttachmentLayout.m_subpassCount,
+                    renderTargetConfiguration.GetRenderTargetCount(), renderTargetConfiguration.GetSubpassInputCount(),
+                    renderTargetConfiguration.GetHash());
+            */
             for (uint32_t i = 0; i < renderTargetConfiguration.GetRenderTargetCount(); ++i)
             {
+                //AZ_Info("sss", "target %d: format %d", i, renderTargetConfiguration.GetRenderTargetFormat(i));
                 if (renderTargetConfiguration.GetRenderTargetFormat(i) == RHI::Format::Unknown)
                 {
                     AZ_Error("DevicePipelineState", false, "Rendertarget attachment %d format is not set.", i);
@@ -71,6 +77,7 @@ namespace AZ::RHI
 
             for (uint32_t i = 0; i < renderTargetConfiguration.GetSubpassInputCount(); ++i)
             {
+                //AZ_Info("sss", "subpass input %d: format %d", i, renderTargetConfiguration.GetSubpassInputFormat(i));
                 if (renderTargetConfiguration.GetSubpassInputFormat(i) == RHI::Format::Unknown)
                 {
                     AZ_Error("DevicePipelineState", false, "Subpass input attachment %d format is not set.", i);

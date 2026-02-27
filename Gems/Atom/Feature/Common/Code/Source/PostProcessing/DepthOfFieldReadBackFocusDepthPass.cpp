@@ -76,7 +76,7 @@ namespace AZ
 
             AddChild(m_readbackPass);
 #if defined(CARBONATED)
-            AZ_Info("ppp", "Added DepthOfFieldReadBackPass as child to %s", GetName().GetCStr());
+            //AZ_Info("ppp", "Added DepthOfFieldReadBackPass as child to %s", GetName().GetCStr());
             //m_flags.m_mergeChildrenAsSubpasses = false; // subpass merging produces an error on DepthOfFieldReadBackPass
 #endif
 

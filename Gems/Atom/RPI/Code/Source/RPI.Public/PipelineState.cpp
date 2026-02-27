@@ -182,10 +182,10 @@ namespace AZ
                     m_pipelineState = m_shader->AcquirePipelineState(descriptor);
 #endif
                 }
-                else
-                {
-                    AZ_Info("ppp", "No output data or no data from shader");
-                }
+                //else
+                //{
+                //    AZ_Info("ppp", "No output data or no data from shader");
+                //}
                 m_dirty = false;
             }
             return m_pipelineState;

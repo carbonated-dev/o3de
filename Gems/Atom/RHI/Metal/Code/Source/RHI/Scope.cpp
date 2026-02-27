@@ -136,6 +136,7 @@ namespace AZ
                                         if (m_renderPassContext.m_renderPassDescriptor.colorAttachments[i].texture == imageViewMtlTexture)
                                         {
                                             data.m_attachmentIndex = i;
+                                            //AZ_Info("ttt", "assigned index %d to render target", i)
                                             break;
                                         }
                                     }

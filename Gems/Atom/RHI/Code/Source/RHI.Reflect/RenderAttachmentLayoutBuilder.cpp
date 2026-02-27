@@ -71,6 +71,7 @@ namespace AZ::RHI
                 const SubpassAttachmentLayoutBuilder::RenderAttachmentEntry& renderTargetAttachment = builder.m_renderTargetAttachments[i];
                 uint32_t resolveAttachmentIndex;
                 handleResolveAttachment(renderTargetAttachment, resolveAttachmentIndex);
+                //AZ_Info("ttt", "for render target %d resolve index %d", i, resolveAttachmentIndex);
             }
 
             uint32_t resolveAttachmentIndex;
@@ -92,6 +93,8 @@ namespace AZ::RHI
                     attachmentIndex = builtRenderAttachmentLayout.m_attachmentCount++;
                     renderAttachmentsMap[renderTargetAttachment.m_name] = attachmentIndex;
                     renderAttachmentFormats[attachmentIndex] = renderTargetAttachment.m_format;
+                    //AZ_Info("ttt", "add render target %s index %d with format %d", renderTargetAttachment.m_name.GetCStr(), attachmentIndex,
+                    //        renderTargetAttachment.m_format);
                 }
                 else
                 {

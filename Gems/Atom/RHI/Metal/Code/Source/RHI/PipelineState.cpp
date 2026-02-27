@@ -152,13 +152,14 @@ namespace AZ
 #if defined(CARBONATED)
                 if (!pFunction)
                 {
-                    AZ_Error("sss", false, "Cannot get shader function %s, byte code %d, length %d, source code %s size %d",
+                    AZ_Error("PipelineState", false, "Cannot get shader function %s, byte code %d, length %d, source code %s size %d",
                              entryPoint.data(), loadFromByteCode, byteCodeLength,
                              sourceStr.data(), sourceStr.size());
                     if (error)
                     {
+                        NSLog(@"shader load error %@", error);
                         NSString* description = [error localizedDescription];
-                        AZ_Error("sss", false, "error '%s''",  [description UTF8String]);
+                        AZ_Error("PipelineState", false, "error '%s''",  [description UTF8String]);
                     }
                 }
 #endif
@@ -166,7 +167,7 @@ namespace AZ
 #if defined(CARBONATED)
             else
             {
-                AZ_Error("sss", false, "Library did not compile, byte code %d, length %d, source code %s size %d, entry point %s",
+                AZ_Error("PipelineState", false, "Library did not compile, byte code %d, length %d, source code %s size %d, entry point %s",
                          loadFromByteCode, byteCodeLength,
                          sourceStr.data(), sourceStr.size(),
                          entryPoint.data());
@@ -184,6 +185,8 @@ namespace AZ
                                                     const RHI::PipelineStateDescriptorForDraw& descriptor,
                                                     RHI::DevicePipelineLibrary* pipelineLibraryBase)
         {
+            //AZ_Info("ppp", "PipelineState::InitInternal for draw");
+            
             NSError* error = 0;
             Device& device = static_cast<Device&>(deviceBase);
             RHI::ConstPtr<PipelineLayout> pipelineLayout = device.AcquirePipelineLayout(*descriptor.m_pipelineLayoutDescriptor);
@@ -200,6 +203,7 @@ namespace AZ
             // Also collect the format for the depth/stencil if one is being used.
             for (uint32_t subpassIndex = 0; subpassIndex < attachmentLayout.m_subpassCount; ++subpassIndex)
             {
+                //AZ_Info("ttt", "subpass %d", subpassIndex);
                 const RHI::SubpassRenderAttachmentLayout& subpassLayout = attachmentLayout.m_subpassLayouts[subpassIndex];
                 if(depthStencilFormat == RHI::Format::Unknown && subpassLayout.m_depthStencilDescriptor.IsValid())
                 {
@@ -213,6 +217,8 @@ namespace AZ
                     {
                         m_attachmentIndexToColorIndex[i] = currentColorIndex++;
                     }
+                    //AZ_Info("ttt", "  subpass attachment N %d, index %d, color index %d, format %d",
+                    //        subpassAttachmentIndex, i, m_attachmentIndexToColorIndex[i], attachmentLayout.m_attachmentFormats[i]);
                     MTLRenderPipelineColorAttachmentDescriptor* colorDescriptor = m_renderPipelineDesc.colorAttachments[m_attachmentIndexToColorIndex[i]];
                     colorDescriptor.pixelFormat = ConvertPixelFormat(attachmentLayout.m_attachmentFormats[i]);
                     colorDescriptor.writeMask = MTLColorWriteMaskNone;
@@ -230,6 +236,7 @@ namespace AZ
                 uint32_t i = subpassLayout.m_rendertargetDescriptors[subpassAttachmentIndex].m_attachmentIndex;
                 MTLRenderPipelineColorAttachmentDescriptor* colorDescriptor = m_renderPipelineDesc.colorAttachments[m_attachmentIndexToColorIndex[i]];
                 colorDescriptor.pixelFormat = ConvertPixelFormat(attachmentLayout.m_attachmentFormats[i]);
+                //AZ_Info("ttt", "set metal color attachment number %d, index %d, format %d", i, m_attachmentIndexToColorIndex[i], attachmentLayout.m_attachmentFormats[i]);
                 colorDescriptor.writeMask = ConvertColorWriteMask(blendState.m_writeMask);
                 colorDescriptor.blendingEnabled = blendState.m_enable;
                 colorDescriptor.alphaBlendOperation = ConvertBlendOp(blendState.m_blendAlphaOp);
@@ -255,12 +262,14 @@ namespace AZ
             if(descriptor.m_renderStates.m_depthStencilState.m_stencil.m_enable || IsDepthStencilMerged(depthStencilFormat))
             {
                 m_renderPipelineDesc.stencilAttachmentPixelFormat = ConvertPixelFormat(depthStencilFormat);
+                //AZ_Info("ttt", "stencil format %d", depthStencilFormat);
             }
             
             // Depthstencil state
             if(descriptor.m_renderStates.m_depthStencilState.m_depth.m_enable || IsDepthStencilMerged(depthStencilFormat))
             {
                 m_renderPipelineDesc.depthAttachmentPixelFormat = ConvertPixelFormat(depthStencilFormat);
+                //AZ_Info("ttt", "depth format %d", depthStencilFormat);
                 
                 MTLDepthStencilDescriptor* depthStencilDesc = [[MTLDepthStencilDescriptor alloc] init];
                 ConvertDepthStencilState(descriptor.m_renderStates.m_depthStencilState, depthStencilDesc);
@@ -280,6 +289,7 @@ namespace AZ
             PipelineLibrary* pipelineLibrary = static_cast<PipelineLibrary*>(pipelineLibraryBase);
             if (pipelineLibrary && pipelineLibrary->IsInitialized())
             {
+                //AZ_Info("ppp", "pipelineLibrary->CreateGraphicsPipelineState");
 #if defined(CARBONATED) && defined(CARBONATED_SHADER_LOADING_TIME)
                 const int64_t startTime = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
                 m_graphicsPipelineState = pipelineLibrary->CreateGraphicsPipelineState(static_cast<uint64_t>(descriptor.GetHash()), m_renderPipelineDesc, &error);
@@ -414,30 +424,30 @@ namespace AZ
         MTLFunctionConstantValues* PipelineState::CreateFunctionConstantsValues(const RHI::PipelineStateDescriptor& pipelineDescriptor) const
         {
             MTLFunctionConstantValues* constantValues = [[MTLFunctionConstantValues alloc] init];
-            AZ_Info("sss", "Shader constants");
+            //AZ_Info("sss", "Shader constants");
             for(const auto& specializationData : pipelineDescriptor.m_specializationData)
             {
                 uint32_t value = specializationData.m_value.GetIndex();
                 MTLDataType type;
                 
-                const char* tname = "none";
+                //const char* tname = "none";
                 
                 switch(specializationData.m_type)
                 {
                     case RHI::SpecializationType::Integer:
                         type = MTLDataTypeInt;
-                        tname = "int";
+                        //tname = "int";
                         break;
                     case RHI::SpecializationType::Bool:
                         type = MTLDataTypeBool;
-                        tname = "bool";
+                        //tname = "bool";
                         break;
                     default:
                         AZ_Assert(false, "Invalid specialization type %d", specializationData.m_type);
                         type = MTLDataTypeInt;
                         break;
                 }
-                AZ_Info("sss", "  %s %s = %d, id %d", tname, specializationData.m_name.GetCStr(), value, specializationData.m_id);
+                //AZ_Info("sss", "  %s %s = %d, id %d", tname, specializationData.m_name.GetCStr(), value, specializationData.m_id);
                 [constantValues setConstantValue:&value type:type atIndex:specializationData.m_id];
             }
             

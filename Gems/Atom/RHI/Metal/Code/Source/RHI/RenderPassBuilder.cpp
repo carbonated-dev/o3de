@@ -97,6 +97,8 @@ namespace AZ::Metal
                         id<MTLTexture> renderTargetTexture = imageViewMtlTexture;
                         m_renderPassDescriptor.colorAttachments[colorAttachmentIndex].texture = renderTargetTexture;
                         
+                        //AZ_Info("ttt", "set render target texture to index %d", colorAttachmentIndex);
+                        
                         MTLRenderPassColorAttachmentDescriptor* colorAttachment = m_renderPassDescriptor.colorAttachments[colorAttachmentIndex];
                         colorAttachment.loadAction = mtlLoadAction;
                         
@@ -209,6 +211,7 @@ namespace AZ::Metal
                         MTLRenderPassColorAttachmentDescriptor* colorAttachment = renderPassDesc.colorAttachments[resolveAttachmentData.m_colorAttachmentIndex];
                         colorAttachment.resolveTexture = renderTargetTexture;
                         colorAttachment.storeAction = resolveStoreAction;
+                        //AZ_Info("ttt", "resolved metal render target as index %d", resolveAttachmentData.m_colorAttachmentIndex);
                     }
                     else if (resolveAttachmentData.m_attachmentUsage == RHI::ScopeAttachmentUsage::DepthStencil)
                     {

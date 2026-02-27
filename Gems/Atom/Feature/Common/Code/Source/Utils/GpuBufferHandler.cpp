@@ -27,12 +27,19 @@ namespace AZ
             m_elementCount = 0;
             
             m_bufferIndex = descriptor.m_srgLayout->FindShaderInputBufferIndex(Name(descriptor.m_bufferSrgName));
+#if defined(CARBONATED)
+            AZ_Error(ClassName, m_bufferIndex.IsValid(), "Unable to find buffer %s in %s shader resource group.", descriptor.m_bufferSrgName.c_str(), descriptor.m_srgLayout->GetName().GetCStr());
+#else
             AZ_Error(ClassName, m_bufferIndex.IsValid(), "Unable to find %s in %s shader resource group.", descriptor.m_bufferSrgName.c_str(), descriptor.m_srgLayout->GetName().GetCStr());
-
+#endif
             if (!descriptor.m_elementCountSrgName.empty())
             {
                 m_elementCountIndex = descriptor.m_srgLayout->FindShaderInputConstantIndex(Name(descriptor.m_elementCountSrgName));
+#if defined(CARBONATED)
+                AZ_Error(ClassName, m_elementCountIndex.IsValid(), "Unable to find constant %s in %s shader resource group.", descriptor.m_elementCountSrgName.c_str(), descriptor.m_srgLayout->GetName().GetCStr());
+#else
                 AZ_Error(ClassName, m_elementCountIndex.IsValid(), "Unable to find %s in %s shader resource group.", descriptor.m_elementCountSrgName.c_str(), descriptor.m_srgLayout->GetName().GetCStr());
+#endif
             }
 
             if (m_bufferIndex.IsValid())

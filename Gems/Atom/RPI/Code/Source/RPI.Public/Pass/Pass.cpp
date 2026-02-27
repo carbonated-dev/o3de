@@ -309,7 +309,7 @@ namespace AZ
             default:
                 break;
             }
-            
+            /*
             auto att = attachmentBinding.GetAttachment();
             //att->m_descriptor;
             if (att)
@@ -330,10 +330,6 @@ namespace AZ
                         format = att->m_descriptor.m_image.m_format;
                     }
                 }
-                /* if (att->GetAttachmentType() == RHI::AttachmentType::Image)
-                {
-                    format = att->GetTransientImageDescriptor().m_imageDescriptor.m_format;
-                }*/
                 AZ_Info("ppp", "Pass %s add binding %s (type %d), shader %s, attachment: %s, format %d", GetPathName().GetCStr(),
                     attachmentBinding.m_name.GetCStr(), attachmentBinding.m_slotType, attachmentBinding.m_shaderInputName.GetCStr(),
                     att->m_name.GetCStr(), int(format));
@@ -343,6 +339,7 @@ namespace AZ
                 AZ_Info("ppp", "Pass %s add binding %s (type %d), shader %s", GetPathName().GetCStr(),
                     attachmentBinding.m_name.GetCStr(), attachmentBinding.m_slotType, attachmentBinding.m_shaderInputName.GetCStr());
             }
+            */
         }
 
         // --- Finders ---
