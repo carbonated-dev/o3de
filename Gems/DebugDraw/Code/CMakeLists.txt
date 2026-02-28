@@ -67,6 +67,8 @@ ly_add_source_properties(
 # servers do not need debug draw components, only clients
 ly_create_alias(NAME ${gem_name}.Clients NAMESPACE Gem TARGETS ${gem_name})
 ly_create_alias(NAME ${gem_name}.Unified NAMESPACE Gem TARGETS ${gem_name})
+# CARBONATED. Added that for the Full Screen Server
+ly_create_alias(NAME ${gem_name}.Servers NAMESPACE Gem TARGETS ${gem_name})
 
 if(PAL_TRAIT_BUILD_HOST_TOOLS)
     ly_add_target(
