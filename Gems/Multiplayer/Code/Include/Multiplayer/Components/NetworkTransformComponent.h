@@ -28,6 +28,14 @@ namespace Multiplayer
         void OnActivate(Multiplayer::EntityIsMigrating entityIsMigrating) override;
         void OnDeactivate(Multiplayer::EntityIsMigrating entityIsMigrating) override;
 
+#if defined(CARBONATED)
+        // For the purposes of local prediction, if the input rate is the default (30fps), the character has jitter when the client is at a higher render fps.
+        // This change allows the client to ignore syncs to the local network transform and manually request them, and
+        // then interpolate the transform changes at render time instead of update time, which results in smoother movement. 
+        void PauseAutoTransformSync(bool pause);
+        void RefreshCachedTransform();
+#endif
+
     private:
         void OnPreRender(float deltaTime);
         void OnCorrection();
@@ -59,6 +67,10 @@ namespace Multiplayer
         void HandleMultiplayerTeleport(AzNetworking::IConnection* invokingConnection, const AZ::Vector3& teleportToPosition) override;
 #endif
 
+#if defined(CARBONATED)
+        void PauseAutoTransformSync(bool pause);
+        void RefreshCachedTransform();
+#endif
     private:
         void OnTransformChangedEvent(const AZ::Transform& localTm, const AZ::Transform& worldTm);
         void OnParentIdChangedEvent(AZ::EntityId oldParent, AZ::EntityId newParent);
