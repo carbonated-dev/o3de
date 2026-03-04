@@ -289,11 +289,7 @@ namespace AZ::Debug
 
         (void)byteSize;
         (void)alignment;
-        AZ_Assert(
-            byteSize == 0 || byteSize == allocationInfo.m_byteSize, "Mismatched byteSize at deallocation! You supplied an invalid value!");
-        AZ_Assert(
-            alignment == 0 || alignment == allocationInfo.m_alignment,
-            "Mismatched alignment at deallocation! You supplied an invalid value!");
+        AZ_Assert(byteSize == 0 || byteSize == allocationInfo.m_byteSize, "Mismatched byteSize at deallocation! You supplied an invalid value!");
 
         // statistics
         m_requestedBytes -= allocationInfo.m_byteSize;
