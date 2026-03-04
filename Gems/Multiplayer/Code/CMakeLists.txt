@@ -75,7 +75,7 @@ ly_add_target(
             Include
     COMPILE_DEFINITIONS
         PUBLIC
-            AZ_TRAIT_CLIENT=1
+            AZ_TRAIT_CLIENT=2
             AZ_TRAIT_SERVER=0
             ${O3DE_EDITOR_CONNECTION_LISTENER_ENABLE_FLAG}
     BUILD_DEPENDENCIES
@@ -135,7 +135,7 @@ ly_add_target(
             Include
     COMPILE_DEFINITIONS
         PUBLIC
-            AZ_TRAIT_CLIENT=1
+            AZ_TRAIT_CLIENT=3
             AZ_TRAIT_SERVER=1
             ${O3DE_EDITOR_CONNECTION_LISTENER_ENABLE_FLAG}
     BUILD_DEPENDENCIES
