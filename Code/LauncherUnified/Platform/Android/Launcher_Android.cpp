@@ -119,7 +119,7 @@ namespace
             const AZ::Android::AndroidEnv* androidEnv = AZ::Android::AndroidEnv::Get();
 #if defined(CARBONATED)
             // On some devices, when the application is in the background,
-            // ALOOPER_POLL_WAKE message may arrive (usually when opening another application),
+            // ALOOPER_POLL_* message may arrive (usually when opening another application),
             // which will lead to an exit from the wait in looperFunc and the continuation
             // of the execution of MainLoop and the execution of gameApplication.Tick().
 
@@ -146,8 +146,14 @@ namespace
                 do
                 {
                     result = looperFunc(-1, nullptr, &events, reinterpret_cast<void**>(&source));
+                    if (result == ALOOPER_POLL_ERROR)
+                    {
+                        LOGE("Looper poll error in background state");
+                        m_appState->destroyRequested = 1;
+                        break;
+                    }
                 }
-                while (result == ALOOPER_POLL_WAKE);
+                while (result < 0);  //ALOOPER_POLL_WAKE = -1, ALOOPER_POLL_CALLBACK = -2, ALOOPER_POLL_TIMEOUT = -3, ALOOPER_POLL_ERROR = -4
             }
 #else
             // when timeout is negative, the function will block until an event is received
