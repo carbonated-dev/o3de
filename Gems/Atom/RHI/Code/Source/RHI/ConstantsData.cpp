@@ -38,6 +38,15 @@ namespace AZ::RHI
             // The input offset / size must span the entire allocated constant region.
             if (offsetInBytes != 0 || sizeInBytes != shaderInputConstant.m_constantByteCount)
             {
+#if defined(CARBONATED)
+                auto list = GetLayout()->GetShaderInputList();
+                AZ_Info("ConstantsData", "Shader constants (expect Complete) %d", list.size());
+                for (int i = 0; i < list.size(); i++)
+                {
+                    auto& sic = list[i];
+                    AZ_Info("ConstantsData", "  %d %s: %d %d", i, sic.m_name.GetCStr(), int(sic.m_constantByteOffset), int(sic.m_constantByteCount));
+                }
+#endif
                 AZ_Assert(false,
                     "Constant Input '%s': This method requires that the full allocated constant range be accessed. The "
                     "requested offset must be 0, and the requested size must be the full size of the constant shader input. "
@@ -50,6 +59,15 @@ namespace AZ::RHI
             // The input offset + size must be less than the total bytes allocated for this constant input.
             if ((offsetInBytes + sizeInBytes) > shaderInputConstant.m_constantByteCount)
             {
+#if defined(CARBONATED)
+                auto list = GetLayout()->GetShaderInputList();
+                AZ_Info("ConstantsData", "Shader constants (expect LessThan) %d", list.size());
+                for (int i = 0; i < list.size(); i++)
+                {
+                    auto& sic = list[i];
+                    AZ_Info("sss", "  %d %s: %d %d", i, sic.m_name.GetCStr(), int(sic.m_constantByteOffset), int(sic.m_constantByteCount));
+                }
+#endif
                 AZ_Assert(false,
                     "Constant Input '%s': The requested region of constant data exceeds the allocated size of the constant shader input. "
                     "Total Bytes: %d Actual: [%d, %d).", shaderInputConstant.m_name.GetCStr(), shaderInputConstant.m_constantByteCount, offsetInBytes, offsetInBytes + sizeInBytes);
