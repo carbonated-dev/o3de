@@ -415,7 +415,17 @@ namespace AZ
                 for (int i = 0; i < m_materials.size(); i++)
                 {
                     MaterialData& md = m_materials[i];
-                    AZ_Info("DecalTextureArray", "%d %s", i, md.m_materialAssetData.GetHint().c_str());
+                    if (md.m_materialAssetData.GetId().IsValid())
+                    {
+                        AZStd::string str = md.m_materialAssetData.GetHint();
+                        if (str.empty())
+                        {
+                            AZ::Data::AssetInfo assetInfo;
+                            AZ::Data::AssetCatalogRequestBus::BroadcastResult(assetInfo, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetInfoById, md.m_materialAssetData.GetId());
+                            str = assetInfo.m_relativePath;
+                        }
+                        AZ_Info("DecalTextureArray", "%d %s", i, str.c_str());
+                    }
                 }
                 return;
             }
