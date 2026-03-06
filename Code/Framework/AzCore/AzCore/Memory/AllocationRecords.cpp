@@ -252,7 +252,11 @@ namespace AZ::Debug
     // UnregisterAllocation
     // [9/11/2009]
     //=========================================================================
+#if defined(CARBONATED)
+    void AllocationRecords::UnregisterAllocation(void* address, size_t byteSize, size_t alignment, AllocationInfo* info, bool noClean)
+#else
     void AllocationRecords::UnregisterAllocation(void* address, size_t byteSize, size_t alignment, AllocationInfo* info)
+#endif
     {
         if (m_mode == RECORD_NO_RECORDS)
         {
@@ -289,7 +293,13 @@ namespace AZ::Debug
 
         (void)byteSize;
         (void)alignment;
+#if defined(CARBONATED)
+        AZ_Assert(byteSize == 0 || byteSize == allocationInfo.m_byteSize ||
+            byteSize >= allocationInfo.m_byteSize,
+            "Mismatched byteSize=%d at deallocation, must be %d", byteSize, allocationInfo.m_byteSize);
+#else
         AZ_Assert(byteSize == 0 || byteSize == allocationInfo.m_byteSize, "Mismatched byteSize at deallocation! You supplied an invalid value!");
+#endif
 
         // statistics
         m_requestedBytes -= allocationInfo.m_byteSize;
@@ -349,7 +359,14 @@ namespace AZ::Debug
         // if requested set memory to a specific value.
         if (m_isMarkUnallocatedMemory)
         {
+#if defined(CARBONATED)
+            if (!noClean)
+            {
+                memset(address, GetUnallocatedMarkValue(), allocationInfo.m_byteSize);
+            }
+#else
             memset(address, GetUnallocatedMarkValue(), byteSize);
+#endif
         }
     }
 

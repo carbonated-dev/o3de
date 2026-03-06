@@ -199,8 +199,17 @@ namespace AZ
             }
 #endif
             AZ_PROFILE_MEMORY_FREE(MemoryReserved, ptr);
+#if defined(CARBONATED)
+            Debug::AllocationInfo dai;
+            AZ_MEMORY_PROFILE(ProfileDeallocation(ptr, byteSize, alignment, &dai));
+            if (byteSize == 0)
+            {
+                byteSize = dai.m_byteSize;
+            }
+#else
             byteSize = byteSize == 0 ? AZ_OS_MSIZE(ptr, alignment) : byteSize;
             AZ_MEMORY_PROFILE(ProfileDeallocation(ptr, byteSize, alignment, nullptr));
+#endif
             AZ_Assert(SystemAllocatorPrivate::g_AllocatedBytes >= byteSize, "SystemAllocator: Deallocating more memory than allocated!");
             SystemAllocatorPrivate::g_AllocatedBytes -= byteSize;
             AZ_OS_FREE(ptr);
@@ -219,13 +228,15 @@ namespace AZ
     //=========================================================================
     AllocateAddress SystemAllocator::reallocate(pointer ptr, size_type newSize, size_type newAlignment)
     {
-        #if (AZCORE_SYSTEM_ALLOCATOR == AZCORE_SYSTEM_ALLOCATOR_MALLOC)
+#if (AZCORE_SYSTEM_ALLOCATOR == AZCORE_SYSTEM_ALLOCATOR_MALLOC)
+
 #if defined(CARBONATED)
             if (ptr != nullptr)
             {
                 AZ_PROFILE_MEMORY_FREE(MemoryReserved, ptr);
                 AZ_Assert(SystemAllocatorPrivate::g_AllocatedBytes >= AZ_OS_MSIZE(ptr, newAlignment), "SystemAllocator: Deallocating more memory than allocated!");
                 SystemAllocatorPrivate::g_AllocatedBytes -= AZ_OS_MSIZE(ptr, newAlignment);
+                AZ_MEMORY_PROFILE(ProfileReallocationBegin(ptr));
             }
 #else
             AZ_PROFILE_MEMORY_FREE(MemoryReserved, ptr);
@@ -238,18 +249,17 @@ namespace AZ
                 SystemAllocatorPrivate::g_AllocatedBytes += newSize;
             }
             [[maybe_unused]] const size_type allocatedSize = newSize;
-        #else
+
+#else // (AZCORE_SYSTEM_ALLOCATOR == AZCORE_SYSTEM_ALLOCATOR_MALLOC)
             newSize = MemorySizeAdjustedUp(newSize);
             AZ_PROFILE_MEMORY_FREE(MemoryReserved, ptr);
-            
 #if defined(CARBONATED)
-#if defined(AZ_ENABLE_TRACING)
             AZ_MEMORY_PROFILE(ProfileReallocationBegin(ptr));
-#endif
 #endif
             AllocateAddress newAddress = m_subAllocator->reallocate(ptr, newSize, newAlignment);
             [[maybe_unused]] const size_type allocatedSize = get_allocated_size(newAddress, 1);
-        #endif
+
+#endif // (AZCORE_SYSTEM_ALLOCATOR == AZCORE_SYSTEM_ALLOCATOR_MALLOC)
 
         AZ_PROFILE_MEMORY_ALLOC(MemoryReserved, newAddress, newSize, "SystemAllocator realloc");
 #if defined(CARBONATED)

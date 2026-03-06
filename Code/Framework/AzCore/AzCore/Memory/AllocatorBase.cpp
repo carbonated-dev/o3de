@@ -261,7 +261,7 @@ namespace AZ
         {
             if (m_records)
             {
-                m_records->UnregisterAllocation(ptr, 0, 0, nullptr);  // ignore metadata values
+                m_records->UnregisterAllocation(ptr, 0, 0, nullptr, true);  // ignore metadata values
             }
         }
 #if O3DE_RECORDING_ENABLED

@@ -172,7 +172,11 @@ namespace AZ
 
             // @{ Allocation tracking management - we assume this functions are called with the lock locked.
             const AllocationInfo*   RegisterAllocation(void* address, size_t byteSize, size_t alignment, unsigned int stackSuppressCount);
+#if defined(CARBONATED)
+            void    UnregisterAllocation(void* address, size_t byteSize, size_t alignment, AllocationInfo* info, bool noClean = false);
+#else
             void    UnregisterAllocation(void* address, size_t byteSize, size_t alignment, AllocationInfo* info);
+#endif
             // the address of the variable will not change we are just updating the statistics.
             void    ResizeAllocation(void* address, size_t newSize);
 
