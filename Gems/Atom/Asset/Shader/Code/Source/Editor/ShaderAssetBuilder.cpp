@@ -538,7 +538,102 @@ namespace AZ
                         {
                             AZ_Error(
                                 ShaderAssetBuilderName, false, "Supervariant %s has a different ShaderOptionGroupLayout",
-                                supervariantInfo.m_name.GetCStr())
+                                supervariantInfo.m_name.GetCStr());
+#if defined(CARBONATED)
+                            {
+                                AZ_Error(ShaderAssetBuilderName, false, "  final hash %p %x, normal hash %p %x",
+                                    finalShaderOptionGroupLayout.get(), int(finalShaderOptionGroupLayout->GetHash()),
+                                    shaderOptionGroupLayout.get(), int(shaderOptionGroupLayout->GetHash()));
+
+                                const AZStd::vector<RPI::ShaderOptionDescriptor>& final = finalShaderOptionGroupLayout->GetShaderOptions();
+                                const AZStd::vector<RPI::ShaderOptionDescriptor>& normal = shaderOptionGroupLayout->GetShaderOptions();
+
+                                AZStd::vector<AZStd::string> fStrings;
+                                for (const RPI::ShaderOptionDescriptor& d : final)
+                                {
+                                    const AZStd::string s = AZStd::string::format(
+                                        "%s,%d,%d,%x", d.GetName().GetCStr(), int(d.GetValuesCount()), int(d.GetType()), int(d.GetHash()));
+                                    fStrings.push_back(s);
+
+                                    bool found = false;
+                                    for (const RPI::ShaderOptionDescriptor& dd : normal)
+                                    {
+                                        if (d.GetName() == dd.GetName())
+                                        {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found)
+                                    {
+                                        AZ_Error(ShaderAssetBuilderName, false, "  final option %s not found", d.GetName().GetCStr());
+                                    }
+                                }
+                                //AZStd::sort(fStrings.begin(), fStrings.end());
+                                AZStd::string fString;
+                                for (const AZStd::string& s : fStrings)
+                                {
+                                    if (fString.empty())
+                                    {
+                                        fString = s;
+                                    }
+                                    else
+                                    {
+                                        fString += AZStd::string::format(",%s", s.c_str());
+                                    }
+                                }
+                                AZ_Info(ShaderAssetBuilderName, "  final %d %s", final.size(), fString.c_str());
+
+                                AZStd::vector<AZStd::string> nStrings;
+                                for (const RPI::ShaderOptionDescriptor& d : normal)
+                                {
+                                    const AZStd::string s = AZStd::string::format("%s,%d,%d,%x", d.GetName().GetCStr(),
+                                        int(d.GetValuesCount()), int(d.GetType()), int(d.GetHash()));
+                                    nStrings.push_back(s);
+
+                                    bool found = false;
+                                    for (const RPI::ShaderOptionDescriptor& dd : final)
+                                    {
+                                        if (d.GetName() == dd.GetName())
+                                        {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found)
+                                    {
+                                        AZ_Error(ShaderAssetBuilderName, false, "  normal option %s not found", d.GetName().GetCStr());
+                                    }
+                                }
+                                //AZStd::sort(nStrings.begin(), nStrings.end());
+                                AZStd::string nString;
+                                for (const AZStd::string& s : nStrings)
+                                {
+                                    if (nString.empty())
+                                    {
+                                        nString = s;
+                                    }
+                                    else
+                                    {
+                                        nString += AZStd::string::format(",%s", s.c_str());
+                                    }
+                                }
+                                AZ_Info(ShaderAssetBuilderName, "  normal %d %s", normal.size(), nString.c_str());
+
+                                if (fString != nString)
+                                {
+                                    AZ_Error(ShaderAssetBuilderName, false, "  not equal");
+                                }
+                                /*
+                                AZ_Error("hhh", false, "Finalize final");
+                                finalShaderOptionGroupLayout->Finalize();
+                                AZ_Error("hhh", false, "Finalize normal");
+                                shaderOptionGroupLayout->Finalize();
+                                AZ_Error(ShaderAssetBuilderName, false, "  finalize: final hash %x, normal hash %x",
+                                    int(finalShaderOptionGroupLayout->GetHash()), int(shaderOptionGroupLayout->GetHash()));
+                                */
+                            }
+#endif
                             response.m_resultCode = AssetBuilderSDK::ProcessJobResult_Failed;
                             return;
                         }
