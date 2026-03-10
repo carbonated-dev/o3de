@@ -633,6 +633,13 @@ namespace AZ
                     const RHI::DrawIndexed& indexed = drawItem.m_geometryView->GetDrawArguments().m_indexed;
                     const RHI::DeviceIndexBufferView& indexBuffDescriptor = drawItem.m_geometryView->GetIndexBufferView();
                     const Buffer * buff = static_cast<const Buffer*>(indexBuffDescriptor.GetBuffer());
+#if defined(CARBONATED)
+                    if (buff == nullptr)
+                    {
+                        AZ_Error("CommandList", false, "Empty index buffer view for draw indexed, index count %d", indexed.m_indexCount);
+                        return;
+                    }
+#endif
                     id<MTLBuffer> mtlBuff = buff->GetMemoryView().GetGpuAddress<id<MTLBuffer>>();
                     MTLIndexType mtlIndexType = (indexBuffDescriptor.GetIndexFormat() == RHI::IndexFormat::Uint16) ?
                                                             MTLIndexTypeUInt16 : MTLIndexTypeUInt32;
