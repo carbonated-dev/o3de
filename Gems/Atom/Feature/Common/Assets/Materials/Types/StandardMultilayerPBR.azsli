@@ -198,7 +198,8 @@ option enum class OpacityMode {Opaque, Cutout, Blended, TintedTransparent} o_opa
     COMMON_OPTIONS_NORMAL(prefix)        \
     COMMON_OPTIONS_CLEAR_COAT(prefix)    \
     COMMON_OPTIONS_OCCLUSION(prefix)     \
-    COMMON_OPTIONS_EMISSIVE(prefix)
+    COMMON_OPTIONS_EMISSIVE(prefix)      \
+    COMMON_OPTIONS_WET(prefix)
 
     DEFINE_LAYER_OPTIONS(o_layer1_)
     DEFINE_LAYER_OPTIONS(o_layer2_)
@@ -234,6 +235,7 @@ option enum class OpacityMode {Opaque, Cutout, Blended, TintedTransparent} o_opa
         COMMON_SRG_INPUTS_CLEAR_COAT()
         COMMON_SRG_INPUTS_OCCLUSION()
         COMMON_SRG_INPUTS_EMISSIVE()
+        COMMON_SRG_INPUTS_WET()
         // Note parallax is omitted here because that requires special handling.
 
         bool m_normal_useTexture;

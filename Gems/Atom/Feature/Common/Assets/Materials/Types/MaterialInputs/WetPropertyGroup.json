@@ -1,0 +1,64 @@
+{
+    "name": "wet",
+    "displayName": "Wet",
+    "description": "Properties for configuring whether the surface is wet or not.",
+    "properties": [
+        {
+            "name": "useWet",
+            "displayName": "Apply Wet",
+            "description": "User Wet properties or not.",
+            "type": "Bool",
+            "defaultValue": false
+        },
+        {
+            "name": "wetFactor",
+            "displayName": "WetnessFactor",
+            "description": "WetnessFactor [0..1]. 0 is dry, 1 is completely wet.",
+            "type": "Float",
+            "defaultValue": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_wetFactor"
+            }
+        },
+        {
+            "name": "useTexture",
+            "displayName": "Use Texture",
+            "description": "Whether to use the texture, or just default to the WetFactor value.",
+            "type": "Bool",
+            "defaultValue": false
+        },
+        {
+            "name": "textureMap",
+            "displayName": "Texture",
+            "description": "Texture for defining surface wetness.",
+            "type": "Image",
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_wetMap"
+            }
+        },
+        {
+            "name": "textureMapUv",
+            "displayName": "UV",
+            "description": "Specular reflection map UV set",
+            "type": "Enum",
+            "enumIsUv": true,
+            "defaultValue": "Tiled",
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_wetMapUvIndex"
+            }
+        }
+    ],
+    "functors": [
+        {
+            "type": "Lua",
+            "args": {
+                "file": "Materials/Types/BasePBR_WetFeature.lua"
+            }
+        }
+    ]
+}

@@ -7,6 +7,7 @@
  */
 
 #define ENABLE_VERTEX_COLOR 1
+#define CARBONATED_ENABLE_WETNESS 1
     
 //TODO(MaterialPipeline): Inline the MaterialSrg files since they aren't reused.
 //TODO(MaterialPipeline): Try removing different parts of the SRG and see how hard/easy it is to customize the surface function.
@@ -23,6 +24,7 @@
     COMMON_OPTIONS_METALLIC()
     COMMON_OPTIONS_SPECULAR_F0()
     COMMON_OPTIONS_NORMAL()
+    COMMON_OPTIONS_WET()
     
     bool NeedsTangentFrame()
     {

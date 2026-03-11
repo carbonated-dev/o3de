@@ -36,6 +36,7 @@
     COMMON_OPTIONS_EMISSIVE()
     COMMON_OPTIONS_DETAIL_MAPS()
     COMMON_OPTIONS_PARALLAX()
+    COMMON_OPTIONS_WET()
     
     bool ShouldHandleParallax()
     {
