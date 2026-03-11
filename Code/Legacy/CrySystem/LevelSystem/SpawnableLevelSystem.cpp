@@ -348,16 +348,6 @@ namespace LegacyLevelSystem
             AZ::Data::Asset<AzFramework::Spawnable> rootSpawnable(
                 rootSpawnableAssetId, azrtti_typeid<AzFramework::Spawnable>(), levelName);
 
-// Gruber patch begin. // LVB
-#ifdef CARBONATED
-            rootSpawnable.QueueLoad();
-            // when we call AssetBus::QueuedEventCount() immediately after Asset::QueueLoad(), it returns the number of level assets for loading
-            m_queuedAssetsCountMax = static_cast<int>(AZ::Data::AssetBus::QueuedEventCount());
-            m_queuedAssetsCount = -1;
-            rootSpawnable.BlockUntilLoadComplete();
-#endif
-// Gruber patch end. // LVB
-
             m_rootSpawnableId = rootSpawnableAssetId;
             m_rootSpawnableGeneration = AzFramework::RootSpawnableInterface::Get()->AssignRootSpawnable(rootSpawnable);
 
