@@ -356,6 +356,7 @@ namespace AzFramework
         if (entity)
         {
             entity->SetId(AZ::Entity::MakeId());
+            AZ_Info("LVB", "EntityContext::CloneEntity: Name=%s, Id=%s", entity->GetName().c_str(), entity->GetId().ToString().c_str());
             AddEntity(entity);
         }
 

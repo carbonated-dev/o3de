@@ -436,10 +436,12 @@ namespace Multiplayer
 
         using EntityIdMap = AZStd::unordered_map<AZ::EntityId, AZ::EntityId>;
         EntityIdMap originalToCloneIdMap;
-
+        AZ_Info("LVB", "CreateEntitiesImmediate. entitiesSize=%i", entitiesSize);
         for (size_t i = 0; i < entitiesSize; ++i)
         {
             AZ::Entity* originalEntity = entities[i].get();
+
+             AZ_Info("LVB", "  originalEntity=%s, Id=%s", originalEntity->GetName().c_str(), originalEntity->GetId().ToString().c_str());
 
             // Can't use NetworkEntityTracker to do the lookup since the entity has not activated yet
             if (!originalEntity->FindComponent<NetBindComponent>())
@@ -451,6 +453,8 @@ namespace Multiplayer
             AZ_Assert(clone != nullptr, "Failed to clone spawnable entity.");
 
             clone->SetId(AZ::Entity::MakeId());
+
+             AZ_Info("LVB", "    clonedEntity=%s, Id=%s", clone->GetName().c_str(), clone->GetId().ToString().c_str());
 
             originalToCloneIdMap[originalEntity->GetId()] = clone->GetId();
 
@@ -560,7 +564,7 @@ namespace Multiplayer
         AZ::Entity* clone = serializeContext->CloneObject(entities[entityIndex].get());
         AZ_Assert(clone != nullptr, "Failed to clone spawnable entity.");
         clone->SetId(AZ::Entity::MakeId());
-
+        AZ_Info("LVB", "CreateEntitiesImmediate. Names=%s, clone->Id=%s. originalId=%s", clone->GetName().c_str(), clone->GetId().ToString().c_str(), entities[entityIndex].get()->GetId().ToString().c_str());
         NetBindComponent* netBindComponent = clone->FindComponent<NetBindComponent>();
         if (netBindComponent)
         {

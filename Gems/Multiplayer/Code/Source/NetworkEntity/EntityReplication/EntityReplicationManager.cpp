@@ -631,6 +631,14 @@ namespace Multiplayer
         // Create an entity if we don't have one and we're not immediately deleting it.
         if (createEntity)
         {
+            AZ_Printf(
+                "LVB",
+                "EntityReplicationManager. createEntity=%i, netEntityId=%llu, localNetworkRole=%i, prefabEntityId=%s",
+                createEntity,
+                netEntityId,
+                localNetworkRole,
+                prefabEntityId.m_prefabName.GetCStr());
+
             // If the entity doesn't exist yet and we're about to delete it, don't create the entity only to apply property changes
             // and delete it. Just return immediately and skip both creation and deletion.
             if (isDeleted)
@@ -644,10 +652,44 @@ namespace Multiplayer
 
             INetworkEntityManager::EntityList entityList = GetNetworkEntityManager()->CreateEntitiesImmediate(
                 prefabEntityId, netEntityId, localNetworkRole, AutoActivate::DoNotActivate, AZ::Transform::Identity());
-
             if (entityList.size() == 1)
             {
                 replicatorEntity = entityList[0];
+                AZ::Entity* entity = replicatorEntity.GetEntity();
+                AZ_Info(
+                    "LVB",
+                    "Entity created. name=%s id=%s state=%d",
+                    entity->GetName().c_str(),
+                    entity->GetId().ToString().c_str(),
+                    (int)entity->GetState());
+
+                const AZ::Entity::ComponentArrayType& components = entity->GetComponents();
+
+                AZ_Info("LVB", "Component count = %zu", components.size());
+
+                for (AZ::Component* component : components)
+                {
+                    AZ_Info(
+                        "LVB",
+                        "  Component: %s | TypeId: %s",
+                        component->RTTI_GetTypeName(),
+                        component->RTTI_GetType().ToString<AZStd::string>().c_str());
+                }
+
+                auto* netBind = entity->FindComponent<Multiplayer::NetBindComponent>();
+                if (netBind)
+                {
+                    AZ_Info(
+                        "LVB",
+                        "  NetRole=%d HasController=%d OwningConn=%u",
+                        (int)netBind->GetNetEntityRole(),
+                        netBind->HasController(),
+                        netBind->GetOwningConnectionId());
+                }
+                else
+                {
+                    AZ_Info("LVB", "  NO NetBindComponent");
+                }
             }
             else
             {

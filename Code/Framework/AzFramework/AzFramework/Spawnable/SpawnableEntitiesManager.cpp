@@ -413,8 +413,12 @@ namespace AzFramework
         // If the same ID gets remapped more than once, preserve the original remapping instead of overwriting it.
         constexpr bool allowDuplicateIds = false;
 
-        return AZ::IdUtils::Remapper<AZ::EntityId, allowDuplicateIds>::CloneObjectAndGenerateNewIdsAndFixRefs(
+        AZ::Entity* e = AZ::IdUtils::Remapper<AZ::EntityId, allowDuplicateIds>::CloneObjectAndGenerateNewIdsAndFixRefs(
             &entityPrototype, prototypeToCloneMap, &serializeContext);
+
+        AZ_Info("LVB", "CloneSingleEntity from Name=%s, Id=%s to Id=%s", entityPrototype.GetName().c_str(), entityPrototype.GetId().ToString().c_str(), e->GetId().ToString().c_str());
+
+        return e;
     }
 
     AZ::Entity* SpawnableEntitiesManager::CloneSingleAliasedEntity(
@@ -486,9 +490,19 @@ namespace AzFramework
         idMap.reserve(entities.size());
         previouslySpawned.reserve(entities.size());
 
+        AZ_Info("LVB", "InitializeEntityIdMappings: entities.size()=%i", entities.size());
+
         for (auto& entity : entities)
         {
-            idMap.emplace(entity->GetId(), AZ::Entity::MakeId());
+            AZ::EntityId entityId = AZ::Entity::MakeId();
+            AZ_Info(
+                "LVB",
+                "   Name=%s, Id=%s, remapped to %s",
+                entity->GetName().c_str(),
+                entity->GetId().ToString().c_str(),
+                entityId.ToString().c_str());
+            //idMap.emplace(entity->GetId(), AZ::Entity::MakeId());
+            idMap.emplace(entity->GetId(), entityId);
         }
     }
 
@@ -516,6 +530,11 @@ namespace AzFramework
         for (const auto& entityId : sortedEntityIds)
         {
             idMap.emplace(entityId, seedEntityId);
+            AZ_Printf(
+                "LVB",
+                "  InitializeEntityIdMappingsWithSeed from %s to runtime %s",
+                entityId.ToString().c_str(),
+                seedEntityId.ToString().c_str());
             seedEntityId = AZ::EntityId(static_cast<AZ::u64>(seedEntityId)+1);
         }
     }

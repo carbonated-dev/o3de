@@ -91,6 +91,7 @@ namespace AzToolsFramework::Prefab::SpawnableUtils
             static AZ::SerializeContext* sc = GetSerializeContext();
             sc->CloneObjectInplace(*clone, target);
             clone->SetId(AZ::Entity::MakeId());
+            AZ_Info("LVB", "SpawnableUtils::CloneEntity: Name=%s, Id=%s", clone->GetName().c_str(), clone->GetId().ToString().c_str());
 
             return clone;        
         }
@@ -111,6 +112,9 @@ namespace AzToolsFramework::Prefab::SpawnableUtils
                 AZ_STRING_ARG(alias), AZ_STRING_ARG(sourcePrefabName));
             // A new entity id can be used for the placeholder as `ReplaceEntity` will swap the entity ids.
             auto placeholder = AZStd::make_unique<AZ::Entity>(AZ::Entity::MakeId(), entityData->get().GetName());
+
+            AZ_Info("LVB", "ReplaceEntityWithPlaceholder. Name=%s, Id=%s", placeholder->GetName().c_str(), placeholder->GetId().ToString().c_str());
+
             // Keep a transform component on the placeholder to maintain parent/child relationship.
             // This is used during prefab processing to sort the corresponding spawnable's entities by hierarchy
             auto transformComponent = aznew AzFramework::TransformComponent();

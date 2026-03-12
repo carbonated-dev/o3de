@@ -369,6 +369,8 @@ namespace Multiplayer
         // over the entity's lifetime.
         if (sendPrefabId)
         {
+            AZ_Info("LVB", "GenerateUpdatePacket. prefab=%s", netBindComponent->GetPrefabEntityId().m_prefabName.GetCStr());
+
             updateMessage.SetPrefabEntityId(netBindComponent->GetPrefabEntityId());
         }
 

@@ -35,6 +35,7 @@ namespace Multiplayer
                 {
                     PrefabEntityId prefabEntityId = netBindComponent->GetPrefabEntityId();
                     prefabEntityId.m_entityOffset = entityOffset;
+                    AZ_Info("LVB", "PostProcessSpawnable. prefab=%s", prefabEntityId.m_prefabName.GetCStr());
 
                     netBindComponent->SetPrefabEntityId(prefabEntityId);
                 }
@@ -142,6 +143,7 @@ namespace Multiplayer
             prefabEntityId.m_prefabName = sourceEntity->GetName();
             NetBindComponent* netBindComponent = netEntity->FindComponent<NetBindComponent>();
             netBindComponent->SetPrefabAssetId(networkSpawnableAssetId);
+            AZ_Info("LVB", "PopulateNetworkInstance. prefab=%s", prefabEntityId.m_prefabName.GetCStr());
             netBindComponent->SetPrefabEntityId(prefabEntityId);
             
             return true;

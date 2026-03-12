@@ -388,6 +388,11 @@ namespace AzToolsFramework
                         // This completes the slice ancestry chain from the initial slice asset the instance came from to the new slice asset the instance is being placed into
                         // While the first live instance can retain the original EntityID when its moved into this deeper slice hierarchy
                         m_liveToAssetIdMap[mapPair.second] = m_transactionType == TransactionType::NewSlice ? AZ::Entity::MakeId() : mapPair.second;
+
+                        AZ_Info(
+                            "LVB",
+                            "SliceTransaction::AddEntity. Id=%s",
+                            m_liveToAssetIdMap[mapPair.second].ToString().c_str());
                     }
                 }
                 else
@@ -411,6 +416,12 @@ namespace AzToolsFramework
                 // Add as loose entity; clone the entity and assign a new Id.
                 AZ::Entity* clonedEntity = m_serializeContext->CloneObject(entity);
                 clonedEntity->SetId(AZ::Entity::MakeId());
+                AZ_Info(
+                    "LVB",
+                    "SliceTransaction::AddEntity: Name=%s, Id=%s",
+                    clonedEntity->GetName().c_str(),
+                    clonedEntity->GetId().ToString().c_str());
+
                 m_liveToAssetIdMap[entity->GetId()] = clonedEntity->GetId();
                 m_addedEntityIdRemaps[entity->GetId()] = clonedEntity->GetId();
 

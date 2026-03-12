@@ -118,6 +118,7 @@ namespace Multiplayer
             m_netBindComponent = m_entityHandle.GetNetBindComponent();
             AZ_Assert(m_netBindComponent, "No Multiplayer::NetBindComponent");
             m_boundLocalNetworkRole = m_netBindComponent->GetNetEntityRole();
+            AZ_Info("LVB", "EntityReplicator::Initialize. prefab=%s", m_netBindComponent->GetPrefabEntityId().m_prefabName.GetCStr());
             SetPrefabEntityId(m_netBindComponent->GetPrefabEntityId());
         }
 
