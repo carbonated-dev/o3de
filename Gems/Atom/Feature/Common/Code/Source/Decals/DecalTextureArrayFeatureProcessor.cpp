@@ -197,29 +197,33 @@ namespace AZ
             {
                 m_decalData.GetData<0>(decal.GetIndex()) = m_decalData.GetData<0>(sourceDecal.GetIndex());
 
+#if defined(CARBONATED)
                 const auto materialAsset = GetMaterialUsedByDecal(sourceDecal);
                 if (materialAsset.IsValid())
                 {
-#if defined(CARBONATED)
-
                     // Carbonated build: safer lookup for multi-threading
                     auto iter = m_materialToTextureArrayLookupTable.find(materialAsset);
                     if (iter != m_materialToTextureArrayLookupTable.end())
                     {
                         iter->second.m_useCount++;
                     }
-
-#else
-
-                    // Original O3DE behavior
-                    m_materialToTextureArrayLookupTable.at(materialAsset).m_useCount++;
-
-#endif
                 }
                 else
                 {
                     AZ_Warning("DecalTextureArrayFeatureProcessor", false, "CloneDecal called on a decal with no material set.");
                 }
+#else
+                const auto materialAsset = GetMaterialUsedByDecal(sourceDecal);
+                if (materialAsset.IsValid())
+                {
+                    m_materialToTextureArrayLookupTable.at(materialAsset).m_useCount++;
+                }
+                else
+                {
+                    AZ_Warning("DecalTextureArrayFeatureProcessor", false, "CloneDecal called on a decal with no material set.");
+                }
+#endif
+
                 m_deviceBufferNeedsUpdate = true;
             }
             return decal;
