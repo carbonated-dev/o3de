@@ -200,18 +200,20 @@ namespace AZ
                 const auto materialAsset = GetMaterialUsedByDecal(sourceDecal);
                 if (materialAsset.IsValid())
                 {
-                    // We use find() here to be safe, as it's a best practice when multi-threading.
+#if defined(CARBONATED)
+
+                    // Carbonated build: safer lookup for multi-threading
                     auto iter = m_materialToTextureArrayLookupTable.find(materialAsset);
                     if (iter != m_materialToTextureArrayLookupTable.end())
                     {
                         iter->second.m_useCount++;
                     }
-#if !defined(CARBONATED)
-                    else
-                    {
-                        // Fallback for vanilla build if find failed (maintaining original .at() behavior)
-                        m_materialToTextureArrayLookupTable.at(materialAsset).m_useCount++;
-                    }
+
+#else
+
+                    // Original O3DE behavior
+                    m_materialToTextureArrayLookupTable.at(materialAsset).m_useCount++;
+
 #endif
                 }
                 else
@@ -713,18 +715,17 @@ namespace AZ
             // while we are sorting and iterating over it.
             AZStd::shared_lock<AZStd::shared_mutex> readLock(m_decalDataMutex);
 #endif
+
             const auto& dataVector = m_decalData.GetDataVector<0>();
             size_t numVisibleDecals =
                 r_maxVisibleDecals < 0 ? dataVector.size() : AZStd::min(dataVector.size(), static_cast<size_t>(r_maxVisibleDecals));
             AZStd::vector<uint32_t> sortedDecals(dataVector.size());
             // Initialize with all the decals indices
             std::iota(sortedDecals.begin(), sortedDecals.end(), 0);
-#if !defined(CARBONATED)
-            // Only sort if we are going to limit the number of visible decals
-            if (numVisibleDecals < dataVector.size())
-#else
-            // Sort always due to the render pipeline can have its own limit for visible decals. And that limit can be much less than numVisibleDecals.
-#endif
+
+#if defined(CARBONATED)
+            // Sort always due to the render pipeline can have its own limit for visible decals. And that limit can be much less than
+            // numVisibleDecals.
             {
                 AZ::Vector3 viewPos = view->GetViewToWorldMatrix().GetTranslation();
                 AZStd::sort(
@@ -747,7 +748,7 @@ namespace AZ
                         if (d1Invalid || d2Invalid)
                         {
                             // Log the error using standard O3DE logging
-                            AZ_Printf("MadWorld", "Decal Math Error: NaN detected! Indices: %u, %u", lhs, rhs);
+                            AZ_Printf("DecalTextureArrayFeatureProcessor", "Decal Math Error: NaN detected! Indices: %u, %u", lhs, rhs);
 
                             // Strict Weak Ordering requires a consistent result.
                             // This pushes invalid entries to the back.
@@ -757,6 +758,22 @@ namespace AZ
                         return d1 < d2;
                     });
             }
+#else
+            // Only sort if we are going to limit the number of visible decals
+            if (numVisibleDecals < dataVector.size())
+            {
+                AZ::Vector3 viewPos = view->GetViewToWorldMatrix().GetTranslation();
+                AZStd::sort(
+                    sortedDecals.begin(),
+                    sortedDecals.end(),
+                    [&dataVector, &viewPos](uint32_t lhs, uint32_t rhs)
+                    {
+                        float d1 = (AZ::Vector3::CreateFromFloat3(dataVector[lhs].m_position.data()) - viewPos).GetLengthSq();
+                        float d2 = (AZ::Vector3::CreateFromFloat3(dataVector[rhs].m_position.data()) - viewPos).GetLengthSq();
+                        return d1 < d2;
+                    });
+            }
+#endif
 
             const AZ::Frustum viewFrustum = AZ::Frustum::CreateFromMatrixColumnMajor(view->GetWorldToClipMatrix());
             AZStd::vector<uint32_t> visibilityBuffer;
