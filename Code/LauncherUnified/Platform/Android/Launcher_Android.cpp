@@ -100,8 +100,8 @@ namespace
             {
                 while (!androidEnv->IsRunning())
                 {
-                    ProcessAllEvents();
                     usleep(100000);
+                    ProcessAllEvents();
                 }
             }
             else
@@ -354,23 +354,6 @@ namespace
     }
 }
 
-static void AndroidProcessEvents(struct android_app* state)
-{
-    struct android_poll_source* source = nullptr;
-    int32_t result = ALooper_pollOnce(0, nullptr, nullptr, (void**)&source);
-
-    if (result == ALOOPER_POLL_ERROR)
-    {
-        LOGE("ALooper_pollOnce - pool error");
-        state->destroyRequested = 1;
-        return;
-    }
-
-    if (source)
-    {
-        source->process(state, source);
-    }
-}
 
 static void* AndroidEventThreadWorker(void* param)
 {
@@ -406,7 +389,16 @@ static void* AndroidEventThreadWorker(void* param)
 
         while (eventsProcessed < maxEventsPerFrame)
         {
-            AndroidProcessEvents(state);
+            struct android_poll_source* source = nullptr;
+            int32_t result = ALooper_pollOnce(0, nullptr, nullptr, (void**)&source);
+
+            if (result == ALOOPER_POLL_ERROR || source == nullptr)
+            {
+                LOGE("AndroidEventThreadWorker - ALooper pool error");
+                break;
+            }
+
+            source->process(state, source);
             eventsProcessed++;
         }
 
