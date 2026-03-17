@@ -253,7 +253,7 @@ namespace AzFramework
         }
         m_pathBuffer = path;
 
-#if CARBONATED // To avoid a deadlock, we avoid calling ApplicationRequests::Bus::Broadcast(...)
+#if defined(CARBONATED) // To avoid a deadlock, we avoid calling ApplicationRequests::Bus::Broadcast(...)
         AZStd::string cacheAssetPath;
         if (auto settingsRegistry = AZ::SettingsRegistry::Get(); settingsRegistry != nullptr)
         {
