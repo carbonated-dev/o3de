@@ -35,6 +35,7 @@
 #include <EMotionFX/Source/MotionEventTrack.h>
 #include <EMotionFX/Source/AnimGraphSyncTrack.h>
 #include <EMotionFX/Source/AnimGraph.h>
+#include <EMotionFX/Source/AnimGraphStateMachine.h>
 #include <EMotionFX/Source/ActorManager.h>
 #include <EMotionFX/Source/ObjectId.h>
 
@@ -80,7 +81,6 @@
 #include <EMotionStudio/EMStudioSDK/Source/PluginManager.h>
 #include <Source/Editor/PropertyWidgets/PropertyTypes.h>
 #include <EMotionFX_Traits_Platform.h>
-#include <EMotionFX/Source/AnimGraphStateMachine.h>
 
 #include <EMotionFX/Tools/EMotionStudio/EMStudioSDK/Source/EMStudioPlugin.h>
 #include <EMotionFX/Tools/EMotionStudio/Plugins/StandardPlugins/Source/AnimGraph/AnimGraphPlugin.h>
@@ -588,6 +588,9 @@ namespace EMotionFX
             REGISTER_CVAR2(
                 "emfx_ragdollManipulatorsEnabled", &CVars::emfx_ragdollManipulatorsEnabled, 1, VF_DEV_ONLY,
                 "Feature flag for in development ragdoll manipulators");
+            REGISTER_CVAR2(
+                "emfx_debugTransitions", &CVars::emfx_debugTransitions, 0, VF_DEV_ONLY,
+                "Enable verbose transition logging for all anim graph instances");
         }
 
         //////////////////////////////////////////////////////////////////////////
@@ -606,6 +609,8 @@ namespace EMotionFX
         {
             // Flush events prior to updating EMotion FX.
             ActorNotificationBus::ExecuteQueuedEvents();
+
+            AnimGraphStateMachine::s_debugTransitions = (CVars::emfx_debugTransitions != 0);
 
             if (CVars::emfx_updateEnabled)
             {

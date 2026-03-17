@@ -29,6 +29,8 @@ namespace EMotionFX
         AZ_RTTI(AnimGraphStateMachine, "{272E90D2-8A18-46AF-AD82-6A8B7EC508ED}", AnimGraphNode)
         AZ_CLASS_ALLOCATOR_DECL
 
+        static bool s_debugTransitions;
+
         enum
         {
             OUTPUTPORT_POSE     = 0

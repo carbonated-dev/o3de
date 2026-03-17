@@ -32,6 +32,7 @@ namespace EMotionFX
     AZ_CLASS_ALLOCATOR_IMPL(AnimGraphStateMachine::UniqueData, AnimGraphObjectUniqueDataAllocator)
 
     AZ::u32 AnimGraphStateMachine::s_maxNumPasses = 10;
+    bool AnimGraphStateMachine::s_debugTransitions = false;
 
     AnimGraphStateMachine::AnimGraphStateMachine()
         : AnimGraphNode()
@@ -233,6 +234,14 @@ namespace EMotionFX
             // check if the transition evaluates as valid (if the conditions evaluate to true)
             if (curTransition->CheckIfIsReady(animGraphInstance))
             {
+                if (s_debugTransitions)
+                {
+                    AZ_Printf("EMotionFX", "Transition Ready: %s -> %s (Priority: %d)",
+                        curTransition->GetSourceNode() ? curTransition->GetSourceNode()->GetName() : "Wildcard",
+                        transitionTargetNode ? transitionTargetNode->GetName() : "None",
+                        curTransition->GetPriority());
+                }
+
                 // compare the priority values and overwrite it in case it is more important
                 const int32 transitionPriority = curTransition->GetPriority();
                 if (transitionPriority > highestPriority)
@@ -359,6 +368,17 @@ namespace EMotionFX
         AnimGraphNode* sourceNode = transition->GetSourceNode();
         AnimGraphNode* targetNode = transition->GetTargetNode();
 
+        if (s_debugTransitions)
+        {
+            AZ_Printf("EMotionFX", "StartTransition: %s -> %s (Time: %.2fs, Sync: %d, Instance: %s, Actor: %s)",
+                sourceNode ? sourceNode->GetName() : "None",
+                targetNode ? targetNode->GetName() : "None",
+                transition->GetBlendTime(animGraphInstance),
+                transition->GetSyncMode(),
+                animGraphInstance->GetAnimGraph() ? animGraphInstance->GetAnimGraph()->GetFileName() : "Unknown",
+                animGraphInstance->GetActorInstance() ? animGraphInstance->GetActorInstance()->GetActor()->GetName() : "Unknown");
+        }
+
         bool targetStateNeedsUpdate = false;
         {
             const AZStd::vector<AnimGraphNode*>& activeStates = GetActiveStates(animGraphInstance);
@@ -422,6 +442,13 @@ namespace EMotionFX
     {
         AZ_Assert(transition, "Transition has to be valid in order to end it.");
         AnimGraphNode* targetState = transition->GetTargetNode();
+
+        if (s_debugTransitions)
+        {
+            AZ_Printf("EMotionFX", "EndTransition: -> %s (Instance: %s)",
+                targetState ? targetState->GetName() : "None",
+                animGraphInstance->GetAnimGraph() ? animGraphInstance->GetAnimGraph()->GetFileName() : "Unknown");
+        }
         AnimGraphStateTransition* latestActiveTransition = GetLatestActiveTransition(uniqueData);
         const bool isLatestTransition = (latestActiveTransition == transition);
         EventManager& eventManager = GetEventManager();
