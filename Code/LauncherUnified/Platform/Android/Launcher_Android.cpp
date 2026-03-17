@@ -246,13 +246,7 @@ namespace
 
     int32_t HandleInputEvents(android_app* app, AInputEvent* event)
     {
-#if defined(CARBONATED)
-        g_eventDispatcher.QueueEvent([event](){
-            AzFramework::RawInputNotificationBusAndroid::Broadcast(&AzFramework::RawInputNotificationsAndroid::OnRawInputEvent, event);
-        });
-#else
         AzFramework::RawInputNotificationBusAndroid::Broadcast(&AzFramework::RawInputNotificationsAndroid::OnRawInputEvent, event);
-#endif
         return 0;
     }
 
