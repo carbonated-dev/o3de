@@ -486,33 +486,19 @@ static void* AndroidEventThreadWorker(void* param)
 
     while (!g_isRequestingExit)
     {
-        auto androidEnv = static_cast<AZ::Android::AndroidEnv*>(state->userData);
-        if (!androidEnv)
+        struct android_poll_source* source = nullptr;
+        int32_t result = ALooper_pollOnce(-1, nullptr, nullptr, (void**)&source);
+
+        if (result == ALOOPER_POLL_ERROR)
         {
+            LOGE("AndroidEventThreadWorker - ALooper pool error");
+            state->destroyRequested = 1;
             break;
         }
 
-        int32_t eventsProcessed = 0;
-        const int32_t maxEventsPerFrame = 10;
-
-        while (eventsProcessed < maxEventsPerFrame)
+        if (source != nullptr)
         {
-            struct android_poll_source* source = nullptr;
-            int32_t result = ALooper_pollOnce(0, nullptr, nullptr, (void**)&source);
-
-            if (result == ALOOPER_POLL_ERROR || source == nullptr)
-            {
-                LOGE("AndroidEventThreadWorker - ALooper pool error");
-                break;
-            }
-
             source->process(state, source);
-            eventsProcessed++;
-        }
-
-        if (eventsProcessed == 0)
-        {
-            usleep(androidEnv->IsRunning() ? 16000 : 100000);
         }
     }
 
