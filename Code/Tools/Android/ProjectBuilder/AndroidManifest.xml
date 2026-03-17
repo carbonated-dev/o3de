@@ -14,10 +14,10 @@
     <!-- Required for Kindle devices, which is based off Android 5.0, to access app specific public storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="21" />
 
-    <!-- Allow TCP/IP.  Needed for PerfHUD ES , Ironsource-->
+    <!-- Allow TCP/IP.  Needed for PerfHUD ES -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-     <!-- Required to poll the state of the network connection and respond to changes (Obb Download), Ironsource-->
+     <!-- Required to poll the state of the network connection and respond to changes (Obb Download) -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Required to check whether Wi-Fi is enabled (Obb Download) -->
@@ -28,9 +28,6 @@
 
     <!-- Required to for IAP -->
     <uses-permission android:name="com.android.vending.BILLING" />
-
-    <!-- Required for Ironsource Android API 33+ (Android 13+)-->
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
 
     <application
         android:icon="@mipmap/app_icon"
@@ -69,7 +66,6 @@
         <!-- Services for downloading the Obb -->
         <service android:name="com.amazon.lumberyard.io.obb.ObbDownloaderService" />
         <receiver android:name="com.amazon.lumberyard.io.obb.ObbDownloaderAlarmReceiver" />
-
 
         <!-- Samsung DEX specific properties, the following line(s) can be blank if not specified -->
         ${SAMSUNG_DEX_KEEP_ALIVE}
