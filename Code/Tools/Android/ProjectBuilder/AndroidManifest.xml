@@ -17,7 +17,7 @@
     <!-- Allow TCP/IP.  Needed for PerfHUD ES -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-     <!-- Required to poll the state of the network connection and respond to changes (Obb Download) -->
+     <!-- Required to poll the state of the network connection and respond to changes (Obb Download)-->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Required to check whether Wi-Fi is enabled (Obb Download) -->
