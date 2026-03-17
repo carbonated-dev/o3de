@@ -1003,98 +1003,9 @@ dependencies {{
 {plugins}
 """
 
-# CARBONATED -- begin : additional libs for messaging, Swappy, AppsFlyer, Bugsnag
+# CARBONATED -- begin : additional libs for messaging and Swappy
 ADDITIONAL_DEPENDENCIES = """
-    implementation 'com.google.firebase:firebase-core:21.1.1'
-    implementation 'com.google.firebase:firebase-messaging:24.0.3'
-    implementation 'com.google.android.gms:play-services-games-v2:21.0.0'
-    implementation 'com.google.android.gms:play-services-auth:21.2.0'
-    implementation fileTree(dir: 'libs', include: ['*.jar']) 
-    implementation 'com.google.android.gms:play-services-appset:16.0.0' 
-    implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0' 
-    implementation 'com.google.android.gms:play-services-basement:18.1.0'   
     implementation 'androidx.games:games-frame-pacing:2.1.3'
-    
-    // Core Bugsnag SDK
-    implementation "com.bugsnag:bugsnag-android:6.21.0"
-
-    // Needed for NDK crash reporting + NDK symbol mapping tasks
-    implementation "com.bugsnag:bugsnag-plugin-android-ndk:6.21.0"
-
-    // Needed for ANR native reporting
-    implementation "com.bugsnag:bugsnag-plugin-android-anr:6.21.0"
-    
-    // Latest stable as of Jan 2026 is 2.2.0 for bugsnag performance reporting
-    implementation "com.bugsnag:bugsnag-android-performance:2.2.0"     
-    
-    implementation 'com.appsflyer:af-android-sdk:6.17.4'
-    implementation 'com.android.installreferrer:installreferrer:2.2'
-    implementation 'com.unity3d.ads-mediation:mediation-sdk:8.2.1'
-
-"""
-
-# additional plugin for bugsnag. It should be at the top level of the project to create bugsnag tasks at the proper time
-ADDITIONAL_PLUGINS = """
-    apply plugin: 'com.google.gms.google-services'
-    apply plugin: 'com.bugsnag.android.gradle'
-
-    bugsnag {
-        // Always enable upload so tasks are created in the Gradle graph.
-        // Actual execution is controlled via 'onlyIf' below using the marker file.
-        uploadNdkMappings = true
-
-        // We are using ndk > than r23 so we should use the newer recommended method (disable legacy upload)
-        useLegacyNdkSymbolUpload = false
-        
-        // 3 * 60 * 1000 = 180000. 3 minutes
-        requestTimeoutMs = 180000        
-        retryCount = 3
-        sharedObjectPaths = [
-            file('build/intermediates/cxx'),
-            file('o3de')
-        ]
-    }
-
-    afterEvaluate {
-        println "Performing 'afterEvaluate' for BUGSNAG"
-    
-        tasks.configureEach { task ->
-            // Capture both NDK tasks (C++ symbols) and Release tasks (Java/Kotlin mappings)
-            // Examples: uploadBugsnagNdkProfileMapping, bugsnagReleaseProfileTask
-            boolean isBugsnagTask = task.name.contains('BugsnagNdk') || task.name.startsWith('bugsnagRelease')
-
-            if (isBugsnagTask) {
-                task.onlyIf {
-                    String variantName = ""
-                    String taskNameLower = task.name.toLowerCase()
-
-                    // CRITICAL: Check specific variants first!
-                    // 'bugsnagReleaseProfileTask' contains both 'release' and 'profile'.
-                    // We must check 'profile' or 'debug' before 'release' to avoid incorrect classification.
-                    if (taskNameLower.contains("profile")) {
-                        variantName = "profile"
-                    } else if (taskNameLower.contains("debug")) {
-                        variantName = "debug"
-                    } else if (taskNameLower.contains("release")) {
-                        variantName = "release"
-                    }
-                    
-                    if (variantName.isEmpty()) return true
-
-                    // Check for the marker file created by CMake (if CARBONATED_DISABLE_BUGSNAG=ON)
-                    // Path: build/android/app/o3de/<variant>/bugsnag_disabled.marker
-                    File markerFile = project.file("o3de/${variantName}/bugsnag_disabled.marker")
-                    
-                    if (markerFile.exists()) {
-                        println "BUGSNAG_CONFIG: Found marker at '${markerFile.name}' for ${variantName}. Skipping task ${task.name}"
-                        return false
-                    }
-                    
-                    return true
-                }
-            }
-        }
-    }
 """
 # CARBONATED -- end
 
@@ -1166,7 +1077,6 @@ DEFAULT_CONFIG_CHANGES = [
     'smallestScreenSize',
     'screenLayout',
     'uiMode',
-    'density',
 ]
 
 # Android Orientation Constants
@@ -1500,12 +1410,12 @@ class AndroidProjectGenerator(object):
         
 # CARBONATED -- begin : get the play delivery asset pack name
         self._aab_enable_asset_pack = get_android_config(project_path=self._project_path).get_boolean_value(SETTINGS_AAB_ENABLE_ASSET_PACK.key)
-# CARBONATED -- end 
+# CARBONATED -- end
 
 # CARBONATED -- begin
         self._plugins = ""
         self._additional_dependencies = ""
-# CARBONATED -- end          
+# CARBONATED -- end
 
     def execute(self):
         """
@@ -1537,7 +1447,7 @@ class AndroidProjectGenerator(object):
         android_gems = self.scan_and_integrate_gems()
         engine_project_name = self.create_engine_module()
         data_project_name = self.create_data_module()
-# CARBONATED -- end        
+# CARBONATED -- end
 
         self.create_platform_settings()
 
@@ -1551,22 +1461,11 @@ class AndroidProjectGenerator(object):
         project_names.extend([gem_name for gem_name, _ in android_gems])
 # CARBONATED -- end
 
-# CARBONATED -- begin : Bugsnag gem Android project staging
-        bugsnag_dir = self._build_dir / "bugsnag"
-        (bugsnag_dir / "src/main").mkdir(parents=True, exist_ok=True)
-
-        shutil.copy(self._project_path / "Gems/Bugsnag/Projects/Android/build.gradle", bugsnag_dir)
-        shutil.copytree(self._project_path / "Gems/Bugsnag/Resources/Android", bugsnag_dir / "src/main", dirs_exist_ok=True)
-
-        project_names.append("bugsnag")
-# CARBONATED -- end
-
-
         project_names.extend(self.create_lumberyard_app(project_names))
-        
+
 # CARBONATED -- begin
         local_repositories_path = self.generate_local_repositories_path(android_gems)
-# CARBONATED -- end        
+# CARBONATED -- end
 
 # CARBONATED -- begin : generate/append asset pack project to the project list 
         if self._aab_enable_asset_pack:
@@ -1577,21 +1476,16 @@ class AndroidProjectGenerator(object):
         root_gradle_env = {
             'ANDROID_GRADLE_PLUGIN_VERSION': str(self._gradle_plugin_version),
             'SDK_VER': self._android_platform_sdk_api_level,
-# CARBONATED -- begin. MinSdk Version
+# CARBONATED -- begin. MinSdk Version            
             'MIN_SDK_VER': self._android_platform_min_sdk_version,
-# old code below:
+# old code below:            
 #            'MIN_SDK_VER': self._android_platform_sdk_api_level,            
 # CARBONATED -- end
             'NDK_VERSION': self._android_ndk.version,
             'SDK_BUILD_TOOL_VER': self._android_sdk_build_tool_version,
             'LY_ENGINE_ROOT': self._engine_root.as_posix(),
-# CARBONATED
-# bugsnag -- begin.
-            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'\n" # root dependencies
-                                 "classpath 'com.bugsnag:bugsnag-android-gradle-plugin:8.+'", 
-# old code below:
-#           'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # root dependencies
-# bugsnag -- end.
+            'ROOT_DEPENDENCIES': "classpath 'com.google.gms:google-services:4.4.2'", # CARBONATED -- root dependencies
+# CARBONATED -- begin
             'LOCAL_REPOSITORIES_PATH': local_repositories_path
 # CARBONATED -- end
         }
@@ -1690,15 +1584,9 @@ class AndroidProjectGenerator(object):
             "CMAKE_DIR_LINE": f'cmake.dir={template_cmake_path}' if template_cmake_path else ''
         }
 
-        src_template_file_path = self._android_project_builder_path / 'local.properties.in'
-        # Load template manually to append custom properties
-        default_local_properties_content = utils.load_template_file(template_file_path=src_template_file_path,
-                                                                    template_env=local_properties_env)
-        dst_file = self._build_dir / 'local.properties'
-        # Always overwrite to ensure the file reflects the current configuration
-        dst_file.write_text(default_local_properties_content,
-                            encoding=DEFAULT_WRITE_ENCODING,
-                            errors=ENCODING_ERROR_HANDLINGS)
+        self.create_file_from_project_template(src_template_file='local.properties.in',
+                                               template_env=local_properties_env,
+                                               dst_file=self._build_dir / 'local.properties')
 
     def patch_and_transfer_android_libs(self):
         """
@@ -1884,7 +1772,7 @@ class AndroidProjectGenerator(object):
 
 # CARBONATED -- begin
         self._additional_dependencies = ADDITIONAL_DEPENDENCIES + "\n" + self._additional_dependencies
-# CARBONATED -- end     
+# CARBONATED -- end
 
         gradle_build_env = dict()
 
@@ -1896,7 +1784,7 @@ class AndroidProjectGenerator(object):
 # CARBONATED -- begin : AzAndroid/java moved to engine module
         # gradle_build_env['PROJECT_DEPENDENCIES'] = PROJECT_DEPENDENCIES_VALUE_FORMAT.format(dependencies='\n'.join(gradle_project_dependencies), additional_dependencies=ADDITIONAL_DEPENDENCIES, plugins=ADDITIONAL_PLUGINS) # CARBONATED: added implementations/plugins
         gradle_build_env['PROJECT_DEPENDENCIES'] = PROJECT_DEPENDENCIES_VALUE_FORMAT.format(dependencies='\n'.join(gradle_project_dependencies), additional_dependencies=self._additional_dependencies, plugins=self._plugins) # CARBONATED: added implementations/plugins
-# CARBONATED -- end     
+# CARBONATED -- end
         gradle_build_env['NATIVE_CMAKE_SECTION_ANDROID'] = NATIVE_CMAKE_SECTION_ANDROID_FORMAT.format(cmake_version=str(self._cmake_version), native_build_path=native_build_path, absolute_cmakelist_path=absolute_cmakelist_path)
         gradle_build_env['NATIVE_CMAKE_SECTION_DEFAULT_CONFIG'] = NATIVE_CMAKE_SECTION_DEFAULT_CONFIG_NDK_FORMAT_STR.format(abi=ANDROID_ARCH)
 
@@ -1913,7 +1801,7 @@ class AndroidProjectGenerator(object):
 # ORIGINAL:
         #gradle_build_env['OVERRIDE_JAVA_SOURCESET'] = OVERRIDE_JAVA_SOURCESET_STR.format(absolute_azandroid_path=absolute_azandroid_path)
         gradle_build_env['OVERRIDE_JAVA_SOURCESET'] = OVERRIDE_JAVA_SOURCESET_STR
-# CARBONATED -- end     
+# CARBONATED -- end
 
         gradle_build_env['OPTIONAL_JNI_SRC_LIB_SET'] = ', "outputs/native-lib"'
 
@@ -2274,7 +2162,7 @@ class AndroidProjectGenerator(object):
                 f'ANDROID_SCREEN_ORIENTATION must be a string or int in android_project.json. '
                 f'Got: {type(orientation).__name__}'
             )
-            
+
 # CARBONATED -- original code below
         """ orientation = az_android_package_env['ORIENTATION'] """
 # CARBONATED -- end
@@ -2953,21 +2841,14 @@ class AndroidProjectGenerator(object):
                 'PROJECT_DEPENDENCIES': project_dependencies,
                 'PROJECT_NAMESPACE': name_space,
                 'TARGET_TYPE': 'library',
-# CARBONATED --begin: include c++_shared stl
-                'NATIVE_CMAKE_SECTION_DEFAULT_CONFIG': """
-                    externalNativeBuild {
-                        cmake {
-                            arguments "-DANDROID_STL=c++_shared"
-                        }
-                    }""",
-# CARBONATED --end
+                'NATIVE_CMAKE_SECTION_DEFAULT_CONFIG': '',
                 'NATIVE_CMAKE_SECTION_ANDROID': '',
                 'NATIVE_CMAKE_SECTION_DEBUG_CONFIG': '',
                 'NATIVE_CMAKE_SECTION_PROFILE_CONFIG': '',
                 'NATIVE_CMAKE_SECTION_RELEASE_CONFIG': '',
 # CARBONATED -- begin : the play delivery asset pack list is empty by default            
                 'AAB_ASSET_PACK_LIST': '',
-# CARBONATED -- end                
+# CARBONATED -- end
                 'OVERRIDE_JAVA_SOURCESET': '',
                 'OPTIONAL_JNI_SRC_LIB_SET': '',
 
