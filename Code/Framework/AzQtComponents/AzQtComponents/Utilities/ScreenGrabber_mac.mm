@@ -76,10 +76,9 @@ namespace AzQtComponents
 #endif
 
         CFRelease(windows);
-
+        
         QImage result = QtMac::fromCGImageRef(cgImage).toImage();
         CGImageRelease(cgImage);
-
         return result;
 #endif
     }

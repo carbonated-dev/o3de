@@ -10,8 +10,9 @@
 #include <AzCore/std/string/string.h>
 #include <AzCore/RTTI/TypeInfo.h>
 #include <AzCore/Outcome/Outcome.h>
-#include <AzToolsFramework/Asset/AssetSeedManager.h>
 #include <AzFramework/Asset/AssetBundleManifest.h>
+#include <AzToolsFramework/AzToolsFrameworkAPI.h>
+#include <AzToolsFramework/Asset/AssetSeedManager.h>
 
 namespace AZ
 {
@@ -25,7 +26,7 @@ namespace AzToolsFramework
 #else
     constexpr AZ::u64 MaxBundleSizeInMB = 2 * 1024;
 #endif
-    class AssetBundleSettings
+    class AZTF_API AssetBundleSettings
     {
     public:
         AZ_TYPE_INFO(AssetBundleSettings, "{B9597C91-540E-41A9-9572-80A629061914}");
@@ -69,7 +70,7 @@ namespace AzToolsFramework
    * This class can we used to create a new AssetFileInfoList based on the
    * comparison type specified by the user
    */
-    class AssetFileInfoListComparison
+    class AZTF_API AssetFileInfoListComparison
     {
     public:
         enum class ComparisonType : AZ::u8
@@ -113,7 +114,7 @@ namespace AzToolsFramework
         };
         static const char* FilePatternTypeNames[aznumeric_cast<int>(FilePatternType::NumPatterns)];
 
-        struct ComparisonData
+        struct AZTF_API ComparisonData
         {
             AZ_TYPE_INFO(ComparisonData, "{B39A7148-AC9D-4038-A85E-2C86A0B2DEF6}");
             ComparisonData(const ComparisonType& type, const AZStd::string& destinationPath, const AZStd::string& filePattern = AZStd::string(), FilePatternType filePatternType = FilePatternType::Default, unsigned int intersectionCount = 0);
@@ -223,11 +224,11 @@ namespace AzToolsFramework
     * Some Helpers for dealing with filenames in the AssetBundler tools
     */
     // Split the file name to get base name and platform identifier
-    void SplitFilename(const AZStd::string& filePath, AZStd::string& baseFileName, AZStd::string& platformIdentifier);
+    AZTF_API  void SplitFilename(const AZStd::string& filePath, AZStd::string& baseFileName, AZStd::string& platformIdentifier);
 
     //! Removes the platform identifier from the filename if present
-    void RemovePlatformIdentifier(AZStd::string& filePath);
+    AZTF_API  void RemovePlatformIdentifier(AZStd::string& filePath);
 
     //! Returns the platform identifier from the filename, will return an empty string if none found
-    AZStd::string GetPlatformIdentifier(const AZStd::string& filePath);
+    AZTF_API  AZStd::string GetPlatformIdentifier(const AZStd::string& filePath);
 } // namespace AzToolsFramework

@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class LumberyardNativeUI
