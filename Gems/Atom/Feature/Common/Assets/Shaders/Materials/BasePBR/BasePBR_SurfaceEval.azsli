@@ -12,6 +12,10 @@
 #define ENABLE_VERTEX_COLOR 0
 #endif
 
+#ifndef CARBONATED_ENABLE_WETNESS
+#define CARBONATED_ENABLE_WETNESS 0
+#endif
+
 // This #define magic lets you use the EvaluateSurface function in this file without making it the final EvaluateSurface
 // used in your shader. Simply #define EvaluateSurface to your custom definition before including this file
 //
@@ -81,13 +85,63 @@ Surface EvaluateSurface_BasePBR(
     float2 specularUv = uvs[MaterialSrg::m_specularF0MapUvIndex];
     real specularF0Factor = GetSpecularInput(MaterialSrg::m_specularF0Map, MaterialSrg::m_sampler, specularUv, real(MaterialSrg::m_specularF0Factor), o_specularF0_useTexture, uvDxDy, customDerivatives);
 
-    surface.SetAlbedoAndSpecularF0(baseColor, specularF0Factor, metallic);
-
     // ------- Roughness -------
 
     float2 roughnessUv = uvs[MaterialSrg::m_roughnessMapUvIndex];
     surface.roughnessLinear = GetRoughnessInput(MaterialSrg::m_roughnessMap, MaterialSrg::m_sampler, roughnessUv, real(MaterialSrg::m_roughnessFactor),
                                         real(MaterialSrg::m_roughnessLowerBound), real(MaterialSrg::m_roughnessUpperBound), o_roughness_useTexture, uvDxDy, customDerivatives);
+
+    // ------- Wetness -------
+#if CARBONATED_ENABLE_WETNESS
+    if (o_useWet)
+    {
+        float porosity = 0;
+        float maxDarken = 0;
+        float wetFactor = MaterialSrg::m_wetFactor;
+        
+        if (o_wet_useTexture)
+        {
+            float2 wetMapUv = uvs[MaterialSrg::m_wetMapUvIndex];
+            wetFactor = GetWetInput(MaterialSrg::m_wetMap, MaterialSrg::m_sampler, wetMapUv);
+        }
+        
+        if (wetFactor < 0.3) // Metal
+        {
+            porosity = 0.1;
+            maxDarken = 0.2;
+        }
+        else if (wetFactor < 0.6) // Dielectric
+        {
+            porosity = 0.5;
+            maxDarken = 0.5;
+        }
+        else // Porous
+        {
+            porosity = 0.9;
+            maxDarken = 0.95;
+        }
+
+        float effectiveWetness = wetFactor * porosity;
+        float darkening = 1.0 - effectiveWetness * maxDarken;
+        float3 waterTint = float3(0.96, 0.98, 1.0);
+        baseColor = baseColor * darkening * lerp(1.0, waterTint, wetFactor * 0.3);
+        
+        float smoothFactor = lerp(0.7, 0.3, saturate(surface.roughnessLinear * 2.0));
+        surface.roughnessLinear = lerp(surface.roughnessLinear, 0.02, wetFactor * smoothFactor);
+        
+        float waterF0 = 0.02;
+        if (metallic > 0.5)
+        {
+            specularF0Factor = lerp(specularF0Factor, max(specularF0Factor, waterF0), wetFactor * 0.5);
+        }
+        else
+        {
+            specularF0Factor = lerp(specularF0Factor, waterF0, wetFactor * (1.0 - porosity * 0.5));
+        }
+    }
+#endif //CARBONATED_ENABLE_WETNESS
+
+    surface.SetAlbedoAndSpecularF0(baseColor, specularF0Factor, metallic);
     surface.CalculateRoughnessA();
 
     return surface;

@@ -140,7 +140,22 @@ namespace AZ
             float m_scale = 1.0f;
         };
 
-        AZ_ENUM_CLASS_WITH_UNDERLYING_TYPE(DisplayMapperOperationType, uint32_t,
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+        AZ_ENUM_CLASS_WITH_UNDERLYING_TYPE(
+            DisplayMapperOperationType, uint32_t,
+            Aces,
+            AcesLut,
+            Passthrough,
+            GammaSRGB,
+            Reinhard,
+            AcesFitted,
+            AcesFilmic,
+            Filmic,
+            JustLUT
+        );
+#else
+        AZ_ENUM_CLASS_WITH_UNDERLYING_TYPE(
+            DisplayMapperOperationType, uint32_t,
             Aces,
             AcesLut,
             Passthrough,
@@ -150,6 +165,7 @@ namespace AZ
             AcesFilmic,
             Filmic
         );
+#endif
 
         enum class ShaperPresetType
         {

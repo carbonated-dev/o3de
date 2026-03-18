@@ -168,11 +168,17 @@ namespace AZ
 
             MaterialComponentRequestBus::Handler::BusConnect(m_entityId);
             MaterialConsumerNotificationBus::Handler::BusConnect(m_entityId);
+#if defined(CARBONATED)
+            AzFramework::ApplicationLifecycleEvents::Bus::Handler::BusConnect();
+#endif
             LoadMaterials();
         }
 
         void MaterialComponentController::Deactivate()
         {
+#if defined(CARBONATED)
+            AzFramework::ApplicationLifecycleEvents::Bus::Handler::BusDisconnect();
+#endif
             MaterialComponentRequestBus::Handler::BusDisconnect();
             MaterialConsumerNotificationBus::Handler::BusDisconnect();
 
@@ -218,8 +224,27 @@ namespace AZ
             InitializeMaterialInstance(asset);
         }
 
+#if defined(CARBONATED)
+        void MaterialComponentController::OnApplicationConstrained(AzFramework::ApplicationLifecycleEvents::Event)
+        {
+            m_onPause = true;
+        }
+        void MaterialComponentController::OnApplicationUnconstrained(AzFramework::ApplicationLifecycleEvents::Event)
+        {
+            m_onPause = false;
+        }
+#endif
+
         void MaterialComponentController::OnSystemTick()
         {
+#if defined(CARBONATED)
+            if (m_onPause)
+            {
+                // do not use GPU for copying image data while the app is in background
+                return;
+            }
+#endif
+            
             while (!m_notifiedMaterialAssets.empty())
             {
                 auto materialAsset = m_notifiedMaterialAssets.front();

@@ -218,11 +218,21 @@ namespace AzToolsFramework
                 if (applyPatchResult.GetOutcome() == AZ::JsonSerializationResult::Outcomes::PartialSkip ||
                     applyPatchResult.GetOutcome() == AZ::JsonSerializationResult::Outcomes::Skipped)
                 {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+                    AZ_Warning(
+                        "Prefab",
+                        false,
+                        "Link::UpdateTarget - Some of the patches couldn't be applied on the Source Template:"
+                        "\n   '%s',\npresent under the Target Template:\n    '%s'.",
+                        sourceTemplateName->get().GetString(), targetTemplateName->get().GetString());
+                    // TODO : possibly mark target DOM with failed patches as Dirty, filter out failed patches and propose to re-save
+#else
                     AZ_Warning(
                         "Prefab", false,
                         "Link::UpdateTarget - Some of the patches couldn't be applied on the source template '%s' present under the  "
                         "target Template '%s'.",
                         sourceTemplateName->get().GetString(), targetTemplateName->get().GetString());
+#endif // defined(CARBONATED)
                 }
             }
 
