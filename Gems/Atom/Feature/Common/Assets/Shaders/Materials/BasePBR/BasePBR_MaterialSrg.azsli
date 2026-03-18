@@ -16,6 +16,7 @@
 #include "../MaterialInputs/NormalInput.azsli"
 #include "../MaterialInputs/UvSetCount.azsli"
 #include "../MaterialInputs/SilhouetteBlockerInput.azsli"
+#include "../MaterialInputs/WetInput.azsli"
 
 #include <Atom/Features/SrgSemantics.azsli>
 
@@ -28,6 +29,7 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
     COMMON_SRG_INPUTS_METALLIC()
     COMMON_SRG_INPUTS_SPECULAR_F0()
     COMMON_SRG_INPUTS_NORMAL()
+    COMMON_SRG_INPUTS_WET()
 
     float3x3 m_uvMatrix;
     float4 m_pad1; // [GFX TODO][ATOM-14595] This is a workaround for a data stomping bug. Remove once it's fixed.

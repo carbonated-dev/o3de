@@ -60,6 +60,9 @@ namespace ImageProcessingAtom
         "*.gif",
         "*.dds",
         "*.exr"
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+        , "*.cube"
+#endif
     };
     static constexpr int s_TotalSupportedImageExtensions = AZ_ARRAY_SIZE(s_SupportedImageExtensions);
 

@@ -14,7 +14,11 @@
 
 #include <Atom/RPI.Reflect/Pass/PassAsset.h>
 #include <Atom/RPI.Reflect/Pass/PassData.h>
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+#include <Atom/RPI.Public/Image/StreamingImage.h>
+#else
 #include <Atom/RPI.Reflect/System/AnyAsset.h>
+#endif
 
 namespace AZ
 {
@@ -77,7 +81,11 @@ namespace AZ
             DisplayMapperOperationType m_operationType = DisplayMapperOperationType::Aces;
 
             bool m_ldrGradingLutEnabled = false;
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+            Data::Asset<RPI::StreamingImageAsset> m_ldrColorGradingLut;
+#else
             Data::Asset<RPI::AnyAsset> m_ldrColorGradingLut;
+#endif
 
             AcesParameterOverrides m_acesParameterOverrides;
         };

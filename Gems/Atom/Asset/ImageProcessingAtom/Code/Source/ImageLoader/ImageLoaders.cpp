@@ -50,6 +50,12 @@ namespace ImageProcessingAtom
         {
             loadedImage = ExrLoader::LoadImageFromFile(filename);
         }
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+        else if (CUBELoader::IsExtensionSupported(ext))
+        {
+            loadedImage = CUBELoader::LoadImageFromCube(filename);
+        }
+#endif
         else
         {
             AZ_Warning("ImageProcessing", false, "No proper image loader to load file: %s", filename.c_str());
@@ -76,6 +82,9 @@ namespace ImageProcessingAtom
             || DdsLoader::IsExtensionSupported(extension)
             || TgaLoader::IsExtensionSupported(extension)
             || QtImageLoader::IsExtensionSupported(extension)
+#if defined(CARBONATED) && defined(CARBONATED_LUT_TEXTURE)
+            || CUBELoader::IsExtensionSupported(extension)
+#endif
             || ExrLoader::IsExtensionSupported(extension);
     }
 
