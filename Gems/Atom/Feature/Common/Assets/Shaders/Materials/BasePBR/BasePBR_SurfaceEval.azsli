@@ -114,25 +114,11 @@ Surface EvaluateSurface_BasePBR(
             wetFactor = GetWetInput(MaterialSrg::m_wetMap, MaterialSrg::m_sampler, wetMapUv);
         }
         
-        // The wetFactor is describing Moistening properties of a surface material
-        //float porosity = 0;
-        //float maxDarken = 0;
-        //if (wetFactor < 0.3f) // Metal
-        //{
-        //    porosity = 0.1;
-        //    maxDarken = 0.2;
-        //}
-        //else if (wetFactor < 0.6) // Dielectric
-        //{
-        //    porosity = 0.5;
-        //    maxDarken = 0.5;
-        //}
-        //else // Porous
-        //{
-        //    porosity = 0.9;
-        //    maxDarken = 0.95;
-        //}
-        // Approximation used:
+        // The wetFactor is describing Moistening properties of a surface material.
+        // For Metals:              wetFactor < 0.3         -> porosity <= 0.1; maxDarken <= 0.2;
+        // For Smooth Dielectrics:  0.3 >= wetFactor < 0.6  -> porosity <= 0.5; maxDarken <= 0.5;
+        // For Porous Dielectrics:  0.6 >= wetFactor < 1.0  -> porosity <= 0.9; maxDarken <= 0.95;
+        // Approximation:
         const float porosity = saturate(pow(1.15f, wetFactor) - 0.1f);
         const float maxDarken = pow(1.25f, wetFactor) * 0.95f;
         
