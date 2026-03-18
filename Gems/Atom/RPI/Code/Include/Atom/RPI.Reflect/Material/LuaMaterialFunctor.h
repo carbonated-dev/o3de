@@ -26,16 +26,6 @@ namespace AZ
 
     namespace RPI
     {
-        class ATOM_RPI_REFLECT_API LuaMaterialBehaviorContext
-        {
-        public:
-            static LuaMaterialBehaviorContext* GetInstance();
-            static void SetInstance(LuaMaterialBehaviorContext* instance);
-
-            LuaMaterialBehaviorContext();
-            void ReflectScriptContext(AZ::BehaviorContext* behaviorContext);
-        };
-
         namespace LuaMaterialFunctorAPI
         {
             class ATOM_RPI_REFLECT_API CommonRuntimeConfiguration
@@ -291,7 +281,7 @@ namespace AZ
 
                 //! Sets the value of a constant in the Material ShaderResourceGroup
                 template<typename T>
-                bool SetShaderConstant(const char* name, T value);
+                bool SetShaderParameterValue(const char* name, T value);
 
                 //! Sets the value of an intermediate material property, used to pass data to the material pipelines.
                 template<typename T>
@@ -310,9 +300,6 @@ namespace AZ
                 bool HasShaderWithTag(const char* shaderTag);
 
             private:
-
-                RHI::ShaderInputConstantIndex GetShaderInputConstantIndex(const char* name, const char* functionName) const;
-
                 MaterialFunctorAPI::RuntimeContext* m_runtimeContextImpl = nullptr;
                 const MaterialNameContext* m_materialNameContext;
             };

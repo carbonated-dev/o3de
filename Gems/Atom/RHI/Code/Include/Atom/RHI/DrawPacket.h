@@ -26,7 +26,7 @@ namespace AZ::RHI
     //! A DrawPacket is only intened to be contructed via the DrawPacketBuilder.
     //! Individual device-specific DrawPackets are allocated as packed data structures, referenced via RHI::Ptrs
     //! in a map, indexed by the device-index.
-    class DrawPacket final : public AZStd::intrusive_base
+    class ATOM_RHI_PUBLIC_API DrawPacket final : public AZStd::intrusive_base
     {
         friend class DrawPacketBuilder;
         friend class UnitTest::MultiDeviceDrawPacketTest;
@@ -44,16 +44,20 @@ namespace AZ::RHI
         //! Returns the number of draw items stored in the packet.
         size_t GetDrawItemCount() const;
 
-        //! Returns the index associated with the given DrawListTag
-        s32 GetDrawListIndex(DrawListTag drawListTag) const;
+        //! Returns the index of the first DrawItem that matches the given DrawListTag, and the given DrawFilterMask.
+        //! REMARK: When more than one MaterialPipelines are active, they may have Shaders with the same DrawListTag.
+        //!         In these cases there will be one DrawItem for each MaterialPipeline.
+        s32 GetDrawListIndex(DrawListTag drawListTag, DrawFilterMask materialPipelineMask = DrawFilterMaskDefaultValue) const;
 
         //! Returns the DeviceDrawItem at the given index
         DrawItem* GetDrawItem(size_t index);
         const DrawItem* GetDrawItem(size_t index) const;
 
-        //! Returns the DeviceDrawItem associated with the given DrawListTag
-        DrawItem* GetDrawItem(DrawListTag drawListTag);
-        const DrawItem* GetDrawItem(DrawListTag drawListTag) const;
+        //! Returns the first DrawItem that matches the given DrawListTag, and the given DrawFilterMask.
+        //! REMARK: When more than one MaterialPipelines are active, they may have Shaders with the same DrawListTag.
+        //!         In these cases there will be one DrawItem for each MaterialPipeline.
+        DrawItem* GetDrawItem(DrawListTag drawListTag, DrawFilterMask materialPipelineMask = DrawFilterMaskDefaultValue);
+        const DrawItem* GetDrawItem(DrawListTag drawListTag, DrawFilterMask materialPipelineMask = DrawFilterMaskDefaultValue) const;
 
         //! Returns the draw item and its properties associated with the provided index.
         DrawItemProperties GetDrawItemProperties(size_t index) const;

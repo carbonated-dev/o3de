@@ -315,7 +315,7 @@ real DirectionalShadowCalculator::SamplePcfBicubic(const float3 shadowCoord, con
 #else
     param.receiverPlaneDepthBias = m_receiverShadowPlaneBiasEnable ? ComputeReceiverPlaneDepthBias(m_shadowPosDX[indexOfCascade], m_shadowPosDY[indexOfCascade]) : 0;
 #endif
-
+    
     switch(filteringSampleCountMode)
     {
         case ShadowFilterSampleCount::PcfTap4:

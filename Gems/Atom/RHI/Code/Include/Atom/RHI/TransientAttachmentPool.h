@@ -35,7 +35,7 @@ namespace AZ::RHI
     //! be re-used within a subsequent scope. The final result of this process is a set of
     //! image / buffer attachments that are backed by guaranteed memory valid *only* for the scope in
     //! which they attached.
-    class TransientAttachmentPool : public MultiDeviceObject
+    class ATOM_RHI_PUBLIC_API TransientAttachmentPool : public MultiDeviceObject
     {
     public:
         AZ_CLASS_ALLOCATOR(TransientAttachmentPool, AZ::SystemAllocator, 0);
@@ -54,9 +54,7 @@ namespace AZ::RHI
         //! This is called at the beginning of the compile phase for the current frame,
         //! before any allocations occur. The user should clear the backing allocator to
         //! a fresh state.
-        void Begin(
-            const TransientAttachmentPoolCompileFlags flags = TransientAttachmentPoolCompileFlags::None,
-            const TransientAttachmentStatistics::MemoryUsage* memoryHint = nullptr);
+        void Begin(const TransientAttachmentPoolCompileFlags flags = TransientAttachmentPoolCompileFlags::None);
 
         //! Called when a new scope is being allocated. Scopes are allocated in submission order.
         void BeginScope(Scope& scopeBase);

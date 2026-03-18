@@ -18,7 +18,7 @@
 
 namespace AZ::RHI
 {
-    struct DeviceFeatures
+    struct ATOM_RHI_REFLECT_API DeviceFeatures
     {
         //! Whether the adapter supports geometry shaders.
         bool m_geometryShader;
@@ -99,6 +99,15 @@ namespace AZ::RHI
 
         //! Whether float16 (half-precision floating-point format) support is available.
         bool m_float16 = false;
+
+        //! Whether device memory can be shared with other devices
+        bool m_crossDeviceDeviceMemory = false;
+
+        //! Whether host memory can be shared with other devices
+        bool m_crossDeviceHostMemory = false;
+
+        //! Whether fences can be shared with other devices
+        bool m_crossDeviceFences = false;
 
         /// Additional features here.
     };

@@ -256,6 +256,10 @@ namespace AZ
             case MaterialPropertyDataType::Image:
             case MaterialPropertyDataType::Enum:
                 result.Combine(LoadNonNumericValues<AZStd::string>(property, "", inputValue, context));
+                break;
+            case AZ::RPI::MaterialPropertyDataType::SamplerState:
+                result.Combine(LoadNonNumericValues<RHI::SamplerState>(property, RHI::SamplerState{}, inputValue, context));
+                break;
             default:
                 result.Combine(JSR::ResultCode(JSR::Tasks::ReadField, JSR::Outcomes::Skipped));
                 break;
@@ -420,6 +424,9 @@ namespace AZ
             case MaterialPropertyDataType::Image:
             case MaterialPropertyDataType::Enum:
                 result.Combine(StoreNonNumericValues<AZStd::string>(outputValue, property, AZStd::string{""}, context));
+                break;
+            case MaterialPropertyDataType::SamplerState:
+                result.Combine(StoreNonNumericValues<RHI::SamplerState>(outputValue, property, RHI::SamplerState{}, context));
                 break;
             }
 

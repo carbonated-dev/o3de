@@ -43,7 +43,7 @@ namespace AZ::RHI
     //! with another device.
     //!
     //! Multi-Device interop support is planned in the future and will likely require API changes.
-    class Device
+    class ATOM_RHI_PUBLIC_API Device
         : public Object
     {
     public:

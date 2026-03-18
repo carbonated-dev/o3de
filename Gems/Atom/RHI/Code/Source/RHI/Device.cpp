@@ -12,7 +12,10 @@
 #include <Atom/RHI/RHIUtils.h>
 
 #include <AzCore/std/sort.h>
+
+#if defined(CARBONATED)
 #include <AzCore/Time/ITime.h>
+#endif
 
 namespace AZ::RHI
 {

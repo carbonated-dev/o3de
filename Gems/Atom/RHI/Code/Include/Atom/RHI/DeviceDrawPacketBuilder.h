@@ -20,13 +20,11 @@ namespace AZ
 
 namespace AZ::RHI
 {
-    class DeviceDrawPacketBuilder
+    class ATOM_RHI_PUBLIC_API DeviceDrawPacketBuilder
     {
     public:
         struct DeviceDrawRequest
         {
-            DeviceDrawRequest() = default;
-
             //! The filter tag used to direct the draw item.
             DrawListTag m_listTag;
 

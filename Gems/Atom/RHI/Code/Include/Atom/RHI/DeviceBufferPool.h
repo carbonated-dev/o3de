@@ -91,7 +91,7 @@ namespace AZ::RHI
     //! Buffer pool provides backing storage and context for buffer instances. The BufferPoolDescriptor
     //! contains properties defining memory characteristics of buffer pools. All buffers created on a pool
     //! share the same backing heap and buffer bind flags.
-    class DeviceBufferPool
+    class ATOM_RHI_PUBLIC_API DeviceBufferPool
         : public DeviceBufferPoolBase
     {
     public:
@@ -119,6 +119,8 @@ namespace AZ::RHI
         //!      initialized, but will remain empty and the call will return ResultCode::OutOfMemory. Checking
         //!      this amounts to seeing if buffer.IsInitialized() is true.
         ResultCode InitBuffer(const DeviceBufferInitRequest& request);
+
+        ResultCode InitBufferCrossDevice(RHI::DeviceBuffer& bufferBase, RHI::DeviceBuffer& originalDeviceBuffer);
 
         //! NOTE: Only applicable to 'Host' pools. Device pools will fail with ResultCode::InvalidOperation.
         //!
@@ -194,7 +196,9 @@ namespace AZ::RHI
         virtual ResultCode InitInternal(Device& device, const RHI::BufferPoolDescriptor& descriptor) = 0;
 
         /// Called when a buffer is being initialized onto the pool.
-        virtual ResultCode InitBufferInternal(DeviceBuffer& buffer, const BufferDescriptor& descriptor) = 0;
+        virtual ResultCode InitBufferInternal(DeviceBuffer& buffer, const BufferDescriptor& descriptor, bool usedForCrossDevice) = 0;
+
+        virtual RHI::ResultCode InitBufferCrossDeviceInternal(RHI::DeviceBuffer& bufferBase, RHI::DeviceBuffer& originalDeviceBuffer) = 0;
 
         /// Called when the buffer is being orphaned.
         virtual ResultCode OrphanBufferInternal(DeviceBuffer& buffer) = 0;

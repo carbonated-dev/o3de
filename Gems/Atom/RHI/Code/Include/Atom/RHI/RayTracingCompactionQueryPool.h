@@ -30,7 +30,7 @@ namespace AZ::RHI
     };
 
     //! Provides storage for DeviceRayTracingCompactionQuery objects and handles
-    class RayTracingCompactionQueryPool : public MultiDeviceObject
+    class ATOM_RHI_PUBLIC_API RayTracingCompactionQueryPool : public MultiDeviceObject
     {
     public:
         AZ_CLASS_ALLOCATOR(RayTracingCompactionQueryPool, AZ::SystemAllocator, 0);
@@ -41,7 +41,9 @@ namespace AZ::RHI
 
         ResultCode Init(RayTracingCompactionQueryPoolDescriptor desc);
 
-        ResultCode InitQuery(RayTracingCompactionQuery* query);
+        ResultCode InitQuery(MultiDevice::DeviceMask deviceMask, RayTracingCompactionQuery* query);
+        ResultCode AddDeviceToQuery(int deviceIndex, RayTracingCompactionQuery* query);
+        void RemoveDeviceFromQuery(int deviceIndex, RayTracingCompactionQuery* query);
 
         void BeginFrame(int frame);
     };

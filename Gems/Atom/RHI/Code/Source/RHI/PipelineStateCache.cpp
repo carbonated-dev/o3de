@@ -312,7 +312,6 @@ namespace AZ::RHI
         // Search the read-only cache first.
         if (const PipelineState* pipelineState = FindPipelineState(globalLibraryEntry.m_readOnlyCache, descriptor))
         {
-            //AZ_Info("ppp", "Found pipeline state 2");
             return pipelineState;
         }
 
@@ -324,7 +323,6 @@ namespace AZ::RHI
 
             if (const PipelineState* pipelineState = FindPipelineState(threadLocalCache, descriptor))
             {
-                //AZ_Info("ppp", "Found pipeline state 3");
                 return pipelineState;
             }
 
@@ -378,7 +376,6 @@ namespace AZ::RHI
             // Another thread may have started compiling this pipeline state. Check the pending cache.
             if (const PipelineState* pipeline = FindPipelineState(pendingCache, descriptor))
             {
-                //AZ_Info("ppp", "Pipeline state found");
                 return pipeline;
             }
 
@@ -412,7 +409,7 @@ namespace AZ::RHI
         // We no longer have the lock, but we own compilation of the pipeline state. Use the
         // thread-local library to perform compilation without blocking other threads.
         resultCode = pipelineState->Init(m_deviceMask, descriptor, pipelineLibrary);
-        
+
         pipelineState->SetName(name);
 
         if (Validation::IsEnabled())

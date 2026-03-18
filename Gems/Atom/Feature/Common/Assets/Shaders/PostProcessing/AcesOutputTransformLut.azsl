@@ -39,7 +39,7 @@ PSOutput MainPS(VSOutput IN)
     float3 color = mul(XYZToSRGBMat, mul(D60ToD65Cat, mul(AP1ToXYZMat, acescg.rgb)));
     float3 lutCoordinate = log(color.rgb)/log(2.0) * PassSrg::m_shaperScale + PassSrg::m_shaperBias;
 
-    OUT.m_color = PassSrg::m_lut.Sample(PassSrg::LinearSampler, clamp(lutCoordinate, 0.0, 1.0)); // CARBONATED Clamp is added
+    OUT.m_color = PassSrg::m_lut.Sample(PassSrg::LinearSampler, lutCoordinate);
     OUT.m_color.a = 1.0f;
 
     return OUT;

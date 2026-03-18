@@ -1770,6 +1770,38 @@ namespace AZ
             }
         }
 
+        const Data::Instance<RPI::ShaderResourceGroup>& MeshFeatureProcessor::GetDrawSrg(const MeshHandle& meshHandle,
+            uint32_t lodIndex, uint32_t subMeshIndex,
+            RHI::DrawListTag drawListTag, RHI::DrawFilterMask materialPipelineMask) const
+        {
+            if (!meshHandle.IsValid())
+            {
+                return RPI::MeshDrawPacket::InvalidSrg;
+            }
+            // We need to get the DrawPacket, from the DrawPacket we can query the index of the DrawItem
+            // that matches drawListTag & materialPipelineMask. We can use that index to fetch the DrawSrg
+            // from MeshDrawPacket::m_perDrawSrgs
+            auto& meshDrawPacketsByLod = ToModelDataInstance(meshHandle).m_meshDrawPacketListsByLod;
+            if (lodIndex >= aznumeric_cast<uint32_t>(meshDrawPacketsByLod.size()))
+            {
+                AZ_Error("MeshFeatureProcessor", false, "%s lodIndex=%u is invalid.\n", __FUNCTION__, lodIndex);
+                return RPI::MeshDrawPacket::InvalidSrg;
+            }
+            auto& meshDrawPackets = meshDrawPacketsByLod[lodIndex];
+            if (subMeshIndex >= meshDrawPackets.size())
+            {
+                AZ_Error("MeshFeatureProcessor", false, "%s subMeshIndex=%u is invalid.\n", __FUNCTION__, subMeshIndex);
+                return RPI::MeshDrawPacket::InvalidSrg;
+            }
+            auto& meshDrawPacket = meshDrawPackets[subMeshIndex];
+            auto drawItemIndex = meshDrawPacket.GetRHIDrawPacket()->GetDrawListIndex(drawListTag, materialPipelineMask);
+            if (drawItemIndex < 0)
+            {
+                return RPI::MeshDrawPacket::InvalidSrg;
+            }
+            return meshDrawPacket.GetDrawSrg(drawItemIndex);
+        }
+
         // ModelDataInstance::MeshLoader...
         ModelDataInstance::MeshLoader::MeshLoader(const Data::Asset<RPI::ModelAsset>& modelAsset, ModelDataInstance* parent)
             : m_modelAsset(modelAsset)
@@ -1932,7 +1964,7 @@ namespace AZ
                 // If the asset was modified, reload it. This will also cause a model to change back to the default missing
                 // asset if it was removed, and it will replace the default missing asset with the real asset if it was added.
                 AZ::SystemTickBus::QueueFunction(
-                    [=, meshLoader = m_parent->m_meshLoader]() mutable
+                    [=, this, meshLoader = m_parent->m_meshLoader]() mutable
                     {
                         // Only trigger the reload if the meshLoader is still being used by something other than the lambda.
                         // If the lambda is the only owner, it will get destroyed after this queued call, so there's no point
@@ -2180,12 +2212,19 @@ namespace AZ
 
                 Data::Instance<RPI::ShaderResourceGroup> meshObjectSrg;
 
-                // See if the object SRG for this mesh is already in our list of object SRGs
-                for (auto& objectSrgIter : m_objectSrgList)
+                // Note: If the material uses the SceneMaterialSrg, the ObjectSRG holds the
+                // materialType and Instance-ID, and needs to be unique for each submesh.
+                // TODO: We can avoid a separate ObjectSRG for each submesh if we move the data from the SceneMaterialSrg to the SceneSrg,
+                // and create a MaterialSrg again that only holds the materialType and Instance-ID
+                if (!material->UsesSceneMaterialSrg())
                 {
-                    if (objectSrgIter->GetLayout()->GetHash() == objectSrgLayout->GetHash())
+                    // See if the object SRG for this mesh is already in our list of object SRGs
+                    for (auto& objectSrgIter : m_objectSrgList)
                     {
-                        meshObjectSrg = objectSrgIter;
+                        if (objectSrgIter->GetLayout()->GetHash() == objectSrgLayout->GetHash())
+                        {
+                            meshObjectSrg = objectSrgIter;
+                        }
                     }
                 }
 
@@ -2202,6 +2241,19 @@ namespace AZ
                         AZ_Warning("MeshFeatureProcessor", false, "Failed to create a new shader resource group, skipping.");
                         continue;
                     }
+                    // Set the material-Id and materialInstance-Id
+                    if (material->UsesSceneMaterialSrg())
+                    {
+                        {
+                            RHI::ShaderInputNameIndex nameIndex(AZ_NAME_LITERAL("m_materialTypeId"));
+                            meshObjectSrg->SetConstant(nameIndex, material->GetMaterialTypeId());
+                        }
+                        {
+                            RHI::ShaderInputNameIndex nameIndex(AZ_NAME_LITERAL("m_materialInstanceId"));
+                            meshObjectSrg->SetConstant(nameIndex, material->GetMaterialInstanceId());
+                        }
+                    }
+
                     m_objectSrgCreatedEvent.Signal(meshObjectSrg);
                     m_objectSrgList.push_back(meshObjectSrg);
                 }
@@ -2477,40 +2529,45 @@ namespace AZ
                 // set the SubMesh data to pass to the RayTracingFeatureProcessor, starting with vertex/index data
                 RayTracingFeatureProcessor::SubMesh subMesh;
                 RayTracingFeatureProcessor::SubMeshMaterial& subMeshMaterial = subMesh.m_material;
-                subMesh.m_positionFormat = PositionStreamFormat;
+                subMesh.m_positionFormat = RHI::ConvertToVertexFormat(PositionStreamFormat);
                 subMesh.m_positionVertexBufferView = streamIter[0];
-                subMesh.m_positionShaderBufferView = const_cast<RHI::Buffer*>(streamIter[0].GetBuffer())->BuildBufferView(positionBufferDescriptor);
+                subMesh.m_positionShaderBufferView =
+                    const_cast<RHI::Buffer*>(streamIter[0].GetBuffer())->GetBufferView(positionBufferDescriptor);
 
-                subMesh.m_normalFormat = NormalStreamFormat;
+                subMesh.m_normalFormat = RHI::ConvertToVertexFormat(NormalStreamFormat);
                 subMesh.m_normalVertexBufferView = streamIter[1];
-                subMesh.m_normalShaderBufferView = const_cast<RHI::Buffer*>(streamIter[1].GetBuffer())->BuildBufferView(normalBufferDescriptor);
+                subMesh.m_normalShaderBufferView =
+                    const_cast<RHI::Buffer*>(streamIter[1].GetBuffer())->GetBufferView(normalBufferDescriptor);
 
                 if (tangentBufferByteCount > 0)
                 {
                     subMesh.m_bufferFlags |= RayTracingSubMeshBufferFlags::Tangent;
-                    subMesh.m_tangentFormat = TangentStreamFormat;
+                    subMesh.m_tangentFormat = RHI::ConvertToVertexFormat(TangentStreamFormat);
                     subMesh.m_tangentVertexBufferView = streamIter[2];
-                    subMesh.m_tangentShaderBufferView = const_cast<RHI::Buffer*>(streamIter[2].GetBuffer())->BuildBufferView(tangentBufferDescriptor);
+                    subMesh.m_tangentShaderBufferView =
+                        const_cast<RHI::Buffer*>(streamIter[2].GetBuffer())->GetBufferView(tangentBufferDescriptor);
                 }
 
                 if (bitangentBufferByteCount > 0)
                 {
                     subMesh.m_bufferFlags |= RayTracingSubMeshBufferFlags::Bitangent;
-                    subMesh.m_bitangentFormat = BitangentStreamFormat;
+                    subMesh.m_bitangentFormat = RHI::ConvertToVertexFormat(BitangentStreamFormat);
                     subMesh.m_bitangentVertexBufferView = streamIter[3];
-                    subMesh.m_bitangentShaderBufferView = const_cast<RHI::Buffer*>(streamIter[3].GetBuffer())->BuildBufferView(bitangentBufferDescriptor);
+                    subMesh.m_bitangentShaderBufferView =
+                        const_cast<RHI::Buffer*>(streamIter[3].GetBuffer())->GetBufferView(bitangentBufferDescriptor);
                 }
 
                 if (uvBufferByteCount > 0)
                 {
                     subMesh.m_bufferFlags |= RayTracingSubMeshBufferFlags::UV;
-                    subMesh.m_uvFormat = UVStreamFormat;
+                    subMesh.m_uvFormat = RHI::ConvertToVertexFormat(UVStreamFormat);
                     subMesh.m_uvVertexBufferView = streamIter[4];
-                    subMesh.m_uvShaderBufferView = const_cast<RHI::Buffer*>(streamIter[4].GetBuffer())->BuildBufferView(uvBufferDescriptor);
+                    subMesh.m_uvShaderBufferView = const_cast<RHI::Buffer*>(streamIter[4].GetBuffer())->GetBufferView(uvBufferDescriptor);
                 }
 
                 subMesh.m_indexBufferView = mesh.GetIndexBufferView();
-                subMesh.m_indexShaderBufferView = const_cast<RHI::Buffer*>(mesh.GetIndexBufferView().GetBuffer())->BuildBufferView(indexBufferDescriptor);
+                subMesh.m_indexShaderBufferView =
+                    const_cast<RHI::Buffer*>(mesh.GetIndexBufferView().GetBuffer())->GetBufferView(indexBufferDescriptor);
 
                 // add material data
                 if (material)

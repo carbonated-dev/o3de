@@ -59,6 +59,7 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
     PassSrg::m_silhouettes.GetDimensions(width, height, samples);
     real2 scale = Silhouette_Width;
 
+    real4 pixelSample = PassSrg::m_silhouettes.Load(IN.m_position.xy, sampleIndex);
     if(dot(pixelSample.xyz, pixelSample.xyz) > 0.0)
     {
         // this is a silhouette pixel
@@ -82,8 +83,7 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
 
         pixelSample.a = outline_opacity * step(0.001, pixelSample.a);
     }
-    */
-    
+
     OUT.m_color = pixelSample;
 
     return OUT;

@@ -25,7 +25,7 @@ namespace AZ
                     ->Field("shader", &ShaderTemplate::m_shader)
                     ->Field("azsli", &ShaderTemplate::m_azsli)
                     ->Field("tag", &ShaderTemplate::m_shaderTag)
-                    ;
+                    ->Field("type", &ShaderTemplate::m_drawItemType);
 
                 serializeContext->Class<RuntimeControls>()
                     ->Version(1)
@@ -34,11 +34,12 @@ namespace AZ
                     ;
 
                 serializeContext->Class<MaterialPipelineSourceData>()
-                    ->Version(4)    // Object Srg Additions
+                    ->Version(5)    // Draw Srg Additions
                     ->Field("shaderTemplates", &MaterialPipelineSourceData::m_shaderTemplates)
                     ->Field("runtime", &MaterialPipelineSourceData::m_runtimeControls)
                     ->Field("pipelineScript", &MaterialPipelineSourceData::m_pipelineScript)
                     ->Field("objectSrgAdditions", &MaterialPipelineSourceData::m_objectSrgAdditions)
+                    ->Field("drawSrgAdditions", &MaterialPipelineSourceData::m_drawSrgAdditions)
                     ;
             }
         }

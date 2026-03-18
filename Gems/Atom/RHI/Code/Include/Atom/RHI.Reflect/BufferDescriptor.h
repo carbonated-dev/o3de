@@ -68,11 +68,11 @@ namespace AZ::RHI
 
     AZ_DEFINE_ENUM_BITWISE_OPERATORS(AZ::RHI::BufferBindFlags);
 
-    BufferBindFlags GetBufferBindFlags(ScopeAttachmentUsage usage, ScopeAttachmentAccess access);
+    ATOM_RHI_REFLECT_API BufferBindFlags GetBufferBindFlags(ScopeAttachmentUsage usage, ScopeAttachmentAccess access);
 
     //! A buffer corresponds to a region of linear memory and used for rendering operations.
     //! Its lifecycle is managed by buffer pools.
-    struct BufferDescriptor
+    struct ATOM_RHI_REFLECT_API BufferDescriptor
     {
         AZ_TYPE_INFO(BufferDescriptor, "{05321516-CDE4-451D-80A2-3D179AB3DB5D}");
 
@@ -101,6 +101,13 @@ namespace AZ::RHI
 
         /// The mask of queue classes supporting shared access of this resource.
         HardwareQueueClassMask m_sharedQueueMask = HardwareQueueClassMask::All;
+
+        /// Settings for enabling cross device buffers
+        /// If set the Buffer will only be allocated on the owner device
+        /// On all other devices the Buffer from the owner device will be exported and then imported again on their own devices
+        /// Check DeviceFeatures::m_crossDeviceDeviceMemory and DeviceFeatures::m_crossDeviceHostMemory before setting the owner device
+        /// All devices the buffer will be created for must have the respective device feature
+        AZStd::optional<int> m_ownerDeviceIndex;
     };
 
     // Bind enums with uuids. Required for named enum support.

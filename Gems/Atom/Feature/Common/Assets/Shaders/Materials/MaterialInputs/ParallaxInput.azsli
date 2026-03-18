@@ -30,7 +30,7 @@ option bool prefix##o_useHeightmap;
     #define COMMON_SRG_INPUTS_PARALLAX(prefix)
 #endif
 
-void GetParallaxInput(float3 normal, float3 tangent, float3 bitangent, float heightmapScale, float heightmapOffset,
+void GetParallaxInput(const MaterialParameters params, Texture2D heightmap, sampler mapSampler, float3 normal, float3 tangent, float3 bitangent, float heightmapScale, float heightmapOffset,
                       float4x4 objectWorldMatrix, real3x3 uvMatrix, real3x3 uvMatrixInverse,
                       inout float2 uv, inout float3 worldPosition, inout float depthNDC, inout float depthCS, out bool isClipped)
 {
@@ -51,7 +51,10 @@ void GetParallaxInput(float3 normal, float3 tangent, float3 bitangent, float hei
             dirToCamera = float3(ViewSrg::m_worldPosition.xyz - worldPosition);
         }
     
-        ParallaxOffset tangentOffset = GetParallaxOffset( heightmapScale,
+        ParallaxOffset tangentOffset = GetParallaxOffset( params,
+                                                          heightmap,
+                                                          mapSampler,
+                                                          heightmapScale,
                                                           -heightmapOffset,
                                                           uv,
                                                           dirToCamera, 
@@ -84,19 +87,19 @@ void GetParallaxInput(float3 normal, float3 tangent, float3 bitangent, float hei
 #endif
 }
 
-void GetParallaxInput(float3 normal, float3 tangent, float3 bitangent, float heightmapScale, float heightmapOffset,
+void GetParallaxInput(const MaterialParameters params, Texture2D heightmap, sampler mapSampler, float3 normal, float3 tangent, float3 bitangent, float heightmapScale, float heightmapOffset,
                       float4x4 objectWorldMatrix, float3x3 uvMatrix, float3x3 uvMatrixInverse,
                       inout float2 uv, inout float3 worldPosition, inout float depthNDC, inout float depthCS)
 {
     bool isClipped = false;
-    GetParallaxInput(normal, tangent, bitangent, heightmapScale, heightmapOffset, objectWorldMatrix, uvMatrix, uvMatrixInverse, uv, worldPosition, depthNDC, depthCS, isClipped);
+    GetParallaxInput(params, heightmap, mapSampler, normal, tangent, bitangent, heightmapScale, heightmapOffset, objectWorldMatrix, uvMatrix, uvMatrixInverse, uv, worldPosition, depthNDC, depthCS, isClipped);
 }
 
-void GetParallaxInput(float3 normal, float3 tangent, float3 bitangent, float heightmapScale, float heightmapOffset,
+void GetParallaxInput(const MaterialParameters params, Texture2D heightmap, sampler mapSampler, float3 normal, float3 tangent, float3 bitangent, float heightmapScale, float heightmapOffset,
     float4x4 objectWorldMatrix, float3x3 uvMatrix, float3x3 uvMatrixInverse,
     inout float2 uv, inout float3 worldPosition, inout float depthNDC)
 {
     float depthCS;
-    GetParallaxInput(normal, tangent, bitangent, heightmapScale, heightmapOffset, objectWorldMatrix, uvMatrix, uvMatrixInverse, uv, worldPosition, depthNDC, depthCS);
+    GetParallaxInput(params, heightmap, mapSampler, normal, tangent, bitangent, heightmapScale, heightmapOffset, objectWorldMatrix, uvMatrix, uvMatrixInverse, uv, worldPosition, depthNDC, depthCS);
 }
 

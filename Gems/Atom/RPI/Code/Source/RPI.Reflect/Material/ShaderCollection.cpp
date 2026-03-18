@@ -87,19 +87,22 @@ namespace AZ
 #endif
             if (auto* serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
             {
+                serializeContext->Enum<ShaderCollection::Item::DrawItemType>()
+                    ->Value("Raster", ShaderCollection::Item::DrawItemType::Raster)
+                    ->Value("Dispatch", ShaderCollection::Item::DrawItemType::Dispatch)
+                    ->Value("Deferred", ShaderCollection::Item::DrawItemType::Deferred)
+                    ->Value("RayTracing", ShaderCollection::Item::DrawItemType::RayTracing)
+                    ->Value("Custom", ShaderCollection::Item::DrawItemType::Custom);
+
                 serializeContext->Class<ShaderCollection::Item>()
-#if defined(CARBONATED)
-                    ->Version(7)  // because of m_ownedShaderOptionIndices change
-#else
-                    ->Version(6)
-#endif
+                    ->Version(7)
                     ->EventHandler<ShaderVariantReferenceSerializationEvents>()
                     ->Field("ShaderAsset", &ShaderCollection::Item::m_shaderAsset)
                     ->Field("ShaderVariantId", &ShaderCollection::Item::m_shaderVariantId)
                     ->Field("Enabled", &ShaderCollection::Item::m_enabled)
                     ->Field("OwnedShaderOptionIndices", &ShaderCollection::Item::m_ownedShaderOptionIndices)
                     ->Field("ShaderTag", &ShaderCollection::Item::m_shaderTag)
-                    ;
+                    ->Field("DrawItemType", &ShaderCollection::Item::m_drawItemType);
             }
 
             if (BehaviorContext* behaviorContext = azrtti_cast<BehaviorContext*>(context))
@@ -112,6 +115,7 @@ namespace AZ
                     ->Method("GetShaderAssetId", &Item::GetShaderAssetId)
                     ->Method("GetShaderVariantId", &Item::GetShaderVariantId)
                     ->Method("GetShaderOptionGroup", &Item::GetShaderOptionGroup)
+                    ->Method("GetDrawItemType", &Item::GetDrawItemType)
                     ->Method("MaterialOwnsShaderOption", static_cast<bool (Item::*)(const Name&) const>(&Item::MaterialOwnsShaderOption));
             }
         }
@@ -191,20 +195,24 @@ namespace AZ
             return true;
         }
 
-        ShaderCollection::Item::Item(const Data::Asset<ShaderAsset>& shaderAsset, const AZ::Name& shaderTag, ShaderVariantId variantId)
+        ShaderCollection::Item::Item(
+            const Data::Asset<ShaderAsset>& shaderAsset, const AZ::Name& shaderTag, DrawItemType drawItemType, ShaderVariantId variantId)
             : m_renderStatesOverlay(RHI::GetInvalidRenderStates())
             , m_shaderAsset(shaderAsset)
             , m_shaderVariantId(variantId)
             , m_shaderTag(shaderTag)
+            , m_drawItemType(drawItemType)
             , m_shaderOptionGroup(shaderAsset->GetShaderOptionGroupLayout(), variantId)
         {
         }
 
-        ShaderCollection::Item::Item(Data::Asset<ShaderAsset>&& shaderAsset, const AZ::Name& shaderTag, ShaderVariantId variantId)
+        ShaderCollection::Item::Item(
+            Data::Asset<ShaderAsset>&& shaderAsset, const AZ::Name& shaderTag, DrawItemType drawItemType, ShaderVariantId variantId)
             : m_renderStatesOverlay(RHI::GetInvalidRenderStates())
             , m_shaderAsset(AZStd::move(shaderAsset))
             , m_shaderVariantId(variantId)
             , m_shaderTag(shaderTag)
+            , m_drawItemType(drawItemType)
             , m_shaderOptionGroup(shaderAsset->GetShaderOptionGroupLayout(), variantId)
         {
         }

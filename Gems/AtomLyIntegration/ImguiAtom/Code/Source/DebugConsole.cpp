@@ -24,7 +24,9 @@
 #include <ImGuiContextScope.h>
 #include <imgui/imgui.h>
 
+#ifdef CARBONATED
 #include <AzFramework/Components/ConsoleBus.h>  // Gruber patch. LVB
+#endif
 using namespace AzFramework;
 
 namespace AZ

@@ -159,7 +159,7 @@ namespace AZ::Render
     void ProjectedShadowFeatureProcessor::SetNearFarPlanes(ShadowId id, float nearPlaneDistance, float farPlaneDistance)
     {
         AZ_Assert(id.IsValid(), "Invalid ShadowId passed to ProjectedShadowFeatureProcessor::SetFrontBackPlanes().");
-
+        
         ShadowProperty& shadowProperty = GetShadowPropertyFromShadowId(id);
         shadowProperty.m_desc.m_nearPlaneDistance = GetMax(nearPlaneDistance, 0.0001f);
         shadowProperty.m_desc.m_farPlaneDistance = GetMax(farPlaneDistance, nearPlaneDistance + 0.0001f);
@@ -889,7 +889,8 @@ namespace AZ::Render
                 m_esmAtlasImage = createAtlas(RHI::Format::R32_FLOAT, RHI::ImageBindFlags::ShaderReadWrite, RHI::ImageAspectFlags::Color, "ProjectedShadowAtlasESM");
             }
 #else
-            m_esmAtlasImage = createAtlas(RHI::Format::R32_FLOAT, RHI::ImageBindFlags::ShaderReadWrite, RHI::ImageAspectFlags::Color, "ProjectedShadowAtlasESM");
+            m_esmAtlasImage = createAtlas(
+                RHI::Format::R32_FLOAT, RHI::ImageBindFlags::ShaderReadWrite, RHI::ImageAspectFlags::Color, "ProjectedShadowAtlasESM");
 #endif
             for (auto& [key, esmShadowmapsPass] : m_esmShadowmapsPasses)
             {

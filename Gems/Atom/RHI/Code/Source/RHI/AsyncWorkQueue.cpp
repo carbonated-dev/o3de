@@ -9,7 +9,11 @@
 
 #include <AzCore/Debug/Profiler.h>
 
+#if defined(AZ_MONOLITHIC_BUILD)
 AZ_DECLARE_BUDGET(RHI);
+#else
+AZ_DECLARE_BUDGET_SHARED(RHI);
+#endif
 
 namespace AZ::RHI
 {
@@ -83,18 +87,10 @@ namespace AZ::RHI
 
     void AsyncWorkQueue::ProcessQueue()
     {
-#if !defined(CARBONATED)
-        WorkItem workItem;
-#endif
         for (;;)
         {
-#if defined(CARBONATED)
-            // destructor called eralier at the end of the cycle
-            // originally the old item destructor happens in operator = with workItem = AZStd::move(m_workQueue.front());
-            // that is under m_workQueueMutex lock, which might cause a deadlock
-            // it is fixed in the latest engine's development branch
+            // use a fresh workitem each time, so that we don't end up clearing its variables during move below.
             WorkItem workItem;
-#endif
             {
                 AZStd::unique_lock<AZStd::mutex> lock(m_workQueueMutex);
 
@@ -117,6 +113,7 @@ namespace AZ::RHI
                 AZStd::unique_lock<AZStd::mutex> lock(m_waitWorkItemMutex);
                 m_lastCompletedWorkItem = workItem.m_handle;
             }
+
             m_waitWorkItemCondition.notify_all();
         }
     }

@@ -44,7 +44,7 @@ namespace AZ
         void CommandQueue::ExecuteWork(const RHI::ExecuteWorkRequest& rhiRequest)
         {
             const ExecuteWorkRequest& request = static_cast<const ExecuteWorkRequest&>(rhiRequest);
-            QueueCommand([=](void* queue) 
+            QueueCommand([=, this](void* queue)
             {
                 AZ_PROFILE_SCOPE(RHI, "ExecuteWork");
                 AZ::Debug::ScopedTimer executionTimer(m_lastExecuteDuration);
@@ -120,6 +120,7 @@ namespace AZ
                    const auto& fence = request.m_fencesToSignal[i];
                    Signal(*fence);
                 }
+
                 {
                     AZ::Debug::ScopedTimer presentTimer(m_lastPresentDuration);
 
