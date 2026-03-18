@@ -102,7 +102,7 @@ namespace AssetProcessor
         {
             AzToolsFramework::AssetDatabase::SourceDatabaseEntry sourceEntry;
 
-            if (m_stateData->GetSourceByJobID(jobEntry.m_jobID, sourceEntry))
+            if (m_stateData->GetSourceBySourceID(jobEntry.m_sourcePK, sourceEntry))
             {
                 SourceAssetReference sourceAsset(sourceEntry.m_scanFolderPK, sourceEntry.m_sourceName.c_str());
 
@@ -689,11 +689,12 @@ namespace AssetProcessor
         AZStd::string logFile = AssetUtilities::ComputeJobLogFolder() + "/" + AssetUtilities::ComputeJobLogFileName(jobEntry);
         EraseLogFile(logFile.c_str());
 
-        // cancelled jobs are replaced by new jobs to process the same asset, so keep track of that for the analysis tracker too
+        // cancelled jobs will be replaced by new jobs to process the same asset (AFTER this call happens)
         // note that this isn't a failure - the job just isn't there anymore.
         UpdateAnalysisTrackerForFile(jobEntry, AnalysisTrackerUpdateType::JobFinished);
 
-        OnJobStatusChanged(jobEntry, JobStatus::Failed);
+        // When a job is cancelled, it is always because it was replaced by a new job.  The job is still pending.
+        OnJobStatusChanged(jobEntry, JobStatus::Queued);
 
         // we know that things have changed at this point; ensure that we check for idle
         QueueIdleCheck();
@@ -1372,17 +1373,25 @@ namespace AssetProcessor
                 newLegacySubIDs.push_back(product.m_legacySubIDs);
             }
 
-            // To find the set of products that were either new, or updated, this code starts with the new products, and erases
-            // the prior products that are exactly the same from that list.
-            // Note that because it uses operator==, it includes comparing the hash.  This means that if the file data has changed
-            // it won't count as being the same, and will not remove it from the list.  This results in 'updatedProducts' containing
-            // the list of new products that were EITHER literally new, or, had data that was new/changed.
+            // if we take the original list of new products
+            // and we subtract priorProducts from it, we end up with the list of new products that were EITHER literally new,
+            // or, had data that was new/changed.  This is because newProducts is the list of ALL emitted stuff from this job
+            // note that it uses operator== to compare products, which means it compares the full product entry, including the hash of the product file.
+            // flags.
             auto updatedProducts = newProducts;
-            if(!updatedProducts.empty())
+            if (!updatedProducts.empty())
             {
                 for (const auto& priorProductEntry : priorProducts)
                 {
-                    updatedProducts.erase(AZStd::remove_if(updatedProducts.begin(), updatedProducts.end(), [&priorProductEntry](const auto& pair){ return pair.first == priorProductEntry; }), updatedProducts.end());
+                    updatedProducts.erase(
+                        AZStd::remove_if(
+                            updatedProducts.begin(),
+                            updatedProducts.end(),
+                            [&priorProductEntry](const auto& pair)
+                            {
+                                return pair.first == priorProductEntry;
+                            }),
+                        updatedProducts.end());
                 }
             }
 
@@ -1405,6 +1414,7 @@ namespace AssetProcessor
                     priorProducts.erase(AZStd::remove_if(priorProducts.begin(), priorProducts.end(), logicalCompare), priorProducts.end());
                 }
             }
+
 
             // we need to delete these product files from the disk as they no longer exist and inform everyone we did so
             for (const auto& priorProduct : priorProducts)
@@ -3015,31 +3025,6 @@ namespace AssetProcessor
                         // keep track of its parent folder so that if it is deleted later we know it is a folder
                         // delete and not a file delete.
                         AddKnownFoldersRecursivelyForFile(normalizedPath, sourceAssetReference.ScanFolderPath().c_str());
-
-                        if (normalizedPath.toUtf8().length() > normalizedPath.length())
-                        {
-                            // if we are here it implies that the source file path contains non ascii characters
-                            AutoFailJob(
-                                AZStd::string::format(
-                                    "ProcessFilesToExamineQueue: source file path ( %s ) contains non ascii characters.\n",
-                                    normalizedPath.toUtf8().constData()),
-                                AZStd::string::format(
-                                    "Source file ( %s ) contains non ASCII characters.\n"
-                                    "O3DE currently only supports file paths having ASCII characters and therefore asset processor will not be able to process this file.\n"
-                                    "Please rename the source file to fix this error.\n",
-                                    normalizedPath.toUtf8().constData()),
-                                JobEntry(
-                                    sourceAssetReference,
-                                    AZ::Uuid::CreateNull(),
-                                    { "all", {} },
-                                    QString("PreCreateJobs"),
-                                    0,
-                                    GenerateNewJobRunKey(),
-                                    AZ::Uuid::CreateNull())
-                                );
-
-                            continue;
-                        }
                     }
                     else
                     {
@@ -4151,13 +4136,16 @@ namespace AssetProcessor
                 }
                 else if(sourceFileDependency.m_sourceDependencyType != AssetBuilderSDK::SourceFileDependency::SourceFileDependencyType::Wildcards)
                 {
-                    AZ_TracePrintf(AssetProcessor::ConsoleChannel, "UpdateJobDependency: Failed to find builder dependency for %s job (%s, %s, %s)\n",
+                    // This is not necessarily an actual problem, you are allowed to depend on builder or job dependencies that don't exist yet and will appear
+                    // later.  This can happen when some other job generates that input dependency, so the job will wait until its dependency appears.
+
+                    AZ_TracePrintf(AssetProcessor::DebugChannel, "UpdateJobDependency: Builder is missing: No builder found for %s job (%s, %s, %s)\n",
                         job.m_jobEntry.GetAbsoluteSourcePath().toUtf8().constData(),
                         jobDependencyInternal->m_jobDependency.m_sourceFile.m_sourceFileDependencyPath.c_str(),
                         jobDependencyInternal->m_jobDependency.m_jobKey.c_str(),
                         jobDependencyInternal->m_jobDependency.m_platformIdentifier.c_str());
 
-                    job.m_hasMissingSourceDependency = true;
+                    jobDependencyInternal->m_isMissingSource = true;
                 }
             }
 
@@ -4360,7 +4348,7 @@ namespace AssetProcessor
             }
             else
             {
-                // if we get here, we succeeded.
+                // if we get here, we succeeded (as in, the job was at least emitted without the builder crashing).
                 {
                     // if we succeeded, we can erase any jobs that had failed createjobs last time for this builder:
                     AzToolsFramework::AssetSystem::JobInfo jobInfo;
@@ -4380,6 +4368,7 @@ namespace AssetProcessor
 
                     const AssetBuilderSDK::PlatformInfo* const infoForPlatform = m_platformConfig->GetPlatformByIdentifier(jobDescriptor.GetPlatformIdentifier().c_str());
 
+                    // do some basic validation
                     if (!infoForPlatform)
                     {
                         AZ_Warning(AssetProcessor::ConsoleChannel, infoForPlatform,
@@ -4387,6 +4376,45 @@ namespace AssetProcessor
                             "discarded.  Builders should check the input list of platforms and only emit jobs for platforms "
                             "in that list", builderInfo.m_name.c_str(), jobDescriptor.GetPlatformIdentifier().c_str());
                         continue;
+                    }
+
+                    bool jobPlatformValidationFailed = false;
+                    for (auto& jobDependency : jobDescriptor.m_jobDependencyList)
+                    {
+                        if (jobDependency.m_platformIdentifier.compare(AssetBuilderSDK::CommonPlatformName) != 0)
+                        {
+                            // you can only depend on the common platform, or other jobs of the same platform.
+                            if (jobDescriptor.GetPlatformIdentifier() != jobDependency.m_platformIdentifier)
+                            {
+                                AZStd::string failureMessage = AZStd::string::format(
+                                    "Invalid Job Dependency emitted for %s.\n"
+                                    "    The builder (%s, %s) emitted a job for one platform that depends on a job for a different "
+                                    "platform\n"
+                                    "    Jobs can only depend on the \"%s\" platform or other jobs for the same platform.\n"
+                                    "    This is a code error, not a problem with the assets - please modify the builder to emit job\n"
+                                    "    dependencies correctly.\n"
+                                    "      Source Job: (platform \"%s\", job Key: \"%s\")\n"
+                                    "      Depends on: (platform \"%s\", job Key: \"%s\", source file: \"%s\")",
+                                    sourceAsset.AbsolutePath().c_str(),
+                                    builderInfo.m_name.c_str(),
+                                    builderInfo.m_busId.ToString<AZStd::string>().c_str(),
+                                    AssetBuilderSDK::CommonPlatformName,
+                                    jobDescriptor.GetPlatformIdentifier().c_str(),
+                                    jobDescriptor.m_jobKey.c_str(),
+                                    jobDependency.m_platformIdentifier.c_str(),
+                                    jobDependency.m_jobKey.c_str(),
+                                    jobDependency.m_sourceFile.ToString().c_str());
+
+                                jobPlatformValidationFailed = true;
+                                JobEntry failingJob(sourceAsset, builderInfo.m_busId, *infoForPlatform, jobDescriptor.m_jobKey.c_str(), 0, GenerateNewJobRunKey(),sourceUUID);
+                                AutoFailJob(AZStd::string::format("Invalid Job Dependency: %s.\n", sourceAsset.AbsolutePath().c_str()), failureMessage, failingJob, "");
+                                break;
+                            }
+                        }
+                    }
+                    if (jobPlatformValidationFailed)
+                    {
+                        continue; // discard the job, its already been added as an auto-fail job.
                     }
 
                     {
@@ -4468,7 +4496,12 @@ namespace AssetProcessor
                 {
                     if ((builderInfo.m_flags & AssetBuilderSDK::AssetBuilderDesc::BF_EmitsNoDependencies) != 0)
                     {
-                        AZ_WarningOnce(ConsoleChannel, false, "Asset builder '%s' registered itself using BF_EmitsNoDependencies flag, but actually emitted dependencies.  This will cause rebuilds to be inconsistent.\n", builderInfo.m_name.c_str());
+                        AZ_WarningOnce(
+                            ConsoleChannel,
+                            false,
+                            "Asset builder '%s' registered itself using BF_EmitsNoDependencies flag, but actually emitted dependencies.  "
+                            "This will cause rebuilds to be inconsistent.\n",
+                            builderInfo.m_name.c_str());
                     }
 
                     // remember which builder emitted each dependency:

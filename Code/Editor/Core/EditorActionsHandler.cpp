@@ -92,8 +92,7 @@ private:
 
 bool IsLevelLoaded()
 {
-    auto cryEdit = CCryEditApp::instance();
-    return !cryEdit->IsExportingLegacyData() && GetIEditor()->IsLevelLoaded();
+    return GetIEditor()->IsLevelLoaded();
 }
 
 bool AreEntitiesSelected()
@@ -567,7 +566,7 @@ void EditorActionsHandler::OnActionRegistrationHook()
             EditorIdentifiers::MainWindowActionContextIdentifier,
             "o3de.action.editor.exit",
             actionProperties,
-            [=]
+            [this]
             {
                 m_mainWindow->window()->close();
             }
@@ -950,9 +949,9 @@ void EditorActionsHandler::OnActionRegistrationHook()
             {
                 cryEdit->OnSwitchPhysics();
             },
-            [cryEdit = m_cryEditApp]
+            []
             {
-                return !cryEdit->IsExportingLegacyData() && GetIEditor()->GetGameEngine()->GetSimulationMode();
+                return GetIEditor()->GetGameEngine()->GetSimulationMode();
             }
         );
 
@@ -962,6 +961,8 @@ void EditorActionsHandler::OnActionRegistrationHook()
 
         // This action is only accessible outside of Component Modes
         m_actionManagerInterface->AssignModeToAction(AzToolsFramework::DefaultActionContextModeIdentifier, actionIdentifier);
+
+        m_hotKeyManagerInterface->SetActionHotKey(actionIdentifier, "Ctrl+Alt+G");
     }
 
     // Move Player and Camera Separately

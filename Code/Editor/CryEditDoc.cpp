@@ -46,6 +46,7 @@
 #include "ErrorReportDialog.h"
 #include "Util/AutoLogTime.h"
 #include "CheckOutDialog.h"
+#include "Util/PakFile.h"
 #include "MainWindow.h"
 #include "LevelFileDialog.h"
 #include "Undo/Undo.h"
@@ -488,7 +489,6 @@ bool CCryEditDoc::CanCloseFrame()
     {
         return false;
     }
-
 
     return true;
 }
@@ -1132,7 +1132,7 @@ namespace {
                     ft.creationTime = handle.m_fileDesc.tCreate;
                     outputFolders.push_back(ft);
                 }
-            } while (handle = gEnv->pCryPak->FindNext(handle));
+            } while ((handle = gEnv->pCryPak->FindNext(handle)));
 
             gEnv->pCryPak->FindClose(handle);
         }
@@ -1465,9 +1465,9 @@ void CCryEditDoc::OnEnvironmentPropertyChanged(IVariable* pVar)
 
     if (pVar->GetDataType() == IVariable::DT_COLOR)
     {
-        Vec3 value;
+        AZ::Vector3 value;
         pVar->Get(value);
-        QColor gammaColor = ColorLinearToGamma(ColorF(value.x, value.y, value.z));
+        QColor gammaColor = ColorLinearToGamma(ColorF(value.GetX(), value.GetY(), value.GetZ()));
         childValue = QStringLiteral("%1,%2,%3").arg(gammaColor.red()).arg(gammaColor.green()).arg(gammaColor.blue());
     }
     else
@@ -1488,42 +1488,41 @@ bool CCryEditDoc::LoadXmlArchiveArray(TDocMultiArchive& arrXmlAr, const QString&
 {
     auto pIPak = GetIEditor()->GetSystem()->GetIPak();
 
-    //if (m_pSWDoc->IsNull())
+    CXmlArchive* pXmlAr = new CXmlArchive();
+    if (!pXmlAr)
     {
-        CXmlArchive* pXmlAr = new CXmlArchive();
-        if (!pXmlAr)
-        {
-            return false;
-        }
-
-        CXmlArchive& xmlAr = *pXmlAr;
-        xmlAr.bLoading = true;
-
-        // bound to the level folder, as if it were the assets folder.
-        // this mounts (whateverlevelname.ly) as @products@/Levels/whateverlevelname/ and thus it works...
-        bool openLevelPakFileSuccess = pIPak->OpenPack(levelPath.toUtf8().data(), absoluteLevelPath.toUtf8().data());
-        if (!openLevelPakFileSuccess)
-        {
-            return false;
-        }
-
-        CPakFile pakFile;
-        bool loadFromPakSuccess = xmlAr.LoadFromPak(levelPath, pakFile);
-        pIPak->ClosePack(absoluteLevelPath.toUtf8().data());
-        if (!loadFromPakSuccess)
-        {
-            return false;
-        }
-
-        FillXmlArArray(arrXmlAr, &xmlAr);
+        return false;
     }
+
+    pXmlAr->bLoading = true;
+
+    // bound to the level folder, as if it were the assets folder.
+    // this mounts (whateverlevelname.ly) as @products@/Levels/whateverlevelname/ and thus it works...
+    bool openLevelPakFileSuccess = pIPak->OpenPack(levelPath.toUtf8().data(), absoluteLevelPath.toUtf8().data());
+    if (!openLevelPakFileSuccess)
+    {
+        return false;
+    }
+
+    CPakFile pakFile;
+    bool loadFromPakSuccess = pXmlAr->LoadFromPak(levelPath, pakFile);
+    pIPak->ClosePack(absoluteLevelPath.toUtf8().data());
+    if (!loadFromPakSuccess)
+    {
+        return false;
+    }
+
+    FillXmlArArray(arrXmlAr, pXmlAr);
 
     return true;
 }
 
 void CCryEditDoc::ReleaseXmlArchiveArray(TDocMultiArchive& arrXmlAr)
 {
-    SAFE_DELETE(arrXmlAr[0]);
+    for (int i = 0; i < DMAS_COUNT; ++i)
+    {
+        SAFE_DELETE(arrXmlAr[i]);
+    }
 }
 
 namespace AzToolsFramework

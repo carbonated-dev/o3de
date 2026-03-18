@@ -11,6 +11,7 @@
 
 #ifdef WIN32
 AZ_PUSH_DISABLE_WARNING(4458, "-Wunknown-warning-option")
+#include <Propidl.h>
 #include <gdiplus.h>
 AZ_POP_DISABLE_WARNING
 #pragma comment (lib, "Gdiplus.lib")
@@ -86,8 +87,6 @@ AZ_POP_DISABLE_WARNING
 
 // Editor
 #include "Settings.h"
-
-#include "GameResourcesExporter.h"
 
 #include "MainWindow.h"
 
@@ -378,8 +377,6 @@ class CEditCommandLineInfo
 public:
     bool m_bTest = false;
     bool m_bAutoLoadLevel = false;
-    bool m_bExport = false;
-    bool m_bExportTexture = false;
 
     bool m_bConsoleMode = false;
     bool m_bNullRenderer = false;
@@ -387,7 +384,6 @@ public:
     bool m_bRunPythonScript = false;
     bool m_bRunPythonTestScript = false;
     bool m_bShowVersionInfo = false;
-    QString m_exportFile;
     QString m_strFileName;
     QString m_appRoot;
     QString m_logFile;
@@ -417,8 +413,6 @@ public:
         // Need to include it here so that Qt argument parser does not error out.
         bool nsDocumentRevisionsDebugMode = false;
         const std::vector<std::pair<QString, bool&> > options = {
-            { "export", m_bExport },
-            { "exportTexture", m_bExportTexture },
             { "test", m_bTest },
             { "auto_level_load", m_bAutoLoadLevel },
             { "BatchMode", m_bConsoleMode },
@@ -498,18 +492,11 @@ public:
             option.second = parser.value(option.first.valueName);
         }
 
-        m_bExport = m_bExport || m_bExportTexture;
-
         const QStringList positionalArgs = parser.positionalArguments();
 
         if (!positionalArgs.isEmpty())
         {
             m_strFileName = positionalArgs.first();
-
-            if (positionalArgs.first().at(0) != '[')
-            {
-                m_exportFile = positionalArgs.first();
-            }
         }
     }
 };
@@ -615,7 +602,6 @@ void CCryEditApp::OnUpdateDocumentReady(QAction* action)
     action->setEnabled(GetIEditor()
         && GetIEditor()->GetDocument()
         && GetIEditor()->GetDocument()->IsDocumentReady()
-        && !m_bIsExportingLegacyData
         && !m_creatingNewLevel
         && !m_openingLevel
         && !m_savingLevel);
@@ -624,7 +610,7 @@ void CCryEditApp::OnUpdateDocumentReady(QAction* action)
 //////////////////////////////////////////////////////////////////////////
 void CCryEditApp::OnUpdateFileOpen(QAction* action)
 {
-    action->setEnabled(!m_bIsExportingLegacyData && !m_creatingNewLevel && !m_openingLevel && !m_savingLevel);
+    action->setEnabled(!m_creatingNewLevel && !m_openingLevel && !m_savingLevel);
 }
 
 bool CCryEditApp::ShowEnableDisableGemDialog(const QString& title, const QString& message)
@@ -860,17 +846,11 @@ void CCryEditApp::InitFromCommandLine(CEditCommandLineInfo& cmdInfo)
     m_bTestMode |= cmdInfo.m_bTest;
 
     m_bSkipWelcomeScreenDialog = cmdInfo.m_bSkipWelcomeScreenDialog || !cmdInfo.m_execFile.isEmpty() || !cmdInfo.m_execLineCmd.isEmpty() || cmdInfo.m_bAutotestMode;
-    m_bExportMode = cmdInfo.m_bExport;
     m_bRunPythonTestScript = cmdInfo.m_bRunPythonTestScript;
     m_bRunPythonScript = cmdInfo.m_bRunPythonScript || cmdInfo.m_bRunPythonTestScript;
     m_execFile = cmdInfo.m_execFile;
     m_execLineCmd = cmdInfo.m_execLineCmd;
     m_bAutotestMode = cmdInfo.m_bAutotestMode || cmdInfo.m_bConsoleMode;
-
-    if (m_bExportMode)
-    {
-        m_exportFile = cmdInfo.m_exportFile;
-    }
 
     // Do we have a passed filename ?
     if (!cmdInfo.m_strFileName.isEmpty())
@@ -927,7 +907,7 @@ bool CCryEditApp::CheckIfAlreadyRunning()
             // NOTE:  If you choose to do this, be sure to export *different* levels, since nothing prevents multiple runs
             // from trying to write to the same level at the same time.
             // If we're running interactively, let's ask and make sure the user actually intended to do this.
-            if (!m_bExportMode && QMessageBox::question(AzToolsFramework::GetActiveWindow(), QObject::tr("Too many apps"), QObject::tr("There is already an Open 3D Engine application running\nDo you want to start another one?")) != QMessageBox::Yes)
+            if (QMessageBox::question(AzToolsFramework::GetActiveWindow(), QObject::tr("Too many apps"), QObject::tr("There is already an Open 3D Engine application running\nDo you want to start another one?")) != QMessageBox::Yes)
             {
                 return false;
             }
@@ -1002,24 +982,6 @@ void CCryEditApp::InitLevel(const CEditCommandLineInfo& cmdInfo)
         {
             LoadFile(cmdInfo.m_strFileName);
         }
-    }
-    else if (m_bExportMode && !m_exportFile.isEmpty())
-    {
-        GetIEditor()->SetModifiedFlag(false);
-        GetIEditor()->SetModifiedModule(eModifiedNothing);
-        auto pDocument = OpenDocumentFile(m_exportFile.toUtf8().constData());
-        if (pDocument)
-        {
-            GetIEditor()->SetModifiedFlag(false);
-            GetIEditor()->SetModifiedModule(eModifiedNothing);
-            ExportLevel(cmdInfo.m_bExport, cmdInfo.m_bExportTexture, true);
-            // Terminate process.
-            CLogFile::WriteLine("Editor: Terminate Process after export");
-        }
-        // the call to quit() must be posted to the event queue because the app is currently not yet running.
-        // if we were to call quit() right now directly, the app would ignore it.
-        QTimer::singleShot(0, QCoreApplication::instance(), &QCoreApplication::quit);
-        return;
     }
     else if ((cmdInfo.m_strFileName.endsWith(defaultExtension, Qt::CaseInsensitive))
             || (cmdInfo.m_strFileName.endsWith(oldExtension, Qt::CaseInsensitive)))
@@ -1632,10 +1594,6 @@ bool CCryEditApp::InitInstance()
         {
             gEnv->pLog->LogError("Game can not be initialized, InitGame() failed.");
         }
-        if (!cmdInfo.m_bExport)
-        {
-            QMessageBox::critical(AzToolsFramework::GetActiveWindow(), QString(), QObject::tr("Game can not be initialized, please refer to the editor log file"));
-        }
         return false;
     }
 
@@ -1885,8 +1843,7 @@ void CCryEditApp::OnAppShowWelcomeScreen()
     // This logic is a simplified version of the startup
     // flow that also shows the Welcome dialog
 
-    if (m_bIsExportingLegacyData
-        || m_creatingNewLevel
+    if (m_creatingNewLevel
         || m_openingLevel
         || m_savingLevel)
     {
@@ -1942,8 +1899,7 @@ void CCryEditApp::OnAppShowWelcomeScreen()
 
 void CCryEditApp::OnUpdateShowWelcomeScreen(QAction* action)
 {
-    action->setEnabled(!m_bIsExportingLegacyData
-        && !m_creatingNewLevel
+    action->setEnabled(!m_creatingNewLevel
         && !m_openingLevel
         && !m_savingLevel);
 }
@@ -2315,13 +2271,6 @@ void CCryEditApp::DisplayLevelLoadErrors()
     }
 }
 
-//////////////////////////////////////////////////////////////////////////
-void CCryEditApp::ExportLevel(bool /* bExportToGame */, bool /* bExportTexture */, bool /* bAutoExport */)
-{
-    AZ_Assert(false, "Prefab system doesn't require level exports.");
-    return;
-}
-
 
 //////////////////////////////////////////////////////////////////////////
 void CCryEditApp::OnEditHold()
@@ -2336,24 +2285,6 @@ void CCryEditApp::OnEditFetch()
     GetIEditor()->GetDocument()->Fetch(HOLD_FETCH_FILE);
 }
 
-
-//////////////////////////////////////////////////////////////////////////
-bool CCryEditApp::UserExportToGame(bool /* bNoMsgBox */)
-{
-    AZ_Assert(false, "Export Level should no longer exist.");
-    return false;
-}
-
-void CCryEditApp::ExportToGame(bool /* bNoMsgBox */)
-{
-    AZ_Assert(false, "Prefab system no longer exports levels.");
-    return;
-}
-
-void CCryEditApp::OnFileExportToGameNoSurfaceTexture()
-{
-    UserExportToGame(false);
-}
 
 void CCryEditApp::OnMoveObject()
 {
@@ -2561,7 +2492,7 @@ void CCryEditApp::OnSwitchPhysics()
 void CCryEditApp::OnSwitchPhysicsUpdate(QAction* action)
 {
     Q_ASSERT(action->isCheckable());
-    action->setChecked(!m_bIsExportingLegacyData && GetIEditor()->GetGameEngine()->GetSimulationMode());
+    action->setChecked(GetIEditor()->GetGameEngine()->GetSimulationMode());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2584,12 +2515,12 @@ void CCryEditApp::OnUpdateNonGameMode(QAction* action)
 
 void CCryEditApp::OnUpdateNewLevel(QAction* action)
 {
-    action->setEnabled(!m_bIsExportingLegacyData);
+    action->setEnabled(true);
 }
 
 void CCryEditApp::OnUpdatePlayGame(QAction* action)
 {
-    action->setEnabled(!m_bIsExportingLegacyData && GetIEditor()->IsLevelLoaded());
+    action->setEnabled(GetIEditor()->IsLevelLoaded());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3022,9 +2953,7 @@ void CCryEditApp::OnDisplayGotoPosition()
 //////////////////////////////////////////////////////////////////////////
 void CCryEditApp::OnFileSavelevelresources()
 {
-    CGameResourcesExporter saver;
-    saver.GatherAllLoadedResources();
-    saver.ChooseDirectoryAndSave();
+    // TODO - Remove this?
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -3144,7 +3073,7 @@ void CCryEditApp::AddToRecentFileList(const QString& lpszPathName)
 bool CCryEditApp::IsInRegularEditorMode()
 {
     return !IsInTestMode() && !IsInPreviewMode()
-           && !IsInExportMode() && !IsInConsoleMode() && !IsInLevelLoadTestMode();
+           && !IsInConsoleMode() && !IsInLevelLoadTestMode();
 }
 
 void CCryEditApp::SetEditorWindowTitle(QString sTitleStr, QString sPreTitleStr, QString sPostTitleStr)
@@ -3172,11 +3101,6 @@ void CCryEditApp::SetEditorWindowTitle(QString sTitleStr, QString sPreTitleStr, 
             m_pConsoleDialog->setWindowTitle(sTitleStr);
         }
     }
-}
-
-bool CCryEditApp::Command_ExportToEngine()
-{
-    return CCryEditApp::instance()->UserExportToGame(true);
 }
 
 CMainFrame * CCryEditApp::GetMainFrame() const
@@ -3445,7 +3369,7 @@ extern "C" int AZ_DLL_EXPORT CryEditMain(int argc, char* argv[])
 
         {
             CEditCommandLineInfo cmdInfo;
-            if (!cmdInfo.m_bAutotestMode && !cmdInfo.m_bConsoleMode && !cmdInfo.m_bExport && !cmdInfo.m_bExportTexture &&
+            if (!cmdInfo.m_bAutotestMode && !cmdInfo.m_bConsoleMode &&
                 !cmdInfo.m_bNullRenderer && !cmdInfo.m_bTest)
             {
                 if (auto nativeUI = AZ::Interface<AZ::NativeUI::NativeUIRequests>::Get(); nativeUI != nullptr)

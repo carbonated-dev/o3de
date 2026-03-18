@@ -246,8 +246,7 @@ namespace AssetProcessor
                 AZ_STRING_ARG(address),
                 AZ_STRING_ARG(previousServerAddress));
 #else
-            AZ_Error(
-                AssetProcessor::DebugChannel,
+            AZ_Error(AssetProcessor::DebugChannel,
                 m_assetCachingMode == AssetServerMode::Inactive,
                 "Server address (%.*s) is invalid! Reverting back to (%.*s)",
                 AZ_STRING_ARG(address),

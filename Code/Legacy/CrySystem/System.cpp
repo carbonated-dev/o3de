@@ -537,8 +537,8 @@ extern int g_nDebugThreads;
 int prev_sys_float_exceptions = -1;
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS) && (defined(AZ_PLATFORM_WINDOWS) || !defined(CARBONATED_USE_SWAPPY))
-AZ_CVAR_EXTERNED(uint32_t, vsync_interval);
-AZ_CVAR_EXTERNED(int32_t, sys_MaxFPS);
+AZ_CVAR_API_EXTERNED(AZF_API, uint32_t, vsync_interval);
+AZ_CVAR_API_EXTERNED(AZF_API, int32_t, sys_MaxFPS);
 #endif
 
 //////////////////////////////////////////////////////////////////////
@@ -666,7 +666,7 @@ bool CSystem::UpdatePreTickBus(int updateFlags, int nPauseMode)
 #endif
             if (maxFPS > 0 && vSync == 0)
             {
-                const float safeMarginFPS = 0.5f; // save margin to not drop below 30 fps
+                const float safeMarginFPS = 0.5f;//save margin to not drop below 30 fps
                 static AZ::TimeMs sTimeLast = AZ::GetRealElapsedTimeMs();
                 const AZ::TimeMs timeFrameMax(static_cast<AZ::TimeMs>(
                     (int64)(1000.f / ((float)maxFPS + safeMarginFPS))

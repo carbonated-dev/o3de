@@ -155,7 +155,7 @@ namespace UnitTests
 
         AZ::Utils::WriteFile("unit test file", m_testFilePath);
 
-        m_rc = AZStd::make_unique<TestingRCController>(1, 1);
+        m_rc = AZStd::make_unique<TestingRCController>();
         m_rc->SetDispatchPaused(false);
 
         QObject::connect(
@@ -228,7 +228,7 @@ namespace UnitTests
         QObject::connect(
             m_assetProcessorManager.get(),
             &AssetProcessor::AssetProcessorManager::ProcessingDelayed,
-            [&delayed](QString)
+            [&delayed]([[maybe_unused]] QString filePath)
             {
                 delayed = true;
             });
@@ -236,7 +236,7 @@ namespace UnitTests
         QObject::connect(
             m_assetProcessorManager.get(),
             &AssetProcessor::AssetProcessorManager::ProcessingResumed,
-            [&delayed](QString)
+            [&delayed]([[maybe_unused]] QString filePath)
             {
                 delayed = false;
             });

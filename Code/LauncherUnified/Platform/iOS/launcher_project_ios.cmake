@@ -35,6 +35,7 @@ set (resource_files
 target_sources(${project_name}.GameLauncher PRIVATE ${resource_files})
 # CARBONATED END
 
+target_sources(${project_name}.GameLauncher PRIVATE ${ly_game_resource_folder}/Images.xcassets)
 set_target_properties(${project_name}.GameLauncher PROPERTIES
     MACOSX_BUNDLE_INFO_PLIST ${ly_game_resource_folder}/Info.plist
     

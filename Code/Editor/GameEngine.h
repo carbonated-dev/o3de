@@ -42,12 +42,10 @@ private:
     ISystemUserCallback* m_userCallback;
 };
 
-AZ_PUSH_DISABLE_DLL_EXPORT_BASECLASS_WARNING
 //! This class serves as a high-level wrapper for CryEngine game.
 class SANDBOX_API CGameEngine
     : public IEditorNotifyListener
 {
-AZ_POP_DISABLE_DLL_EXPORT_BASECLASS_WARNING
 public:
     CGameEngine();
     ~CGameEngine(void);
@@ -109,7 +107,7 @@ public:
     //! Called every frame.
     void Update();
     virtual void OnEditorNotifyEvent(EEditorNotifyEvent event);
-    void OnAreaModified(const AABB& modifiedArea);
+    void OnAreaModified(const AZ::Aabb& modifiedArea);
 
     void ExecuteQueuedEvents();
 
@@ -144,7 +142,6 @@ private:
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON) // (akostin/mp226): IEditorGame* to dispatch notifications to NetContext
     IEditorGame* m_pEditorGame;
 #endif
-    AZ_PUSH_DISABLE_DLL_EXPORT_MEMBER_WARNING
     Matrix34 m_playerViewTM;
     struct SSystemUserCallback* m_pSystemUserCallback;
     AZStd::unique_ptr<AZ::DynamicModuleHandle> m_hSystemHandle;
@@ -156,6 +153,5 @@ private:
     };
     EPendingGameMode m_ePendingGameMode;
     AZStd::unique_ptr<class ModalWindowDismisser> m_modalWindowDismisser;
-    AZ_POP_DISABLE_DLL_EXPORT_MEMBER_WARNING
 };
 

@@ -19,7 +19,7 @@
 #include <AzToolsFramework/AssetBrowser/AssetBrowserComponent.h>
 
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-#include <AzFramework/Network/NetworkContext.h>
+#include <AzFrameworkAddon/Network/NetworkContext.h>
 #endif
 
 // Editor

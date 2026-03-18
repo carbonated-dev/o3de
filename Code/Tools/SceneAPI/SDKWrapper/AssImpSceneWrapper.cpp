@@ -29,11 +29,13 @@ namespace AZ
         AssImpSceneWrapper::AssImpSceneWrapper()
             : m_assImpScene(nullptr)
             , m_importer(AZStd::make_unique<Assimp::Importer>())
+            , m_extractEmbeddedTextures(false)
         {
         }
         AssImpSceneWrapper::AssImpSceneWrapper(aiScene* aiScene)
             : m_assImpScene(aiScene)
             , m_importer(AZStd::make_unique<Assimp::Importer>())
+            , m_extractEmbeddedTextures(false)
         {
         }
 
@@ -105,6 +107,8 @@ namespace AZ
             }
 
             CalculateAABBandVertices(m_assImpScene, m_aabb, m_vertices);
+
+            m_extractEmbeddedTextures = importSettings.m_extractEmbeddedTextures;
 
             return true;
         }
@@ -182,6 +186,16 @@ namespace AZ
             m_assImpScene->mMetaData->Get("FrontAxis", frontVectorRead);
             m_assImpScene->mMetaData->Get("FrontAxisSign", result.second);
             result.first = static_cast<AssImpSceneWrapper::AxisVector>(frontVectorRead);
+            return result;
+        }
+
+        AZStd::pair<AssImpSceneWrapper::AxisVector, int32_t> AssImpSceneWrapper::GetRightVectorAndSign() const
+        {
+            AZStd::pair<AssImpSceneWrapper::AxisVector, int32_t> result(AxisVector::X, 1);
+            int32_t rightVectorRead(static_cast<int32_t>(result.first));
+            m_assImpScene->mMetaData->Get("CoordAxis", rightVectorRead);
+            m_assImpScene->mMetaData->Get("CoordAxisSign", result.second);
+            result.first = static_cast<AssImpSceneWrapper::AxisVector>(rightVectorRead);
             return result;
         }
     }//namespace AssImpSDKWrapper
