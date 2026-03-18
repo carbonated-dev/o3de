@@ -137,14 +137,11 @@ namespace LyShine
 
     void LyShinePass::AddUiCanvasChildPass(LyShine::AttachmentImagesAndDependencies AttachmentImagesAndDependencies)
     {
-        AZ_Info("ccc", "Add %d attachments to LyShineChildPass", AttachmentImagesAndDependencies.size());
-
         if (!m_uiCanvasChildPass)
         {
             AZ::RPI::PassSystemInterface* passSystem = AZ::RPI::PassSystemInterface::Get();
             m_uiCanvasChildPass = azrtti_cast<LyShineChildPass*>(passSystem->CreatePassFromTemplate(AZ::Name("LyShineChildPassTemplate"), AZ::Name("LyShineChildPass")).get());
             AZ_Assert(m_uiCanvasChildPass, "[LyShinePass] Unable to create a LyShineChildPass.");
-            AZ_Info("ccc", "Created LyShineChildPass");
         }
 
         // Store the info needed to set up frame graph dependencies
@@ -152,8 +149,6 @@ namespace LyShine
         for (const auto& attachmentImageAndDescendents : AttachmentImagesAndDependencies)
         {
             m_uiCanvasChildPass->m_attachmentImageDependencies.emplace_back(attachmentImageAndDescendents.first);
-            AZ_Info("ccc", "Add image %d x %d to LyShineChildPass",
-                attachmentImageAndDescendents.first->GetDescriptor().m_size.m_width, attachmentImageAndDescendents.first->GetDescriptor().m_size.m_height);
         }
 
         AddChild(m_uiCanvasChildPass);

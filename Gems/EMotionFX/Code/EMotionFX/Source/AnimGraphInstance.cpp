@@ -896,6 +896,7 @@ namespace EMotionFX
         m_actorInstance->ApplyMotionExtractionDelta();
     }
 
+
     // synchronize all nodes, based on sync tracks etc
     void AnimGraphInstance::Update(float timePassedInSeconds)
     {
@@ -908,8 +909,7 @@ namespace EMotionFX
         }
 #endif
 
-        // pass 0: (Optional, networking only) When this instance is shared between network, restore the instance using an animgraph
-        // snapshot.
+        // pass 0: (Optional, networking only) When this instance is shared between network, restore the instance using an animgraph snapshot.
         if (m_snapshot)
         {
             m_snapshot->Restore(*this);

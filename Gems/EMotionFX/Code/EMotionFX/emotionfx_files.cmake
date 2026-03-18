@@ -216,6 +216,8 @@ set(FILES
     Source/BlendTreeConnection.h
     Source/BlendTreeDirectionToWeightNode.cpp
     Source/BlendTreeDirectionToWeightNode.h
+    Source/BlendTreeFabrikNode.cpp
+    Source/BlendTreeFabrikNode.h
     Source/BlendTreeFinalNode.cpp
     Source/BlendTreeFinalNode.h
     Source/BlendTreeFloatConditionNode.cpp
@@ -284,6 +286,10 @@ set(FILES
     Source/BlendTreeVector4DecomposeNode.h
     Source/BlendTreeRaycastNode.cpp
     Source/BlendTreeRaycastNode.h
+    Source/BlendTreeRotationComposeNode.cpp
+    Source/BlendTreeRotationComposeNode.h
+    Source/BlendTreeRotationDecomposeNode.cpp
+    Source/BlendTreeRotationDecomposeNode.h
     Source/BlendTreeRotationMath2Node.cpp
     Source/BlendTreeRotationMath2Node.h
     Source/BlendTreeRotationLimitNode.cpp

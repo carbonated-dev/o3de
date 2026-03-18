@@ -18,7 +18,6 @@
 #include <LyShine/Bus/World/UiCanvasRefBus.h>
 #include <LyShine/UiSerializeHelpers.h>
 
-#include <Cry_Geo.h>
 #include <IIndexedMesh.h>
 
 
@@ -136,7 +135,7 @@ void UiCanvasOnMeshComponent::Reflect(AZ::ReflectContext* context)
                 ->Attribute(AZ::Edit::Attributes::Category, "UI")
                 ->Attribute(AZ::Edit::Attributes::Icon, "Icons/Components/UiCanvasOnMesh.svg")
                 ->Attribute(AZ::Edit::Attributes::ViewportIcon, "Icons/Components/Viewport/UiCanvasOnMesh.svg")
-                ->Attribute(AZ::Edit::Attributes::HelpPageURL, "https://o3de.org/docs/user-guide/components/reference/ui/canvas-on-mesh/")
+                ->Attribute(AZ::Edit::Attributes::HelpPageURL, "https://www.o3de.org/docs/user-guide/components/reference/ui/canvas-on-mesh/")
                 ->Attribute(AZ::Edit::Attributes::AppearsInAddComponentMenu, AZ_CRC_CE("Game"));
 
             editInfo->DataElement(0, &UiCanvasOnMeshComponent::m_attachmentImageAssetOverride,

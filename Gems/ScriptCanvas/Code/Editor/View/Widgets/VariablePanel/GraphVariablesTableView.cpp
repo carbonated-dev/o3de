@@ -870,6 +870,19 @@ namespace ScriptCanvasEditor
         }
     }
 
+    void GraphVariablesModel::OnVariableRenamed(AZStd::string_view /*newVariableName*/)
+    {
+        const ScriptCanvas::GraphScopedVariableId* variableId = ScriptCanvas::VariableNotificationBus::GetCurrentBusId();
+
+        int index = FindRowForVariableId((*variableId).m_identifier);
+
+        if (index >= 0)
+        {
+            QModelIndex modelIndex = createIndex(index, ColumnIndex::Name, nullptr);
+            dataChanged(modelIndex, modelIndex);
+        }
+    }
+
     QVariant GraphVariablesModel::headerData(int section, Qt::Orientation orientation, int role /*= Qt::DisplayRole*/) const
     {
         if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
@@ -1126,7 +1139,7 @@ namespace ScriptCanvasEditor
 
         {
             QAction* duplicateAction = new QAction(this);
-            duplicateAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_D));
+            duplicateAction->setShortcut(QKeySequence(0x0 | Qt::CTRL | Qt::Key_D));
 
             QObject::connect(duplicateAction, &QAction::triggered, this, &GraphVariablesTableView::OnDuplicate);
 

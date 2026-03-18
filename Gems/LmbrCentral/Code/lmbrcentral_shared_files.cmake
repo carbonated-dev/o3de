@@ -9,8 +9,6 @@
 set(FILES
     Source/LmbrCentral.h
     Source/LmbrCentral.cpp
-    Source/Scripting/SpawnerComponent.h
-    Source/Scripting/SpawnerComponent.cpp
     Source/Scripting/PrefabSpawnerComponent.h
     Source/Scripting/PrefabSpawnerComponent.cpp
     Source/Shape/TubeShape.h

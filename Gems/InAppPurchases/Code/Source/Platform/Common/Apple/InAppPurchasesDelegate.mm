@@ -296,6 +296,8 @@
                     }
 #else
                     productDetails->SetPurchaseState(InAppPurchases::PurchaseState::FAILED);
+                    [self.m_unfinishedTransactions addObject:transaction];
+                    EBUS_EVENT(InAppPurchases::InAppPurchasesResponseBus, PurchaseFailed, productDetails);
 #endif
                     
 #if defined(CARBONATED)  // PR375

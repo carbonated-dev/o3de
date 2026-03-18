@@ -29,12 +29,11 @@
 #include "Bundling/BundlingSystemComponent.h"
 #include "Scripting/TagComponent.h"
 #include "Scripting/SimpleStateComponent.h"
-#include "Scripting/SpawnerComponent.h"
+//#include "Scripting/SpawnerComponent.h"  // no such file in 25101
 #if defined(CARBONATED)
 #include "Scripting/PrefabSpawnerComponent.h"
 #endif
 #include "Scripting/LookAtComponent.h"
-#include "Scripting/RandomTimedSpawnerComponent.h"
 #include "Geometry/GeometrySystemComponent.h"
 #include <Asset/AssetSystemDebugComponent.h>
 
@@ -190,7 +189,6 @@ namespace LmbrCentral
 #if defined(CARBONATED)
             PrefabSpawnerComponent::CreateDescriptor(),
 #endif
-            SpawnerComponent::CreateDescriptor(),
             LookAtComponent::CreateDescriptor(),
             TagComponent::CreateDescriptor(),
             SphereShapeComponent::CreateDescriptor(),
@@ -206,7 +204,6 @@ namespace LmbrCentral
             SplineComponent::CreateDescriptor(),
             PolygonPrismShapeComponent::CreateDescriptor(),
             GeometrySystemComponent::CreateDescriptor(),
-            RandomTimedSpawnerComponent::CreateDescriptor(),
             SphereShapeDebugDisplayComponent::CreateDescriptor(),
             DiskShapeDebugDisplayComponent::CreateDescriptor(),
             BoxShapeDebugDisplayComponent::CreateDescriptor(),

@@ -108,7 +108,9 @@ namespace LyShine
     {
         m_primitives.clear();
 
+#if defined(CARBONATED)
         m_drawCommands.clear();
+#endif
         m_combinedVertices.clear();
         m_combinedIndices.clear();
     }
@@ -1025,6 +1027,7 @@ namespace LyShine
                 // We can't add this primitive to the existing render node, we need to create a new render node
                 // this uses a pool allocator for fast allocation
                 renderNodeToAddTo = new PrimitiveListRenderNode(texture, isClampTextureMode, isTextureSRGB, isPreMultiplyAlpha, blendModeState);
+
                 renderNodeList->push_back(renderNodeToAddTo);
                 texUnit = 0;
             }
@@ -1106,6 +1109,7 @@ namespace LyShine
                 // this uses a pool allocator for fast allocation
                 renderNodeToAddTo = new PrimitiveListRenderNode(contentAttachmentImage, maskAttachmentImage,
                     isClampTextureMode, isTextureSRGB, isPreMultiplyAlpha, alphaMaskType, blendModeState);
+
                 renderNodeList->push_back(renderNodeToAddTo);
                 texUnit0 = 0;
                 texUnit1 = 1;

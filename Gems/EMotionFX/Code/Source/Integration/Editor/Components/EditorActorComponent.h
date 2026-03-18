@@ -69,10 +69,10 @@ namespace EMotionFX
             void SetActorAsset(AZ::Data::Asset<ActorAsset> actorAsset) override;
             void EnableInstanceUpdate(bool enable) override;
             void SetRayTracingEnabled(bool enabled) override;
-
+#if defined(CARBONATED)
             // Returns actor asset
             AZ::Data::Asset<AZ::Data::AssetData> GetActorAsset() override; // carbonated EMotionFX_port
-
+#endif
 
             // EditorActorComponentRequestBus overrides ...
             const AZ::Data::AssetId& GetActorAssetId() override;

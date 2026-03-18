@@ -28,13 +28,16 @@
 #include <ScriptCanvas/Bus/ScriptCanvasBus.h>
 #include <ScriptCanvas/Bus/ScriptCanvasExecutionBus.h>
 #include <Editor/Include/ScriptCanvas/Components/NodeReplacementSystem.h>
+#include <Utilities/ViewportDragDropHandler.h>
 
 namespace ScriptCanvasEditor
 {
     class SystemComponent
         : public AZ::Component
         , private SystemRequestBus::Handler
+#if !SCRIPTCANVAS_STANDALONE_APPLICATION
         , private AzToolsFramework::EditorEvents::Bus::Handler
+#endif
         , private AzToolsFramework::AssetBrowser::AssetBrowserInteractionNotificationBus::Handler
         , private ScriptCanvasExecutionBus::Handler
         , private AZ::UserSettingsNotificationBus::Handler
@@ -69,12 +72,15 @@ namespace ScriptCanvasEditor
         // SystemRequestBus::Handler...
         void GetEditorCreatableTypes(AZStd::unordered_set<ScriptCanvas::Data::Type>& outCreatableTypes) override;
         void CreateEditorComponentsOnEntity(AZ::Entity* entity, const AZ::Data::AssetType& assetType) override;
+        void OpenScriptCanvasEditor(const AZStd::string& sourcePath) override;
         ////////////////////////////////////////////////////////////////////////
 
+#if !SCRIPTCANVAS_STANDALONE_APPLICATION
         ////////////////////////////////////////////////////////////////////////
         // AztoolsFramework::EditorEvents::Bus::Handler...
         void NotifyRegisterViews() override;
         ////////////////////////////////////////////////////////////////////////
+#endif
 
         ////////////////////////////////////////////////////////////////////////
         // ScriptCanvasExecutionBus::Handler...
@@ -102,6 +108,8 @@ namespace ScriptCanvasEditor
         ////////////////////////////////////////////////////////////////////////
         // ActionManagerRegistrationNotificationBus::Handler...
         void OnActionContextRegistrationHook() override;
+        void OnActionRegistrationHook() override;
+        void OnMenuBindingHook() override;
         ////////////////////////////////////////////////////////////////////////
 
         ////////////////////////////////////////////////////////////////////////
@@ -131,5 +139,7 @@ namespace ScriptCanvasEditor
 
         ScriptCanvasBuilder::DataSystem m_dataSystem;
         NodeReplacementSystem m_nodeReplacementSystem;
+
+        AZStd::unique_ptr<ScriptCanvasAssetDragDropHandler> m_viewportDragDropHandler;
     };
 }

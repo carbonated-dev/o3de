@@ -21,11 +21,14 @@ namespace MCore
     
     using AngleRadianTestFixtureXYZ = ::testing::TestWithParam<EulerTestArgs>;
 
+#if defined(CARBONATED)
+    // MCore::AzEulerAnglesToAzQuat is missing in 2510.1
+#else
     TEST_P(AngleRadianTestFixtureXYZ, AzEulerAnglesToAzQuat) {
         auto& param = GetParam();
         EXPECT_THAT(MCore::AzEulerAnglesToAzQuat(param.eular.GetX(),param.eular.GetY(),param.eular.GetZ()), UnitTest::IsClose(param.result));
     }
-
+#endif
     // same test cases in QuaternionTests.cpp AngleRadianTestFixtureZYX
     INSTANTIATE_TEST_SUITE_P(
         MATH_AZCoreConversions,

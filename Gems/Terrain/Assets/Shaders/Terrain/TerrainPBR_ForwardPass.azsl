@@ -15,14 +15,9 @@
 #include <TerrainDetailHelpers.azsli>
 #include <TerrainMacroHelpers.azsli>
 #include <ClipmapComputeHelpers.azsli>
-#include <Atom/Features/Pipeline/Forward/ForwardPassSrg.azsli>
-#include <Atom/Features/Pipeline/Forward/ForwardPassOutput.azsli>
+
 #include <Atom/Features/PBR/AlphaUtils.azsli>
 #include <Atom/Features/ColorManagement/TransformColor.azsli>
-#include <Atom/Features/PBR/Lighting/StandardLighting.azsli>
-#include <Atom/Features/PBR/Lights/IblForward.azsli>
-#include <Atom/Features/Shadow/DirectionalLightShadow.azsli>
-#include <Atom/Features/PBR/Decals.azsli>
 
 option bool o_debugTerrainLodLevels = false;
 
@@ -32,6 +27,18 @@ struct VSOutput
     float3 m_normal: NORMAL;
     float3 m_worldPosition : UV0;
 };
+
+#include <Atom/Features/Pipeline/Forward/ForwardPassSrg.azsli>
+
+#include <Atom/Features/SampleBrdfMap.azsli>
+#include <Atom/Features/GoboTexture.azsli>
+#include <Atom/Features/Pipeline/Forward/ForwardPassOutput.azsli>
+#include <Atom/Features/PBR/Lighting/StandardLighting.azsli>
+#include <Atom/Features/PBR/Lights/IblForward.azsli>
+#include <Atom/Features/Shadow/DirectionalLightShadow.azsli>
+#include <Atom/Features/PBR/Decals.azsli>
+
+
 
 VSOutput TerrainPBR_MainPassVS(VertexInput input)
 {
@@ -102,8 +109,13 @@ void GatherSurfaceDataFromClipmaps(
 
 ForwardPassOutput TerrainPBR_MainPassPS(VSOutput input)
 {
+    float3 views[MAX_SHADING_VIEWS];
+    views[0] = ViewSrg::m_worldPosition.xyz;    // Assume one view for forward pass for now
+
     // ------- Surface -------
-    Surface surface;
+    Surface surface = (Surface)0;
+    surface.lightingChannels = -1u; // enable all lightingchannels for the terrain mesh
+
     surface.position = input.m_worldPosition.xyz;
     surface.vertexNormal = normalize(input.m_normal);
     float viewDistance = length(ViewSrg::m_worldPosition - input.m_worldPosition.xyz);
@@ -157,24 +169,23 @@ ForwardPassOutput TerrainPBR_MainPassPS(VSOutput input)
 #if ENABLE_CLEAR_COAT  // CARBONATED
     surface.clearCoat.InitializeToZero();
 #endif
-    // ------- LightingData -------
-
-    LightingData lightingData;
 
     // Light iterator
+    LightCullingTileIterator tileIterator;
 #if ENABLE_LIGHT_CULLING
-    lightingData.tileIterator.Init(input.m_position, PassSrg::m_lightListRemapped, PassSrg::m_tileLightData);
+    tileIterator.Init(input.m_position, PassSrg::m_lightListRemapped, PassSrg::m_tileLightData);
 #else
-    // CARBONATED
-    lightingData.tileIterator.InitNoCulling();    
+    tileIterator.InitNoCulling();  // CARBONATED
 #endif    
-    lightingData.Init(surface.position, surface.normal, surface.roughnessLinear, ViewSrg::m_worldPosition.xyz);
+    // ------- LightingData -------
+    LightingData lightingData;
+    lightingData.Init(surface.position, surface.normal, surface.roughnessLinear, views);
 
     // Shadow, Occlusion
     lightingData.diffuseAmbientOcclusion = detailSurface.m_occlusion;
 
     // Diffuse and Specular response
-    lightingData.specularResponse = FresnelSchlickWithRoughness(lightingData.NdotV, surface.specularF0, surface.roughnessLinear);
+    lightingData.specularResponse = FresnelSchlickWithRoughness(lightingData.GetSpecularNdotV(), surface.specularF0, surface.roughnessLinear);
     lightingData.diffuseResponse = 1.0f - lightingData.specularResponse;
 
     const float alpha = 1.0f;
@@ -182,17 +193,16 @@ ForwardPassOutput TerrainPBR_MainPassPS(VSOutput input)
     // ------- Lighting Calculation -------
 
     // Apply Decals
-    ApplyDecals(lightingData.tileIterator, surface);
+    ApplyDecals(tileIterator, surface);
 
     // Apply Direct Lighting
-    ApplyDirectLighting(surface, lightingData, input.m_position);
+    ApplyDirectLighting(surface, lightingData, input.m_position, tileIterator);
 
     // Apply Image Based Lighting (IBL)
     ApplyIblForward(surface, lightingData);
 
     // Finalize Lighting
     lightingData.FinalizeLighting();
-
     PbrLightingOutput lightingOutput = GetPbrLightingOutput(surface, lightingData, alpha);
 
     // ------- Output -------

@@ -474,11 +474,6 @@ namespace Audio
     ///////////////////////////////////////////////////////////////////////////////////////////////
     bool CFileCacheManager::DoesRequestFitInternal(const size_t requestSize)
     {
-        if (m_currentByteTotal > m_maxByteTotal)
-        {
-            AZ_Error("eee", false, "FileCacheManager DoesRequestFitInternal %u, %u > %u", requestSize, m_currentByteTotal, m_maxByteTotal);
-        }
-        
         // Make sure these unsigned values don't flip around.
         AZ_Assert(m_currentByteTotal <= m_maxByteTotal, "FileCacheManager DoesRequestFitInternal - Unsigned wraparound detected!");
         bool success = false;
