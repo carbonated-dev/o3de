@@ -105,7 +105,6 @@ function(o3de_get_dependencies_for_target)
         endif()
     endif()
 
-    
     # link dependencies are not runtime dependencies (we dont have anything to copy) however, we need to traverse
     # them since them or some dependency downstream could have something to copy over
     foreach(link_dependency IN LISTS link_dependencies)

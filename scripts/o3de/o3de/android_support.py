@@ -315,28 +315,32 @@ class AndroidGradlePluginRequirements(object):
 
 # The ANDROID_GRADLE_PLUGIN_COMPATIBILITY_MAP manages the known android plugin known to O3DE and its compatibility requirements
 # Note: This map needs to be updated in conjunction with newer versions of the Android Gradle plugins.
-
+# see https://developer.android.com/build/releases/gradle-plugin for the actual table that this data comes from
+# each entry associates the key (version of the android gradle plugin)
+# to the minimum required version of gradle, android sdk build tools, and jdk version required for it to work.
 ANDROID_GRADLE_PLUGIN_COMPATIBILITY_MAP = {
+    '8.13': AndroidGradlePluginRequirements(agp_version='8.13',
+                                            gradle_version='8.13',
+                                            sdk_build_tools_version='35.0.0',
+                                            jdk_version='17',
+                                            release_note_url='https://developer.android.com/build/releases/gradle-plugin'),
+    '8.12': AndroidGradlePluginRequirements(agp_version='8.12',
+                                            gradle_version='8.13',
+                                            sdk_build_tools_version='35.0.0',
+                                            jdk_version='17',
+                                            release_note_url='https://developer.android.com/build/releases/gradle-plugin'),
+    '8.11': AndroidGradlePluginRequirements(agp_version='8.11',
+                                           gradle_version='8.13',
+                                           sdk_build_tools_version='35.0.0',
+                                           jdk_version='17',
+                                           release_note_url='https://developer.android.com/build/releases/gradle-plugin'),
 
     '8.10': AndroidGradlePluginRequirements(agp_version='8.10',
                                            gradle_version='8.11',
                                            sdk_build_tools_version='35.0.0',
                                            jdk_version='17',
                                            release_note_url='https://developer.android.com/build/releases/gradle-plugin'),
-                                           
-
-    '8.9': AndroidGradlePluginRequirements(agp_version='8.9.1',
-                                           gradle_version='8.11.1',
-                                           sdk_build_tools_version='35.0.0',
-                                           jdk_version='17',
-                                           release_note_url='https://developer.android.com/build/releases/past-releases/agp-8-9-0-release-notes'),
-
-    '8.2': AndroidGradlePluginRequirements(agp_version='8.2',
-                                           gradle_version='8.2',
-                                           sdk_build_tools_version='35.0.0',
-                                           jdk_version='17',
-                                           release_note_url='https://developer.android.com/build/releases/gradle-plugin'),
-
+    
     '8.1': AndroidGradlePluginRequirements(agp_version='8.1',
                                            gradle_version='8.0',
                                            sdk_build_tools_version='33.0.1',
@@ -814,10 +818,10 @@ class AndroidSigningConfig(object):
         :return:    The signing config string section to insert
         """
         tab_prefix = ' '* 4 * tabs  # 4 spaces per tab
-        return f"{tab_prefix}storeFile file('{self._store_file.as_posix()}')\n" \
-               f"{tab_prefix}storePassword '{self._store_password}'\n" \
-               f"{tab_prefix}keyPassword '{self._key_password}'\n" \
-               f"{tab_prefix}keyAlias '{self._key_alias}'"
+        return f"{tab_prefix}storeFile = file('{self._store_file.as_posix()}')\n" \
+               f"{tab_prefix}storePassword = '{self._store_password}'\n" \
+               f"{tab_prefix}keyPassword = '{self._key_password}'\n" \
+               f"{tab_prefix}keyAlias = '{self._key_alias}'"
 
 
 JAVA_VERSION_REGEX = re.compile(r'.*(\w)\s(version)\s*\"?(?P<version>[\d\_\.]+)', re.MULTILINE)
@@ -1004,8 +1008,6 @@ PROJECT_DEPENDENCIES_VALUE_FORMAT = """
 dependencies {{
 {dependencies}
     api 'androidx.core:core:1.1.0'
-    implementation 'com.android.billingclient:billing:8.0.0'
-    {additional_dependencies}  
 }}
 
 {plugins}
@@ -1020,9 +1022,9 @@ ADDITIONAL_DEPENDENCIES = """
 NATIVE_CMAKE_SECTION_ANDROID_FORMAT = """
     externalNativeBuild {{
         cmake {{
-            buildStagingDirectory "{native_build_path}"
-            version "{cmake_version}"
-            path "{absolute_cmakelist_path}"
+            buildStagingDirectory = "{native_build_path}"
+            version = "{cmake_version}"
+            path = "{absolute_cmakelist_path}"
         }}
     }}
 """
@@ -1889,7 +1891,7 @@ class AndroidProjectGenerator(object):
                                                                  full_command_line=sync_layout_command_line,
                                                                  config=native_config)
 
-            gradle_build_env[f'SIGNING_{native_config_upper}_CONFIG'] = f'signingConfig signingConfigs.{native_config_lower}' if self._signing_config else ''
+            gradle_build_env[f'SIGNING_{native_config_upper}_CONFIG'] = f'signingConfig = signingConfigs.{native_config_lower}' if self._signing_config else ''
 
         if self._signing_config:
             gradle_build_env['SIGNING_CONFIGS'] = f"""
@@ -2109,7 +2111,7 @@ class AndroidProjectGenerator(object):
         for resolution in ANDROID_RESOLUTION_SETTINGS:
 
             target_directory = dst_resource_path / f'{MIPMAP_PATH_PREFIX}-{resolution}'
-            target_directory.mkdir(parent=True, exist_ok=True)
+            target_directory.mkdir(parents=True, exist_ok=True)
 
             # get the current resolution icon override
             icon_source = icon_overrides.get(resolution, default_icon)
@@ -2881,7 +2883,7 @@ class AndroidProjectGenerator(object):
             }
 
             if self._gradle_plugin_version >= Version('7.0'):
-                build_gradle_env['PROJECT_NAMESPACE_OPTION'] = f'namespace "{name_space}"' if self._gradle_plugin_version >= Version('7.0') else ''
+                build_gradle_env['PROJECT_NAMESPACE_OPTION'] = f'namespace = "{name_space}"' if self._gradle_plugin_version >= Version('7.0') else ''
 
             build_gradle_content = utils.load_template_file(template_file_path=android_project_builder_path / 'build.gradle.in',
                                                              template_env=build_gradle_env)

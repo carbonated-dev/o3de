@@ -15,6 +15,7 @@
 
 # Discover all the platforms that are available
 
+# CARBONATED
 include(CMakePrintHelpers)
 
 set(LY_PAL_TOOLS_DEFINES)
@@ -50,6 +51,7 @@ function(ly_get_pal_tool_dirs out_list pal_path)
     set(${out_list} ${pal_paths} PARENT_SCOPE)
 endfunction()
 
+# CARBONATED
 function(copy_java_to_build_dir common_relative_path file_paths)
   foreach(file_path ${file_paths})
     get_filename_component(target_path "${file_path}" DIRECTORY)
