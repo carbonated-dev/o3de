@@ -109,13 +109,13 @@ namespace AZ
 
             __block AZStd::string userSelection = "";
             
-            __block bool mainThreadRunning = false;
-            __block bool postActionPopup = false;
-
             NSString* nsTitle = [NSString stringWithUTF8String:title.c_str()];
             NSString* nsMessage = [NSString stringWithUTF8String:message.c_str()];
             
 #if defined(CARBONATED)
+            __block bool mainThreadRunning = false;
+            __block bool postActionPopup = false;
+
 #if defined(CARBONATED_OS_CALLBACK_ASSERT)
             if (NSThread.isMainThread && m_inAtomicCallback)  // we cannot interrupt the main thread only, the others are OK
             {
@@ -270,14 +270,14 @@ namespace AZ
             {
                 CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.0, TRUE);
             }
-            
+#if defined(CARBONATED)            
             if (!NSThread.isMainThread && !mainThreadRunning)
             {
                 // Probably, deadlock detected.
                 postActionPopup = true;  // there is no need to display all the buttons, the assert is likely already ignored
                 OnDeadlock(nsTitle, nsMessage);
             }
-            
+#endif            
             return userSelection;
         }
     }

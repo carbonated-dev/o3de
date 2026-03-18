@@ -317,7 +317,11 @@ namespace AZ
         AZStd::unordered_map<T, MapValuePair>     m_pairMapping;
     };
 
+#if defined(CARBONATED)
+    class AZCORE_API ScriptPropertyTable  // export from dll
+#else
     class ScriptPropertyTable
+#endif
         : public FunctionalScriptProperty
         , public ScriptPropertyWatcher
         , public ScriptPropertyWatcherBus::Handler

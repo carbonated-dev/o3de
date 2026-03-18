@@ -5,12 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
-#pragma once
+#include <AzCore/Debug/TraceMessageBus.h>
 
-#include <AzCore/std/typetraits/config.h>
-
-namespace AZStd
-{
-    using std::is_pod;
-    using std::is_pod_v;
-}
+AZ_INSTANTIATE_EBUS_SINGLE_ADDRESS(AZCORE_API, AZ::Debug::TraceMessageEvents)

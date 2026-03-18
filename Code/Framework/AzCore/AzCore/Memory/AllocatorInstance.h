@@ -38,6 +38,10 @@ namespace AZ::AllocatorStorage
             {
                 m_allocator.Reset();
             }
+            bool IsConstructed() const
+            {
+                return m_allocator.IsConstructed();
+            }
 #endif
             
             Allocator& operator*() const
@@ -45,23 +49,24 @@ namespace AZ::AllocatorStorage
                 return *m_allocator;
             }
 
+        private:
             EnvironmentVariable<Allocator> m_allocator;
         };
 
     public:
 #if defined(CARBONATED)
-        static bool HasAllocator()
-        {
-            return GetAllocatorPtr() != nullptr;
-        }
         static IAllocator* GetAllocatorPtr()
         {
             static AllocatorEnvironmentVariable s_allocator;
-            if (s_allocator.m_allocator.IsConstructed())
+            if (s_allocator.IsConstructed())
             {
                 return &*s_allocator;
             }
             return nullptr;
+        }
+        static bool HasAllocator()
+        {
+            return GetAllocatorPtr() != nullptr;
         }
         static IAllocator& GetAllocator()
         {

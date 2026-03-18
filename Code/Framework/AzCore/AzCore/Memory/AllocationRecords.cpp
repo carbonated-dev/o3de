@@ -239,8 +239,8 @@ namespace AZ::Debug
         size_t newRequestedBytePeak;
         do
         {
-            currentRequestedBytePeak = m_requestedBytesPeak.load(std::memory_order::memory_order_relaxed);
-            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(std::memory_order::memory_order_relaxed));
+            currentRequestedBytePeak = m_requestedBytesPeak.load(AZStd::memory_order_relaxed);
+            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(AZStd::memory_order_relaxed));
         } while (!m_requestedBytesPeak.compare_exchange_weak(currentRequestedBytePeak, newRequestedBytePeak));
 
         ++m_requestedAllocs;
@@ -298,7 +298,11 @@ namespace AZ::Debug
             byteSize >= allocationInfo.m_byteSize,
             "Mismatched byteSize=%d at deallocation, must be %d", byteSize, allocationInfo.m_byteSize);
 #else
-        AZ_Assert(byteSize == 0 || byteSize == allocationInfo.m_byteSize, "Mismatched byteSize at deallocation! You supplied an invalid value!");
+        AZ_Assert(
+            byteSize == 0 || byteSize == allocationInfo.m_byteSize, "Mismatched byteSize at deallocation! You supplied an invalid value!");
+        AZ_Assert(
+            alignment == 0 || alignment == allocationInfo.m_alignment,
+            "Mismatched alignment at deallocation! You supplied an invalid value!");
 #endif
 
         // statistics
@@ -425,8 +429,8 @@ namespace AZ::Debug
         size_t newRequestedBytePeak;
         do
         {
-            currentRequestedBytePeak = m_requestedBytesPeak.load(std::memory_order::memory_order_relaxed);
-            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(std::memory_order::memory_order_relaxed));
+            currentRequestedBytePeak = m_requestedBytesPeak.load(AZStd::memory_order_relaxed);
+            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(AZStd::memory_order_relaxed));
         } while (!m_requestedBytesPeak.compare_exchange_weak(currentRequestedBytePeak, newRequestedBytePeak));
         ++m_requestedAllocs;
 
@@ -523,14 +527,14 @@ namespace AZ::Debug
         }
 
         AllocatorManager::Instance().DebugBreak(address, *ai);
-#endif  // CARBONATED
+#endif // CARBONATED
 
         size_t currentRequestedBytePeak;
         size_t newRequestedBytePeak;
         do
         {
-            currentRequestedBytePeak = m_requestedBytesPeak.load(std::memory_order::memory_order_relaxed);
-            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(std::memory_order::memory_order_relaxed));
+            currentRequestedBytePeak = m_requestedBytesPeak.load(AZStd::memory_order_relaxed);
+            newRequestedBytePeak = AZStd::GetMax(currentRequestedBytePeak, m_requestedBytes.load(AZStd::memory_order_relaxed));
         } while (!m_requestedBytesPeak.compare_exchange_weak(currentRequestedBytePeak, newRequestedBytePeak));
     }
 

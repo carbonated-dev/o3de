@@ -2349,7 +2349,7 @@ LUA_API const Node* lua_getDummyNode()
             template<class T>
             bool AllocateTempStorageLuaNative(BehaviorArgument& value, BehaviorClass* valueClass, ScriptContext::StackVariableAllocator& tempAllocator, AZStd::allocator* backupAllocator = nullptr)
             {
-                static_assert(AZStd::is_pod<T>::value, "This should be use only for POD data types, as no ctor/dtor is called!");
+                static_assert(std::is_trivial<T>::value, "This should be use only for trivial data types, as no ctor/dtor is called!");
                 (void)valueClass;
 
                 if (value.m_traits & BehaviorParameter::TR_POINTER)
@@ -3374,7 +3374,11 @@ LUA_API const Node* lua_getDummyNode()
         }
 
 // Gruber patch begin. // LVB. // It were "void" functions. Now they return "bool"
+#if defined(CARBONATED)
         bool StackPush(lua_State* lua, AZ::BehaviorContext* context, AZ::BehaviorArgument& param)
+#else
+        void StackPush(lua_State* lua, AZ::BehaviorContext* context, AZ::BehaviorArgument& param)
+#endif
         {
             AZ::BehaviorClass* unused = nullptr;
             LuaPrepareValue prepareValue = nullptr;
@@ -3390,14 +3394,23 @@ LUA_API const Node* lua_getDummyNode()
                 pushToStack != nullptr, "No LuaPushToStack function found for typeid: %s", param.m_typeId.ToString<AZStd::string>().data());
 #endif
             pushToStack(lua, param);
+#if defined(CARBONATED)
             return true;
+#endif
         }
 
+#if defined(CARBONATED)
         bool StackPush(lua_State* lua, AZ::BehaviorArgument& param)
         {
             return StackPush(lua, ScriptContext::FromNativeContext(lua)->GetBoundContext(), param);
         }
-// Gruber patch end. // LVB. // It were "void" functions. Now they return "bool"
+#else
+        void StackPush(lua_State* lua, AZ::BehaviorArgument& param)
+        {
+            StackPush(lua, ScriptContext::FromNativeContext(lua)->GetBoundContext(), param);
+        }
+#endif
+        // Gruber patch end. // LVB. // It were "void" functions. Now they return "bool"
 
         LuaPushToStack ToLuaStack(BehaviorContext* context, const BehaviorParameter* param, LuaPrepareValue* prepareParam, BehaviorClass*& behaviorClass)
         {

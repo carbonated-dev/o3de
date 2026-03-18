@@ -158,15 +158,6 @@ namespace AZ
 
     void Entity::Init()
     {
-        for (ComponentArrayType::iterator it = m_components.begin(); it != m_components.end(); it++)
-        {
-            Component* component = *it;
-            if (component)
-            {
-                component->Check();
-            }
-        }
-
         AZ_Assert(m_state == State::Constructed, "Component should be in Constructed state to be Initialized!");
         SetState(State::Initializing);
 
@@ -297,12 +288,6 @@ namespace AZ
     {
         Component* component = nullptr;
         ComponentDescriptorBus::EventResult(component, componentTypeId, &ComponentDescriptorBus::Events::CreateComponent);
-
-        if (component)
-        {
-            component->Check();
-        }
-
         if (component)
         {
             if (!AddComponent(component))
