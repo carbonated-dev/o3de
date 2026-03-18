@@ -10,7 +10,7 @@
 
 #include <AzCore/RTTI/BehaviorContext.h>
 
-DECLARE_EBUS_INSTANTIATION(AzFramework::BoundsRequests);
+AZ_INSTANTIATE_EBUS_SINGLE_ADDRESS(AZF_API, AzFramework::BoundsRequests);
 
 namespace AzFramework
 {
@@ -19,9 +19,6 @@ namespace AzFramework
         if (auto behaviorContext = azrtti_cast<AZ::BehaviorContext*>(context))
         {
             behaviorContext->EBus<BoundsRequestBus>("BoundsRequestBus")
-                ->Attribute(AZ::Script::Attributes::Category, "BoundsRequestBus")
-                ->Attribute(AZ::Script::Attributes::Scope, AZ::Script::Attributes::ScopeFlags::Common)
-                ->Attribute(AZ::Script::Attributes::Module, "bounds")
                 ->Event("GetWorldBounds", &BoundsRequestBus::Events::GetWorldBounds)
                 ->Event("GetLocalBounds", &BoundsRequestBus::Events::GetLocalBounds);
         }

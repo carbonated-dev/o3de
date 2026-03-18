@@ -11,27 +11,80 @@ include(AzFramework/feature_options.cmake)
 o3de_pal_dir(pal_dir ${CMAKE_CURRENT_LIST_DIR}/Platform/${PAL_PLATFORM_NAME} ${O3DE_ENGINE_RESTRICTED_PATH} ${LY_ROOT_FOLDER})
 set(common_dir ${CMAKE_CURRENT_LIST_DIR}/Platform/Common)
 
+# CARBONATED framework addon and GridMate specific platform folders
+o3de_pal_dir(addon_pal_dir ${CMAKE_CURRENT_LIST_DIR}/AzFrameworkAddon/Platform/${PAL_PLATFORM_NAME} ${O3DE_ENGINE_RESTRICTED_PATH} ${LY_ROOT_FOLDER})
+set(addon_common_dir ${CMAKE_CURRENT_LIST_DIR}/AzFrameworkAddon/Platform/Common)
+o3de_pal_dir(gridmate_pal_dir ${CMAKE_CURRENT_LIST_DIR}/GridMate/Platform/${PAL_PLATFORM_NAME} ${O3DE_ENGINE_RESTRICTED_PATH} ${LY_ROOT_FOLDER})
+set(gridmate_common_dir ${CMAKE_CURRENT_LIST_DIR}/GridMate/Platform/Common)
+
+
 if(CARBONATED_ENGINE_ADDONS)
-set(azframeworkaddon_dependency AZ::AzFrameworkAddon.Static)
-set(gridmate_dependency AZ::GridMate)
+#set(azframeworkaddon_dependency AZ::AzFrameworkAddon.Static)
+#set(gridmate_dependency AZ::GridMate)
 endif()
 
 if(LY_PIX_ENABLED)
     set(AZ_FRAMEWORK_NATIVEUI_PIX_BUILD_DEPENDENCIES 3rdParty::pix)
 endif()
 
+# CARBONATED framework addon API
 ly_add_target(
-    NAME AzFramework STATIC
+    NAME AzFrameworkAddon.API HEADERONLY
+    NAMESPACE AZ
+    FILES_CMAKE
+        AzFrameworkAddon/azframeworkaddon_includes.cmake
+    INCLUDE_DIRECTORIES
+        INTERFACE
+            .
+    BUILD_DEPENDENCIES
+        INTERFACE
+            AZ::AzCore
+            #AZ::GridMate
+)
+
+
+ly_add_target(
+    NAME AzFramework ${PAL_TRAIT_MONOLITHIC_DRIVEN_LIBRARY_TYPE}
     NAMESPACE AZ
     FILES_CMAKE
         AzFramework/azframework_files.cmake
         ${pal_dir}/platform_${PAL_PLATFORM_NAME_LOWERCASE}_files.cmake
+        
+        # CARBONATED framework addon
+        AzFrameworkAddon/azframeworkaddon_includes.cmake
+        AzFrameworkAddon/azframeworkaddon_files.cmake
+        ${addon_pal_dir}/azframeworkaddon_${PAL_PLATFORM_NAME_LOWERCASE}_files.cmake        
+        # CARBONATED framework addon TargetManagement
+        AzFrameworkAddon/azframeworkaddon_tm_files.cmake
+        ${addon_pal_dir}/azframeworkaddon_tm_${PAL_PLATFORM_NAME_LOWERCASE}_files.cmake
+        
+        # CARBONATED GridMate
+        GridMate/gridmate_files.cmake
+        GridMate/gridmate_ssl_files.cmake
+        ${gridmate_pal_dir}/platform_${PAL_PLATFORM_NAME_LOWERCASE}_files.cmake
+
     PLATFORM_INCLUDE_FILES
         ${pal_dir}/platform_${PAL_PLATFORM_NAME_LOWERCASE}.cmake
+        
+        # CARBONATED framework addon
+        ${addon_common_dir}/${PAL_TRAIT_COMPILER_ID}/azframeworkaddon_${PAL_TRAIT_COMPILER_ID_LOWERCASE}.cmake
+        
+        # CARBONATED GridMate
+        ${gridmate_pal_dir}/platform_${PAL_PLATFORM_NAME_LOWERCASE}.cmake
+        ${gridmate_common_dir}/gridmate_${PAL_TRAIT_COMPILER_ID_LOWERCASE}.cmake
+        
+    COMPILE_DEFINITIONS
+        PRIVATE
+            AZF_EXPORTS
+        PUBLIC
+            # keep public to avoid missing allocator bugs, one of the consecuences of merging all to AzFramework
+            GRIDMATE_FOR_TOOLS
     INCLUDE_DIRECTORIES
         PUBLIC
             .
             ${pal_dir}
+            # CARBONATED GridMate
+            ${gridmate_pal_dir}
         PRIVATE
             ${common_dir}
     BUILD_DEPENDENCIES
@@ -41,18 +94,21 @@ ly_add_target(
             AZ::AzNetworking
             3rdParty::zstd
             3rdParty::lz4
-            ${azframeworkaddon_dependency}
-            ${gridmate_dependency}
+            # CARBONATED GridMate
+            3rdParty::OpenSSL
 )
 
 ly_add_target(
-    NAME AzFramework.NativeUI STATIC
+    NAME AzFramework.NativeUI ${PAL_TRAIT_MONOLITHIC_DRIVEN_LIBRARY_TYPE}
     NAMESPACE AZ
     FILES_CMAKE
         AzFramework/azframework_nativeui_files.cmake
         ${pal_dir}/platform_nativeui_${PAL_PLATFORM_NAME_LOWERCASE}_files.cmake
     PLATFORM_INCLUDE_FILES
         ${pal_dir}/platform_nativeui_${PAL_PLATFORM_NAME_LOWERCASE}.cmake
+    COMPILE_DEFINITIONS
+        PRIVATE
+            AZF_EXPORTS
     INCLUDE_DIRECTORIES
         PUBLIC
             .
@@ -65,6 +121,15 @@ ly_add_target(
             AZ::AzFramework
             ${AZ_FRAMEWORK_NATIVEUI_PIX_BUILD_DEPENDENCIES}
 )
+
+# CARBONATED GridMate
+ly_add_source_properties(
+    SOURCES GridMate/Session/Session.cpp
+    PROPERTY COMPILE_DEFINITIONS
+    VALUES ${LY_PAL_TOOLS_DEFINES}
+)
+
+
 
 set(LY_SEARCH_MODE_DEFINE $<$<BOOL:"${LY_ARCHIVE_FILE_SEARCH_MODE}">:LY_ARCHIVE_FILE_SEARCH_MODE=${LY_ARCHIVE_FILE_SEARCH_MODE}>)
 

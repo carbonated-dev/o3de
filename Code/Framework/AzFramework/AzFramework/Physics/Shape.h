@@ -14,6 +14,7 @@
 #include <AzFramework/Physics/Collision/CollisionGroups.h>
 #include <AzFramework/Physics/Collision/CollisionLayers.h>
 #include <AzFramework/Physics/Common/PhysicsSceneQueries.h>
+#include <AzFramework/AzFrameworkAPI.h>
 
 namespace AZ
 {
@@ -22,7 +23,7 @@ namespace AZ
 
 namespace Physics
 {
-    class ColliderConfiguration
+    class AZF_API ColliderConfiguration
     {
     public:
         AZ_CLASS_ALLOCATOR(ColliderConfiguration, AZ::SystemAllocator);
@@ -83,7 +84,7 @@ namespace Physics
 
     struct RayCastRequest;
 
-    class Shape
+    class AZF_API Shape
     {
     public:
         AZ_CLASS_ALLOCATOR(Shape, AZ::SystemAllocator);
@@ -133,6 +134,9 @@ namespace Physics
 
         //! Retrieve this shape AABB using local coordinates
         virtual AZ::Aabb GetAabbLocal() const = 0;
+
+        //! Retrieve this shape configuration
+        virtual AZStd::shared_ptr<ShapeConfiguration> GetShapeConfiguration() const = 0;
 
         //! Fills in the vertices and indices buffers representing this shape.
         //! If vertices are returned but not indices you may assume the vertices are in triangle list format.

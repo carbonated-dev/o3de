@@ -19,10 +19,11 @@ void OnVsyncIntervalChanged(uint32_t const& interval)
 // NOTE: On change, broadcasts the new requested vsync interval to all windows.
 // The value of the vsync interval is constrained between 0 and 4
 // Vsync intervals greater than 1 are not currently supported on the Vulkan RHI (see #2061 for discussion)
-AZ_CVAR(uint32_t, vsync_interval, 1, OnVsyncIntervalChanged, AZ::ConsoleFunctorFlags::Null, "Set swapchain vsync interval");
+AZ_CVAR_API(AZF_API, uint32_t, vsync_interval, 1, OnVsyncIntervalChanged, AZ::ConsoleFunctorFlags::Null, "Set swapchain vsync interval");
 
 #if defined(CARBONATED) && defined(CARBONATED_DESIRED_FPS)
-AZ_CVAR(
+AZ_CVAR_API(
+    AZF_API,
     int32_t,
     sys_MaxFPS,
     -1,

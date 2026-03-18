@@ -7,6 +7,7 @@
  */
 #pragma once
 
+#include <AzCore/Asset/AssetCommon.h>
 #include <AzCore/Script/ScriptAsset.h>
 #include <AzCore/Script/ScriptContext.h>
 #include <AzCore/Component/Component.h>
@@ -15,25 +16,26 @@
 #include <AzCore/Math/Crc.h>
 #include <AzCore/std/string/string.h>
 #include <AzCore/std/smart_ptr/intrusive_ptr.h>
+#include <AzFramework/AzFrameworkAPI.h>
 
 // carbonated begin (akostin/mp226-2): Add NetBindable to ScriptComponent
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-#include <AzFramework/Network/NetBindable.h>
+#include <AzFrameworkAddon/Network/NetBindable.h>
 #endif
 // carbonated end
 
 namespace AZ
 {
     class ScriptProperty;
-}
+} // namespace AZ
 
 namespace AzToolsFramework
 {
     namespace Components
     {
         class ScriptEditorComponent;
-    }
-}
+    } // namespace Components
+} // namespace AzToolsFramework
 
 namespace AzFramework
 {
@@ -58,14 +60,14 @@ namespace AzFramework
         AZ::LuaScriptData m_luaScriptDataOut;
     };
 
-    void ConstructScriptAssetPaths(ScriptCompileRequest& request);
-    AZ::Outcome<void, AZStd::string> CompileScript(ScriptCompileRequest& request);
-    AZ::Outcome<void, AZStd::string> CompileScriptAndAsset(ScriptCompileRequest& request);
-    AZ::Outcome<void, AZStd::string> CompileScript(ScriptCompileRequest& request, AZ::ScriptContext& context);
-    AZ::Outcome<AZStd::string, AZStd::string> CompileScriptAndSaveAsset(ScriptCompileRequest& request);
-    bool SaveLuaAssetData(const AZ::LuaScriptData& data, AZ::IO::GenericStream& stream);
+    AZF_API void ConstructScriptAssetPaths(ScriptCompileRequest& request);
+    AZF_API AZ::Outcome<void, AZStd::string> CompileScript(ScriptCompileRequest& request);
+    AZF_API AZ::Outcome<void, AZStd::string> CompileScriptAndAsset(ScriptCompileRequest& request);
+    AZF_API AZ::Outcome<void, AZStd::string> CompileScript(ScriptCompileRequest& request, AZ::ScriptContext& context);
+    AZF_API AZ::Outcome<AZStd::string, AZStd::string> CompileScriptAndSaveAsset(ScriptCompileRequest& request);
+    AZF_API bool SaveLuaAssetData(const AZ::LuaScriptData& data, AZ::IO::GenericStream& stream);
 
-    struct ScriptPropertyGroup
+    struct AZF_API ScriptPropertyGroup
     {
         AZ_TYPE_INFO(ScriptPropertyGroup, "{79682522-2f81-4b36-9fc2-a091c7504f7f}");
         AZStd::string                       m_name;
@@ -89,7 +91,7 @@ namespace AzFramework
         ScriptPropertyGroup& operator=(ScriptPropertyGroup&& rhs);
     };
 
-    class ScriptComponent
+    class AZF_API ScriptComponent
         : public AZ::Component
         , private AZ::Data::AssetBus::Handler
         , private AZ::TickBus::Handler
@@ -180,4 +182,4 @@ namespace AzFramework
         // carbonated end
 
     };        
-}   // namespace AZ
+} // namespace AzFramework

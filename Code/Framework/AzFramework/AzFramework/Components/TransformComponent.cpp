@@ -17,9 +17,9 @@
 #include <AzCore/Math/Quaternion.h>
 
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-#include <AzFramework/Network/NetBindingHandlerBus.h>
-#include <AzFramework/Network/NetBindingSystemBus.h>
-#include <AzFramework/Network/NetworkContext.h>
+#include <AzFrameworkAddon/Network/NetBindingHandlerBus.h>
+#include <AzFrameworkAddon/Network/NetBindingSystemBus.h>
+#include <AzFrameworkAddon/Network/NetworkContext.h>
 
 #include <GridMate/Replica/ReplicaChunk.h>
 #include <GridMate/Replica/ReplicaFunctions.h>
@@ -221,6 +221,10 @@ namespace AzFramework
 
         return true;
     }
+
+    TransformComponent::TransformComponent() = default;
+
+    TransformComponent ::~TransformComponent() = default;
 
     TransformComponent::TransformComponent(const TransformComponent& copy)
         : m_localTM(copy.m_localTM)

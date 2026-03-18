@@ -22,8 +22,8 @@
 
 // carbonated begin (akostin/mp226-2): Add NetBindable to ScriptComponent
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
-#include <AzFramework/Script/ScriptNetBindings.h>
-#include <AzFramework/Network/NetworkContext.h>
+#include <AzFrameworkAddon/Script/ScriptNetBindings.h>
+#include <AzFrameworkAddon/Network/NetworkContext.h>
 #include <GridMate/Replica/ReplicaChunk.h>
 #endif
 // carbonated end
