@@ -195,7 +195,12 @@ namespace AZ
             descriptorIndexingFeatures.shaderInputAttachmentArrayNonUniformIndexing = physicalDeviceDescriptorIndexingFeatures.shaderInputAttachmentArrayNonUniformIndexing;
             descriptorIndexingFeatures.shaderUniformTexelBufferArrayNonUniformIndexing = physicalDeviceDescriptorIndexingFeatures.shaderUniformTexelBufferArrayNonUniformIndexing;
             descriptorIndexingFeatures.shaderStorageTexelBufferArrayNonUniformIndexing = physicalDeviceDescriptorIndexingFeatures.shaderStorageTexelBufferArrayNonUniformIndexing;
+#if defined(CARBONATED)
+            // Obvious fix of copy/paste case
+            descriptorIndexingFeatures.descriptorBindingPartiallyBound = physicalDeviceDescriptorIndexingFeatures.descriptorBindingPartiallyBound;
+#else
             descriptorIndexingFeatures.descriptorBindingPartiallyBound = physicalDeviceDescriptorIndexingFeatures.shaderStorageTexelBufferArrayNonUniformIndexing;
+#endif
             descriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount;
             descriptorIndexingFeatures.runtimeDescriptorArray = physicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray;
             descriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind =
@@ -268,10 +273,19 @@ namespace AZ
                 vulkan12Features.drawIndirectCount = physicalDevice.GetPhysicalDeviceVulkan12Features().drawIndirectCount;
                 vulkan12Features.shaderFloat16 = physicalDevice.GetPhysicalDeviceVulkan12Features().shaderFloat16;
                 vulkan12Features.shaderInt8 = physicalDevice.GetPhysicalDeviceVulkan12Features().shaderInt8;
+#if defined(CARBONATED)
+                // Obvious fix of copy/paste case
+                auto v12 = physicalDevice.GetPhysicalDeviceVulkan12Features();
+                vulkan12Features.separateDepthStencilLayouts = v12.separateDepthStencilLayouts;
+                vulkan12Features.descriptorBindingPartiallyBound = v12.descriptorBindingPartiallyBound;
+                vulkan12Features.descriptorIndexing = v12.descriptorIndexing;
+                vulkan12Features.descriptorBindingVariableDescriptorCount = v12.descriptorBindingVariableDescriptorCount;
+#else
                 vulkan12Features.separateDepthStencilLayouts = physicalDevice.GetPhysicalDeviceVulkan12Features().separateDepthStencilLayouts;
                 vulkan12Features.descriptorBindingPartiallyBound = physicalDevice.GetPhysicalDeviceVulkan12Features().separateDepthStencilLayouts;
                 vulkan12Features.descriptorIndexing = physicalDevice.GetPhysicalDeviceVulkan12Features().separateDepthStencilLayouts;
                 vulkan12Features.descriptorBindingVariableDescriptorCount = physicalDevice.GetPhysicalDeviceVulkan12Features().separateDepthStencilLayouts;
+#endif
                 // We use the "VkPhysicalDeviceBufferDeviceAddressFeatures" instead of the "VkPhysicalDeviceVulkan12Features" for buffer device address
                 // because some drivers (e.g. Intel) don't report any features of buffer device address through the "PhysicalDeviceVulkan12Features" but they do
                 // through the "VK_EXT_buffer_device_address" extension.
@@ -348,6 +362,10 @@ namespace AZ
                 &deviceInfo,
                 VkSystemAllocator::Get(),
                 &m_nativeDevice);
+            if (vkResult != VK_SUCCESS)
+            {
+                AZ_Error("Vulkan", false, "vkCreateDevice failed: %d (%s)", (int)vkResult, GetResultString(vkResult));
+            }
             AssertSuccess(vkResult);
             RETURN_RESULT_IF_UNSUCCESSFUL(ConvertResult(vkResult));
 

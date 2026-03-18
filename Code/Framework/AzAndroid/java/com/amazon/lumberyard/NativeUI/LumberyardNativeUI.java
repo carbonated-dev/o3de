@@ -28,6 +28,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class LumberyardNativeUI
 {
+    // CARBONATED FLAG -- set to true for Carbonated version of O3DE engine
+    private static final boolean CARBONATED = true;
     private static final String TAG = "LMBR";
     private static final int TIMEOUT = 3;
     private static AlertDialog currentDialog;
@@ -134,14 +136,35 @@ public class LumberyardNativeUI
 
         try
         {
+            // Wait for the dialog to show
             boolean completed = latchShow.await(TIMEOUT, TimeUnit.SECONDS);
             if (completed && currentDialog != null && currentDialog.isShowing() && IsActivityResumed(activity))
             {
-                latchUserSelection.await();
+                if (CARBONATED) {
+                    // CRITICAL FIX: DO NOT WAIT FOREVER
+                    // If the user minimizes the app, 'onPause' runs on UI thread.
+                    // We must unblock this thread so it can process the Pause command.
+                
+                    // Wait for selection OR for the activity to stop being resumed
+                    while (selection.get().equals("") && IsActivityResumed(activity)) {
+                        // Wait in small chunks to allow checking activity state
+                        boolean selected = latchUserSelection.await(500, TimeUnit.MILLISECONDS);
+                        if (selected) break;
+                    
+                        // Double check dialog state
+                        if (currentDialog == null || !currentDialog.isShowing()) break;
+                    }
+                } else {
+                    latchUserSelection.await();
+                }
             }
             else
             {
-                Log.e(TAG, "Can't show dialog");
+                if (CARBONATED) {
+                    Log.e(TAG, "Can't show dialog or activity not resumed");
+                } else {
+                    Log.e(TAG, "Can't show dialog");
+                }
                 return "";
             }
         }
@@ -149,6 +172,16 @@ public class LumberyardNativeUI
         {
             Log.e(TAG, "Interrupted while waiting for dialog", e);
             return "";
+        }
+
+        if (CARBONATED) {
+            // Force dismiss if we fell through due to activity pause
+            if (currentDialog != null && currentDialog.isShowing()) {
+                final AlertDialog dialogToDismiss = currentDialog;
+                activity.runOnUiThread(() -> {
+                    try { dialogToDismiss.dismiss(); } catch (Exception ignored) {}
+                });
+            }
         }
 
         return selection.get();
