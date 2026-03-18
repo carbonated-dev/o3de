@@ -85,64 +85,69 @@ Surface EvaluateSurface_BasePBR(
     float2 specularUv = uvs[MaterialSrg::m_specularF0MapUvIndex];
     real specularF0Factor = GetSpecularInput(MaterialSrg::m_specularF0Map, MaterialSrg::m_sampler, specularUv, real(MaterialSrg::m_specularF0Factor), o_specularF0_useTexture, uvDxDy, customDerivatives);
 
+#if !CARBONATED_ENABLE_WETNESS
+    // Wetness, if allowed, affects baseColor, specularF0Factor, surface.roughnessLinear, so final calculation is moved below
+    surface.SetAlbedoAndSpecularF0(baseColor, specularF0Factor, metallic);
+#endif // !CARBONATED_ENABLE_WETNESS
+    
     // ------- Roughness -------
 
     float2 roughnessUv = uvs[MaterialSrg::m_roughnessMapUvIndex];
     surface.roughnessLinear = GetRoughnessInput(MaterialSrg::m_roughnessMap, MaterialSrg::m_sampler, roughnessUv, real(MaterialSrg::m_roughnessFactor),
                                         real(MaterialSrg::m_roughnessLowerBound), real(MaterialSrg::m_roughnessUpperBound), o_roughness_useTexture, uvDxDy, customDerivatives);
 
-    // ------- Wetness -------
+#if !CARBONATED_ENABLE_WETNESS
+    // Wetness, if allowed, affects baseColor, specularF0Factor, surface.roughnessLinear, so final calculation is moved below
+    surface.CalculateRoughnessA();
+#endif // !CARBONATED_ENABLE_WETNESS
+
+    // ------- Wetness ------- affects baseColor, specularF0Factor, surface.roughnessLinear
 #if CARBONATED_ENABLE_WETNESS
     if (o_useWet)
     {
-        float porosity = 0;
-        float maxDarken = 0;
-        float wetFactor = MaterialSrg::m_wetFactor;
+        float wetFactor = saturate(MaterialSrg::m_wetFactor);
+        const float wetAmount = saturate(MaterialSrg::m_wetAmount);
         
         if (o_wet_useTexture)
         {
-            float2 wetMapUv = uvs[MaterialSrg::m_wetMapUvIndex];
+            const float2 wetMapUv = uvs[MaterialSrg::m_wetMapUvIndex];
             wetFactor = GetWetInput(MaterialSrg::m_wetMap, MaterialSrg::m_sampler, wetMapUv);
         }
         
-        if (wetFactor < 0.3) // Metal
-        {
-            porosity = 0.1;
-            maxDarken = 0.2;
-        }
-        else if (wetFactor < 0.6) // Dielectric
-        {
-            porosity = 0.5;
-            maxDarken = 0.5;
-        }
-        else // Porous
-        {
-            porosity = 0.9;
-            maxDarken = 0.95;
-        }
-
-        float effectiveWetness = wetFactor * porosity;
-        float darkening = 1.0 - effectiveWetness * maxDarken;
-        float3 waterTint = float3(0.96, 0.98, 1.0);
-        baseColor = baseColor * darkening * lerp(1.0, waterTint, wetFactor * 0.3);
+        // The wetFactor is describing Moistening properties of a surface material.
+        // For Metals:              wetFactor < 0.3         -> porosity <= 0.1; maxDarken <= 0.2;
+        // For Smooth Dielectrics:  0.3 >= wetFactor < 0.6  -> porosity <= 0.5; maxDarken <= 0.5;
+        // For Porous Dielectrics:  0.6 >= wetFactor < 1.0  -> porosity <= 0.9; maxDarken <= 0.95;
+        // Approximation:
+        const float porosity = saturate(pow(1.15f, wetFactor) - 0.1f);
+        const float maxDarken = pow(1.25f, wetFactor) * 0.95f;
         
-        float smoothFactor = lerp(0.7, 0.3, saturate(surface.roughnessLinear * 2.0));
-        surface.roughnessLinear = lerp(surface.roughnessLinear, 0.02, wetFactor * smoothFactor);
+        const float effectiveWetness = saturate(wetFactor + 0.1f) * wetAmount;
+        const float darkening = 1.0f - effectiveWetness * porosity * maxDarken;
+        const float3 waterTint = float3(0.96f, 0.98f, 1.0f);
+        baseColor = baseColor * darkening * lerp(1.0, waterTint, effectiveWetness * 0.3f);
         
-        float waterF0 = 0.02;
-        if (metallic > 0.5)
+        const float smoothFactor = lerp(0.7f, 0.3f, saturate(surface.roughnessLinear * 2.0f));
+        surface.roughnessLinear = lerp(surface.roughnessLinear, 0.02f, effectiveWetness * smoothFactor);
+        
+        const float waterF0 = 0.02f;
+        if (metallic > 0.5f)
         {
-            specularF0Factor = lerp(specularF0Factor, max(specularF0Factor, waterF0), wetFactor * 0.5);
+            specularF0Factor = lerp(specularF0Factor, max(specularF0Factor, waterF0), effectiveWetness * 0.5f);
         }
         else
         {
-            specularF0Factor = lerp(specularF0Factor, waterF0, wetFactor * (1.0 - porosity * 0.5));
+            specularF0Factor = lerp(specularF0Factor, waterF0, effectiveWetness * (1.0f - porosity * 0.5f));
         }
     }
-#endif //CARBONATED_ENABLE_WETNESS
-
+    
+    // Delayed calculations
     surface.SetAlbedoAndSpecularF0(baseColor, specularF0Factor, metallic);
+
     surface.CalculateRoughnessA();
+    
+#endif // CARBONATED_ENABLE_WETNESS
+
 
     return surface;
 }
