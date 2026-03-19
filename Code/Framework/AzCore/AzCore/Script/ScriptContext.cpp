@@ -5780,9 +5780,9 @@ LUA_API const Node* lua_getDummyNode()
                 }
                 else
                 {
-#if (!defined(_RELEASE))
                     switch (error)
                     {
+#if (!defined(_RELEASE))
                     case ScriptContext::ErrorType::Error:
                         AZ_Error("Script", false, "%s", message);
                         break;

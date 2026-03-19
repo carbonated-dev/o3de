@@ -527,7 +527,7 @@ namespace AZ::Debug
         }
 
         AllocatorManager::Instance().DebugBreak(address, *ai);
-#endif // CARBONATED
+#endif  // CARBONATED
 
         size_t currentRequestedBytePeak;
         size_t newRequestedBytePeak;

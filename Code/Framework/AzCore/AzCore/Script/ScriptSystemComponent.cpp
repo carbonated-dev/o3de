@@ -315,7 +315,7 @@ ScriptContext*  ScriptSystemComponent::GetContext(ScriptContextId id)
 //=========================================================================
 // OnSystemTick
 //=========================================================================
-void    ScriptSystemComponent::OnSystemTick()
+void ScriptSystemComponent::OnSystemTick()
 {
     for (size_t i = 0; i < m_contexts.size(); ++i)
     {

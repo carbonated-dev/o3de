@@ -6,7 +6,7 @@
  *
  */
 
- #pragma once
+#pragma once
 
 #include <AzCore/EBus/EBus.h>
 #include <AzCore/EBus/Event.h>
