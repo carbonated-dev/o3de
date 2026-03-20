@@ -74,7 +74,14 @@ namespace AssetProcessor
             else
             {
 #if defined(CARBONATED) && defined(AZ_PLATFORM_WINDOWS)
-                m_maxJobs = cpuConcurrency * 2;  // with the default settings the actual CPU usage is 30% on a PC host
+                if (QThreadPool::globalInstance()->maxThreadCount() >= 16)
+                {
+                    m_maxJobs = cpuConcurrency * 2; // with the default settings the actual CPU usage is 30% on a decent PC host
+                }
+                else
+                {
+                    m_maxJobs = (cpuConcurrency - 2);  // original o3de code
+                }
 #else
                 // for larger number of cores, 8, 16, 24, we want a few extra cores free
                 m_maxJobs = (cpuConcurrency - 2);
