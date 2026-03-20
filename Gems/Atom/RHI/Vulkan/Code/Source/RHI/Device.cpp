@@ -362,10 +362,12 @@ namespace AZ
                 &deviceInfo,
                 VkSystemAllocator::Get(),
                 &m_nativeDevice);
+#if defined(CARBONATED)
             if (vkResult != VK_SUCCESS)
             {
                 AZ_Error("Vulkan", false, "vkCreateDevice failed: %d (%s)", (int)vkResult, GetResultString(vkResult));
             }
+#endif
             AssertSuccess(vkResult);
             RETURN_RESULT_IF_UNSUCCESSFUL(ConvertResult(vkResult));
 
