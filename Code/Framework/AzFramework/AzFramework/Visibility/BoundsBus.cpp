@@ -19,9 +19,11 @@ namespace AzFramework
         if (auto behaviorContext = azrtti_cast<AZ::BehaviorContext*>(context))
         {
             behaviorContext->EBus<BoundsRequestBus>("BoundsRequestBus")
+#if defined(CARBONATED)
                 ->Attribute(AZ::Script::Attributes::Category, "BoundsRequestBus")
                 ->Attribute(AZ::Script::Attributes::Scope, AZ::Script::Attributes::ScopeFlags::Common)
                 ->Attribute(AZ::Script::Attributes::Module, "bounds")
+#endif
                 ->Event("GetWorldBounds", &BoundsRequestBus::Events::GetWorldBounds)
                 ->Event("GetLocalBounds", &BoundsRequestBus::Events::GetLocalBounds);
         }

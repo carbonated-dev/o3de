@@ -205,6 +205,13 @@ namespace AZ::RHI
             }
         }
 
+#if defined(CARBONATED)
+        if (m_devices.empty())
+        {
+            AZ_Error("RHISystem", false, "Failed to initialize RHI device.");
+            return ResultCode::Fail;
+        }
+#endif
         for (auto index{ 0 }; m_devices.size() < deviceCount; index++)
         {
             // We do not have enough physical devices for the requested device count
