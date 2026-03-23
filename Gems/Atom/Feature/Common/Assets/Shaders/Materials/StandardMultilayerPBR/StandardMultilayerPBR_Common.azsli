@@ -290,7 +290,7 @@ real3 BlendLayers(real3 layer1, real3 layer2, real3 layer3, real3 blendWeights)
 float3 GetLayerDepthValues(const MaterialParameters params, float2 uv, float2 uv_ddx, float2 uv_ddy)
 {
     float3 layerDepthValues = float3(0,0,0);
-    
+#if ENABLE_PARALLAX  // CARBONATED
     // layer1
     {
         if(o_layer1_o_useHeightmap)
@@ -343,7 +343,7 @@ float3 GetLayerDepthValues(const MaterialParameters params, float2 uv, float2 uv
         layerDepthValues.b -= params.m_layer3_m_heightmapOffset;
 
     }
-    
+#endif  // ENABLE_PARALLAX CARBONATED
     return layerDepthValues;
 }
 

@@ -266,7 +266,12 @@ namespace AssetProcessor
         QString archiveAbsFilePath = ComputeArchiveFilePath(builderParams);
         if (archiveAbsFilePath.isEmpty())
         {
+#if defined(CARBONATED)
+            // we can have an empty server address, this is OK for local mode, otherwise many jobs fail becaiuse of this error message
+            AZ_Info(AssetProcessor::DebugChannel, "Extracting archive operation failed. Archive Absolute Path is empty.");
+#else
             AZ_Error(AssetProcessor::DebugChannel, false, "Extracting archive operation failed. Archive Absolute Path is empty.");
+#endif
             return false;
         }
 

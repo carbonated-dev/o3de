@@ -68,6 +68,10 @@ namespace AZ
                 Field::enumValues,
                 Field::enumIsUv,
                 Field::vectorLabels
+#if defined(CARBONATED)
+                , Field::optional
+#endif
+
             };
         }
 

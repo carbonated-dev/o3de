@@ -376,7 +376,7 @@ namespace AZ
                 {
                     if (!m_wipMaterialPropertyOptional)
                     {
-                        ReportError("Material property '%s': could not find shader constant input '%s'",
+                        ReportWarning("Material property '%s': could not find shader constant input '%s'",
                             m_wipMaterialProperty.GetName().GetCStr(),
                             shaderInputName.GetCStr());
                     }
