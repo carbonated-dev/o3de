@@ -112,6 +112,7 @@ real3 GetIblSpecular(
     #define CARBONATED_NO_LIGHT_PROBES 0
 #endif
 
+#if CARBONATED_NO_LIGHT_PROBES
 real3 GetIblSpecularProbe(
     real3 normal,
     real3 specularF0,
@@ -148,6 +149,7 @@ real3 GetIblSpecularGlobal(
     outSpecular *= (specularF0 * brdf.x + brdf.y);
     return outSpecular;
 }
+#endif
 // CARBONATED end
 
 void ApplyIBL(Surface surface, inout LightingData lightingData, bool useDiffuseIbl, bool useSpecularIbl, ReflectionProbeData reflectionProbe, TextureCube reflectionProbeCubemap)
@@ -170,37 +172,12 @@ void ApplyIBL(Surface surface, inout LightingData lightingData, bool useDiffuseI
             [unroll]
             for (uint viewIndex = 0; viewIndex < GET_SHADING_VIEW_COUNT; ++viewIndex)
             {
-#if ENABLE_REFLECTIONPROBE_PARALLAXCORRECTION || ENABLE_REFLECTIONPROBE_BLENDING
+#if !CARBONATED_NO_LIGHT_PROBES || ENABLE_REFLECTIONPROBE_PARALLAXCORRECTION || ENABLE_REFLECTIONPROBE_BLENDING
                 real3 iblSpecular = GetIblSpecular(surface.position, surface.GetSpecularNormal(), surface.GetSpecularF0(), surface.roughnessLinear, lightingData.dirToCamera[viewIndex], lightingData.brdf[viewIndex], reflectionProbe, reflectionProbeCubemap);
 #else
                 real3 iblSpecular = reflectionProbe.m_useReflectionProbe ?
                     GetIblSpecularProbe (surface.GetSpecularNormal(), surface.GetSpecularF0(), surface.roughnessLinear, lightingData.dirToCamera[viewIndex], lightingData.brdf[viewIndex], reflectionProbeCubemap) :
                     GetIblSpecularGlobal(surface.GetSpecularNormal(), surface.GetSpecularF0(), surface.roughnessLinear, lightingData.dirToCamera[viewIndex], lightingData.brdf[viewIndex]);
-                /*
-                real3 iblSpecular;
-                if (reflectionProbe.m_useReflectionProbe)
-                {
-                    real3 reflectDir = reflect(-lightingData.dirToCamera[viewIndex], surface.GetSpecularNormal());
-                    reflectDir = MultiplyVectorQuaternion(reflectDir, real4(SceneSrg::m_iblOrientation));
-
-#if CARBONATED_NO_LIGHT_PROBES
-                    // use gloabl light instead
-                    iblSpecular = real3(SceneSrg::m_specularEnvMap.SampleLevel(SceneSrg::m_samplerEnv, GetCubemapCoords(reflectDir), GetRoughnessMip(surface.roughnessLinear)).rgb);
-#else
-                    // reflection probe
-                    iblSpecular = real3(reflectionProbeCubemap.SampleLevel(SceneSrg::m_samplerEnv, GetCubemapCoords(reflectDir), GetRoughnessMip(surface.roughnessLinear)).rgb);
-#endif
-                    iblSpecular *= (surface.specularF0 * lightingData.brdf[viewIndex].x + lightingData.brdf[viewIndex].y);
-                }
-                else
-                {
-                    real3 reflectDir = reflect(-lightingData.dirToCamera[viewIndex], surface.GetSpecularNormal());
-                    reflectDir = MultiplyVectorQuaternion(reflectDir, real4(SceneSrg::m_iblOrientation));
-
-                    iblSpecular = real3(SceneSrg::m_specularEnvMap.SampleLevel(SceneSrg::m_samplerEnv, GetCubemapCoords(reflectDir), GetRoughnessMip(surface.roughnessLinear)).rgb);
-                    iblSpecular *= (surface.GetSpecularF0() * lightingData.brdf[viewIndex].x + lightingData.brdf[viewIndex].y);
-                }
-                */
 #endif
                 iblSpecular *= lightingData.multiScatterCompensation;
 

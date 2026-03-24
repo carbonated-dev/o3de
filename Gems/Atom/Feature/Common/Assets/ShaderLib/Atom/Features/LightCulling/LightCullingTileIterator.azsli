@@ -46,11 +46,14 @@ class LightCullingTileIterator
             
     uint LoadAdvance()
     {
+#if ENABLE_LIGHT_CULLING
+    
         if (m_value != NVLC_END_OF_LIST)
         {
             m_value = m_lightListRemapped.Load(int(m_readIndex)).x;     
             ++m_readIndex;
         }
+#endif
         return m_value;
     }
     
