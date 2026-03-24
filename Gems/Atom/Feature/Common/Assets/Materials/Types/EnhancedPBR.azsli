@@ -42,13 +42,11 @@
         return ShouldHandleParallax() || o_normal_useTexture || (o_clearCoat_enabled && o_clearCoat_normal_useTexture) || o_detail_normal_useTexture;
     }
     
-#if ENABLE_PARALLAX
     // Callback function for ParallaxMapping.azsli
     DepthResult GetDepth(const MaterialParameters params, Texture2D heightmap, sampler mapSampler, float2 uv, float2 uv_ddx, float2 uv_ddy)
     {
         return SampleDepthFromHeightmap(heightmap, mapSampler, uv, uv_ddx, uv_ddy);
     }
-#endif
 
     #include <Atom/Feature/Common/Assets/Shaders/Materials/EnhancedPBR/EnhancedPBR_VertexEval.azsli>
     #include <Atom/Feature/Common/Assets/Shaders/Materials/EnhancedPBR/EnhancedPBR_PixelGeometryEval.azsli>
@@ -75,13 +73,12 @@
         return ShouldHandleParallax();
     }
     
-#if ENABLE_PARALLAX
     // Callback function for ParallaxMapping.azsli
     DepthResult GetDepth(const MaterialParameters params, Texture2D heightmap, sampler mapSampler, float2 uv, float2 uv_ddx, float2 uv_ddy)
     {
         return SampleDepthFromHeightmap(heightmap, mapSampler, uv, uv_ddx, uv_ddy);
     }
-#endif
+
     #include <Atom/Feature/Common/Assets/Shaders/Materials/BasePBR/BasePBR_VertexEval.azsli>
     
     // For cases where the pixel stage is only calculating geometry (like alpha clipping and parallax PDO), we can use StandardPBR_PixelGeometryData
