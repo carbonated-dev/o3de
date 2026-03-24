@@ -218,7 +218,6 @@ namespace AZ
                 RHI::Device* pDevice = RHI::RHISystemInterface::Get()->GetDevice();
                 pDevice->MarkCommandBufferCommit(static_cast<const void*>(m_mtlCommandBuffer));
 #endif
-                //AZ_Info("bbb", "%p commit buffer %x", this, m_mtlCommandBuffer);
                 [m_mtlCommandBuffer commit];
 #if defined (AZ_FORCE_CPU_GPU_INSYNC)
                 // Wait for the gpu to finish executing the work related to the command buffer

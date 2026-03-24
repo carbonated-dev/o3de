@@ -156,7 +156,7 @@ namespace AZ
             m_drawables[currentImageIndex] = nil;
             
 #if defined(CARBONATED)
-            return (currentImageIndex+ 1) % GetImageCount();
+            return (currentImageIndex + 1) % GetImageCount();
 #else
             return (GetCurrentImageIndex() + 1) % GetImageCount();
 #endif

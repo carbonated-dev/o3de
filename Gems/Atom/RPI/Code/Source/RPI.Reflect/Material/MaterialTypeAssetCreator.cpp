@@ -376,15 +376,20 @@ namespace AZ
                 {
                     if (!m_wipMaterialPropertyOptional)
                     {
-                        ReportWarning("Material property '%s': could not find shader constant input '%s'",
+                        AZ_Info("MaterialType", "Material property '%s': could not find shader constant input '%s'",
                             m_wipMaterialProperty.GetName().GetCStr(),
                             shaderInputName.GetCStr());
                     }
                     else
                     {
-                        AZ_Info("ooo", "Optional property %s, shader constants %s", m_wipMaterialProperty.GetName().GetCStr(), shaderInputName.GetCStr());
+                        AZ_Info("MaterialType", "Optional property %s, shader constants %s", m_wipMaterialProperty.GetName().GetCStr(), shaderInputName.GetCStr());
                     }
                     return;
+                }
+                else
+                {
+                    AZ_Info("MaterialType", "Material property '%s': found shader constant input '%s'",
+                        m_wipMaterialProperty.GetName().GetCStr(), shaderInputName.GetCStr());
                 }
             }
 #endif

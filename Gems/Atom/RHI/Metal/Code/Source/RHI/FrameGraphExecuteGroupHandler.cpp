@@ -124,7 +124,6 @@ namespace AZ
                 // This call may block if the presentation system doesn't have any drawables available.
                 id<MTLTexture> drawableTexture = metalSwapChain->RequestDrawable(needsImageView);
                 context.m_renderPassDescriptor.colorAttachments[context.m_swapChainAttachmentIndex].texture = drawableTexture;
-                //AZ_Info("ttt", "set drawable at index %d", context.m_swapChainAttachmentIndex);
              }
         }
     
