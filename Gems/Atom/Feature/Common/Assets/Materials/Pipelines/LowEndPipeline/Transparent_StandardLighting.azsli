@@ -20,7 +20,7 @@
 #define OUTPUT_SUBSURFACE 0
 #define ENABLE_TRANSMISSION 0
 #define ENABLE_SHADER_DEBUGGING 1
-#ifndef ENABLE_CLEAR_COAT
+#ifndef ENABLE_CLEAR_COAT  // CARBONATED
 #define ENABLE_CLEAR_COAT 1
 #endif
 //////////////////////////////////////////////////////////////////////////////////////////////////
