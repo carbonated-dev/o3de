@@ -102,7 +102,7 @@ namespace AZ
             float GetAffectsGIFactor() const override;
             void SetAffectsGIFactor(float affectsGIFactor) const override;
 
-            uint32_t GetLightingChannelMask() const;
+            uint32_t GetLightingChannelMask() const override; // CARBONATED: the override keyword is added 
             void SetLightingChannelMask(uint32_t lightingChannelMask) override;
 
             AZ::Aabb GetLocalVisualizationBounds() const override;

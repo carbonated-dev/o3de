@@ -50,7 +50,11 @@ namespace AZ
             void SetVisibility(bool visibility) override;
             
             void SetEnableShutters(bool enabled) override { m_shuttersEnabled = enabled; }
+#if defined(CARBONATED)
+            void SetShutterAngles(float innerAngleDegrees, float outerAngleDegrees) override;
+#else
             void SetShutterAngles([[maybe_unused]]float innerAngleDegrees, [[maybe_unused]]float outerAngleDegrees) override {}
+#endif
 
             void SetEnableShadow(bool enabled) override { m_shadowsEnabled = enabled; }
             void SetShadowBias([[maybe_unused]] float bias) override {}
@@ -66,6 +70,15 @@ namespace AZ
             void SetLightingChannelMask([[maybe_unused]] uint32_t lightingChannelMask) override;
 
             void SetGoboTexture([[maybe_unused]] AZ::Data::Instance<AZ::RPI::Image> goboTexture) override {}
+
+#if defined(CARBONATED)
+            float GetIntensity() const override { return m_photometricValue.GetIntensity(); }
+            PhotometricUnit GetPhotometricUnit() const override { return m_photometricValue.GetType(); }
+            float GetAttenuationRadius() const override { return m_attenuationRadius; }
+            float GetInnerShutterAngle() const override { return m_innerShutterAngle; }
+            float GetOuterShutterAngle() const override { return m_outerShutterAngle; }
+            bool GetEnableShadow() const override { return m_shadowsEnabled; }
+#endif
 
         protected:
             void InitBase(EntityId entityId);
@@ -99,6 +112,11 @@ namespace AZ
             PhotometricValue m_photometricValue;
             bool m_shuttersEnabled = false;
             bool m_shadowsEnabled = false;
+#if defined(CARBONATED)
+            float m_attenuationRadius = 0.0f;
+            float m_innerShutterAngle = 0.0f;
+            float m_outerShutterAngle = 0.0f;
+#endif
         };
     } //  namespace Render
 } // namespace AZ
