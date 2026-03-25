@@ -337,21 +337,11 @@ namespace AZ::Render
     void AreaLightComponentController::AttenuationRadiusChanged()
     {
 #if defined(CARBONATED)
-        if (m_lightShapeDelegate)
+        if (m_lightShapeDelegate && AZStd::abs(m_lightShapeDelegate->GetAttenuationRadius() - m_configuration.m_attenuationRadius) > 0.001f)
         {
-            if (AZStd::abs(m_lightShapeDelegate->GetAttenuationRadius() - m_configuration.m_attenuationRadius) > 0.001f)
-            {
-                if (m_configuration.m_attenuationRadiusMode == LightAttenuationRadiusMode::Automatic)
-                {
-                    AutoCalculateAttenuationRadius();
-                }
-                AreaLightNotificationBus::Event(
-                    m_entityId, &AreaLightNotifications::OnAttenutationRadiusChanged, m_configuration.m_attenuationRadius);
-
-                m_lightShapeDelegate->SetAttenuationRadius(m_configuration.m_attenuationRadius);
-            }
+            return;
         }
-#else
+#endif
         if (m_configuration.m_attenuationRadiusMode == LightAttenuationRadiusMode::Automatic)
         {
             AutoCalculateAttenuationRadius();
@@ -362,7 +352,6 @@ namespace AZ::Render
         {
             m_lightShapeDelegate->SetAttenuationRadius(m_configuration.m_attenuationRadius);
         }
-#endif
     }
     
     void AreaLightComponentController::ShuttersChanged()
@@ -379,27 +368,14 @@ namespace AZ::Render
 
     void AreaLightComponentController::ShadowsChanged()
     {
-#if defined(CARBONATED)
         if (m_lightShapeDelegate)
         {
+#if defined(CARBONATED)
             if (m_lightShapeDelegate->GetEnableShadow() != m_configuration.m_enableShadow)
             {
-                m_lightShapeDelegate->SetEnableShadow(m_configuration.m_enableShadow);
-                if (m_configuration.m_enableShadow)
-                {
-                    m_lightShapeDelegate->SetShadowBias(m_configuration.m_bias);
-                    m_lightShapeDelegate->SetNormalShadowBias(m_configuration.m_normalShadowBias);
-                    m_lightShapeDelegate->SetShadowmapMaxSize(m_configuration.m_shadowmapMaxSize);
-                    m_lightShapeDelegate->SetShadowFilterMethod(m_configuration.m_shadowFilterMethod);
-                    m_lightShapeDelegate->SetFilteringSampleCount(m_configuration.m_filteringSampleCount);
-                    m_lightShapeDelegate->SetEsmExponent(m_configuration.m_esmExponent);
-                    m_lightShapeDelegate->SetShadowCachingMode(m_configuration.m_shadowCachingMode);
-                }
+                return;
             }
-        }
-#else
-        if (m_lightShapeDelegate)
-        {
+#endif
             m_lightShapeDelegate->SetEnableShadow(m_configuration.m_enableShadow);
             if (m_configuration.m_enableShadow)
             {
@@ -412,7 +388,6 @@ namespace AZ::Render
                 m_lightShapeDelegate->SetShadowCachingMode(m_configuration.m_shadowCachingMode);
             }
         }
-#endif
     }
 
     void AreaLightComponentController::LightingChannelMaskChanged()
