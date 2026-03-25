@@ -337,7 +337,7 @@ namespace AZ::Render
     void AreaLightComponentController::AttenuationRadiusChanged()
     {
 #if defined(CARBONATED)
-        if (m_lightShapeDelegate && AZStd::abs(m_lightShapeDelegate->GetAttenuationRadius() - m_configuration.m_attenuationRadius) > 0.001f)
+        if (m_lightShapeDelegate && AZStd::abs(m_lightShapeDelegate->GetAttenuationRadius() - m_configuration.m_attenuationRadius) < 0.001f)
         {
             return;
         }
@@ -371,7 +371,7 @@ namespace AZ::Render
         if (m_lightShapeDelegate)
         {
 #if defined(CARBONATED)
-            if (m_lightShapeDelegate->GetEnableShadow() != m_configuration.m_enableShadow)
+            if (m_lightShapeDelegate->GetEnableShadow() == m_configuration.m_enableShadow)
             {
                 return;
             }
