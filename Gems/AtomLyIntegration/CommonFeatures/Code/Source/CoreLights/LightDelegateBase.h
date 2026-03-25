@@ -50,7 +50,7 @@ namespace AZ
             void SetVisibility(bool visibility) override;
             
             void SetEnableShutters(bool enabled) override { m_shuttersEnabled = enabled; }
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
             void SetShutterAngles(float innerAngleDegrees, float outerAngleDegrees) override;
 #else
             void SetShutterAngles([[maybe_unused]]float innerAngleDegrees, [[maybe_unused]]float outerAngleDegrees) override {}
@@ -71,7 +71,7 @@ namespace AZ
 
             void SetGoboTexture([[maybe_unused]] AZ::Data::Instance<AZ::RPI::Image> goboTexture) override {}
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
             float GetIntensity() const override { return m_photometricValue.GetIntensity(); }
             PhotometricUnit GetPhotometricUnit() const override { return m_photometricValue.GetType(); }
             float GetAttenuationRadius() const override { return m_attenuationRadius; }
@@ -112,7 +112,7 @@ namespace AZ
             PhotometricValue m_photometricValue;
             bool m_shuttersEnabled = false;
             bool m_shadowsEnabled = false;
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
             float m_attenuationRadius = 0.0f;
             float m_innerShutterAngle = 0.0f;
             float m_outerShutterAngle = 0.0f;

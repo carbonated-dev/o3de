@@ -44,17 +44,17 @@ namespace AZ
             virtual void SetChroma(const Color& chroma) = 0;
             //! Sets the light intensity.
             virtual void SetIntensity(float intensity) = 0;
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
             virtual float GetIntensity() const = 0;
 #endif
             //! Sets the light unit, and returns the converted light intensity.
             virtual float SetPhotometricUnit(PhotometricUnit unit) = 0;
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
             virtual PhotometricUnit GetPhotometricUnit() const = 0;
 #endif
             //! Sets the maximum distance from any part of the surface of the area light at which this light will have an effect.
             virtual void SetAttenuationRadius(float radius) = 0;
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
             virtual float GetAttenuationRadius() const = 0;
 #endif
             //! Gets the light intensity.
@@ -86,7 +86,7 @@ namespace AZ
             // Sets the inner and outer angles of the shutters in degrees for where the light
             // beam starts to attenuate (inner) to where it is completely occluded (outer).
             virtual void SetShutterAngles(float innerAngleDegrees, float outerAngleDegrees) = 0;
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
             virtual float GetInnerShutterAngle() const = 0;
             virtual float GetOuterShutterAngle() const = 0;
 #endif
@@ -95,7 +95,7 @@ namespace AZ
 
             //! Sets if shadows should be enabled.
             virtual void SetEnableShadow(bool enabled) = 0;
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
             virtual bool GetEnableShadow() const = 0;
 #endif
             //! Sets the shadow bias.

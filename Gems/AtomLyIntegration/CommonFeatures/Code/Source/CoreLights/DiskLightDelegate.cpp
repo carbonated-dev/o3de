@@ -143,7 +143,7 @@ namespace AZ::Render
 
     void DiskLightDelegate::SetShutterAngles(float innerAngleDegrees, float outerAngleDegrees)
     {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
         Base::SetShutterAngles(innerAngleDegrees, outerAngleDegrees);
 #endif
         if (GetShuttersEnabled() && GetLightHandle().IsValid())

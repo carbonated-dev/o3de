@@ -158,7 +158,7 @@ namespace AZ
         {
             if (m_lightHandle.IsValid())
             {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
                 m_attenuationRadius = radius;
 #endif
                 m_featureProcessor->SetAttenuationRadius(m_lightHandle, radius);
@@ -174,7 +174,7 @@ namespace AZ
             }
         }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
         template<typename FeatureProcessorType>
         void LightDelegateBase<FeatureProcessorType>::SetShutterAngles(float innerAngleDegrees, float outerAngleDegrees)
         {
