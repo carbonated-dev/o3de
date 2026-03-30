@@ -6,8 +6,11 @@
  *
  */
 
-// CARBONATED specific classes to track GPU data, used in Device.h
+// CARBONATED specific classes to track GPU data, provide strings for device identification, used in Device.h
 #pragma once
+#if defined(CARBONATED)
+#include <AzCore/std/string/string.h>
+#endif
 
 namespace AZ::RHI
 {
@@ -207,4 +210,8 @@ namespace AZ::RHI
             m_rawIntervals.clear();
         }
     };
+
+    const char* VendorIdToString(VendorId vendorId);
+    const char* PhysicalDeviceTypeToString(PhysicalDeviceType deviceType);
+    AZStd::string PhysicalDeviceDriverVersionToString(const PhysicalDeviceDescriptor& descriptor);
 }
