@@ -953,10 +953,7 @@ namespace AZ
                         }
 
 #if defined (CARBONATED)
-                        //if (!modelHandle.m_model)
-                        //{
-                        //    continue; // model not loaded yet
-                        //}
+
                         ASSET_TAG(modelHandle.GetAssetHint().c_str());
 #endif
 
