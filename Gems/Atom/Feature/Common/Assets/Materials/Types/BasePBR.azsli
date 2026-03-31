@@ -6,8 +6,6 @@
  *
  */
 
-#define ENABLE_VERTEX_COLOR 0 //1
-    
 #include <Atom/Feature/Common/Assets/Shaders/Materials/BasePBR/BasePBR_MaterialInputs.azsli>
 
 #if MATERIALPIPELINE_SHADER_HAS_PIXEL_STAGE
