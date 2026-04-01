@@ -204,6 +204,11 @@ namespace AZ::Render
         return m_isVisible;
     }
 
+    AreaLightComponentConfig::LightType AreaLightComponentController::GetType() const
+    {
+        return m_configuration.m_lightType;
+    }
+
 #endif
     
     void AreaLightComponentController::VerifyLightTypeAndShapeComponent()
