@@ -68,7 +68,7 @@ namespace AZ
 
             AZStd::vector<AZStd::string> m_enumValues; //!< Only used if property is Enum type
             bool m_enumIsUv = false;  //!< Indicates if the enum value should use m_enumValues or those extracted from m_uvNameMap.
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
             bool m_optional = false;
 #endif
             // Editor metadata ...

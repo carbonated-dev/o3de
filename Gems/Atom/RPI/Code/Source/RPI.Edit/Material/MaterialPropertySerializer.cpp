@@ -45,7 +45,7 @@ namespace AZ
                 static constexpr const char enumValues[] = "enumValues";
                 static constexpr const char enumIsUv[] = "enumIsUv";
                 static constexpr const char vectorLabels[] = "vectorLabels";
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
                 static constexpr const char optional[] = "optional";
 #endif
             }
@@ -68,7 +68,7 @@ namespace AZ
                 Field::enumValues,
                 Field::enumIsUv,
                 Field::vectorLabels
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
                 , Field::optional
 #endif
 
@@ -292,7 +292,7 @@ namespace AZ
             }
 
             result.Combine(ContinueLoadingFromJsonObjectField(&property->m_enumIsUv, azrtti_typeid<bool>(), inputValue, Field::enumIsUv, context));
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
             result.Combine(ContinueLoadingFromJsonObjectField(&property->m_optional, azrtti_typeid<bool>(), inputValue, Field::optional, context));
 #endif
             if (result.GetProcessing() == JsonSerializationResult::Processing::Completed)
@@ -456,7 +456,7 @@ namespace AZ
 
             const bool defaultEnumIsUv = false;
             result.Combine(ContinueStoringToJsonObjectField(outputValue, Field::enumIsUv, &property->m_enumIsUv, &defaultEnumIsUv, azrtti_typeid(property->m_enumIsUv), context));
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
             const bool defaultOptional = false;
             result.Combine(ContinueStoringToJsonObjectField(
                 outputValue, Field::optional, &property->m_optional, &defaultOptional, azrtti_typeid(property->m_optional), context));

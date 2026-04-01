@@ -80,7 +80,7 @@ namespace JsonSerializationTests
             result->m_visibility = AZ::RPI::MaterialPropertyVisibility::Hidden;
             result->m_outputConnections.emplace_back(AZ::RPI::MaterialPropertyOutputType::ShaderOption, "o_foo");
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
             // member "bool m_optional = false" added 6/18/2024 in commit to Carbonated repo by Akio Gaule,
             // "Add support for small SRGs to be able to run on A10 devices", SHA-1: 9f4da2c8423925a85bd8cc6c558c1188ebaa560f
             result->m_optional = true;
@@ -90,7 +90,7 @@ namespace JsonSerializationTests
 
         AZStd::string_view GetJsonForFullySetInstance() override
         {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
             // member "bool m_optional = false" added 6/18/2024 in commit to Carbonated repo by Akio Gaule,
             // "Add support for small SRGs to be able to run on A10 devices", SHA-1: 9f4da2c8423925a85bd8cc6c558c1188ebaa560f
             return R"(

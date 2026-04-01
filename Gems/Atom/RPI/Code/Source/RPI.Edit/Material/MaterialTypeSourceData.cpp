@@ -692,7 +692,7 @@ namespace AZ
             const Name& propertyId,
             const MaterialPropertySourceData& propertySourceData) const
         {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
             materialTypeAssetCreator.BeginMaterialProperty(
                 propertyId, propertySourceData.m_dataType, materialPipelineName, propertySourceData.m_optional);
 #else

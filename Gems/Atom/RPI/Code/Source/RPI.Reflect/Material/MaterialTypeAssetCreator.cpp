@@ -310,7 +310,7 @@ namespace AZ
             return true;
         }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
         void MaterialTypeAssetCreator::BeginMaterialProperty(const Name& materialPropertyName, MaterialPropertyDataType dataType, const AZ::Name& materialPipelineName, bool optional)
 #else
         void MaterialTypeAssetCreator::BeginMaterialProperty(const Name& materialPropertyName, MaterialPropertyDataType dataType, const AZ::Name& materialPipelineName)
@@ -343,7 +343,7 @@ namespace AZ
             m_wipMaterialProperty.m_nameId = materialPropertyName;
             m_wipMaterialProperty.m_dataType = dataType;
             m_wipMaterialPropertyPipeline = materialPipelineName;
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
             m_wipMaterialPropertyOptional = optional;
 #endif
         }
@@ -368,7 +368,7 @@ namespace AZ
                 return;
             }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
             {
                 auto itemIndex =
                     RHI::Handle<uint32_t>{ m_materialShaderResourceGroupLayout->FindShaderInputConstantIndex(shaderInputName).GetIndex() };

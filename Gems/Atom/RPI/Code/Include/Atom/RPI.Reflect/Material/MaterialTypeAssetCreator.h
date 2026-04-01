@@ -64,7 +64,7 @@ namespace AZ
             //! @param materialPipelineName For internal material properties, this indicates which material pipeline the property is
             //! for.
             //!                             For main material properties, use MaterialPipelineNone.
-#if defined(CARBONATED)             
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
             void BeginMaterialProperty(const Name& materialPropertyName, MaterialPropertyDataType dataType, const AZ::Name& materialPipelineName = MaterialPipelineNone, bool optional = false);
 #else
             void BeginMaterialProperty(
@@ -195,7 +195,7 @@ namespace AZ
                                                               //!< BeginMaterialProperty() and EndMaterialProperty()
             Name m_wipMaterialPropertyPipeline; //!< Tracks which MaterialPipelinePayload the material property is being created for, if
                                                 //!< any.
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_OPTIONAL_SHADER_PARAM)
             bool m_wipMaterialPropertyOptional = false;
 #endif
         };
