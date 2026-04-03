@@ -7,4 +7,9 @@
  */
 #pragma once
 
+#if defined(CARBONATED)
+//supress Diffuse GI as workaround until diffuse issue is fixed
+#define AZ_TRAIT_DIFFUSE_GI_PASSES_SUPPORTED 0
+#else
 #define AZ_TRAIT_DIFFUSE_GI_PASSES_SUPPORTED 1
+#endif
