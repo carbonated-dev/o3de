@@ -13,6 +13,11 @@
                     "ScopeAttachmentUsage": "RenderTarget"
                 },
                 {
+                    "Name": "BackdropInput",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
                     "Name": "DepthInputOutput",
                     "SlotType": "InputOutput",
                     "ScopeAttachmentUsage": "DepthStencil",
@@ -30,6 +35,13 @@
                     "AttachmentRef": {
                         "Pass": "Parent",
                         "Attachment": "ColorInputOutput"
+                    }
+                },
+                {
+                    "LocalSlot": "BackdropInput",
+                    "AttachmentRef": {
+                        "Pass": "Parent",
+                        "Attachment": "BackdropCaptureOutput"
                     }
                 },
                 {

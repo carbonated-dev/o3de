@@ -55,13 +55,21 @@ namespace LyShine
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    PrimitiveListRenderNode::PrimitiveListRenderNode(const AZ::Data::Instance<AZ::RPI::Image>& texture,
-        bool isClampTextureMode, bool isTextureSRGB, bool preMultiplyAlpha, const AZ::RHI::TargetBlendState& blendModeState)
+    PrimitiveListRenderNode::PrimitiveListRenderNode(
+        const AZ::Data::Instance<AZ::RPI::Image>& texture,
+        bool isClampTextureMode,
+        bool isTextureSRGB,
+        bool preMultiplyAlpha,
+        const AZ::RHI::TargetBlendState& blendModeState,
+        bool isBackdrop,
+        float backdropBlurRadius)
         : RenderNode(RenderNodeType::PrimitiveList)
         , m_numTextures(1)
         , m_isTextureSRGB(isTextureSRGB)
         , m_preMultiplyAlpha(preMultiplyAlpha)
         , m_alphaMaskType(AlphaMaskType::None)
+        , m_isBackdrop(isBackdrop)
+        , m_backdropBlurRadius(backdropBlurRadius)
         , m_blendModeState(blendModeState)
         , m_totalNumVertices(0)
         , m_totalNumIndices(0)
@@ -79,12 +87,14 @@ namespace LyShine
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     PrimitiveListRenderNode::PrimitiveListRenderNode(const AZ::Data::Instance<AZ::RPI::Image>& texture,
         const AZ::Data::Instance<AZ::RPI::Image>& maskTexture, bool isClampTextureMode, bool isTextureSRGB,
-        bool preMultiplyAlpha, AlphaMaskType alphaMaskType, const AZ::RHI::TargetBlendState& blendModeState)
+        bool preMultiplyAlpha, AlphaMaskType alphaMaskType, const AZ::RHI::TargetBlendState& blendModeState, float backdropBlurRadius)
         : RenderNode(RenderNodeType::PrimitiveList)
         , m_numTextures(2)
         , m_isTextureSRGB(isTextureSRGB)
         , m_preMultiplyAlpha(preMultiplyAlpha)
         , m_alphaMaskType(alphaMaskType)
+        , m_isBackdrop(false)
+        , m_backdropBlurRadius(backdropBlurRadius)
         , m_blendModeState(blendModeState)
         , m_totalNumVertices(0)
         , m_totalNumIndices(0)
@@ -183,6 +193,7 @@ namespace LyShine
 
         // Set projection matrix
         drawSrg->SetConstant(uiShaderData.m_viewProjInputIndex, modelViewProjMat);
+        drawSrg->SetConstant(uiShaderData.m_backdropBlurRadiusInputIndex, m_backdropBlurRadius);
 
         drawSrg->Compile();
 
@@ -248,7 +259,6 @@ namespace LyShine
         uiRenderer->SetBaseState(prevBaseState);
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
     void PrimitiveListRenderNode::AddPrimitive(LyShine::UiPrimitive* primitive)
     {
 #if defined(CARBONATED)
@@ -1010,6 +1020,8 @@ namespace LyShine
                         primListRenderNode->GetBlendModeState() == blendModeState &&
                         primListRenderNode->GetIsPremultiplyAlpha() == isPreMultiplyAlpha &&
                         primListRenderNode->GetAlphaMaskType() ==  AlphaMaskType::None &&
+                        !primListRenderNode->IsBackdrop() &&
+                        primListRenderNode->GetBackdropBlurRadius() == 0.0f &&
                         primListRenderNode->HasSpaceToAddPrimitive(primitive))
                     {
                         // render state is the same - we can add the primitive to this list if the texture is in
@@ -1046,6 +1058,78 @@ namespace LyShine
             }
 
             // add this primitive to the render node
+            renderNodeToAddTo->AddPrimitive(primitive);
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    void RenderGraph::AddBackdropPrimitive(LyShine::UiPrimitive* primitive, const AZ::Data::Instance<AZ::RPI::Image>& texture,
+        bool isClampTextureMode, bool isTextureSRGB, bool isTexturePremultipliedAlpha, BlendMode blendMode, float blurRadius)
+    {
+        if (blurRadius <= 0.0f)
+        {
+            AddPrimitive(primitive, texture, isClampTextureMode, isTextureSRGB, isTexturePremultipliedAlpha, blendMode);
+            return;
+        }
+
+        AZStd::vector<RenderNode*>* renderNodeList = m_renderNodeListStack.top();
+
+        int texUnit = -1;
+        if (renderNodeList)
+        {
+            bool isPreMultiplyAlpha = m_renderTargetNestLevel > 0 && !isTexturePremultipliedAlpha;
+            bool isShaderOutputPremultAlpha = isPreMultiplyAlpha || isTexturePremultipliedAlpha;
+            AZ::RHI::TargetBlendState blendModeState = GetBlendModeState(blendMode, isShaderOutputPremultAlpha);
+
+            PrimitiveListRenderNode* renderNodeToAddTo = nullptr;
+            if (!renderNodeList->empty())
+            {
+                RenderNode* lastRenderNode = renderNodeList->back();
+
+                if (lastRenderNode && lastRenderNode->GetType() == RenderNodeType::PrimitiveList)
+                {
+                    PrimitiveListRenderNode* primListRenderNode = static_cast<PrimitiveListRenderNode*>(lastRenderNode);
+
+                    if (primListRenderNode->GetIsTextureSRGB() == isTextureSRGB &&
+                        primListRenderNode->GetBlendModeState() == blendModeState &&
+                        primListRenderNode->GetIsPremultiplyAlpha() == isPreMultiplyAlpha &&
+                        primListRenderNode->GetAlphaMaskType() == AlphaMaskType::None &&
+                        primListRenderNode->IsBackdrop() &&
+                        primListRenderNode->GetBackdropBlurRadius() == blurRadius &&
+                        primListRenderNode->HasSpaceToAddPrimitive(primitive))
+                    {
+                        texUnit = primListRenderNode->GetOrAddTexture(texture, isClampTextureMode);
+
+                        if (texUnit != -1)
+                        {
+                            renderNodeToAddTo = primListRenderNode;
+                        }
+                    }
+                }
+            }
+
+            if (!renderNodeToAddTo)
+            {
+                renderNodeToAddTo = new PrimitiveListRenderNode(
+                    texture,
+                    isClampTextureMode,
+                    isTextureSRGB,
+                    isPreMultiplyAlpha,
+                    blendModeState,
+                    true,
+                    blurRadius);
+                renderNodeList->push_back(renderNodeToAddTo);
+                texUnit = 0;
+            }
+
+            if (primitive->m_vertices[0].texIndex != texUnit)
+            {
+                for (int i = 0; i < primitive->m_numVertices; ++i)
+                {
+                    primitive->m_vertices[i].texIndex = static_cast<uint8>(texUnit);
+                }
+            }
+
             renderNodeToAddTo->AddPrimitive(primitive);
         }
     }
@@ -1133,7 +1217,6 @@ namespace LyShine
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
     LyShine::UiPrimitive* RenderGraph::GetDynamicQuadPrimitive(const AZ::Vector2* positions, uint32 packedColor)
     {
         const int numVertsInQuad = 4;
@@ -1166,7 +1249,6 @@ namespace LyShine
         return &quad->m_primitive;
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
     bool RenderGraph::IsRenderingToMask() const
     {
         return m_isRenderingToMask;
@@ -1258,7 +1340,6 @@ namespace LyShine
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
     void RenderGraph::SetDirtyFlag(bool isDirty)
     {
         if (m_isDirty != isDirty)
@@ -1784,4 +1865,5 @@ namespace LyShine
             }
         }
     }
+
 }
