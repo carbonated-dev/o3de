@@ -10,6 +10,7 @@
 #include <AzCore/std/containers/vector.h>
 #include <AtomCore/Instance/Instance.h>
 #include <Atom/RPI.Public/Base.h>
+#include <Atom/RPI.Public/Image/AttachmentImage.h>
 
 namespace AZ
 {
@@ -43,6 +44,9 @@ public:
 
     //! Returns the final pass that renders the UI canvas contents
     virtual AZ::RPI::RasterPass* GetUiCanvasPass() = 0;
+
+    //! Returns the captured scene color that can be sampled by UI backdrop panels
+    virtual AZ::Data::Instance<AZ::RPI::AttachmentImage> GetBackdropCaptureImage() = 0;
 };
 using LyShinePassRequestBus = AZ::EBus<LyShinePassRequests>;
 

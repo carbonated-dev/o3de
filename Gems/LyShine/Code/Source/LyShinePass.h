@@ -43,6 +43,7 @@ namespace LyShine
         void RebuildRttChildren() override;
         AZ::RPI::RasterPass* GetRttPass(const AZStd::string& name) override;
         AZ::RPI::RasterPass* GetUiCanvasPass() override;
+        AZ::Data::Instance<AZ::RPI::AttachmentImage> GetBackdropCaptureImage() override;
 
     private:
         LyShinePass() = delete;
@@ -59,6 +60,9 @@ namespace LyShine
 
         // Pass that renders the UI Canvas elements to the screen
         AZ::RPI::Ptr<LyShineChildPass> m_uiCanvasChildPass;
+
+        // Scene color copy captured before UI rendering for backdrop panels
+        AZ::Data::Instance<AZ::RPI::AttachmentImage> m_backdropCaptureImage;
     };
 
     // Child pass with potential attachment dependencies

@@ -38,6 +38,7 @@ public: // types
     {
         SpriteAsset,
         RenderTarget,
+        Backdrop,
     };
 
     enum class FillType : int32_t

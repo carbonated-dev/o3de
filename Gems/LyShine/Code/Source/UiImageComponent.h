@@ -178,6 +178,7 @@ private: // member functions
     void RenderFixedSprite(ISprite* sprite, int cellIndex, uint32 packedColor);
     void RenderTiledSprite(ISprite* sprite, uint32 packedColor);
     void RenderStretchedToFitOrFillSprite(ISprite* sprite, int cellIndex, uint32 packedColor, bool toFit);
+    void RenderBackdrop(const AZ::Vector2& captureSize, uint32 packedColor);
 
     void RenderSingleQuad(const AZ::Vector2* positions, const AZ::Vector2* uvs, uint32 packedColor);
 
@@ -219,6 +220,7 @@ private: // member functions
     bool IsSpriteTypeAsset();
     bool IsSpriteTypeSpriteSheet();
     bool IsSpriteTypeRenderTarget();
+    bool IsSpriteTypeBackdrop();
 
     bool IsFilled();
     bool IsLinearFilled();
@@ -256,6 +258,9 @@ private: // member functions
     //! Returns a string representation of the indices used to index sprite-sheet types.
     LyShine::AZu32ComboBoxVec PopulateIndexStringList() const;
 
+    AZ::Data::Instance<AZ::RPI::Image> GetBackdropImage() const;
+    AZ::Vector2 GetBackdropCaptureSize() const;
+
 private: // static member functions
 
     static bool VersionConverter(AZ::SerializeContext& context,
@@ -266,6 +271,7 @@ private: // data
     AzFramework::SimpleAssetReference<LmbrCentral::TextureAsset> m_spritePathname;
     AZ::Data::Asset<AZ::RPI::AttachmentImageAsset> m_attachmentImageAsset;
     bool m_isRenderTargetSRGB           = false;
+    float m_backdropBlurRadius          = 0.0f;
     SpriteType m_spriteType             = SpriteType::SpriteAsset;
     AZ::Color m_color                   = AZ::Color(1.0f, 1.0f, 1.0f, 1.0f);
     float m_alpha                       = 1.0f;
@@ -296,5 +302,6 @@ private: // data
 
     // cached rendering data for performance optimization
     LyShine::UiPrimitive m_cachedPrimitive;
+    AZ::Vector2 m_cachedBackdropCaptureSize = AZ::Vector2::CreateZero();
     bool m_isRenderCacheDirty = true;
 };

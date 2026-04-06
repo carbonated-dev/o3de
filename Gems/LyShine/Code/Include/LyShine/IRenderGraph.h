@@ -56,6 +56,10 @@ namespace LyShine
         virtual void AddPrimitive(LyShine::UiPrimitive* primitive, const AZ::Data::Instance<AZ::RPI::Image>& texture,
             bool isClampTextureMode, bool isTextureSRGB, bool isTexturePremultipliedAlpha, BlendMode blendMode) = 0;
 
+        //! Add an indexed triangle list primitive that samples the captured backdrop behind the UI with an optional blur
+        virtual void AddBackdropPrimitive(LyShine::UiPrimitive* primitive, const AZ::Data::Instance<AZ::RPI::Image>& texture,
+            bool isClampTextureMode, bool isTextureSRGB, bool isTexturePremultipliedAlpha, BlendMode blendMode, float blurRadius) = 0;
+
         //! Add an indexed triangle list primitive to the render graph which will use maskTexture as an alpha (gradient) mask
         virtual void AddAlphaMaskPrimitive(LyShine::UiPrimitive* primitive,
             AZ::Data::Instance<AZ::RPI::AttachmentImage> contentAttachmentImage,
