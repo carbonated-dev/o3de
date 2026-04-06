@@ -80,9 +80,16 @@ namespace LyShine
         // We use a pool allocator to keep these allocations fast.
         AZ_CLASS_ALLOCATOR(PrimitiveListRenderNode, LyShinePoolAllocator);
 
-        PrimitiveListRenderNode(const AZ::Data::Instance<AZ::RPI::Image>& texture, bool isClampTextureMode, bool isTextureSRGB, bool preMultiplyAlpha, const AZ::RHI::TargetBlendState& blendModeState);
+        PrimitiveListRenderNode(
+            const AZ::Data::Instance<AZ::RPI::Image>& texture,
+            bool isClampTextureMode,
+            bool isTextureSRGB,
+            bool preMultiplyAlpha,
+            const AZ::RHI::TargetBlendState& blendModeState,
+            bool isBackdrop = false,
+            float backdropBlurRadius = 0.0f);
         PrimitiveListRenderNode(const AZ::Data::Instance<AZ::RPI::Image>& texture, const AZ::Data::Instance<AZ::RPI::Image>& maskTexture,
-            bool isClampTextureMode, bool isTextureSRGB, bool preMultiplyAlpha, AlphaMaskType alphaMaskType, const AZ::RHI::TargetBlendState& blendModeState);
+            bool isClampTextureMode, bool isTextureSRGB, bool preMultiplyAlpha, AlphaMaskType alphaMaskType, const AZ::RHI::TargetBlendState& blendModeState, float backdropBlurRadius = 0.0f);
         ~PrimitiveListRenderNode() override;
         void Render(UiRenderer* uiRenderer
             , const AZ::Matrix4x4& modelViewProjMat
@@ -100,6 +107,8 @@ namespace LyShine
         AZ::RHI::TargetBlendState GetBlendModeState() const { return m_blendModeState; }
         bool GetIsPremultiplyAlpha() const { return m_preMultiplyAlpha; }
         AlphaMaskType GetAlphaMaskType() const { return m_alphaMaskType; }
+        bool IsBackdrop() const { return m_isBackdrop; }
+        float GetBackdropBlurRadius() const { return m_backdropBlurRadius; }
 
         bool HasSpaceToAddPrimitive(LyShine::UiPrimitive* primitive) const;
 
@@ -127,6 +136,8 @@ namespace LyShine
         bool            m_isTextureSRGB;
         bool            m_preMultiplyAlpha;
         AlphaMaskType   m_alphaMaskType;
+        bool            m_isBackdrop;
+        float           m_backdropBlurRadius;
         AZ::RHI::TargetBlendState m_blendModeState;
         int             m_totalNumVertices;
         int             m_totalNumIndices;
@@ -310,6 +321,8 @@ namespace LyShine
 
         void AddPrimitive(LyShine::UiPrimitive* primitive, const AZ::Data::Instance<AZ::RPI::Image>& texture,
             bool isClampTextureMode, bool isTextureSRGB, bool isTexturePremultipliedAlpha, BlendMode blendMode) override;
+        void AddBackdropPrimitive(LyShine::UiPrimitive* primitive, const AZ::Data::Instance<AZ::RPI::Image>& texture,
+            bool isClampTextureMode, bool isTextureSRGB, bool isTexturePremultipliedAlpha, BlendMode blendMode, float blurRadius) override;
         // ~IRenderGraph
 
         //! Add an indexed triangle list primitive to the render graph which will use maskTexture as an alpha (gradient) mask

@@ -31,6 +31,7 @@ public: // types
         AZ::RHI::ShaderInputImageIndex m_imageInputIndex;
         AZ::RHI::ShaderInputConstantIndex m_viewProjInputIndex;
         AZ::RHI::ShaderInputConstantIndex m_isClampInputIndex;
+        AZ::RHI::ShaderInputConstantIndex m_backdropBlurRadiusInputIndex;
 
         AZ::RPI::ShaderVariantId m_shaderVariantTextureLinear;
         AZ::RPI::ShaderVariantId m_shaderVariantTextureSrgb;

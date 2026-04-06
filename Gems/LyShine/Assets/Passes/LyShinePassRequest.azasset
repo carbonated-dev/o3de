@@ -7,6 +7,13 @@
         "TemplateName": "LyShineParentTemplate",
         "Connections": [
             {
+                "LocalSlot": "ColorInput",
+                "AttachmentRef": {
+                    "Pass": "AuxGeomPass",
+                    "Attachment": "ColorInputOutput"
+                }
+            },
+            {
                 "LocalSlot": "ColorInputOutput",
                 "AttachmentRef": {
                     "Pass": "AuxGeomPass",
