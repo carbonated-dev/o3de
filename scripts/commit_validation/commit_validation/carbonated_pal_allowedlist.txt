@@ -12,6 +12,5 @@
 */Gems/Atom/RHI/Vulkan/Code/Source/RHI/SwapChain.h
 */Gems/Atom/RHI/Vulkan/Code/Source/RHI/CommandQueue.cpp
 */Gems/Atom/RPI/Code/Source/RPI.Public/WindowContext.cpp
-*/Gems/AudioSystem/Code/Source/Engine/AudioSystem.cpp
 */Code/Framework/AzFramework/AzFramework/Windowing/NativeWindow.cpp
 */Code/Legacy/CrySystem/System.cpp

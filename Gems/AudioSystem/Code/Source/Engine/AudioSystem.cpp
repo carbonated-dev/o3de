@@ -20,11 +20,7 @@
 
 namespace Audio
 {
-#if defined(CARBONATED) && defined(AZ_PLATFORM_LINUX)
-    static constexpr const char AudioControlsBasePath[]{ "libs/gameaudio_linux/" };
-#else
     static constexpr const char AudioControlsBasePath[]{ "libs/gameaudio/" };
-#endif
     // Save off the threadId of the "Main Thread" that was used to connect EBuses.
     AZStd::thread_id g_mainThreadId;
     AZStd::thread_id g_audioThreadId;
