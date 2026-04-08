@@ -934,6 +934,10 @@ void CLog::LogWithCallback(ELogType type, const LogWriteCallback& messageCallbac
                         m_logFileHandle.Write(timeStr.size(), timeStr.data());
                     }
                     m_logFileHandle.Write(logString.size(), logString.data());
+#if defined(CARBONATED) & defined(AZ_PLATFORM_LINUX)
+                    // add all the messages that go to log file to system console output
+                    printf(logString.data()[logString.size() - 1] == '\n' ?  "%s" : "%s\n", logString.data());
+#endif                    
 
 #if !defined(KEEP_LOG_FILE_OPEN)
                     CloseLogFile();
