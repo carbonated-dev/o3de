@@ -16,11 +16,6 @@ namespace AzFramework
 {
     [[maybe_unused]] const char SDLXcbErrorWindow[] = "SDLNativeWindow";
     static constexpr uint8_t s_SDLFormatDataSize = 32; // Format indicator for xcb for client messages
-    static constexpr uint16_t s_DefaultSDLWindowBorderWidth = 4; // The default border with in pixels if a border was specified
-
-#define _NET_WM_STATE_REMOVE 0l
-#define _NET_WM_STATE_ADD 1l
-#define _NET_WM_STATE_TOGGLE 2l
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     SDLNativeWindow::SDLNativeWindow()
@@ -36,6 +31,28 @@ namespace AzFramework
     ////////////////////////////////////////////////////////////////////////////////////////////////
     void SDLNativeWindow::InitWindowInternal(const AZStd::string& title, const WindowGeometry& geometry, const WindowStyleMasks& styleMasks)
     {
+        uint32_t sdlFlags = SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN
+        | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS;
+
+        const uint32_t mask = styleMasks.m_platformAgnosticStyleMask;
+        if (mask & WindowStyleMasks::WINDOW_STYLE_BORDERED == 0)
+        {
+            sdlFlags |= SDL_WINDOW_BORDERLESS;
+        }
+        if (mask & WindowStyleMasks::WINDOW_STYLE_RESIZEABLE)
+        {
+            sdlFlags |= SDL_WINDOW_RESIZABLE;
+        }
+        if (mask & WindowStyleMasks::WINDOW_STYLE_MAXIMIZE)
+        {
+            sdlFlags |= SDL_WINDOW_MAXIMIZED;
+        }
+        if (mask & WindowStyleMasks::WINDOW_STYLE_MINIMIZE)
+        {
+            sdlFlags |= SDL_WINDOW_MINIMIZED;
+        }
+
+        m_window = SDL_CreateWindow(title.c_str(), geometry.m_posX, geometry.m_posY, geometry.m_width, geometry.m_height, sdlFlags);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

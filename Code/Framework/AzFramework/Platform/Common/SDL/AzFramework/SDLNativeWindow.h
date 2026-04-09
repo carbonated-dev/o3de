@@ -12,6 +12,8 @@
 #include <AzFramework/Windowing/NativeWindow.h>
 #include <AzFramework/SDLEventHandler.h>
 
+#include <SDL2/SDL.h>
+
 namespace AzFramework
 {
     class SDLNativeWindow final
@@ -51,5 +53,7 @@ namespace AzFramework
         bool m_fullscreenState = false;
         bool m_horizontalyMaximized = false;
         bool m_verticallyMaximized = false;
+
+        SDL_Window* m_window = nullptr;
     };
 } // namespace AzFramework

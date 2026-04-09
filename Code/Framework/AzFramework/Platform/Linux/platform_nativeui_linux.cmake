@@ -46,7 +46,7 @@ elseif(PAL_TRAIT_LINUX_WINDOW_MANAGER STREQUAL "sdl")
 
     set(LY_BUILD_DEPENDENCIES
         PRIVATE
-            libSDL2.a
+            SDL2
     )
 
 else()
