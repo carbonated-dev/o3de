@@ -12,8 +12,6 @@
 #include <AzCore/Interface/Interface.h>
 #include <AzCore/RTTI/RTTI.h>
 
-#include <xcb/xcb.h>
-
 namespace AzFramework
 {
     class SDLConnectionManager
@@ -22,11 +20,6 @@ namespace AzFramework
         AZ_RTTI(SDLConnectionManager, "{036AC6B2-84E7-431D-93A8-29FC3B830A2D}");
 
         virtual ~SDLConnectionManager() = default;
-
-        virtual xcb_connection_t* GetXcbConnection() const = 0;
-
-        //! Enables/Disables XInput Raw Input events.
-        virtual void SetEnableXInput(xcb_connection_t* connection, bool enable) = 0;
     };
 
     class SDLConnectionManagerBusTraits

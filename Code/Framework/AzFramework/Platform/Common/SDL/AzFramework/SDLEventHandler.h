@@ -11,8 +11,6 @@
 #include <AzCore/EBus/EBus.h>
 #include <AzCore/RTTI/RTTI.h>
 
-#include <xcb/xcb.h>
-
 namespace AzFramework
 {
     static constexpr inline uint8_t s_SDLResponseTypeMask = 0x7f; // Mask to extract the specific event type from an xcb event
@@ -24,7 +22,7 @@ namespace AzFramework
 
         virtual ~SDLEventHandler() = default;
 
-        virtual void HandleSDLEvent(xcb_generic_event_t* event) = 0;
+        virtual void HandleSDLEvent() = 0;
     };
 
     class SDLEventHandlerBusTraits : public AZ::EBusTraits

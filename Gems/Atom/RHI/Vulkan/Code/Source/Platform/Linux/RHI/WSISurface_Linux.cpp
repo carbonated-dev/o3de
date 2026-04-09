@@ -46,19 +46,15 @@ namespace AZ
 
             return ConvertResult(result);
 #elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
-            xcb_connection_t* xcb_connection = nullptr;
             if (auto sdlConnectionManager = AzFramework::SDLConnectionManagerInterface::Get();
                 sdlConnectionManager != nullptr)
             {
-                xcb_connection = sdlConnectionManager->GetXcbConnection();
             }
-            AZ_Error("AtomVulkan_RHI", xcb_connection!=nullptr, "Unable to get XCB Connection");
 
             VkXcbSurfaceCreateInfoKHR createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
             createInfo.pNext = nullptr;
             createInfo.flags = 0;
-            createInfo.connection = xcb_connection;
             createInfo.window = static_cast<xcb_window_t>(m_descriptor.m_windowHandle.GetIndex());
             const VkResult result = instance.GetContext().CreateXcbSurfaceKHR(instance.GetNativeInstance(), &createInfo, VkSystemAllocator::Get(), &m_nativeSurface);
             AssertSuccess(result);

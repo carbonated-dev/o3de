@@ -11,11 +11,6 @@
 #include <AzFramework/SDLEventHandler.h>
 #include <AzFramework/SDLInterface.h>
 
-#include <xcb/xcb.h>
-#include <xkbcommon/xkbcommon.h>
-
-struct xcb_xkb_state_notify_event_t;
-
 namespace AzFramework
 {
     class SDLInputDeviceKeyboard
@@ -35,20 +30,15 @@ namespace AzFramework
         void TextEntryStop() override;
         void TickInputDevice() override;
 
-        void HandleSDLEvent(xcb_generic_event_t* event) override;
+        void HandleSDLEvent() override;
 
     private:
-        [[nodiscard]] const InputChannelId* InputChannelFromKeyEvent(xcb_keycode_t code) const;
+        [[nodiscard]] const InputChannelId* InputChannelFromKeyEvent() const;
 
-        static AZStd::string TextFromKeycode(xkb_state* state, xkb_keycode_t code);
+        static AZStd::string TextFromKeycode();
 
-        void UpdateState(const xcb_xkb_state_notify_event_t* state);
+        void UpdateState();
 
-        SDLUniquePtr<xkb_context, xkb_context_unref> m_xkbContext;
-        SDLUniquePtr<xkb_keymap, xkb_keymap_unref> m_xkbKeymap;
-        SDLUniquePtr<xkb_state, xkb_state_unref> m_xkbState;
-        int m_coreDeviceId{-1};
-        uint8_t m_xkbEventCode{0};
         bool m_initialized{false};
         bool m_hasTextEntryStarted{false};
     };
