@@ -57,7 +57,7 @@ namespace AzFramework
         */
         const uint32_t flags = SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_AUDIO;
         const int res = SDL_Init(flags);
-        if (!res)
+        if (res)
         {
             const char* error = SDL_GetError();
             AZ_Error("SDL", false, "Cannot initialize SDL with flags %x: return code %d, error '%s'", flags, res, error);
