@@ -33,12 +33,15 @@ namespace AzFramework
         void HandleSDLEvent(const SDL_Event& event) override;
 
     private:
-        [[nodiscard]] const InputChannelId* InputChannelFromSDLScancode(SDL_Scancode scancode) const;
+        const InputChannelId* InputChannelFromSDLScancode(SDL_Scancode scancode) const;
+        void InitKeys();
 
         //static AZStd::string TextFromKeycode();
         //void UpdateState();
 
         bool m_initialized{false};
         bool m_hasTextEntryStarted{false};
+
+        const InputChannelId* m_keyDecode[SDL_NUM_SCANCODES];  // SDL_NUM_SCANCODES is 512
     };
 } // namespace AzFramework
