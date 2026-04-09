@@ -18,6 +18,13 @@
 #include <AzFramework/XcbNativeWindow.h>
 #endif
 
+#if PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL
+#include <AzFramework/SDLApplication.h>
+#include <AzFramework/SDLInputDeviceKeyboard.h>
+#include <AzFramework/SDLInputDeviceMouse.h>
+#include <AzFramework/SDLNativeWindow.h>
+#endif
+
 // libevdev could be used for other devices in the future (Can do keyboard, mouse, etc), so it doesn't belong in the gamepad
 // folder.
 #include <AzFramework/Input/LibEVDevWrapper.h> 
@@ -60,6 +67,8 @@ namespace AzFramework
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
             #error "Linux Window Manager Wayland not supported."
             return nullptr;
+#elif PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL
+            return AZStd::make_unique<SDLApplication>();
 #else
             #error "Linux Window Manager not recognized."
             return nullptr;
@@ -77,6 +86,8 @@ namespace AzFramework
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
             #error "Linux Window Manager Wayland not supported."
             return nullptr;
+#elif PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL
+            return AZStd::make_unique<SDLInputDeviceKeyboard>(inputDevice);
 #else
             #error "Linux Window Manager not recognized."
             return nullptr;
@@ -95,6 +106,8 @@ namespace AzFramework
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
 #error "Linux Window Manager Wayland not supported."
             return nullptr;
+#elif PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL
+            return AZStd::unique_ptr<InputDeviceMouse::Implementation>(SDLInputDeviceMouse::Create(inputDevice));
 #else
 #error "Linux Window Manager not recognized."
             return nullptr;
@@ -112,6 +125,8 @@ namespace AzFramework
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
             #error "Linux Window Manager Wayland not supported."
             return nullptr;
+#elif PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL
+            return AZStd::make_unique<SDLNativeWindow>();
 #else
             #error "Linux Window Manager not recognized."
             return nullptr;

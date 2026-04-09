@@ -54,6 +54,7 @@ elseif("$ENV{O3DE_PACKAGE_TYPE}" STREQUAL "DEB")
         libunwind-dev
         libzstd-dev
         pkg-config
+        libsdl2-dev
     )
     list(JOIN package_dependencies "," CPACK_DEBIAN_PACKAGE_DEPENDS)
 

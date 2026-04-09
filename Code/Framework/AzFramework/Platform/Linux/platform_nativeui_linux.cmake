@@ -7,7 +7,7 @@
 #
 
 # Based on the linux window manager trait, perform the appropriate additional build configurations
-# Only 'xcb' and 'wayland' are recognized
+# Only 'xcb', 'wayland' and 'sdl' are recognized
 if (${PAL_TRAIT_LINUX_WINDOW_MANAGER} STREQUAL "xcb")
 
     set(LY_COMPILE_DEFINITIONS PUBLIC PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB)
@@ -32,6 +32,32 @@ elseif(PAL_TRAIT_LINUX_WINDOW_MANAGER STREQUAL "wayland")
 
     set(LY_COMPILE_DEFINITIONS PUBLIC PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND)
 
+elseif (${PAL_TRAIT_LINUX_WINDOW_MANAGER} STREQUAL "sdl")
+    set(LY_COMPILE_DEFINITIONS PUBLIC PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+    set(LY_INCLUDE_DIRECTORIES
+        PUBLIC
+            Platform/Common/SDL
+    )
+    set(LY_FILES_CMAKE
+        Platform/Common/SDL/azframework_sdl_files.cmake
+    )
+    
+    # Create a globally visible O3DE-style target for SDL2
+    if (NOT TARGET 3rdParty::SDL2)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(O3DE_SDL2 REQUIRED IMPORTED_TARGET GLOBAL sdl2)
+
+        add_library(3rdParty::SDL2 INTERFACE IMPORTED GLOBAL)
+        target_link_libraries(3rdParty::SDL2
+            INTERFACE
+                PkgConfig::O3DE_SDL2
+        )
+    endif()
+
+    set(LY_BUILD_DEPENDENCIES
+        PRIVATE
+            3rdParty::SDL2
+    )
 else()
 
     message(FATAL_ERROR, "Linux Window Manager ${PAL_TRAIT_LINUX_WINDOW_MANAGER} is not recognized")

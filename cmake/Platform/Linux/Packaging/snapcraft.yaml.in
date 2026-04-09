@@ -46,6 +46,7 @@ parts:
       - llvm-runtime
       - pkg-config
       - zlib1g
+      - libsdl2-2.0-0
     stage:
       # The libraries in .../dri need no-patchelf, so they must come from the mesa-unpatched part
       - -usr/lib/x86_64-linux-gnu/dri

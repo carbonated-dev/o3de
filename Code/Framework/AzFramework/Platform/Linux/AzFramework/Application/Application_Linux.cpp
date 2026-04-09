@@ -15,6 +15,10 @@
 #include <AzFramework/XcbApplication.h>
 #endif
 
+#if PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL
+#include <AzFramework/SDLApplication.h>
+#endif
+
 constexpr rlim_t g_minimumOpenFileHandles = 65536L;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -44,6 +48,8 @@ namespace AzFramework
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
         #error "Linux Window Manager Wayland not supported."
         return nullptr;
+#elif PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL
+        return aznew SDLApplication();
 #else
         #error "Linux Window Manager not recognized."
         return nullptr;

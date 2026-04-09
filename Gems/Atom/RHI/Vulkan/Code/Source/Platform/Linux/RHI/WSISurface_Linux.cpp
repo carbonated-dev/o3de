@@ -15,6 +15,10 @@
 #include <AzFramework/XcbConnectionManager.h>
 #endif
 
+#if PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL
+#include <AzFramework/SDLConnectionManager.h>
+#endif
+
 namespace AZ
 {
     namespace Vulkan

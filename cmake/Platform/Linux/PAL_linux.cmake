@@ -65,9 +65,9 @@ set(LY_ASSET_DEPLOY_ASSET_TYPE "linux" CACHE STRING "Set the asset type for depl
 ly_set(LY_PYTHON_CMD ${CMAKE_CURRENT_SOURCE_DIR}/python/python.sh)
 
 # Set the default window manager that applications should be using on Linux 
-# Note: Only ("xcb" or "wayland" should be considered)
-set(PAL_TRAIT_LINUX_WINDOW_MANAGER "xcb" CACHE STRING "Sets the Window Manager type to use when configuring Linux")  
-set_property(CACHE PAL_TRAIT_LINUX_WINDOW_MANAGER PROPERTY STRINGS xcb wayland)
+# Note: Only ("xcb", "wayland" or 'sdl' should be considered)
+set(PAL_TRAIT_LINUX_WINDOW_MANAGER "sdl" CACHE STRING "Sets the Window Manager type to use when configuring Linux")  
+set_property(CACHE PAL_TRAIT_LINUX_WINDOW_MANAGER PROPERTY STRINGS xcb wayland sdl)
 
 # Use system default libunwind instead of maintaining an O3DE version for Linux
 include(${CMAKE_CURRENT_LIST_DIR}/libunwind_linux.cmake)
