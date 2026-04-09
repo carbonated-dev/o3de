@@ -92,7 +92,7 @@ namespace AzFramework
     ////////////////////////////////////////////////////////////////////////////////////////////////
     NativeWindowHandle SDLNativeWindow::GetWindowHandle() const
     {
-        return nullptr;
+        return reinterpret_cast<NativeWindowHandle>(m_window);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -146,18 +146,26 @@ namespace AzFramework
     ////////////////////////////////////////////////////////////////////////////////////////////////
     void SDLNativeWindow::HandleSDLEvent(const SDL_Event& event)
     {
+        if (event.type == SDL_QUIT)
+        {
+            Deactivate();
+
+            ApplicationRequests::Bus::Broadcast(&ApplicationRequests::Bus::Events::ExitMainLoop);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     void SDLNativeWindow::WindowSizeChanged(const uint32_t width, const uint32_t height)
     {
-        if (m_width != width || m_height != height)
+        if (m_activated)
         {
-            m_width = width;
-            m_height = height;
-
-            if (m_activated)
+            AZ_Assert(m_window, "SDL window is not created");
+            int w, h;
+            SDL_GetWindowSize(m_window, &w, &h);
+            if (w != width || h != height)
             {
+                WindowNotificationBus::Event(
+                    reinterpret_cast<NativeWindowHandle>(m_window), &WindowNotificationBus::Events::OnWindowResized, width, height);
             }
         }
     }
