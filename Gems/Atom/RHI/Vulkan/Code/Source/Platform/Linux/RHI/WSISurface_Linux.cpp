@@ -60,7 +60,7 @@ namespace AZ
             }
             else
             {
-                AZ_Assert(false, "SDL could not create Vulkan surface %s", SDL_GetError());
+                AZ_Assert(false, "SDL could not create Vulkan surface: %s", SDL_GetError());
                 return RHI::ResultCode::Fail;
             }
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
