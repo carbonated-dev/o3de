@@ -32,6 +32,28 @@ elseif(PAL_TRAIT_LINUX_WINDOW_MANAGER STREQUAL "wayland")
 
     set(LY_COMPILE_DEFINITIONS PUBLIC PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND)
 
+elseif(PAL_TRAIT_LINUX_WINDOW_MANAGER STREQUAL "sdl")
+
+    set(LY_COMPILE_DEFINITIONS PUBLIC PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+
+    set(LY_INCLUDE_DIRECTORIES
+        PUBLIC
+            Platform/Common/SDL
+    )
+    set(LY_FILES_CMAKE
+        Platform/Common/SDL/azframework_sdl_files.cmake
+    )
+
+    set(LY_BUILD_DEPENDENCIES
+        PRIVATE
+            3rdParty::X11::xcb
+            3rdParty::X11::xcb_xkb
+            3rdParty::X11::xcb_xfixes
+            3rdParty::X11::xkbcommon
+            3rdParty::X11::xkbcommon_X11
+            xcb-xinput
+    )
+
 else()
 
     message(FATAL_ERROR, "Linux Window Manager ${PAL_TRAIT_LINUX_WINDOW_MANAGER} is not recognized")
