@@ -54,7 +54,7 @@ namespace AzFramework
         ProcessRawEventQueues();
     }
 
-    void SDLInputDeviceKeyboard::HandleSDLEvent()
+    void SDLInputDeviceKeyboard::HandleSDLEvent(const SDL_Event& event)
     {
         if (!m_initialized)
         {

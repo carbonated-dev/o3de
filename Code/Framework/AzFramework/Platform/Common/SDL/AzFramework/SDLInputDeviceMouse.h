@@ -65,7 +65,7 @@ namespace AzFramework
         void TickInputDevice() override;
 
         //! Handle X11 events.
-        void HandleSDLEvent() override;
+        void HandleSDLEvent(const SDL_Event& event) override;
 
         //! Initialize XFixes extension. Used for barriers.
         static bool InitializeXFixes();
@@ -107,6 +107,8 @@ namespace AzFramework
         {
             return value < 0 ? 0 : value;
         }
+
+        const InputChannelId* InputChannelFromSDLButton(uint8_t button) const;
 
     private:
         //! The current system cursor state

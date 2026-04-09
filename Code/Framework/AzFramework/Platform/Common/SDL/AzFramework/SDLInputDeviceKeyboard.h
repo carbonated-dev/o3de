@@ -30,7 +30,7 @@ namespace AzFramework
         void TextEntryStop() override;
         void TickInputDevice() override;
 
-        void HandleSDLEvent() override;
+        void HandleSDLEvent(const SDL_Event& event) override;
 
     private:
         [[nodiscard]] const InputChannelId* InputChannelFromKeyEvent() const;

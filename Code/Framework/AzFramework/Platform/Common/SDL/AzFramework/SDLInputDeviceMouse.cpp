@@ -11,10 +11,12 @@
 #include <AzFramework/SDLConnectionManager.h>
 #include <AzFramework/SDLInputDeviceMouse.h>
 
+#include <SDL2/SDL.h>
+
 namespace AzFramework
 {
-    bool SDLInputDeviceMouse::m_xfixesInitialized = false;
-    bool SDLInputDeviceMouse::m_xInputInitialized = false;
+    bool SDLInputDeviceMouse::m_xfixesInitialized = true;
+    bool SDLInputDeviceMouse::m_xInputInitialized = true;
 
     SDLInputDeviceMouse::SDLInputDeviceMouse(InputDeviceMouse& inputDevice)
         : InputDeviceMouse::Implementation(inputDevice)
@@ -43,20 +45,6 @@ namespace AzFramework
             return nullptr;
         }
 
-        // Initialize XFixes extension which we use to create pointer barriers.
-        if (!InitializeXFixes())
-        {
-            AZ_Warning("SDLInput", false, "SDL XFixes initialization failed");
-            return nullptr;
-        }
-
-        // Initialize XInput extension which is used to get RAW Input events.
-        if (!InitializeXInput())
-        {
-            AZ_Warning("SDLInput", false, "SDL XInput initialization failed");
-            return nullptr;
-        }
-
         return aznew SDLInputDeviceMouse(inputDevice);
     }
 
@@ -78,34 +66,43 @@ namespace AzFramework
 
     bool SDLInputDeviceMouse::InitializeXFixes()
     {
-        m_xfixesInitialized = false;
-
         return m_xfixesInitialized;
     }
 
     bool SDLInputDeviceMouse::InitializeXInput()
     {
-        m_xInputInitialized = false;
-
         return m_xInputInitialized;
     }
 
     void SDLInputDeviceMouse::SetSystemCursorState(SystemCursorState systemCursorState)
     {
+        if (m_systemCursorState != systemCursorState)
+        {
+            m_systemCursorState = systemCursorState;
+            HandleCursorState(systemCursorState);
+        }
     }
 
     void SDLInputDeviceMouse::HandleCursorState(SystemCursorState systemCursorState)
     {
-        if (m_captureCursor)
-        {
-            const bool confined = (systemCursorState == SystemCursorState::ConstrainedAndHidden) ||
-                (systemCursorState == SystemCursorState::ConstrainedAndVisible);
-            const bool cursorShown = (systemCursorState == SystemCursorState::ConstrainedAndVisible) ||
-                (systemCursorState == SystemCursorState::UnconstrainedAndVisible);
+        //bool confined = (systemCursorState == SystemCursorState::ConstrainedAndHidden) ||
+        //                (systemCursorState == SystemCursorState::ConstrainedAndVisible);
 
-            CreateBarriers(confined);
-            ShowCursor(cursorShown);
+        bool visible = (systemCursorState == SystemCursorState::ConstrainedAndVisible) ||
+                       (systemCursorState == SystemCursorState::UnconstrainedAndVisible) ||
+                       (systemCursorState == SystemCursorState::Unknown);
+
+        if (systemCursorState == SystemCursorState::ConstrainedAndHidden)
+        {
+            SDL_SetRelativeMouseMode(SDL_TRUE);
         }
+        else
+        {
+            SDL_SetRelativeMouseMode(SDL_FALSE);
+            SDL_ShowCursor(visible ? SDL_ENABLE : SDL_DISABLE);
+        }
+        
+        m_cursorShown = visible;
     }
 
     SystemCursorState SDLInputDeviceMouse::GetSystemCursorState() const
@@ -119,6 +116,15 @@ namespace AzFramework
 
     void SDLInputDeviceMouse::SetSystemCursorPositionNormalized(AZ::Vector2 positionNormalized)
     {
+        SDL_Window* window = SDL_GetMouseFocus();
+        if (!window) return;
+
+        int w, h;
+        SDL_GetWindowSize(window, &w, &h);
+        
+        SDL_WarpMouseInWindow(window, 
+            static_cast<int>(positionNormalized.GetX() * w), 
+            static_cast<int>(positionNormalized.GetY() * h));
     }
 
     AZ::Vector2 SDLInputDeviceMouse::GetSystemCursorPositionNormalizedInternal() const
@@ -130,9 +136,14 @@ namespace AzFramework
 
     AZ::Vector2 SDLInputDeviceMouse::GetSystemCursorPositionNormalized() const
     {
-        AZ::Vector2 position = AZ::Vector2::CreateZero();
+        int x, y, w, h;
+        SDL_Window* window = SDL_GetMouseFocus();
+        if (!window) return AZ::Vector2::CreateZero();
 
-        return position;
+        SDL_GetMouseState(&x, &y);
+        SDL_GetWindowSize(window, &w, &h);
+
+        return AZ::Vector2(static_cast<float>(x) / w, static_cast<float>(y) / h);
     }
 
     void SDLInputDeviceMouse::TickInputDevice()
@@ -152,7 +163,54 @@ namespace AzFramework
     {
     }
 
-    void SDLInputDeviceMouse::HandleSDLEvent()
+    void SDLInputDeviceMouse::HandleSDLEvent(const SDL_Event& event)
     {
+        switch (event.type)
+        {
+            case SDL_MOUSEBUTTONDOWN:
+            case SDL_MOUSEBUTTONUP:
+            {
+                const auto* buttonId = InputChannelFromSDLButton(event.button.button);
+                if (buttonId)
+                {
+                    QueueRawButtonEvent(*buttonId, event.type == SDL_MOUSEBUTTONDOWN);
+                }
+                break;
+            }
+            case SDL_MOUSEMOTION:
+            {
+                // Если мы в Relative Mode (курсор скрыт и захвачен), используем xrel/yrel
+                if (SDL_GetRelativeMouseMode())
+                {
+                    QueueRawMovementEvent(InputDeviceMouse::Movement::X, static_cast<float>(event.motion.xrel));
+                    QueueRawMovementEvent(InputDeviceMouse::Movement::Y, static_cast<float>(event.motion.yrel));
+                }
+                else
+                {
+                    // Обычное движение (абсолютные координаты внутри окна)
+                    // O3DE ожидает дельту для осей Movement::X/Y в Raw событиях
+                    QueueRawMovementEvent(InputDeviceMouse::Movement::X, static_cast<float>(event.motion.xrel));
+                    QueueRawMovementEvent(InputDeviceMouse::Movement::Y, static_cast<float>(event.motion.yrel));
+                }
+                break;
+            }
+            case SDL_MOUSEWHEEL:
+            {
+                float delta = static_cast<float>(event.wheel.y) * MAX_XI_WHEEL_SENSITIVITY;
+                QueueRawMovementEvent(InputDeviceMouse::Movement::Z, delta);
+                break;
+            }
+        }
     }
+
+    const InputChannelId* SDLInputDeviceMouse::InputChannelFromSDLButton(uint8_t button) const
+    {
+        switch (button)
+        {
+            case SDL_BUTTON_LEFT:   return &InputDeviceMouse::Button::Left;
+            case SDL_BUTTON_MIDDLE: return &InputDeviceMouse::Button::Middle;
+            case SDL_BUTTON_RIGHT:  return &InputDeviceMouse::Button::Right;
+            default: return nullptr;
+        }
+    }    
 } // namespace AzFramework
