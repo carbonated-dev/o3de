@@ -56,13 +56,11 @@ namespace AZ
 
             if (SDL_Vulkan_CreateSurface(window, instance.GetNativeInstance(), &m_nativeSurface) == SDL_TRUE)
             {
-                AZ_Warning("SDL_Vulkan_CreateSurface", false, "RHI::ResultCode::Success");
                 return RHI::ResultCode::Success;
             }
             else
             {
-                AZ_Warning("SDL_Vulkan_CreateSurface", false, "RHI::ResultCode::Fail");
-                AZ_Assert(false, "SDL could not create Vulkan surface");
+                AZ_Assert(false, "SDL could not create Vulkan surface %s", SDL_GetError());
                 return RHI::ResultCode::Fail;
             }
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND

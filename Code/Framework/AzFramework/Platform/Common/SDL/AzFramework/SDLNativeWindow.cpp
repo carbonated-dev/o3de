@@ -53,6 +53,7 @@ namespace AzFramework
         }
 
         m_window = SDL_CreateWindow(title.c_str(), geometry.m_posX, geometry.m_posY, geometry.m_width, geometry.m_height, sdlFlags);
+        SDLConnectionManagerInterface::Get()->SetApplicationWindow(this);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -85,6 +86,8 @@ namespace AzFramework
         if (m_activated) // nothing to do if window was already deactivated
         {
             m_activated = false;
+
+            WindowNotificationBus::Event(reinterpret_cast<NativeWindowHandle>(m_window), &WindowNotificationBus::Events::OnWindowClosed);
         }
         SDLEventHandlerBus::Handler::BusDisconnect();
     }

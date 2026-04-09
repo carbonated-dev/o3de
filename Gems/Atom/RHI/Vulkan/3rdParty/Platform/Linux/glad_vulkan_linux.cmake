@@ -16,7 +16,7 @@ elseif(PAL_TRAIT_LINUX_WINDOW_MANAGER STREQUAL "wayland")
     )
 elseif (${PAL_TRAIT_LINUX_WINDOW_MANAGER} STREQUAL "sdl") # CARBONATED
     set(GLAD_VULKAN_COMPILE_DEFINITIONS 
-        VK_USE_PLATFORM_XCB_KHR
+        VK_USE_PLATFORM_XLIB_KHR
     )
 else()
     message(FATAL_ERROR, "Linux Window Manager ${PAL_TRAIT_LINUX_WINDOW_MANAGER} is not recognized")
