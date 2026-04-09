@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include <xcb/xcb.h>
-
 #include <AzCore/std/smart_ptr/unique_ptr.h>
 
 namespace AzFramework
@@ -20,7 +18,7 @@ namespace AzFramework
     // Using a type instead of a function pointer by value prevents the need to
     // copy the pointer when copying the smart poiner.
     template<auto Callable>
-    struct XcbDeleterFreeFunctionWrapper
+    struct SDLDeleterFreeFunctionWrapper
     {
         using value_type = decltype(Callable);
         static constexpr value_type s_value = Callable;
@@ -31,8 +29,8 @@ namespace AzFramework
     };
 
     template<typename T, auto fn>
-    using XcbUniquePtr = AZStd::unique_ptr<T, XcbDeleterFreeFunctionWrapper<fn>>;
+    using SDLUniquePtr = AZStd::unique_ptr<T, SDLDeleterFreeFunctionWrapper<fn>>;
 
     template<typename T>
-    using XcbStdFreePtr = XcbUniquePtr<T, ::free>;
+    using SDLStdFreePtr = SDLUniquePtr<T, ::free>;
 } // namespace AzFramework

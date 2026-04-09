@@ -47,10 +47,10 @@ namespace AZ
             return ConvertResult(result);
 #elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
             xcb_connection_t* xcb_connection = nullptr;
-            if (auto xcbConnectionManager = AzFramework::XcbConnectionManagerInterface::Get();
-                xcbConnectionManager != nullptr)
+            if (auto sdlConnectionManager = AzFramework::SDLConnectionManagerInterface::Get();
+                sdlConnectionManager != nullptr)
             {
-                xcb_connection = xcbConnectionManager->GetXcbConnection();
+                xcb_connection = sdlConnectionManager->GetXcbConnection();
             }
             AZ_Error("AtomVulkan_RHI", xcb_connection!=nullptr, "Unable to get XCB Connection");
 

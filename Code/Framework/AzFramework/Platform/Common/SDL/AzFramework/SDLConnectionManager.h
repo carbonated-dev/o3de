@@ -16,12 +16,12 @@
 
 namespace AzFramework
 {
-    class XcbConnectionManager
+    class SDLConnectionManager
     {
     public:
-        AZ_RTTI(XcbConnectionManager, "{1F756E14-8D74-42FD-843C-4863307710DB}");
+        AZ_RTTI(SDLConnectionManager, "{036AC6B2-84E7-431D-93A8-29FC3B830A2D}");
 
-        virtual ~XcbConnectionManager() = default;
+        virtual ~SDLConnectionManager() = default;
 
         virtual xcb_connection_t* GetXcbConnection() const = 0;
 
@@ -29,7 +29,7 @@ namespace AzFramework
         virtual void SetEnableXInput(xcb_connection_t* connection, bool enable) = 0;
     };
 
-    class XcbConnectionManagerBusTraits
+    class SDLConnectionManagerBusTraits
         : public AZ::EBusTraits
     {
     public:
@@ -40,6 +40,6 @@ namespace AzFramework
         //////////////////////////////////////////////////////////////////////////
     };
 
-    using XcbConnectionManagerBus = AZ::EBus<XcbConnectionManager, XcbConnectionManagerBusTraits>;
-    using XcbConnectionManagerInterface = AZ::Interface<XcbConnectionManager>;
+    using SDLConnectionManagerBus = AZ::EBus<SDLConnectionManager, SDLConnectionManagerBusTraits>;
+    using SDLConnectionManagerInterface = AZ::Interface<SDLConnectionManager>;
 } // namespace AzFramework

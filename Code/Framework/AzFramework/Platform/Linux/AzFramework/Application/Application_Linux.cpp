@@ -44,7 +44,7 @@ namespace AzFramework
 #if PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
         return aznew XcbApplication();
 #elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
-        return aznew XcbApplication();
+        return aznew SDLApplication();
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
         #error "Linux Window Manager Wayland not supported."
         return nullptr;

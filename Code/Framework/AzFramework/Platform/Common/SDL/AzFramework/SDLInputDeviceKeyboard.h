@@ -18,15 +18,15 @@ struct xcb_xkb_state_notify_event_t;
 
 namespace AzFramework
 {
-    class XcbInputDeviceKeyboard
+    class SDLInputDeviceKeyboard
         : public InputDeviceKeyboard::Implementation
-        , public XcbEventHandlerBus::Handler
+        , public SDLEventHandlerBus::Handler
     {
     public:
-        AZ_CLASS_ALLOCATOR(XcbInputDeviceKeyboard, AZ::SystemAllocator);
+        AZ_CLASS_ALLOCATOR(SDLInputDeviceKeyboard, AZ::SystemAllocator);
 
         using InputDeviceKeyboard::Implementation::Implementation;
-        XcbInputDeviceKeyboard(InputDeviceKeyboard& inputDevice);
+        SDLInputDeviceKeyboard(InputDeviceKeyboard& inputDevice);
 
         bool IsConnected() const override;
 
@@ -35,7 +35,7 @@ namespace AzFramework
         void TextEntryStop() override;
         void TickInputDevice() override;
 
-        void HandleXcbEvent(xcb_generic_event_t* event) override;
+        void HandleSDLEvent(xcb_generic_event_t* event) override;
 
     private:
         [[nodiscard]] const InputChannelId* InputChannelFromKeyEvent(xcb_keycode_t code) const;
@@ -44,9 +44,9 @@ namespace AzFramework
 
         void UpdateState(const xcb_xkb_state_notify_event_t* state);
 
-        XcbUniquePtr<xkb_context, xkb_context_unref> m_xkbContext;
-        XcbUniquePtr<xkb_keymap, xkb_keymap_unref> m_xkbKeymap;
-        XcbUniquePtr<xkb_state, xkb_state_unref> m_xkbState;
+        SDLUniquePtr<xkb_context, xkb_context_unref> m_xkbContext;
+        SDLUniquePtr<xkb_keymap, xkb_keymap_unref> m_xkbKeymap;
+        SDLUniquePtr<xkb_state, xkb_state_unref> m_xkbState;
         int m_coreDeviceId{-1};
         uint8_t m_xkbEventCode{0};
         bool m_initialized{false};

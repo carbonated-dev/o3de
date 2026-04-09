@@ -15,19 +15,19 @@
 
 namespace AzFramework
 {
-    static constexpr inline uint8_t s_XcbResponseTypeMask = 0x7f; // Mask to extract the specific event type from an xcb event
+    static constexpr inline uint8_t s_SDLResponseTypeMask = 0x7f; // Mask to extract the specific event type from an xcb event
 
-    class XcbEventHandler
+    class SDLEventHandler
     {
     public:
-        AZ_RTTI(XcbEventHandler, "{3F756E14-8D74-42FD-843C-4863307710DB}");
+        AZ_RTTI(SDLEventHandler, "{0F1CB937-421E-4A68-8778-F3319A0DC698}");
 
-        virtual ~XcbEventHandler() = default;
+        virtual ~SDLEventHandler() = default;
 
-        virtual void HandleXcbEvent(xcb_generic_event_t* event) = 0;
+        virtual void HandleSDLEvent(xcb_generic_event_t* event) = 0;
     };
 
-    class XcbEventHandlerBusTraits : public AZ::EBusTraits
+    class SDLEventHandlerBusTraits : public AZ::EBusTraits
     {
     public:
         //////////////////////////////////////////////////////////////////////////
@@ -37,5 +37,5 @@ namespace AzFramework
         //////////////////////////////////////////////////////////////////////////
     };
 
-    using XcbEventHandlerBus = AZ::EBus<XcbEventHandler, XcbEventHandlerBusTraits>;
+    using SDLEventHandlerBus = AZ::EBus<SDLEventHandler, SDLEventHandlerBusTraits>;
 } // namespace AzFramework

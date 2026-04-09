@@ -15,20 +15,20 @@
 namespace AzFramework
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    class XcbConnectionManagerImpl
-        : public XcbConnectionManagerBus::Handler
+    class SDLConnectionManagerImpl
+        : public SDLConnectionManagerBus::Handler
     {
     public:
-        XcbConnectionManagerImpl()
+        SDLConnectionManagerImpl()
             : m_xcbConnection(xcb_connect(nullptr, nullptr))
         {
             AZ_Error("Application", m_xcbConnection != nullptr, "Unable to connect to X11 Server.");
-            XcbConnectionManagerBus::Handler::BusConnect();
+            SDLConnectionManagerBus::Handler::BusConnect();
         }
 
-        ~XcbConnectionManagerImpl() override
+        ~SDLConnectionManagerImpl() override
         {
-            XcbConnectionManagerBus::Handler::BusDisconnect();
+            SDLConnectionManagerBus::Handler::BusDisconnect();
         }
 
         xcb_connection_t* GetXcbConnection() const override
@@ -62,51 +62,51 @@ namespace AzFramework
         }
 
     private:
-        XcbUniquePtr<xcb_connection_t, xcb_disconnect> m_xcbConnection = nullptr;
+        SDLUniquePtr<xcb_connection_t, xcb_disconnect> m_xcbConnection = nullptr;
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    XcbApplication::XcbApplication()
+    SDLApplication::SDLApplication()
     {
         LinuxLifecycleEvents::Bus::Handler::BusConnect();
-        m_xcbConnectionManager = AZStd::make_unique<XcbConnectionManagerImpl>();
-        if (XcbConnectionManagerInterface::Get() == nullptr)
+        m_sdlConnectionManager = AZStd::make_unique<SDLConnectionManagerImpl>();
+        if (SDLConnectionManagerInterface::Get() == nullptr)
         {
-            XcbConnectionManagerInterface::Register(m_xcbConnectionManager.get());
+            SDLConnectionManagerInterface::Register(m_sdlConnectionManager.get());
         }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    XcbApplication::~XcbApplication()
+    SDLApplication::~SDLApplication()
     {
-        if (XcbConnectionManagerInterface::Get() == m_xcbConnectionManager.get())
+        if (SDLConnectionManagerInterface::Get() == m_sdlConnectionManager.get())
         {
-            XcbConnectionManagerInterface::Unregister(m_xcbConnectionManager.get());
+            SDLConnectionManagerInterface::Unregister(m_sdlConnectionManager.get());
         }
-        m_xcbConnectionManager.reset();
+        m_sdlConnectionManager.reset();
         LinuxLifecycleEvents::Bus::Handler::BusDisconnect();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    void XcbApplication::PumpSystemEventLoopOnce()
+    void SDLApplication::PumpSystemEventLoopOnce()
     {
-        if (xcb_connection_t* xcbConnection = m_xcbConnectionManager->GetXcbConnection())
+        if (xcb_connection_t* xcbConnection = m_sdlConnectionManager->GetXcbConnection())
         {
-            if (auto event = XcbStdFreePtr<xcb_generic_event_t>{xcb_poll_for_event(xcbConnection)})
+            if (auto event = SDLStdFreePtr<xcb_generic_event_t>{xcb_poll_for_event(xcbConnection)})
             {
-                XcbEventHandlerBus::Broadcast(&XcbEventHandlerBus::Events::HandleXcbEvent, event.get());
+                SDLEventHandlerBus::Broadcast(&SDLEventHandlerBus::Events::HandleSDLEvent, event.get());
             }
         }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    void XcbApplication::PumpSystemEventLoopUntilEmpty()
+    void SDLApplication::PumpSystemEventLoopUntilEmpty()
     {
-        if (xcb_connection_t* xcbConnection = m_xcbConnectionManager->GetXcbConnection())
+        if (xcb_connection_t* xcbConnection = m_sdlConnectionManager->GetXcbConnection())
         {
-            while (auto event = XcbStdFreePtr<xcb_generic_event_t>{xcb_poll_for_event(xcbConnection)})
+            while (auto event = SDLStdFreePtr<xcb_generic_event_t>{xcb_poll_for_event(xcbConnection)})
             {
-                XcbEventHandlerBus::Broadcast(&XcbEventHandlerBus::Events::HandleXcbEvent, event.get());
+                SDLEventHandlerBus::Broadcast(&SDLEventHandlerBus::Events::HandleSDLEvent, event.get());
             }
         }
     }

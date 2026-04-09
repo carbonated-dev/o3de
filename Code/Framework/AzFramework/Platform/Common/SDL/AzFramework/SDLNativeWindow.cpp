@@ -16,7 +16,7 @@
 
 namespace AzFramework
 {
-    [[maybe_unused]] const char XcbErrorWindow[] = "XcbNativeWindow";
+    [[maybe_unused]] const char XcbErrorWindow[] = "SDLNativeWindow";
     static constexpr uint8_t s_XcbFormatDataSize = 32; // Format indicator for xcb for client messages
     static constexpr uint16_t s_DefaultXcbWindowBorderWidth = 4; // The default border with in pixels if a border was specified
 
@@ -25,21 +25,21 @@ namespace AzFramework
 #define _NET_WM_STATE_TOGGLE 2l
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    XcbNativeWindow::XcbNativeWindow()
+    SDLNativeWindow::SDLNativeWindow()
         : NativeWindow::Implementation()
         , m_xcbConnection(nullptr)
         , m_xcbRootScreen(nullptr)
         , m_xcbWindow(XCB_NONE)
     {
-        if (auto xcbConnectionManager = AzFramework::XcbConnectionManagerInterface::Get(); xcbConnectionManager != nullptr)
+        if (auto sdlConnectionManager = AzFramework::SDLConnectionManagerInterface::Get(); sdlConnectionManager != nullptr)
         {
-            m_xcbConnection = xcbConnectionManager->GetXcbConnection();
+            m_xcbConnection = sdlConnectionManager->GetXcbConnection();
         }
         AZ_Error(XcbErrorWindow, m_xcbConnection != nullptr, "Unable to get XCB Connection");
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    XcbNativeWindow::~XcbNativeWindow()
+    SDLNativeWindow::~SDLNativeWindow()
     {
         if (XCB_NONE != m_xcbWindow)
         {
@@ -48,7 +48,7 @@ namespace AzFramework
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    void XcbNativeWindow::InitWindowInternal(const AZStd::string& title, const WindowGeometry& geometry, const WindowStyleMasks& styleMasks)
+    void SDLNativeWindow::InitWindowInternal(const AZStd::string& title, const WindowGeometry& geometry, const WindowStyleMasks& styleMasks)
     {
         // Get the parent window
         const xcb_setup_t* xcbSetup = xcb_get_setup(m_xcbConnection);
@@ -112,10 +112,10 @@ namespace AzFramework
         xcb_flush(m_xcbConnection);
     }
 
-    xcb_atom_t XcbNativeWindow::GetAtom(const char* atomName)
+    xcb_atom_t SDLNativeWindow::GetAtom(const char* atomName)
     {
         xcb_intern_atom_cookie_t intern_atom_cookie = xcb_intern_atom(m_xcbConnection, 0, strlen(atomName), atomName);
-        XcbStdFreePtr<xcb_intern_atom_reply_t> xkbinternAtom{ xcb_intern_atom_reply(m_xcbConnection, intern_atom_cookie, NULL) };
+        SDLStdFreePtr<xcb_intern_atom_reply_t> xkbinternAtom{ xcb_intern_atom_reply(m_xcbConnection, intern_atom_cookie, NULL) };
 
         if (!xkbinternAtom)
         {
@@ -126,10 +126,10 @@ namespace AzFramework
         return xkbinternAtom->atom;
     }
 
-    int XcbNativeWindow::SetAtom(xcb_window_t window, xcb_atom_t atom, xcb_atom_t type, size_t len, void* data)
+    int SDLNativeWindow::SetAtom(xcb_window_t window, xcb_atom_t atom, xcb_atom_t type, size_t len, void* data)
     {
         xcb_void_cookie_t cookie = xcb_change_property_checked(m_xcbConnection, XCB_PROP_MODE_REPLACE, window, atom, type, 32, len, data);
-        XcbStdFreePtr<xcb_generic_error_t> xkbError{ xcb_request_check(m_xcbConnection, cookie) };
+        SDLStdFreePtr<xcb_generic_error_t> xkbError{ xcb_request_check(m_xcbConnection, cookie) };
 
         if (!xkbError)
         {
@@ -141,7 +141,7 @@ namespace AzFramework
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void XcbNativeWindow::InitializeAtoms()
+    void SDLNativeWindow::InitializeAtoms()
     {
 
         _NET_ACTIVE_WINDOW = GetAtom("_NET_ACTIVE_WINDOW");
@@ -178,12 +178,12 @@ namespace AzFramework
         _NET_WM_PID = GetAtom("_NET_WM_PID");
     }
 
-    void XcbNativeWindow::GetWMStates()
+    void SDLNativeWindow::GetWMStates()
     {
         xcb_get_property_cookie_t cookie = xcb_get_property(m_xcbConnection, 0, m_xcbWindow, _NET_WM_STATE, XCB_ATOM_ATOM, 0, 1024);
 
         xcb_generic_error_t* error = nullptr;
-        XcbStdFreePtr<xcb_get_property_reply_t> xkbGetPropertyReply{ xcb_get_property_reply(m_xcbConnection, cookie, &error) };
+        SDLStdFreePtr<xcb_get_property_reply_t> xkbGetPropertyReply{ xcb_get_property_reply(m_xcbConnection, cookie, &error) };
 
         if (!xkbGetPropertyReply || error || !((xkbGetPropertyReply->format == 32) && (xkbGetPropertyReply->type == XCB_ATOM_ATOM)))
         {
@@ -220,9 +220,9 @@ namespace AzFramework
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    void XcbNativeWindow::Activate()
+    void SDLNativeWindow::Activate()
     {
-        XcbEventHandlerBus::Handler::BusConnect();
+        SDLEventHandlerBus::Handler::BusConnect();
 
         if (!m_activated) // nothing to do if window was already activated
         {
@@ -234,7 +234,7 @@ namespace AzFramework
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    void XcbNativeWindow::Deactivate()
+    void SDLNativeWindow::Deactivate()
     {
         if (m_activated) // nothing to do if window was already deactivated
         {
@@ -245,17 +245,17 @@ namespace AzFramework
             xcb_unmap_window(m_xcbConnection, m_xcbWindow);
             xcb_flush(m_xcbConnection);
         }
-        XcbEventHandlerBus::Handler::BusDisconnect();
+        SDLEventHandlerBus::Handler::BusDisconnect();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    NativeWindowHandle XcbNativeWindow::GetWindowHandle() const
+    NativeWindowHandle SDLNativeWindow::GetWindowHandle() const
     {
         return reinterpret_cast<NativeWindowHandle>(m_xcbWindow);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    void XcbNativeWindow::SetWindowTitle(const AZStd::string& title)
+    void SDLNativeWindow::SetWindowTitle(const AZStd::string& title)
     {
         // Set the title of both the window and the task bar by using
         // a buffer to hold the title twice, separated by a null-terminator
@@ -272,7 +272,7 @@ namespace AzFramework
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    void XcbNativeWindow::ResizeClientArea(WindowSize clientAreaSize, const WindowPosOptions& options)
+    void SDLNativeWindow::ResizeClientArea(WindowSize clientAreaSize, const WindowPosOptions& options)
     {
         const uint32_t values[] = { clientAreaSize.m_width, clientAreaSize.m_height };
         
@@ -292,13 +292,13 @@ namespace AzFramework
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    bool XcbNativeWindow::SupportsClientAreaResize() const
+    bool SDLNativeWindow::SupportsClientAreaResize() const
     {
         return true;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    uint32_t XcbNativeWindow::GetDisplayRefreshRate() const
+    uint32_t SDLNativeWindow::GetDisplayRefreshRate() const
     {
         // [GFX TODO][GHI - 2678]
         // Using 60 for now until proper support is added
@@ -306,12 +306,12 @@ namespace AzFramework
         return 60;
     }
 
-    bool XcbNativeWindow::GetFullScreenState() const
+    bool SDLNativeWindow::GetFullScreenState() const
     {
         return m_fullscreenState;
     }
 
-    void XcbNativeWindow::SetFullScreenState(bool fullScreenState)
+    void SDLNativeWindow::SetFullScreenState(bool fullScreenState)
     {
         // TODO This is a pretty basic full-screen implementation using WM's _NET_WM_STATE_FULLSCREEN state.
         // Do we have to provide also the old way?
@@ -372,7 +372,7 @@ namespace AzFramework
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    bool XcbNativeWindow::ValidateXcbResult(xcb_void_cookie_t cookie)
+    bool SDLNativeWindow::ValidateXcbResult(xcb_void_cookie_t cookie)
     {
         bool result = true;
         if (xcb_generic_error_t* error = xcb_request_check(m_xcbConnection, cookie))
@@ -384,9 +384,9 @@ namespace AzFramework
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    void XcbNativeWindow::HandleXcbEvent(xcb_generic_event_t* event)
+    void SDLNativeWindow::HandleSDLEvent(xcb_generic_event_t* event)
     {
-        switch (event->response_type & s_XcbResponseTypeMask)
+        switch (event->response_type & s_SDLResponseTypeMask)
         {
         case XCB_CONFIGURE_NOTIFY:
             {
@@ -426,7 +426,7 @@ namespace AzFramework
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    void XcbNativeWindow::WindowSizeChanged(const uint32_t width, const uint32_t height)
+    void SDLNativeWindow::WindowSizeChanged(const uint32_t width, const uint32_t height)
     {
         if (m_width != width || m_height != height)
         {

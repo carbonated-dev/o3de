@@ -31,7 +31,7 @@ namespace AzFramework
         // Get the atom for the _NET_ACTIVE_WINDOW property
         constexpr int propertyNameLength = 18;
         xcb_generic_error_t* error = nullptr;
-        XcbStdFreePtr<xcb_intern_atom_reply_t> activeWindowAtom {xcb_intern_atom_reply(
+        SDLStdFreePtr<xcb_intern_atom_reply_t> activeWindowAtom {xcb_intern_atom_reply(
             connection,
             xcb_intern_atom(connection, /*only_if_exists=*/ 1, propertyNameLength, "_NET_ACTIVE_WINDOW"),
             &error
@@ -50,7 +50,7 @@ namespace AzFramework
         const xcb_window_t rootWId = xcb_setup_roots_iterator(xcb_get_setup(connection)).data->root;
 
         // Fetch the value of the root window's _NET_ACTIVE_WINDOW property
-        XcbStdFreePtr<xcb_get_property_reply_t> property {xcb_get_property_reply(
+        SDLStdFreePtr<xcb_get_property_reply_t> property {xcb_get_property_reply(
             connection,
             xcb_get_property(
                 /*c=*/connection,
@@ -77,33 +77,33 @@ namespace AzFramework
         return *static_cast<xcb_window_t*>(xcb_get_property_value(property.get()));
     }
 
-    xcb_connection_t* XcbInputDeviceMouse::s_xcbConnection = nullptr;
-    xcb_screen_t* XcbInputDeviceMouse::s_xcbScreen = nullptr;
-    bool XcbInputDeviceMouse::m_xfixesInitialized = false;
-    bool XcbInputDeviceMouse::m_xInputInitialized = false;
+    xcb_connection_t* SDLInputDeviceMouse::s_xcbConnection = nullptr;
+    xcb_screen_t* SDLInputDeviceMouse::s_xcbScreen = nullptr;
+    bool SDLInputDeviceMouse::m_xfixesInitialized = false;
+    bool SDLInputDeviceMouse::m_xInputInitialized = false;
 
-    XcbInputDeviceMouse::XcbInputDeviceMouse(InputDeviceMouse& inputDevice)
+    SDLInputDeviceMouse::SDLInputDeviceMouse(InputDeviceMouse& inputDevice)
         : InputDeviceMouse::Implementation(inputDevice)
         , m_systemCursorState(SystemCursorState::Unknown)
         , m_systemCursorPositionNormalized(0.5f, 0.5f)
         , m_focusWindow(XCB_WINDOW_NONE)
         , m_cursorShown(true)
     {
-        XcbEventHandlerBus::Handler::BusConnect();
+        SDLEventHandlerBus::Handler::BusConnect();
 
         SetSystemCursorState(SystemCursorState::Unknown);
     }
 
-    XcbInputDeviceMouse::~XcbInputDeviceMouse()
+    SDLInputDeviceMouse::~SDLInputDeviceMouse()
     {
-        XcbEventHandlerBus::Handler::BusDisconnect();
+        SDLEventHandlerBus::Handler::BusDisconnect();
 
         SetSystemCursorState(SystemCursorState::Unknown);
     }
 
-    InputDeviceMouse::Implementation* XcbInputDeviceMouse::Create(InputDeviceMouse& inputDevice)
+    InputDeviceMouse::Implementation* SDLInputDeviceMouse::Create(InputDeviceMouse& inputDevice)
     {
-        const auto* interface = AzFramework::XcbConnectionManagerInterface::Get();
+        const auto* interface = AzFramework::SDLConnectionManagerInterface::Get();
         if (!interface)
         {
             AZ_Warning("XcbInput", false, "XCB interface not available");
@@ -139,15 +139,15 @@ namespace AzFramework
             return nullptr;
         }
 
-        return aznew XcbInputDeviceMouse(inputDevice);
+        return aznew SDLInputDeviceMouse(inputDevice);
     }
 
-    bool XcbInputDeviceMouse::IsConnected() const
+    bool SDLInputDeviceMouse::IsConnected() const
     {
         return true;
     }
 
-    void XcbInputDeviceMouse::CreateBarriers(xcb_window_t window, bool create)
+    void SDLInputDeviceMouse::CreateBarriers(xcb_window_t window, bool create)
     {
         // Don't create any barriers if we are debugging. This will cause artifacts but better then
         // a confined cursor during debugging.
@@ -171,7 +171,7 @@ namespace AzFramework
             }
 
             // Get window information.
-            const XcbStdFreePtr<xcb_get_geometry_reply_t> xcbGeometryReply{ xcb_get_geometry_reply(
+            const SDLStdFreePtr<xcb_get_geometry_reply_t> xcbGeometryReply{ xcb_get_geometry_reply(
                 s_xcbConnection, xcb_get_geometry(s_xcbConnection, window), nullptr) };
 
             if (!xcbGeometryReply)
@@ -182,7 +182,7 @@ namespace AzFramework
             const xcb_translate_coordinates_cookie_t translate_coord =
                 xcb_translate_coordinates(s_xcbConnection, window, s_xcbScreen->root, 0, 0);
 
-            const XcbStdFreePtr<xcb_translate_coordinates_reply_t> xkbTranslateCoordReply{ xcb_translate_coordinates_reply(
+            const SDLStdFreePtr<xcb_translate_coordinates_reply_t> xkbTranslateCoordReply{ xcb_translate_coordinates_reply(
                 s_xcbConnection, translate_coord, nullptr) };
 
             if (!xkbTranslateCoordReply)
@@ -220,7 +220,7 @@ namespace AzFramework
             {
                 xcb_void_cookie_t cookie = xcb_xfixes_create_pointer_barrier_checked(
                     s_xcbConnection, barrier.id, window, barrier.x0, barrier.y0, barrier.x1, barrier.y1, barrier.direction, 0, nullptr);
-                const XcbStdFreePtr<xcb_generic_error_t> xcbError{ xcb_request_check(s_xcbConnection, cookie) };
+                const SDLStdFreePtr<xcb_generic_error_t> xcbError{ xcb_request_check(s_xcbConnection, cookie) };
 
                 AZ_Warning(
                     "XcbInput", !xcbError, "XFixes, failed to create barrier %d at (%d %d %d %d)", barrier.id, barrier.x0, barrier.y0,
@@ -240,7 +240,7 @@ namespace AzFramework
         xcb_flush(s_xcbConnection);
     }
 
-    bool XcbInputDeviceMouse::InitializeXFixes()
+    bool SDLInputDeviceMouse::InitializeXFixes()
     {
         m_xfixesInitialized = false;
 
@@ -254,7 +254,7 @@ namespace AzFramework
         const xcb_xfixes_query_version_cookie_t query_cookie = xcb_xfixes_query_version(s_xcbConnection, 5, 0);
 
         xcb_generic_error_t* error = nullptr;
-        const XcbStdFreePtr<xcb_xfixes_query_version_reply_t> xkbQueryRequestReply{ xcb_xfixes_query_version_reply(
+        const SDLStdFreePtr<xcb_xfixes_query_version_reply_t> xkbQueryRequestReply{ xcb_xfixes_query_version_reply(
             s_xcbConnection, query_cookie, &error) };
 
         if (!xkbQueryRequestReply || error)
@@ -277,7 +277,7 @@ namespace AzFramework
         return m_xfixesInitialized;
     }
 
-    bool XcbInputDeviceMouse::InitializeXInput()
+    bool SDLInputDeviceMouse::InitializeXInput()
     {
         m_xInputInitialized = false;
 
@@ -291,7 +291,7 @@ namespace AzFramework
         const xcb_input_xi_query_version_cookie_t query_version_cookie = xcb_input_xi_query_version(s_xcbConnection, 2, 2);
 
         xcb_generic_error_t* error = nullptr;
-        const XcbStdFreePtr<xcb_input_xi_query_version_reply_t> xkbQueryRequestReply{ xcb_input_xi_query_version_reply(
+        const SDLStdFreePtr<xcb_input_xi_query_version_reply_t> xkbQueryRequestReply{ xcb_input_xi_query_version_reply(
             s_xcbConnection, query_version_cookie, &error) };
 
         if (!xkbQueryRequestReply || error)
@@ -314,7 +314,7 @@ namespace AzFramework
         return m_xInputInitialized;
     }
 
-    void XcbInputDeviceMouse::SetSystemCursorState(SystemCursorState systemCursorState)
+    void SDLInputDeviceMouse::SetSystemCursorState(SystemCursorState systemCursorState)
     {
         if (m_captureCursor) {
             if (systemCursorState != m_systemCursorState) {
@@ -328,7 +328,7 @@ namespace AzFramework
         }
     }
 
-    void XcbInputDeviceMouse::HandleCursorState(xcb_window_t window, SystemCursorState systemCursorState)
+    void SDLInputDeviceMouse::HandleCursorState(xcb_window_t window, SystemCursorState systemCursorState)
     {
         if (m_captureCursor)
         {
@@ -342,15 +342,15 @@ namespace AzFramework
         }
     }
 
-    SystemCursorState XcbInputDeviceMouse::GetSystemCursorState() const
+    SystemCursorState SDLInputDeviceMouse::GetSystemCursorState() const
     {
         return m_systemCursorState;
     }
 
-    void XcbInputDeviceMouse::SetSystemCursorPositionNormalizedInternal(xcb_window_t window, AZ::Vector2 positionNormalized)
+    void SDLInputDeviceMouse::SetSystemCursorPositionNormalizedInternal(xcb_window_t window, AZ::Vector2 positionNormalized)
     {
         // TODO Basically not done at all. Added only the basic functions needed.
-        const XcbStdFreePtr<xcb_get_geometry_reply_t> xcbGeometryReply{ xcb_get_geometry_reply(
+        const SDLStdFreePtr<xcb_get_geometry_reply_t> xcbGeometryReply{ xcb_get_geometry_reply(
             s_xcbConnection, xcb_get_geometry(s_xcbConnection, window), nullptr) };
 
         if (!xcbGeometryReply)
@@ -366,7 +366,7 @@ namespace AzFramework
         xcb_flush(s_xcbConnection);
     }
 
-    void XcbInputDeviceMouse::SetSystemCursorPositionNormalized(AZ::Vector2 positionNormalized)
+    void SDLInputDeviceMouse::SetSystemCursorPositionNormalized(AZ::Vector2 positionNormalized)
     {
         const xcb_window_t window = GetSystemCursorFocusWindow(s_xcbConnection);
         if (XCB_WINDOW_NONE == window)
@@ -377,20 +377,20 @@ namespace AzFramework
         SetSystemCursorPositionNormalizedInternal(window, positionNormalized);
     }
 
-    AZ::Vector2 XcbInputDeviceMouse::GetSystemCursorPositionNormalizedInternal(xcb_window_t window) const
+    AZ::Vector2 SDLInputDeviceMouse::GetSystemCursorPositionNormalizedInternal(xcb_window_t window) const
     {
         AZ::Vector2 position = AZ::Vector2::CreateZero();
 
         const xcb_query_pointer_cookie_t pointer = xcb_query_pointer(s_xcbConnection, window);
 
-        const XcbStdFreePtr<xcb_query_pointer_reply_t> xkbQueryPointerReply{ xcb_query_pointer_reply(s_xcbConnection, pointer, nullptr) };
+        const SDLStdFreePtr<xcb_query_pointer_reply_t> xkbQueryPointerReply{ xcb_query_pointer_reply(s_xcbConnection, pointer, nullptr) };
 
         if (!xkbQueryPointerReply)
         {
             return position;
         }
 
-        const XcbStdFreePtr<xcb_get_geometry_reply_t> xkbGeometryReply{ xcb_get_geometry_reply(
+        const SDLStdFreePtr<xcb_get_geometry_reply_t> xkbGeometryReply{ xcb_get_geometry_reply(
             s_xcbConnection, xcb_get_geometry(s_xcbConnection, window), nullptr) };
 
         if (!xkbGeometryReply)
@@ -409,7 +409,7 @@ namespace AzFramework
         return position;
     }
 
-    AZ::Vector2 XcbInputDeviceMouse::GetSystemCursorPositionNormalized() const
+    AZ::Vector2 SDLInputDeviceMouse::GetSystemCursorPositionNormalized() const
     {
         const xcb_window_t window = GetSystemCursorFocusWindow(s_xcbConnection);
         if (XCB_WINDOW_NONE == window)
@@ -420,12 +420,12 @@ namespace AzFramework
         return GetSystemCursorPositionNormalizedInternal(window);
     }
 
-    void XcbInputDeviceMouse::TickInputDevice()
+    void SDLInputDeviceMouse::TickInputDevice()
     {
         ProcessRawEventQueues();
     }
 
-    void XcbInputDeviceMouse::ShowCursor(xcb_window_t window, bool show)
+    void SDLInputDeviceMouse::ShowCursor(xcb_window_t window, bool show)
     {
         xcb_void_cookie_t cookie;
         if (show)
@@ -437,7 +437,7 @@ namespace AzFramework
             cookie = xcb_xfixes_hide_cursor_checked(s_xcbConnection, window);
         }
 
-        const XcbStdFreePtr<xcb_generic_error_t> xcbError{ xcb_request_check(s_xcbConnection, cookie) };
+        const SDLStdFreePtr<xcb_generic_error_t> xcbError{ xcb_request_check(s_xcbConnection, cookie) };
 
         if (xcbError)
         {
@@ -466,7 +466,7 @@ namespace AzFramework
         xcb_flush(s_xcbConnection);
     }
 
-    void XcbInputDeviceMouse::HandleButtonPressEvents(uint32_t detail, bool pressed)
+    void SDLInputDeviceMouse::HandleButtonPressEvents(uint32_t detail, bool pressed)
     {
         bool isWheel;
         float wheelDirection;
@@ -482,7 +482,7 @@ namespace AzFramework
         }
     }
 
-    void XcbInputDeviceMouse::HandleRawInputEvents(const xcb_ge_generic_event_t* event)
+    void SDLInputDeviceMouse::HandleRawInputEvents(const xcb_ge_generic_event_t* event)
     {
         const xcb_ge_generic_event_t* genericEvent = reinterpret_cast<const xcb_ge_generic_event_t*>(event);
         switch (genericEvent->event_type)
@@ -555,7 +555,7 @@ namespace AzFramework
         }
     }
 
-    void XcbInputDeviceMouse::HandleXcbEvent(xcb_generic_event_t* event)
+    void SDLInputDeviceMouse::HandleSDLEvent(xcb_generic_event_t* event)
     {
         switch (event->response_type & ~0x80)
         {
@@ -591,7 +591,7 @@ namespace AzFramework
                     }
                 }
 
-                auto* interface = AzFramework::XcbConnectionManagerInterface::Get();
+                auto* interface = AzFramework::SDLConnectionManagerInterface::Get();
                 interface->SetEnableXInput(interface->GetXcbConnection(), true);
             }
             break;
@@ -605,7 +605,7 @@ namespace AzFramework
 
                 m_focusWindow = XCB_WINDOW_NONE;
 
-                auto* interface = AzFramework::XcbConnectionManagerInterface::Get();
+                auto* interface = AzFramework::SDLConnectionManagerInterface::Get();
                 interface->SetEnableXInput(interface->GetXcbConnection(), false);
             }
             break;

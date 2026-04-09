@@ -14,15 +14,15 @@
 
 namespace AzFramework
 {
-    class XcbApplication
+    class SDLApplication
         : public Application::Implementation
         , public LinuxLifecycleEvents::Bus::Handler
     {
     public:
         ////////////////////////////////////////////////////////////////////////////////////////////
-        AZ_CLASS_ALLOCATOR(XcbApplication, AZ::SystemAllocator);
-        XcbApplication();
-        ~XcbApplication() override;
+        AZ_CLASS_ALLOCATOR(SDLApplication, AZ::SystemAllocator);
+        SDLApplication();
+        ~SDLApplication() override;
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Application::Implementation
@@ -30,6 +30,6 @@ namespace AzFramework
         void PumpSystemEventLoopUntilEmpty() override;
 
     private:
-        AZStd::unique_ptr<XcbConnectionManager> m_xcbConnectionManager;
+        AZStd::unique_ptr<SDLConnectionManager> m_sdlConnectionManager;
     };
 } // namespace AzFramework

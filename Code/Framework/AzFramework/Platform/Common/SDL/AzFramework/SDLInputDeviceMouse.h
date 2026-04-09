@@ -24,23 +24,23 @@ constexpr float MAX_XI_WHEEL_SENSITIVITY = 140.0f;
 
 namespace AzFramework
 {
-    class XcbInputDeviceMouse
+    class SDLInputDeviceMouse
         : public InputDeviceMouse::Implementation
-        , public XcbEventHandlerBus::Handler
+        , public SDLEventHandlerBus::Handler
     {
     public:
-        AZ_CLASS_ALLOCATOR(XcbInputDeviceMouse, AZ::SystemAllocator);
+        AZ_CLASS_ALLOCATOR(SDLInputDeviceMouse, AZ::SystemAllocator);
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         //! Constructor
         //! \param[in] inputDevice Reference to the input device being implemented
-        XcbInputDeviceMouse(InputDeviceMouse& inputDevice);
+        SDLInputDeviceMouse(InputDeviceMouse& inputDevice);
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         //! Destructor
-        virtual ~XcbInputDeviceMouse();
+        virtual ~SDLInputDeviceMouse();
 
-        static XcbInputDeviceMouse::Implementation* Create(InputDeviceMouse& inputDevice);
+        static SDLInputDeviceMouse::Implementation* Create(InputDeviceMouse& inputDevice);
 
     protected:
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,7 +68,7 @@ namespace AzFramework
         void TickInputDevice() override;
 
         //! Handle X11 events.
-        void HandleXcbEvent(xcb_generic_event_t* event) override;
+        void HandleSDLEvent(xcb_generic_event_t* event) override;
 
         //! Initialize XFixes extension. Used for barriers.
         static bool InitializeXFixes();

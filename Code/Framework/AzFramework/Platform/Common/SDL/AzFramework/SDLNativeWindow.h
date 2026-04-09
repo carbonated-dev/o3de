@@ -16,14 +16,14 @@
 
 namespace AzFramework
 {
-    class XcbNativeWindow final
+    class SDLNativeWindow final
         : public NativeWindow::Implementation
-        , public XcbEventHandlerBus::Handler
+        , public SDLEventHandlerBus::Handler
     {
     public:
-        AZ_CLASS_ALLOCATOR(XcbNativeWindow, AZ::SystemAllocator);
-        XcbNativeWindow();
-        ~XcbNativeWindow() override;
+        AZ_CLASS_ALLOCATOR(SDLNativeWindow, AZ::SystemAllocator);
+        SDLNativeWindow();
+        ~SDLNativeWindow() override;
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // NativeWindow::Implementation
@@ -40,8 +40,8 @@ namespace AzFramework
         void SetFullScreenState(bool fullScreenState) override;
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        // XcbEventHandlerBus::Handler
-        void HandleXcbEvent(xcb_generic_event_t* event) override;
+        // SDLEventHandlerBus::Handler
+        void HandleSDLEvent(xcb_generic_event_t* event) override;
 
     private:
         bool ValidateXcbResult(xcb_void_cookie_t cookie);
