@@ -1,0 +1,48 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "SilhouetteJFAStepPassTemplate",
+            "PassClass": "FullScreenTriangle",
+            "Slots": [
+                {
+                    "Name": "JFAOutput",
+                    "SlotType": "Output",
+                    "ScopeAttachmentUsage": "RenderTarget",
+                    "LoadStoreAction": {
+                        "ClearValue": {
+                            "Value": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ]
+                        },
+                        "LoadAction": "Clear"
+                    }
+                },
+                {
+                    "Name": "PrevJFA",
+                    "ShaderInputName": "m_prevJFA",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "DepthStencilInput",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "DepthStencil"
+                }
+            ],
+            "PassData": {
+                "$type": "FullscreenTrianglePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/Silhouette/SilhouetteJFAStep.shader"
+                },
+                "StencilRef": 0,
+                "BindViewSrg": false
+            }
+        }
+    }
+}

@@ -27,4 +27,8 @@ set(FILES
     Source/Material/Transform2DFunctorSourceData.h
     Source/Material/UseTextureFunctorSourceData.cpp
     Source/Material/UseTextureFunctorSourceData.h
+#if defined(CARBONATED)
+    Source/Silhouette/EditorSilhouetteSystemComponent.cpp
+    Source/Silhouette/EditorSilhouetteSystemComponent.h
+#endif
 )

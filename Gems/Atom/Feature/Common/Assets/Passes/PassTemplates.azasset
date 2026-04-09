@@ -493,6 +493,26 @@
                 "Path": "Passes/SilhouetteGather.pass"
             },
             {
+                "Name": "SilhouetteParentPassTemplate",
+                "Path": "Passes/SilhouetteParent.pass"
+            },
+            {
+                "Name": "SilhouetteSeedPassTemplate",
+                "Path": "Passes/SilhouetteSeed.pass"
+            },
+            {
+                "Name": "SilhouetteJFAParentTemplate",
+                "Path": "Passes/SilhouetteJFAParent.pass"
+            },
+            {
+                "Name": "SilhouetteJFAStepPassTemplate",
+                "Path": "Passes/SilhouetteJFAStep.pass"
+            },
+            {
+                "Name": "SilhouetteJFAStepParentTemplate",
+                "Path": "Passes/SilhouetteJFAStepParent.pass"
+            },            
+            {
                 "Name": "ToolsPipeline",
                 "Path": "Passes/ToolsPipeline.pass"
             },

@@ -466,6 +466,9 @@ namespace AZ
                 drawRequest.m_streamBufferViews = streamBufferViews;
                 drawRequest.m_stencilRef = m_stencilRef;
                 drawRequest.m_sortKey = m_sortKey;
+#if defined(CARBONATED) 
+                drawRequest.m_stencilRef |= shaderItem.GetStencilRefOverride();
+#endif
                 if (drawSrg)
                 {
                     drawRequest.m_uniqueShaderResourceGroup = drawSrg->GetRHIShaderResourceGroup();

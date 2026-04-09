@@ -1,31 +1,25 @@
 {
-    "Source" : "SilhouetteGather.azsl",
+    "Source" : "SilhouetteJFAStep.azsl",
     "DepthStencilState" : {
         "Depth": 
         {
-            "Enable": true, 
-            "WriteMask" : "Zero",   // Avoid writing the depth
-            "CompareFunc" : "Less"
+            "Enable": false,
+            "CompareFunc" : "Always"
         },
         "Stencil" :
         {
             "Enable" : true,
-            "ReadMask" : "0x0",
-            "WriteMask" : "0x20",
+            "ReadMask" : "0x20",
+            "WriteMask" : "0x00",
             "FrontFace" :
             {
-                "Func" : "Always",
+                "Func" : "Equal",
                 "DepthFailOp" : "Keep",
                 "FailOp" : "Keep",
-                "PassOp" : "Replace"
+                "PassOp" : "Keep"
             }
         }
     },
-    "DrawList": "silhouette",
-    "RasterState": { 
-        "CullMode": "Back"
-    },
-
     "GlobalTargetBlendState": {
         "Enable": false
     },

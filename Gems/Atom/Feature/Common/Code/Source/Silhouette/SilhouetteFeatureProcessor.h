@@ -40,7 +40,10 @@ namespace AZ::Render
         //! Set the enabled state of the gather and composite passes
         //! @param enabled Whether to enable the passes or not
         void SetPassesEnabled(bool enabled);
-
+#if defined(CARBONATED)
+        //! Sets the max size of the outline effect during the JFA passes
+        void SetMaxOutlineSize(const uint32_t size);
+ #endif
         //! FeatureProcessor 
         void Activate() override;
         void Deactivate() override;
@@ -56,6 +59,10 @@ namespace AZ::Render
         AZ::RPI::RasterPass* m_rasterPass = nullptr;
         AZ::RPI::Pass* m_compositePass = nullptr;
         AZ::RPI::RenderPipeline* m_renderPipeline = nullptr;
+
+#if defined(CARBONATED)
+        bool m_enabled = true;
+#endif
     };
 }
 
