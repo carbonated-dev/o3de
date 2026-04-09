@@ -175,6 +175,7 @@ void UiRenderer::CacheShaderData(const AZ::RHI::Ptr<AZ::RPI::DynamicDrawContext>
     static const char worldToProjIndexName[] = "m_worldToProj";
     static const char isClampIndexName[] = "m_isClamp";
     static const char backdropBlurRadiusIndexName[] = "m_backdropBlurRadius";
+    static const char backdropInvTextureSizeIndexName[] = "m_backdropInvTextureSize";
     AZ::Data::Instance<AZ::RPI::ShaderResourceGroup> drawSrg = dynamicDraw->NewDrawSrg();
     const AZ::RHI::ShaderResourceGroupLayout* layout = drawSrg->GetLayout();
     m_uiShaderData.m_imageInputIndex = layout->FindShaderInputImageIndex(AZ::Name(textureIndexName));
@@ -189,6 +190,9 @@ void UiRenderer::CacheShaderData(const AZ::RHI::Ptr<AZ::RPI::DynamicDrawContext>
     m_uiShaderData.m_backdropBlurRadiusInputIndex = layout->FindShaderInputConstantIndex(AZ::Name(backdropBlurRadiusIndexName));
     AZ_Error(LogName, m_uiShaderData.m_backdropBlurRadiusInputIndex.IsValid(), "Failed to find shader input constant %s.",
         backdropBlurRadiusIndexName);
+    m_uiShaderData.m_backdropInvTextureSizeInputIndex = layout->FindShaderInputConstantIndex(AZ::Name(backdropInvTextureSizeIndexName));
+    AZ_Error(LogName, m_uiShaderData.m_backdropInvTextureSizeInputIndex.IsValid(), "Failed to find shader input constant %s.",
+        backdropInvTextureSizeIndexName);
 
     // Cache shader variants that will be used
     AZ::RPI::ShaderOptionList shaderOptionsTextureLinear;
