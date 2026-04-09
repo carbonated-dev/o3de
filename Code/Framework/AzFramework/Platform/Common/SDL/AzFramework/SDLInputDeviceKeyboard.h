@@ -8,25 +8,24 @@
 #pragma once
 
 #include <AzFramework/Input/Devices/Keyboard/InputDeviceKeyboard.h>
-#include <AzFramework/XcbEventHandler.h>
-#include <AzFramework/XcbInterface.h>
+#include <AzFramework/SDLEventHandler.h>
+#include <AzFramework/SDLInterface.h>
 
-#include <xcb/xcb.h>
-#include <xkbcommon/xkbcommon.h>
+#include <SDL2/SDL.h>
 
 struct xcb_xkb_state_notify_event_t;
 
 namespace AzFramework
 {
-    class XcbInputDeviceKeyboard
+    class SDLInputDeviceKeyboard
         : public InputDeviceKeyboard::Implementation
-        , public XcbEventHandlerBus::Handler
+        , public SDLEventHandlerBus::Handler
     {
     public:
-        AZ_CLASS_ALLOCATOR(XcbInputDeviceKeyboard, AZ::SystemAllocator);
+        AZ_CLASS_ALLOCATOR(SDLInputDeviceKeyboard, AZ::SystemAllocator);
 
         using InputDeviceKeyboard::Implementation::Implementation;
-        XcbInputDeviceKeyboard(InputDeviceKeyboard& inputDevice);
+        SDLInputDeviceKeyboard(InputDeviceKeyboard& inputDevice);
 
         bool IsConnected() const override;
 
@@ -35,7 +34,7 @@ namespace AzFramework
         void TextEntryStop() override;
         void TickInputDevice() override;
 
-        void HandleXcbEvent(xcb_generic_event_t* event) override;
+        void HandleSDLEvent(const SDL_Event& event) override;
 
     private:
         [[nodiscard]] const InputChannelId* InputChannelFromKeyEvent(xcb_keycode_t code) const;

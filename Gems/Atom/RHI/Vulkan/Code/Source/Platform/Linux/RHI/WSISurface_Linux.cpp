@@ -16,6 +16,7 @@
 #endif
 
 #if PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL
+#include <SDL2/SDL_vulkan.h>
 #include <AzFramework/SDLConnectionManager.h>
 #endif
 
@@ -50,6 +51,24 @@ namespace AZ
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
             #error "Linux Window Manager Wayland not supported."
             return RHI::ResultCode::Unimplemented;
+#elif PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL
+
+            // TODO: get SDL_Window* from window handle / native window object
+            SDL_Window* sdlWindow = reinterpret_cast<SDL_Window*>(m_descriptor.m_windowHandle.GetIndex());
+            AZ_Error("AtomVulkan_RHI", sdlWindow != nullptr, "Unable to get SDL Window");
+
+            VkResult result = VK_ERROR_INITIALIZATION_FAILED;
+            if (SDL_Vulkan_CreateSurface(sdlWindow, instance.GetNativeInstance(), &m_nativeSurface) == SDL_TRUE)
+            {
+                result = VK_SUCCESS;
+            }
+            else
+            {
+                AZ_Error("AtomVulkan_RHI", false, "SDL_Vulkan_CreateSurface failed: %s", SDL_GetError());
+            }
+
+            AssertSuccess(result);
+            return ConvertResult(result);
 #else
             #error "Linux Window Manager not recognized."
             return RHI::ResultCode::Unimplemented;

@@ -12,21 +12,22 @@
 #include <AzCore/Interface/Interface.h>
 #include <AzCore/RTTI/RTTI.h>
 
-#include <SDL2/sdl.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_video.h>
 
 namespace AzFramework
 {
     class SDLConnectionManager
     {
     public:
-        AZ_RTTI(SDLConnectionManager, "{23FB6AA4-24B4-33FD-22AB-12D307710DB}");
+        AZ_RTTI(SDLConnectionManager, "{23FB6AA4-24B4-33FD-22AB-12D3077130DB}");
 
         virtual ~SDLConnectionManager() = default;
 
-        virtual sdl_connection_t* GetSDLConnection() const = 0;
+        virtual SDL_Window* GetSDLConnection() const = 0;
 
         //! Enables/Disables XInput Raw Input events.
-        virtual void SetEnableXInput(sdl_connection_t* connection, bool enable) = 0;
+        virtual void SetEnableXInput(SDL_Window* connection, bool enable) = 0;
     };
 
     class SDLConnectionManagerBusTraits

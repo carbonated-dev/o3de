@@ -7,16 +7,13 @@
  */
 
 #include <AzFramework/Input/Devices/Keyboard/InputDeviceKeyboard.h>
-#include <AzFramework/XcbEventHandler.h>
-#include <AzFramework/XcbConnectionManager.h>
-#include <AzFramework/XcbInputDeviceKeyboard.h>
+#include <AzFramework/SDLEventHandler.h>
+#include <AzFramework/SDLConnectionManager.h>
+#include <AzFramework/SDLInputDeviceKeyboard.h>
 
-#define explicit ExplicitIsACXXKeyword
-#include <xcb/xkb.h>
-#undef explicit
-#include <xkbcommon/xkbcommon-keysyms.h>
-#include <xkbcommon/xkbcommon.h>
-#include <xkbcommon/xkbcommon-x11.h>
+//#define explicit ExplicitIsACXXKeyword
+#include <SDL2/SDL.h>
+//#undef explicit
 
 namespace AzFramework
 {
@@ -29,7 +26,7 @@ namespace AzFramework
         uint8_t xkbType;
     };
 
-    XcbInputDeviceKeyboard::XcbInputDeviceKeyboard(InputDeviceKeyboard& inputDevice)
+    SDLInputDeviceKeyboard::SDLInputDeviceKeyboard(InputDeviceKeyboard& inputDevice)
         : InputDeviceKeyboard::Implementation(inputDevice)
     {
         XcbEventHandlerBus::Handler::BusConnect();
@@ -111,33 +108,33 @@ namespace AzFramework
         m_initialized = true;
     }
 
-    bool XcbInputDeviceKeyboard::IsConnected() const
+    bool SDLInputDeviceKeyboard::IsConnected() const
     {
         auto* connection = AzFramework::XcbConnectionManagerInterface::Get()->GetXcbConnection();
         return connection && !xcb_connection_has_error(connection);
     }
 
-    bool XcbInputDeviceKeyboard::HasTextEntryStarted() const
+    bool SDLInputDeviceKeyboard::HasTextEntryStarted() const
     {
         return m_hasTextEntryStarted;
     }
 
-    void XcbInputDeviceKeyboard::TextEntryStart(const InputDeviceKeyboard::VirtualKeyboardOptions& options)
+    void SDLInputDeviceKeyboard::TextEntryStart(const InputDeviceKeyboard::VirtualKeyboardOptions& options)
     {
         m_hasTextEntryStarted = true;
     }
 
-    void XcbInputDeviceKeyboard::TextEntryStop()
+    void SDLInputDeviceKeyboard::TextEntryStop()
     {
         m_hasTextEntryStarted = false;
     }
 
-    void XcbInputDeviceKeyboard::TickInputDevice()
+    void SDLInputDeviceKeyboard::TickInputDevice()
     {
         ProcessRawEventQueues();
     }
 
-    void XcbInputDeviceKeyboard::HandleXcbEvent(xcb_generic_event_t* event)
+    void SDLInputDeviceKeyboard::HandleSDLEvent(const SDL_Event& event)
     {
         if (!m_initialized)
         {
@@ -186,7 +183,7 @@ namespace AzFramework
         }
     }
 
-    [[nodiscard]] const InputChannelId* XcbInputDeviceKeyboard::InputChannelFromKeyEvent(xcb_keycode_t code) const
+    [[nodiscard]] const InputChannelId* SDLInputDeviceKeyboard::InputChannelFromKeyEvent(xcb_keycode_t code) const
     {
         const xcb_keysym_t keysym = xkb_state_key_get_one_sym(m_xkbState.get(), code);
 
@@ -335,7 +332,7 @@ namespace AzFramework
         }
     }
 
-    AZStd::string XcbInputDeviceKeyboard::TextFromKeycode(xkb_state* state, xkb_keycode_t code)
+    AZStd::string SDLInputDeviceKeyboard::TextFromKeycode(xkb_state* state, xkb_keycode_t code)
     {
         // Find out how much of a buffer we need
         const size_t size = xkb_state_key_get_utf8(state, code, nullptr, 0);
@@ -357,7 +354,7 @@ namespace AzFramework
         return chars;
     }
 
-    void XcbInputDeviceKeyboard::UpdateState(const xcb_xkb_state_notify_event_t* state)
+    void SDLInputDeviceKeyboard::UpdateState(const xcb_xkb_state_notify_event_t* state)
     {
         if (m_initialized)
         {

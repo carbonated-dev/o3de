@@ -9,12 +9,11 @@
 #pragma once
 
 #include <AzFramework/Input/Devices/Mouse/InputDeviceMouse.h>
-#include <AzFramework/XcbConnectionManager.h>
-#include <AzFramework/XcbEventHandler.h>
-#include <AzFramework/XcbInterface.h>
+#include <AzFramework/SDLConnectionManager.h>
+#include <AzFramework/SDLEventHandler.h>
+#include <AzFramework/SDLInterface.h>
 
-#include <xcb/xfixes.h>
-#include <xcb/xinput.h>
+#include <SDL2/SDL_mouse.h>
 
 // The maximum number of raw input axis this mouse device supports.
 constexpr uint32_t MAX_XI_RAW_AXIS = 2;
@@ -24,23 +23,23 @@ constexpr float MAX_XI_WHEEL_SENSITIVITY = 140.0f;
 
 namespace AzFramework
 {
-    class XcbInputDeviceMouse
+    class SDLInputDeviceMouse
         : public InputDeviceMouse::Implementation
-        , public XcbEventHandlerBus::Handler
+        , public SDLEventHandlerBus::Handler
     {
     public:
-        AZ_CLASS_ALLOCATOR(XcbInputDeviceMouse, AZ::SystemAllocator);
+        AZ_CLASS_ALLOCATOR(SDLInputDeviceMouse, AZ::SystemAllocator);
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         //! Constructor
         //! \param[in] inputDevice Reference to the input device being implemented
-        XcbInputDeviceMouse(InputDeviceMouse& inputDevice);
+        SDLInputDeviceMouse(InputDeviceMouse& inputDevice);
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         //! Destructor
-        virtual ~XcbInputDeviceMouse();
+        virtual ~SDLInputDeviceMouse();
 
-        static XcbInputDeviceMouse::Implementation* Create(InputDeviceMouse& inputDevice);
+        static SDLInputDeviceMouse::Implementation* Create(InputDeviceMouse& inputDevice);
 
     protected:
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,7 +67,7 @@ namespace AzFramework
         void TickInputDevice() override;
 
         //! Handle X11 events.
-        void HandleXcbEvent(xcb_generic_event_t* event) override;
+        void HandleSDLEvent(const SDL_Event& event) override;
 
         //! Initialize XFixes extension. Used for barriers.
         static bool InitializeXFixes();

@@ -8,8 +8,8 @@
 
 #include <AzCore/std/typetraits/integral_constant.h>
 #include <AzFramework/API/ApplicationAPI_Linux.h>
-#include <AzFramework/XcbConnectionManager.h>
-#include <AzFramework/XcbInputDeviceMouse.h>
+#include <AzFramework/SDLConnectionManager.h>
+#include <AzFramework/SDLInputDeviceMouse.h>
 
 namespace AzFramework
 {
@@ -77,12 +77,12 @@ namespace AzFramework
         return *static_cast<xcb_window_t*>(xcb_get_property_value(property.get()));
     }
 
-    xcb_connection_t* XcbInputDeviceMouse::s_xcbConnection = nullptr;
-    xcb_screen_t* XcbInputDeviceMouse::s_xcbScreen = nullptr;
-    bool XcbInputDeviceMouse::m_xfixesInitialized = false;
-    bool XcbInputDeviceMouse::m_xInputInitialized = false;
+    xcb_connection_t* SDLInputDeviceMouse::s_xcbConnection = nullptr;
+    xcb_screen_t* SDLInputDeviceMouse::s_xcbScreen = nullptr;
+    bool SDLInputDeviceMouse::m_xfixesInitialized = false;
+    bool SDLInputDeviceMouse::m_xInputInitialized = false;
 
-    XcbInputDeviceMouse::XcbInputDeviceMouse(InputDeviceMouse& inputDevice)
+    SDLInputDeviceMouse::SDLInputDeviceMouse(InputDeviceMouse& inputDevice)
         : InputDeviceMouse::Implementation(inputDevice)
         , m_systemCursorState(SystemCursorState::Unknown)
         , m_systemCursorPositionNormalized(0.5f, 0.5f)
@@ -94,14 +94,14 @@ namespace AzFramework
         SetSystemCursorState(SystemCursorState::Unknown);
     }
 
-    XcbInputDeviceMouse::~XcbInputDeviceMouse()
+    SDLInputDeviceMouse::~SDLInputDeviceMouse()
     {
         XcbEventHandlerBus::Handler::BusDisconnect();
 
         SetSystemCursorState(SystemCursorState::Unknown);
     }
 
-    InputDeviceMouse::Implementation* XcbInputDeviceMouse::Create(InputDeviceMouse& inputDevice)
+    InputDeviceMouse::Implementation* SDLInputDeviceMouse::Create(InputDeviceMouse& inputDevice)
     {
         const auto* interface = AzFramework::XcbConnectionManagerInterface::Get();
         if (!interface)
@@ -139,15 +139,15 @@ namespace AzFramework
             return nullptr;
         }
 
-        return aznew XcbInputDeviceMouse(inputDevice);
+        return aznew SDLInputDeviceMouse(inputDevice);
     }
 
-    bool XcbInputDeviceMouse::IsConnected() const
+    bool SDLInputDeviceMouse::IsConnected() const
     {
         return true;
     }
 
-    void XcbInputDeviceMouse::CreateBarriers(xcb_window_t window, bool create)
+    void SDLInputDeviceMouse::CreateBarriers(xcb_window_t window, bool create)
     {
         // Don't create any barriers if we are debugging. This will cause artifacts but better then
         // a confined cursor during debugging.
@@ -240,7 +240,7 @@ namespace AzFramework
         xcb_flush(s_xcbConnection);
     }
 
-    bool XcbInputDeviceMouse::InitializeXFixes()
+    bool SDLInputDeviceMouse::InitializeXFixes()
     {
         m_xfixesInitialized = false;
 
@@ -277,7 +277,7 @@ namespace AzFramework
         return m_xfixesInitialized;
     }
 
-    bool XcbInputDeviceMouse::InitializeXInput()
+    bool SDLInputDeviceMouse::InitializeXInput()
     {
         m_xInputInitialized = false;
 
@@ -314,7 +314,7 @@ namespace AzFramework
         return m_xInputInitialized;
     }
 
-    void XcbInputDeviceMouse::SetSystemCursorState(SystemCursorState systemCursorState)
+    void SDLInputDeviceMouse::SetSystemCursorState(SystemCursorState systemCursorState)
     {
         if (m_captureCursor) {
             if (systemCursorState != m_systemCursorState) {
@@ -328,7 +328,7 @@ namespace AzFramework
         }
     }
 
-    void XcbInputDeviceMouse::HandleCursorState(xcb_window_t window, SystemCursorState systemCursorState)
+    void SDLInputDeviceMouse::HandleCursorState(xcb_window_t window, SystemCursorState systemCursorState)
     {
         if (m_captureCursor)
         {
@@ -342,12 +342,12 @@ namespace AzFramework
         }
     }
 
-    SystemCursorState XcbInputDeviceMouse::GetSystemCursorState() const
+    SystemCursorState SDLInputDeviceMouse::GetSystemCursorState() const
     {
         return m_systemCursorState;
     }
 
-    void XcbInputDeviceMouse::SetSystemCursorPositionNormalizedInternal(xcb_window_t window, AZ::Vector2 positionNormalized)
+    void SDLInputDeviceMouse::SetSystemCursorPositionNormalizedInternal(xcb_window_t window, AZ::Vector2 positionNormalized)
     {
         // TODO Basically not done at all. Added only the basic functions needed.
         const XcbStdFreePtr<xcb_get_geometry_reply_t> xcbGeometryReply{ xcb_get_geometry_reply(
@@ -366,7 +366,7 @@ namespace AzFramework
         xcb_flush(s_xcbConnection);
     }
 
-    void XcbInputDeviceMouse::SetSystemCursorPositionNormalized(AZ::Vector2 positionNormalized)
+    void SDLInputDeviceMouse::SetSystemCursorPositionNormalized(AZ::Vector2 positionNormalized)
     {
         const xcb_window_t window = GetSystemCursorFocusWindow(s_xcbConnection);
         if (XCB_WINDOW_NONE == window)
@@ -377,7 +377,7 @@ namespace AzFramework
         SetSystemCursorPositionNormalizedInternal(window, positionNormalized);
     }
 
-    AZ::Vector2 XcbInputDeviceMouse::GetSystemCursorPositionNormalizedInternal(xcb_window_t window) const
+    AZ::Vector2 SDLInputDeviceMouse::GetSystemCursorPositionNormalizedInternal(xcb_window_t window) const
     {
         AZ::Vector2 position = AZ::Vector2::CreateZero();
 
@@ -409,7 +409,7 @@ namespace AzFramework
         return position;
     }
 
-    AZ::Vector2 XcbInputDeviceMouse::GetSystemCursorPositionNormalized() const
+    AZ::Vector2 SDLInputDeviceMouse::GetSystemCursorPositionNormalized() const
     {
         const xcb_window_t window = GetSystemCursorFocusWindow(s_xcbConnection);
         if (XCB_WINDOW_NONE == window)
@@ -420,12 +420,12 @@ namespace AzFramework
         return GetSystemCursorPositionNormalizedInternal(window);
     }
 
-    void XcbInputDeviceMouse::TickInputDevice()
+    void SDLInputDeviceMouse::TickInputDevice()
     {
         ProcessRawEventQueues();
     }
 
-    void XcbInputDeviceMouse::ShowCursor(xcb_window_t window, bool show)
+    void SDLInputDeviceMouse::ShowCursor(xcb_window_t window, bool show)
     {
         xcb_void_cookie_t cookie;
         if (show)
@@ -466,7 +466,7 @@ namespace AzFramework
         xcb_flush(s_xcbConnection);
     }
 
-    void XcbInputDeviceMouse::HandleButtonPressEvents(uint32_t detail, bool pressed)
+    void SDLInputDeviceMouse::HandleButtonPressEvents(uint32_t detail, bool pressed)
     {
         bool isWheel;
         float wheelDirection;
@@ -482,7 +482,7 @@ namespace AzFramework
         }
     }
 
-    void XcbInputDeviceMouse::HandleRawInputEvents(const xcb_ge_generic_event_t* event)
+    void SDLInputDeviceMouse::HandleRawInputEvents(const xcb_ge_generic_event_t* event)
     {
         const xcb_ge_generic_event_t* genericEvent = reinterpret_cast<const xcb_ge_generic_event_t*>(event);
         switch (genericEvent->event_type)
@@ -555,7 +555,7 @@ namespace AzFramework
         }
     }
 
-    void XcbInputDeviceMouse::HandleXcbEvent(xcb_generic_event_t* event)
+    void SDLInputDeviceMouse::HandleSDLEvent(const SDL_Event& event)
     {
         switch (event->response_type & ~0x80)
         {

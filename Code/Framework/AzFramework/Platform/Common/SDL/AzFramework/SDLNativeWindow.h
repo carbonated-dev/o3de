@@ -10,20 +10,20 @@
 
 #include <AzFramework/Application/Application.h>
 #include <AzFramework/Windowing/NativeWindow.h>
-#include <AzFramework/XcbEventHandler.h>
+#include <AzFramework/SDLEventHandler.h>
 
-#include <xcb/xcb.h>
+#include <SDL2/SDL.h>
 
 namespace AzFramework
 {
-    class XcbNativeWindow final
+    class SDLNativeWindow final
         : public NativeWindow::Implementation
-        , public XcbEventHandlerBus::Handler
+        , public SDLEventHandlerBus::Handler
     {
     public:
-        AZ_CLASS_ALLOCATOR(XcbNativeWindow, AZ::SystemAllocator);
-        XcbNativeWindow();
-        ~XcbNativeWindow() override;
+        AZ_CLASS_ALLOCATOR(SDLNativeWindow, AZ::SystemAllocator);
+        SDLNativeWindow();
+        ~SDLNativeWindow() override;
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // NativeWindow::Implementation
@@ -41,7 +41,7 @@ namespace AzFramework
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // XcbEventHandlerBus::Handler
-        void HandleXcbEvent(xcb_generic_event_t* event) override;
+        void HandleSDLEvent(const SDL_Event& event) override;
 
     private:
         bool ValidateXcbResult(xcb_void_cookie_t cookie);
