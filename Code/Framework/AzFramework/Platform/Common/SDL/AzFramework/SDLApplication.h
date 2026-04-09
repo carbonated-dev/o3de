@@ -30,6 +30,6 @@ namespace AzFramework
         void PumpSystemEventLoopUntilEmpty() override;
 
     private:
-        AZStd::unique_ptr<SDLConnectionManager> m_sdlConnectionManager;
+        //AZStd::unique_ptr<SDLConnectionManager> m_sdlConnectionManager;
     };
 } // namespace AzFramework
