@@ -33,11 +33,10 @@ namespace AzFramework
         void HandleSDLEvent(const SDL_Event& event) override;
 
     private:
-        [[nodiscard]] const InputChannelId* InputChannelFromKeyEvent() const;
+        [[nodiscard]] const InputChannelId* InputChannelFromSDLScancode(SDL_Scancode scancode) const;
 
-        static AZStd::string TextFromKeycode();
-
-        void UpdateState();
+        //static AZStd::string TextFromKeycode();
+        //void UpdateState();
 
         bool m_initialized{false};
         bool m_hasTextEntryStarted{false};

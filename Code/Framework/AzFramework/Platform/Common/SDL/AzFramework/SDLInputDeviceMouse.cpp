@@ -38,12 +38,12 @@ namespace AzFramework
 
     InputDeviceMouse::Implementation* SDLInputDeviceMouse::Create(InputDeviceMouse& inputDevice)
     {
-        const auto* interface = AzFramework::SDLConnectionManagerInterface::Get();
+        /*const auto* interface = AzFramework::SDLConnectionManagerInterface::Get();
         if (!interface)
         {
             AZ_Warning("SDLInput", false, "SDL interface not available");
             return nullptr;
-        }
+        }*/
 
         return aznew SDLInputDeviceMouse(inputDevice);
     }
