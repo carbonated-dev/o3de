@@ -12,8 +12,7 @@
 #include <AzFramework/SDLInterface.h>
 
 #include <SDL2/SDL.h>
-
-struct xcb_xkb_state_notify_event_t;
+#include <xkbcommon/xkbcommon.h>
 
 namespace AzFramework
 {
@@ -37,17 +36,37 @@ namespace AzFramework
         void HandleSDLEvent(const SDL_Event& event) override;
 
     private:
-        [[nodiscard]] const InputChannelId* InputChannelFromKeyEvent(xcb_keycode_t code) const;
+        [[nodiscard]] const InputChannelId* InputChannelFromKeyEvent(SDL_Scancode code) const;
 
-        static AZStd::string TextFromKeycode(xkb_state* state, xkb_keycode_t code);
+        static AZStd::string TextFromKeycode(xkb_state* state, SDL_Scancode code);
 
-        void UpdateState(const xcb_xkb_state_notify_event_t* state);
+        // TODO void UpdateState(const xcb_xkb_state_notify_event_t* state);
 
-        XcbUniquePtr<xkb_context, xkb_context_unref> m_xkbContext;
-        XcbUniquePtr<xkb_keymap, xkb_keymap_unref> m_xkbKeymap;
-        XcbUniquePtr<xkb_state, xkb_state_unref> m_xkbState;
-        int m_coreDeviceId{-1};
-        uint8_t m_xkbEventCode{0};
+        //XcbUniquePtr<xkb_context, xkb_context_unref> m_xkbContext;
+        //XcbUniquePtr<xkb_keymap, xkb_keymap_unref> m_xkbKeymap;
+        //XcbUniquePtr<xkb_state, xkb_state_unref> m_xkbState;
+
+        struct XkbContextDeleter
+        {
+            void operator()(xkb_context* ptr) const { if (ptr) xkb_context_unref(ptr); }
+        };
+
+        struct XkbKeymapDeleter
+        {
+            void operator()(xkb_keymap* ptr) const { if (ptr) xkb_keymap_unref(ptr); }
+        };
+
+        struct XkbStateDeleter
+        {
+            void operator()(xkb_state* ptr) const { if (ptr) xkb_state_unref(ptr); }
+        };
+
+        AZStd::unique_ptr<xkb_context, XkbContextDeleter> m_xkbContext;
+        AZStd::unique_ptr<xkb_keymap, XkbKeymapDeleter> m_xkbKeymap;
+        AZStd::unique_ptr<xkb_state, XkbStateDeleter> m_xkbState;
+
+        //int m_coreDeviceId{-1};
+        //uint8_t m_xkbEventCode{0};
         bool m_initialized{false};
         bool m_hasTextEntryStarted{false};
     };
