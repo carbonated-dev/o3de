@@ -117,7 +117,10 @@ namespace AzFramework
     void SDLInputDeviceMouse::SetSystemCursorPositionNormalized(AZ::Vector2 positionNormalized)
     {
         SDL_Window* window = SDL_GetMouseFocus();
-        if (!window) return;
+        if (!window)
+        {
+            return;
+        }
 
         int w, h;
         SDL_GetWindowSize(window, &w, &h);
@@ -136,33 +139,34 @@ namespace AzFramework
 
     AZ::Vector2 SDLInputDeviceMouse::GetSystemCursorPositionNormalized() const
     {
-        int x, y, w, h;
         SDL_Window* window = SDL_GetMouseFocus();
-        if (!window) return AZ::Vector2::CreateZero();
+        if (!window)
+        {
+            return AZ::Vector2::CreateZero();
+        }
 
+        int x, y, w, h;
         SDL_GetMouseState(&x, &y);
         SDL_GetWindowSize(window, &w, &h);
 
-        return AZ::Vector2(static_cast<float>(x) / w, static_cast<float>(y) / h);
+        return AZ::Vector2(float(x) / w, float(y) / h);
     }
 
     void SDLInputDeviceMouse::TickInputDevice()
     {
         ProcessRawEventQueues();
     }
-
-    void SDLInputDeviceMouse::ShowCursor(bool show)
-    {
-    }
-
+    /*
     void SDLInputDeviceMouse::HandleButtonPressEvents(uint32_t detail, bool pressed)
     {
+        AZ_Error("SDL", false, "HandleButtonPressEvents %d %d not implemented", detail, pressed);
     }
 
     void SDLInputDeviceMouse::HandleRawInputEvents()
     {
+        AZ_Error("SDL", false, "HandleRawInputEvents not implemented");
     }
-
+    */
     void SDLInputDeviceMouse::HandleSDLEvent(const SDL_Event& event)
     {
         switch (event.type)
@@ -179,7 +183,6 @@ namespace AzFramework
             }
             case SDL_MOUSEMOTION:
             {
-                // Если мы в Relative Mode (курсор скрыт и захвачен), используем xrel/yrel
                 if (SDL_GetRelativeMouseMode())
                 {
                     QueueRawMovementEvent(InputDeviceMouse::Movement::X, static_cast<float>(event.motion.xrel));
@@ -187,16 +190,15 @@ namespace AzFramework
                 }
                 else
                 {
-                    // Обычное движение (абсолютные координаты внутри окна)
-                    // O3DE ожидает дельту для осей Movement::X/Y в Raw событиях
-                    QueueRawMovementEvent(InputDeviceMouse::Movement::X, static_cast<float>(event.motion.xrel));
-                    QueueRawMovementEvent(InputDeviceMouse::Movement::Y, static_cast<float>(event.motion.yrel));
+                    // use coordinates relative to window
+                    QueueRawMovementEvent(InputDeviceMouse::Movement::X, static_cast<float>(event.motion.x));
+                    QueueRawMovementEvent(InputDeviceMouse::Movement::Y, static_cast<float>(event.motion.y));
                 }
                 break;
             }
             case SDL_MOUSEWHEEL:
             {
-                float delta = static_cast<float>(event.wheel.y) * MAX_XI_WHEEL_SENSITIVITY;
+                const float delta = static_cast<float>(event.wheel.y) * MAX_XI_WHEEL_SENSITIVITY;
                 QueueRawMovementEvent(InputDeviceMouse::Movement::Z, delta);
                 break;
             }
@@ -210,7 +212,8 @@ namespace AzFramework
             case SDL_BUTTON_LEFT:   return &InputDeviceMouse::Button::Left;
             case SDL_BUTTON_MIDDLE: return &InputDeviceMouse::Button::Middle;
             case SDL_BUTTON_RIGHT:  return &InputDeviceMouse::Button::Right;
-            default: return nullptr;
         }
+        AZ_Info("SDL", "Unsupported mouse button %d", button);
+        return nullptr;
     }    
 } // namespace AzFramework
