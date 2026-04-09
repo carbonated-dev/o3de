@@ -11,7 +11,10 @@
                 "wait_for_connect": 0,
                 "connect_ap_timeout" : 3,
                 "launch_ap_timeout": 15,
-                "wait_ap_ready_timeout": 1200
+                "wait_ap_ready_timeout": 1200,
+                "linux_assets": "linux",
+                "linux_connect_to_remote": 1,
+                "linux_wait_for_connect": 0
             }
         }
     }
