@@ -192,8 +192,21 @@ namespace LyShine
         drawSrg->SetConstant(uiShaderData.m_isClampInputIndex, isClampTextureMode);
 
         // Set projection matrix
+        AZ::Vector2 backdropInvTextureSize = AZ::Vector2::CreateZero();
+        if (m_isBackdrop && m_numTextures > 0 && m_textures[0].m_texture)
+        {
+            const AZ::RHI::Size imageSize = m_textures[0].m_texture->GetDescriptor().m_size;
+            if (imageSize.m_width > 0 && imageSize.m_height > 0)
+            {
+                backdropInvTextureSize = AZ::Vector2(
+                    1.0f / static_cast<float>(imageSize.m_width),
+                    1.0f / static_cast<float>(imageSize.m_height));
+            }
+        }
+
         drawSrg->SetConstant(uiShaderData.m_viewProjInputIndex, modelViewProjMat);
         drawSrg->SetConstant(uiShaderData.m_backdropBlurRadiusInputIndex, m_backdropBlurRadius);
+        drawSrg->SetConstant(uiShaderData.m_backdropInvTextureSizeInputIndex, backdropInvTextureSize);
 
         drawSrg->Compile();
 
