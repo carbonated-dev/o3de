@@ -39,6 +39,8 @@ namespace AzFramework
         bool GetFullScreenState() const override;
         void SetFullScreenState(bool fullScreenState) override;
 
+        SDL_Window* GetSDLWindow() const { return m_window; }
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         // SDLEventHandlerBus::Handler
         void HandleSDLEvent(const SDL_Event& event) override;

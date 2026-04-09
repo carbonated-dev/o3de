@@ -29,7 +29,11 @@ namespace AzFramework
         void PumpSystemEventLoopOnce() override;
         void PumpSystemEventLoopUntilEmpty() override;
 
+        void SetApplicationWindow(SDLNativeWindow const* window) { m_window = window; }
+        SDLNativeWindow const* GetApplicationWindow() const { return m_window; }
+
     private:
-        //AZStd::unique_ptr<SDLConnectionManager> m_sdlConnectionManager;
+        AZStd::unique_ptr<SDLConnectionManager> m_sdlConnectionManager;
+        SDLNativeWindow const* m_window = nullptr;
     };
 } // namespace AzFramework

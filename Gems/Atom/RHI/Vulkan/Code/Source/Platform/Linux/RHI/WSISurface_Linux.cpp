@@ -14,6 +14,7 @@
 #if PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
 #include <AzFramework/XcbConnectionManager.h>
 #elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+#include <SDL2/SDL_vulkan.h>
 #include <AzFramework/SDLConnectionManager.h>
 #endif
 
@@ -46,20 +47,24 @@ namespace AZ
 
             return ConvertResult(result);
 #elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+            SDL_Window* window = nullptr;
             if (auto sdlConnectionManager = AzFramework::SDLConnectionManagerInterface::Get();
                 sdlConnectionManager != nullptr)
             {
+                window = sdlConnectionManager->GetApplicationWindow()->GetSDLWindow();
             }
 
-            VkXcbSurfaceCreateInfoKHR createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-            createInfo.pNext = nullptr;
-            createInfo.flags = 0;
-            createInfo.window = static_cast<xcb_window_t>(m_descriptor.m_windowHandle.GetIndex());
-            const VkResult result = instance.GetContext().CreateXcbSurfaceKHR(instance.GetNativeInstance(), &createInfo, VkSystemAllocator::Get(), &m_nativeSurface);
-            AssertSuccess(result);
-
-            return ConvertResult(result);
+            if (SDL_Vulkan_CreateSurface(window, instance.GetNativeInstance(), &m_nativeSurface) == SDL_TRUE)
+            {
+                AZ_Warning("SDL_Vulkan_CreateSurface", false, "RHI::ResultCode::Success");
+                return RHI::ResultCode::Success;
+            }
+            else
+            {
+                AZ_Warning("SDL_Vulkan_CreateSurface", false, "RHI::ResultCode::Fail");
+                AZ_Assert(false, "SDL could not create Vulkan surface");
+                return RHI::ResultCode::Fail;
+            }
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
             #error "Linux Window Manager Wayland not supported."
             return RHI::ResultCode::Unimplemented;

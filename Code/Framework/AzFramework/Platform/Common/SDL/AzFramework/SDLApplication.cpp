@@ -16,11 +16,15 @@
 namespace AzFramework
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
+    class SDLApplication;
+
     class SDLConnectionManagerImpl
         : public SDLConnectionManagerBus::Handler
     {
+        SDLApplication* m_application = nullptr;
+
     public:
-        SDLConnectionManagerImpl()
+        SDLConnectionManagerImpl(SDLApplication* application) : m_application(application)
         {
             SDLConnectionManagerBus::Handler::BusConnect();
         }
@@ -29,6 +33,18 @@ namespace AzFramework
         {
             SDLConnectionManagerBus::Handler::BusDisconnect();
         }
+
+        void SetApplicationWindow(SDLNativeWindow const* window) override
+        {
+            AZ_Assert(m_application, "SDLConnectionManagerImpl is not initialized correctly");
+            m_application->SetApplicationWindow(window);
+        }
+
+        SDLNativeWindow const* GetApplicationWindow() const override
+        {
+            AZ_Assert(m_application, "SDLConnectionManagerImpl is not initialized correctly");
+            return m_application->GetApplicationWindow();
+        }
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -36,13 +52,11 @@ namespace AzFramework
     {
         LinuxLifecycleEvents::Bus::Handler::BusConnect();
 
-        /*
-        m_sdlConnectionManager = AZStd::make_unique<SDLConnectionManagerImpl>();
+        m_sdlConnectionManager = AZStd::make_unique<SDLConnectionManagerImpl>(this);
         if (SDLConnectionManagerInterface::Get() == nullptr)
         {
             SDLConnectionManagerInterface::Register(m_sdlConnectionManager.get());
         }
-        */
 
         /*
         SDL2

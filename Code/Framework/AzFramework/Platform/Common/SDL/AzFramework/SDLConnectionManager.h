@@ -12,6 +12,8 @@
 #include <AzCore/Interface/Interface.h>
 #include <AzCore/RTTI/RTTI.h>
 
+#include "SDLNativeWindow.h"
+
 namespace AzFramework
 {
     class SDLConnectionManager
@@ -20,6 +22,9 @@ namespace AzFramework
         AZ_RTTI(SDLConnectionManager, "{036AC6B2-84E7-431D-93A8-29FC3B830A2D}");
 
         virtual ~SDLConnectionManager() = default;
+
+        virtual void SetApplicationWindow(SDLNativeWindow const* window) = 0;
+        virtual SDLNativeWindow const* GetApplicationWindow() const = 0;
     };
 
     class SDLConnectionManagerBusTraits
