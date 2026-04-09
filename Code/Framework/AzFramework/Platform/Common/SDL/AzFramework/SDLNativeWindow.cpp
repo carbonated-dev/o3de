@@ -144,7 +144,7 @@ namespace AzFramework
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    void SDLNativeWindow::HandleSDLEvent()
+    void SDLNativeWindow::HandleSDLEvent(const SDL_Event& event)
     {
     }
 

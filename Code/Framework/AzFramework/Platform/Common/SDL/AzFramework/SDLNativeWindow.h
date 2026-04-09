@@ -41,7 +41,7 @@ namespace AzFramework
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // SDLEventHandlerBus::Handler
-        void HandleSDLEvent() override;
+        void HandleSDLEvent(const SDL_Event& event) override;
 
     private:
         void WindowSizeChanged(const uint32_t width, const uint32_t height);
