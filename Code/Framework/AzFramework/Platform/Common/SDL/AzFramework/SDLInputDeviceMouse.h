@@ -79,9 +79,6 @@ namespace AzFramework
         //! Helper function.
         void SystemCursorStateToLogic(SystemCursorState systemCursorState, bool& confined, bool& cursorShown);
 
-        //! Shows/Hides the cursor.
-        void ShowCursor(bool show);
-
         //! Get the normalized cursor position. The coordinates returned are relative to the specified window.
         AZ::Vector2 GetSystemCursorPositionNormalizedInternal() const;
 
@@ -89,13 +86,13 @@ namespace AzFramework
         void SetSystemCursorPositionNormalizedInternal(AZ::Vector2 positionNormalized);
 
         //! Handle button press/release events.
-        void HandleButtonPressEvents(uint32_t detail, bool pressed);
+        //void HandleButtonPressEvents(uint32_t detail, bool pressed);
 
         //! Will set cursor states and confinement modes.
         void HandleCursorState(SystemCursorState systemCursorState);
 
         //! Will handle all raw input events.
-        void HandleRawInputEvents();
+        //void HandleRawInputEvents();
 
         const InputChannelId* InputChannelFromMouseEvent(bool& isWheel, float& direction) const
         {
