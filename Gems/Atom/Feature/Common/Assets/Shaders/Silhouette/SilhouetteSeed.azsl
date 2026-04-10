@@ -9,6 +9,7 @@
 #include <viewsrg.srgi>
 
 #include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
+#include <Atom/Features/StencilUtility.azsli>
 #include <Atom/Feature/Common/Assets/Shaders/Silhouette/Silhouette.azsli>
 
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
@@ -25,7 +26,7 @@ PSOutput MainPS(VSOutput IN)
 {
     PSOutput OUT;
 
-    uint stencilVal = PassSrg::m_stencilTex.Load(int3(IN.m_position.xy, 0)).g;
+    uint stencilVal = ReadStencil(PassSrg::m_stencilTex.Load(int3(IN.m_position.xy, 0)));
     OUT.m_color = (stencilVal & OutlineInsideMask) > 0 ? IN.m_texCoord : float2(-1.0, -1.0);
     return OUT;
 }

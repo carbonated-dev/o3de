@@ -11,6 +11,7 @@
 #include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
 #include <Atom/Features/PostProcessing/FullscreenPixelInfo.azsli>
 //#if defined(CARBONATED)
+#include <Atom/Features/StencilUtility.azsli>
 #include <Atom/Feature/Common/Assets/Shaders/Silhouette/Silhouette.azsli>
 //#endif
 
@@ -104,7 +105,7 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
         return OUT; 
     }
 
-    uint outlineStencilVal = PassSrg::m_outlineStencilTex.Load(int3(IN.m_position.xy, 0)).g;
+    uint outlineStencilVal = ReadStencil(PassSrg::m_outlineStencilTex.Load(int3(IN.m_position.xy, 0)));
     const bool isInside = outlineStencilVal & OutlineInsideMask;
     
     uint width, height;
@@ -116,7 +117,7 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
     OutlineData outlineData = DecodeOutlineData(PassSrg::m_outlineData.Load(int3(closestPosition.xy, 0)));
 
     const float bias = 0.001;
-    uint sceneStencilVal = PassSrg::m_stencilTex.Load(IN.m_position.xy, sampleIndex).g;
+    uint sceneStencilVal = ReadStencil(PassSrg::m_stencilTex.Load(IN.m_position.xy, sampleIndex));
     if (sceneStencilVal & OutlineBlockMask)
     {
         bool occluded = sceneDepth + bias > outlineDepth;
