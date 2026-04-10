@@ -5,19 +5,6 @@
         {
             "Enable": false,
             "CompareFunc" : "Always"
-        },
-        "Stencil" :
-        {
-            "Enable" : true,
-            "ReadMask" : "0x20",
-            "WriteMask" : "0x00",
-            "FrontFace" :
-            {
-                "Func" : "Equal",
-                "DepthFailOp" : "Keep",
-                "FailOp" : "Keep",
-                "PassOp" : "Keep"
-            }
         }
     },
     "GlobalTargetBlendState": {

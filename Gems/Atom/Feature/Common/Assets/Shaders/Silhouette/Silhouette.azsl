@@ -126,7 +126,7 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
         }
     }
 
-    real4 pixelSample = PassSrg::m_silhouettes.Load(int3(closestPosition.xy, sampleIndex));
+    real4 pixelSample = PassSrg::m_silhouettes.Load(int3(closestPosition.xy, 0));
     if(isInside)
     {
         // this is a silhouette pixel

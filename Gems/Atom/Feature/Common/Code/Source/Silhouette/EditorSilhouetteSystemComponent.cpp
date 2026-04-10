@@ -56,7 +56,7 @@ namespace AZ::Render
 
     void EditorSilhouetteSystemComponent::GetRequiredServices(AZ::ComponentDescriptor::DependencyArrayType& required)
     {
-        required.push_back(AZ_CRC("CommonService", 0x6398eec4));
+        AZ_UNUSED(required);
     }
 
     void EditorSilhouetteSystemComponent::GetDependentServices(AZ::ComponentDescriptor::DependencyArrayType& dependent)

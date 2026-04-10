@@ -40,7 +40,6 @@
                 "ShaderAsset": {
                     "FilePath": "Shaders/Silhouette/SilhouetteJFAStep.shader"
                 },
-                "StencilRef": 0,
                 "BindViewSrg": false
             }
         }
