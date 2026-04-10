@@ -53,16 +53,13 @@ namespace AzFramework
         }
 
         m_window = SDL_CreateWindow(title.c_str(), geometry.m_posX, geometry.m_posY, geometry.m_width, geometry.m_height, sdlFlags);
-        if (m_window)
-        {
-            m_width = geometry.m_width;
-            m_height = geometry.m_height;
-            SDLConnectionManagerInterface::Get()->SetApplicationWindow(this);
-        }
-        else
-        {
-            AZ_Assert(false, "Could not create SDL window");
-        }
+
+        AZ_Assert(m_window, "Could not create SDL window");
+
+        m_width = geometry.m_width;
+        m_height = geometry.m_height;
+
+        SDLConnectionManagerInterface::Get()->SetApplicationWindow(this);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
