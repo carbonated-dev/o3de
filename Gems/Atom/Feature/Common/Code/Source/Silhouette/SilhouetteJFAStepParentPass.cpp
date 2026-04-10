@@ -90,8 +90,6 @@ namespace AZ::Render
                 RPI::PassConnection{ Name("PrevJFA"), RPI::PassAttachmentRef{ Name("Parent"), m_jfaImages[inputIndex] } });
             jfaPassRequest.AddInputConnection(
                 RPI::PassConnection{ Name("JFAOutput"), RPI::PassAttachmentRef{ Name("Parent"), m_jfaImages[outputIndex] } });
-            jfaPassRequest.AddInputConnection(
-                RPI::PassConnection{ Name("DepthStencilInput"), RPI::PassAttachmentRef{ Name("Parent"), Name("DepthStencilInput") } });
             auto childPass = passSystem->CreatePassFromRequest(&jfaPassRequest);
             if (!childPass)
             {

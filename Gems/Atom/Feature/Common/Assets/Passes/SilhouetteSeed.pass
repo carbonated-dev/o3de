@@ -54,7 +54,10 @@
                     "ImageDescriptor": {
                         "Format": "R16G16_SNORM",
                         "SharedQueueMask": "Graphics"
-                    }
+                    },
+                    "FormatFallbacks" : [
+                        "R16G16_FLOAT"
+                    ]
                 }
             ],
             "Connections": [
