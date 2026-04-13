@@ -67,7 +67,12 @@ ly_set(LY_PYTHON_CMD ${CMAKE_CURRENT_SOURCE_DIR}/python/python.sh)
 # CARBONATED
 # Set the default window manager that applications should be using on Linux 
 # Note: Only ("xcb", "wayland" or 'sdl' should be considered)
-set(PAL_TRAIT_LINUX_WINDOW_MANAGER "sdl" CACHE STRING "Sets the Window Manager type to use when configuring Linux")  
+if(USE_SDL_LINUX)
+    set(PAL_TRAIT_LINUX_WINDOW_MANAGER "sdl" CACHE STRING "Sets the Window Manager type to use when configuring Linux")  
+else()
+    set(PAL_TRAIT_LINUX_WINDOW_MANAGER "xcb" CACHE STRING "Sets the Window Manager type to use when configuring Linux")  
+endif()
+
 set_property(CACHE PAL_TRAIT_LINUX_WINDOW_MANAGER PROPERTY STRINGS xcb wayland sdl)
 
 # Use system default libunwind instead of maintaining an O3DE version for Linux
