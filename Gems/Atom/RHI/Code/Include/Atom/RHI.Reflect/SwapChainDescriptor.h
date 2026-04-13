@@ -19,7 +19,11 @@ namespace AZ
 
 namespace AZ::RHI
 {
+#if defined(CARBONATED) && defined(AZ_PLATFORM_LINUX)
+    using WindowHandle = Handle<uint64_t, class WindowWindow>;  // global Window type defined in vulkan xlib
+#else
     using WindowHandle = Handle<uint64_t, class Window>;
+#endif    
 
     struct SwapChainDimensions
     {
