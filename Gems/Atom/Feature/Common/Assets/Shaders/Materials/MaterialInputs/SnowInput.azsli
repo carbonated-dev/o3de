@@ -1,0 +1,68 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#pragma once
+
+#include <Atom/Features/Debug.azsli>
+
+// This file provides utilities for common handling of inputs for "Wetness" properties of PBR materials, (C) Carbonated.
+// CARBONATED Addition.
+
+// These macros can be used to declare common shader inputs for this feature. 
+// Use the COMMON_SRG_INPUTS_* macro in your material SRG definition, and use the COMMON_OPTIONS_* macro at the global scope in your shader. Then you can pass these variables to the Get*Input() function below.
+// You can optionally provide a prefix for the set of inputs which corresponds to a prefix string supplied by the .materialtype file. This is common for multi-layered material types.
+
+#define COMMON_SRG_INPUTS_SNOW(prefix) \
+float prefix##m_snowAmount;  \
+Texture2D prefix##m_snowOpacityMap; \
+uint prefix##m_snowOpacityMapUvIndex; \
+float prefix##m_snowFactor;  \
+Texture2D prefix##m_snowFactorMap; \
+uint prefix##m_snowFactorMapUvIndex; \
+float3 prefix##m_snowTintColor; \
+Texture2D prefix##m_snowAlbedoMap; \
+uint prefix##m_snowAlbedoMapUvIndex; \
+Texture2D prefix##m_snowNormalMap; \
+uint prefix##m_snowNormalMapUvIndex; \
+float prefix##m_snowNormalStrength;  \
+float prefix##m_snowRoughness;  \
+Texture2D prefix##m_snowRoughnessMap; \
+uint prefix##m_snowRoughnessMapUvIndex;
+
+#define COMMON_OPTIONS_SNOW(prefix) \
+option bool prefix##o_snow_enabled; \
+option bool prefix##o_snow_opacity_useTexture; \
+option bool prefix##o_snow_factor_useTexture; \
+option bool prefix##o_snow_albedo_useTexture; \
+option bool prefix##o_snow_normal_useTexture; \
+option bool prefix##o_snow_roughness_useTexture;
+ 
+real GetSnowOpacityInput(Texture2D map, sampler mapSampler, float2 uv)
+{
+    return map.Sample(mapSampler, uv).r;
+}
+ 
+real GetSnowFactorInput(Texture2D map, sampler mapSampler, float2 uv)
+{
+    return map.Sample(mapSampler, uv).r;
+}
+
+real4 GetSnowAlbedoInput(Texture2D map, sampler mapSampler, float2 uv)
+{
+    return map.Sample(mapSampler, uv);
+}
+
+real3 GetSnowNormalInput(Texture2D map, sampler mapSampler, float2 uv)
+{
+    return map.Sample(mapSampler, uv).rgb;
+}
+
+real GetSnowRoughnessInput(Texture2D map, sampler mapSampler, float2 uv)
+{
+    return map.Sample(mapSampler, uv).r;
+}

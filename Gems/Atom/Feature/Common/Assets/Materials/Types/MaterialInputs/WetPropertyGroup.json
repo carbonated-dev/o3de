@@ -1,7 +1,7 @@
 {
     "name": "wet",
     "displayName": "Wet",
-    "description": "Properties for configuring whether the surface is wet or not.",
+    "description": "Properties for configuring whether the surface is wet or not, (c) Carbonated.",
     "properties": [
         {
             "name": "useWet",
@@ -41,7 +41,7 @@
             "displayName": "Use Texture",
             "description": "Whether to use the texture, or just default to the wetFactor value.",
             "type": "Bool",
-            "defaultValue": false
+            "defaultValue": true
         },
         {
             "name": "textureMap",
@@ -59,7 +59,7 @@
             "description": "Moistening properties map UV set",
             "type": "Enum",
             "enumIsUv": true,
-            "defaultValue": "Tiled",
+            "defaultValue": "Unwrapped",
             "connection": {
                 "type": "ShaderInput",
                 "name": "m_wetMapUvIndex"

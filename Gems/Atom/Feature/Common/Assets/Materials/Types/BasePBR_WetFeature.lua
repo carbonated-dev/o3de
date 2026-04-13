@@ -9,6 +9,7 @@
 --
 ----------------------------------------------------------------------------------------------------
 
+-- CARBONATED Addition.
 -- This functor controls the flag that enables the overall feature for the shader.
 
 function GetMaterialPropertyDependencies()

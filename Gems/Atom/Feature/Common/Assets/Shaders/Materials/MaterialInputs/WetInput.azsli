@@ -10,7 +10,8 @@
 
 #include <Atom/Features/Debug.azsli>
 
-// This file provides utilities for common handling of inputs for "metalness" of PBR materials.
+// This file provides utilities for common handling of inputs for "Wetness" properties of PBR materials, (C) Carbonated.
+// CARBONATED Addition.
 
 // These macros can be used to declare common shader inputs for this feature. 
 // Use the COMMON_SRG_INPUTS_* macro in your material SRG definition, and use the COMMON_OPTIONS_* macro at the global scope in your shader. Then you can pass these variables to the Get*Input() function below.
