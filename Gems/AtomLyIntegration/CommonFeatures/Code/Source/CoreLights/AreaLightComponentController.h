@@ -55,6 +55,7 @@ namespace AZ
 #if defined(CARBONATED) && defined(CARBONATED_LIGHT_VIZ)
             void SetVisible(bool isVisible) override;
             bool GetVisible() const override;
+            AreaLightComponentConfig::LightType GetType() const override;
 #endif
             const Color& GetColor() const override;
             void SetColor(const Color& color) override;
