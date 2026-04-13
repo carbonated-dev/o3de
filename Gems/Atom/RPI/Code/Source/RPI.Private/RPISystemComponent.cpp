@@ -179,7 +179,17 @@ namespace AZ
             {
                 return;
             }
-#endif
+#if defined(AZ_PLATFORM_LINUX)  // crashes in x11 library on exit if continue rendering
+            {
+                bool wasExitMainLoopRequested = false;
+                AzFramework::ApplicationRequests::Bus::BroadcastResult(wasExitMainLoopRequested, &AzFramework::ApplicationRequests::WasExitMainLoopRequested);
+                if (wasExitMainLoopRequested)
+                {
+                    return;
+                }
+            }
+#endif  // AZ_PLATFORM_LINUX
+#endif  // CARBONATED
             if (m_performanceCollector)
             {
                 if (m_gpuPassProfiler && !m_performanceCollector->IsWaitingBeforeCapture() && m_gpuPassProfiler->IsGpuTimeMeasurementEnabled())
