@@ -25,7 +25,7 @@ namespace AZ::Debug
     void ProfileScope::BeginRegion(
         [[maybe_unused]] Budget* budget, [[maybe_unused]] const char* eventName, [[maybe_unused]] T const&... args)
     {
-    #if !defined(_RELEASE)
+    #if !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
         if (budget)
         {
             Platform::BeginProfileRegion(budget, eventName, args...);
@@ -67,12 +67,12 @@ namespace AZ::Debug
                 m_cachedProfiler.value()->BeginRegion(budget, eventName, sizeof...(T), args...);
             }
         }
-    #endif // !defined(_RELEASE)
+    #endif // !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
     }
 
     inline void ProfileScope::EndRegion([[maybe_unused]] Budget* budget)
     {
-    #if !defined(_RELEASE)
+    #if !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
         if (budget)
         {
             budget->EndProfileRegion();
@@ -88,7 +88,7 @@ namespace AZ::Debug
 
             Platform::EndProfileRegion(budget);
         }
-    #endif // !defined(_RELEASE)
+    #endif // !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
     }
 
     template<typename... T>
@@ -108,16 +108,16 @@ namespace AZ::Debug
         [[maybe_unused]] const Budget* budget, [[maybe_unused]] const wchar_t* counterName,
         [[maybe_unused]] const T& value)
     {
-#if !defined(_RELEASE)
+#if !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
         Platform::ReportCounter(budget, counterName, value);
-#endif // !defined(_RELEASE)
+#endif // !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
     }
     inline void Profiler::ReportProfileEvent([[maybe_unused]] const Budget* budget,
         [[maybe_unused]] const char* eventName)
     {
-#if !defined(_RELEASE)
+#if !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
         Platform::ReportProfileEvent(budget, eventName);
-#endif // !defined(_RELEASE)
+#endif // !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
     }
 
 } // namespace AZ::Debug

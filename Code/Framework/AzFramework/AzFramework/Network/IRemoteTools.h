@@ -22,7 +22,7 @@
 #include <AzCore/std/smart_ptr/intrusive_refcount.h>
 #include <AzCore/std/string/string.h>
 
-#if !defined(_RELEASE)
+#if !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
     #define ENABLE_REMOTE_TOOLS 1
 #endif
 

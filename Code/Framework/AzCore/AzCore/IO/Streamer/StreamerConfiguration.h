@@ -17,7 +17,7 @@
 #include <AzCore/std/string/string.h>
 
 #if !defined(AZ_STREAMER_ADD_EXTRA_PROFILING_INFO)
-#   if defined(_RELEASE)
+    #if defined(_RELEASE) || defined(CARBONATED_PRODUCTION)
 #       define AZ_STREAMER_ADD_EXTRA_PROFILING_INFO 0
 #   else
 #       define AZ_STREAMER_ADD_EXTRA_PROFILING_INFO 1

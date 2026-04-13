@@ -15,7 +15,7 @@
 #include <AzCore/Math/Random.h>
 #include <AzCore/std/containers/fixed_vector.h>
 
-#ifndef _RELEASE
+#if !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
 #   define ENABLE_LATENCY_DEBUG 1
 #endif
 

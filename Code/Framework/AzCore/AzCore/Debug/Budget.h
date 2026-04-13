@@ -49,7 +49,7 @@ namespace AZ::Debug
 // for usage.
 #define AZ_BUDGET_GETTER(name) GetAzBudget##name
 
-#if defined(_RELEASE)
+#if defined(_RELEASE) || defined(CARBONATED_PRODUCTION)
 #define AZ_DEFINE_BUDGET(name)                                                                                                             \
     ::AZ::Debug::Budget* AZ_BUDGET_GETTER(name)()                                                                                          \
     {                                                                                                                                      \

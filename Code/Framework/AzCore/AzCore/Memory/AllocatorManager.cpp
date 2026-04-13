@@ -466,7 +466,7 @@ namespace AZ
         m_numAllocators = 0;
         m_isAllocatorLeaking = false;
 #if defined(CARBONATED)
-#if defined(AZ_ENABLE_TRACING) && defined(AZ_START_MEMORY_TRACING) && !defined(_RELEASE)
+#if defined(AZ_ENABLE_TRACING) && defined(AZ_START_MEMORY_TRACING) && !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
     m_defaultTrackingRecordMode = Debug::AllocationRecords::Mode::RECORD_STACK_IF_NO_FILE_LINE;
     m_defaultProfilingState = true;
 #else

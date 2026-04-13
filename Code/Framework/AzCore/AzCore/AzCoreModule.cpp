@@ -41,7 +41,7 @@ namespace AZ
             EventSchedulerSystemComponent::CreateDescriptor(),
             TaskGraphSystemComponent::CreateDescriptor(),
 
-#if !defined(_RELEASE)
+#if !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
             Statistics::StatisticalProfilerProxySystemComponent::CreateDescriptor(),
 #endif
 
@@ -59,7 +59,7 @@ namespace AZ
             azrtti_typeid<EventSchedulerSystemComponent>(),
             azrtti_typeid<TaskGraphSystemComponent>(),
 
-#if !defined(_RELEASE)
+#if !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
             azrtti_typeid<Statistics::StatisticalProfilerProxySystemComponent>(),
 #endif
         };
