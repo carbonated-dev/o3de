@@ -8,6 +8,15 @@
 
 set(O3DE_IMGUI_RELEASE_ENABLED ON CACHE BOOL "Allow IMGUI in release builds")
 
+# CARBONATED+ "CARBONATED_PRODUCTION" is priority over O3DE_IMGUI_RELEASE_ENABLED
+set(IMGUI_SHOULD_BE_ENABLED FALSE)
+if (NOT CARBONATED_PRODUCTION)
+    if (NOT CMAKE_BUILD_TYPE STREQUAL "Release" OR O3DE_IMGUI_RELEASE_ENABLED)
+        set(IMGUI_SHOULD_BE_ENABLED TRUE)
+    endif()
+endif()
+# CARBONATED-
+
 o3de_pal_dir(pal_source_dir ${CMAKE_CURRENT_LIST_DIR}/Source/Platform/${PAL_PLATFORM_NAME} "${gem_restricted_path}" "${gem_path}" "${gem_parent_relative_path}")
 
 # This library is the 3rdParty imgui that is in the Gem's External
@@ -28,8 +37,8 @@ ly_add_target(
             Include
     COMPILE_DEFINITIONS
         PUBLIC
-            $<$<AND:$<NOT:$<BOOL:${CARBONATED_PRODUCTION}>>,$<OR:$<NOT:$<CONFIG:Release>>,$<BOOL:${O3DE_IMGUI_RELEASE_ENABLED}>>>:IMGUI_ENABLED>
-            $<$<OR:$<BOOL:${CARBONATED_PRODUCTION}>,$<AND:$<CONFIG:Release>,$<NOT:$<BOOL:${O3DE_IMGUI_RELEASE_ENABLED}>>>>:IMGUI_DISABLED>
+            $<$<BOOL:${IMGUI_SHOULD_BE_ENABLED}>:IMGUI_ENABLED>         # CARBONATED. Using local variable IMGUI_SHOULD_BE_ENABLED
+            $<$<NOT:$<BOOL:${IMGUI_SHOULD_BE_ENABLED}>>:IMGUI_DISABLED> # CARBONATED. Using local variable IMGUI_SHOULD_BE_ENABLED
         INTERFACE
             $<$<NOT:$<BOOL:${LY_MONOLITHIC_GAME}>>:IMGUI_API_IMPORT>
             IMGUI_INCLUDE_IMGUI_USER_H
