@@ -52,9 +52,12 @@ namespace AZ
         
         bool Instance::Init(const Descriptor& descriptor)
         {
+            AZ_Info("ccc", "Vulkan::Instance::Init begin\n");
+
             m_loaderContext = LoaderContext::Create();
             if (!m_loaderContext)
             {
+            AZ_Info("ccc", "Vulkan::Instance::Init no loader\n");
                 return false;
             }
 #if defined(USE_NSIGHT_AFTERMATH)
@@ -214,6 +217,9 @@ namespace AZ
             // Check that we have at least one device that meets the requirements.
             m_supportedDevices = EnumerateSupportedDevices(minVersion);           
             AZ_Warning("Vulkan", !m_supportedDevices.empty(), "Could not find any Vulkan supported device");
+
+            AZ_Info("ccc", "Vulkan::Instance::Init end\n");
+
             return !m_supportedDevices.empty();
         }
 
