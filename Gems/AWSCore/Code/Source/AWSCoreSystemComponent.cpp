@@ -105,19 +105,35 @@ namespace AWSCore
 
     void AWSCoreSystemComponent::Init()
     {
+        AZ_Info("ccc", "AWSCoreSystemComponent::Init begin\n");
+
         m_awsCoreConfiguration->InitConfig();
+
+        AZ_Info("ccc", "AWSCoreSystemComponent::Init end\n");
     }
 
     void AWSCoreSystemComponent::Activate()
     {
+        AZ_Info("ccc", "AWSCoreSystemComponent::Activate begin\n");
+
         m_awsCoreConfiguration->ActivateConfig();
 
+        AZ_Info("ccc", "AWSCoreSystemComponent::Activate before InitAWSApi\n");
+
         InitAWSApi();
+
+        AZ_Info("ccc", "AWSCoreSystemComponent::Activate after InitAWSApi\n");
+
         m_awsCredentialManager->ActivateManager();
+
+        AZ_Info("ccc", "AWSCoreSystemComponent::Activate before m_awsResourceMappingManager\n");
+
         m_awsResourceMappingManager->ActivateManager();
 
         AWSCoreRequestBus::Handler::BusConnect();
         AWSCoreNotificationsBus::Broadcast(&AWSCoreNotifications::OnSDKInitialized);
+
+        AZ_Info("ccc", "AWSCoreSystemComponent::Activate end\n");
     }
 
     void AWSCoreSystemComponent::Deactivate()
@@ -141,7 +157,9 @@ namespace AWSCore
         m_ownsAwsNativeInitialization = !AWSNativeSDKInit::InitializationManager::IsInitialized();
         if (m_ownsAwsNativeInitialization)
         {
+            AZ_Info("ccc", "AWSCoreSystemComponent::InitAWSApi before AWSNativeSDKInit::InitializationManager::InitAwsApi\n");
             AWSNativeSDKInit::InitializationManager::InitAwsApi();
+            AZ_Info("ccc", "AWSCoreSystemComponent::InitAWSApi after AWSNativeSDKInit::InitializationManager::InitAwsApi\n");
         }
     }
 

@@ -37,8 +37,12 @@ namespace AWSCore
 
     void AWSResourceMappingManager::ActivateManager()
     {
+        AZ_Info("ccc", "AWSResourceMappingManager::ActivateManager begin\n");
+
         ReloadConfigFile();
         AWSResourceMappingRequestBus::Handler::BusConnect();
+
+        AZ_Info("ccc", "AWSResourceMappingManager::ActivateManager end\n");
     }
 
     void AWSResourceMappingManager::DeactivateManager()
