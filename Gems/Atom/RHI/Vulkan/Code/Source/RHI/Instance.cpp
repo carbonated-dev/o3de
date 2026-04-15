@@ -57,7 +57,7 @@ namespace AZ
             m_loaderContext = LoaderContext::Create();
             if (!m_loaderContext)
             {
-            AZ_Info("ccc", "Vulkan::Instance::Init no loader\n");
+                AZ_Info("ccc", "Vulkan::Instance::Init no loader\n");
                 return false;
             }
 #if defined(USE_NSIGHT_AFTERMATH)
