@@ -64,12 +64,18 @@ namespace AWSCore
 
     void AWSCoreConfiguration::InitConfig()
     {
+        AZ_Info("ccc", "AWSCoreConfiguration::InitConfig begin\n");
+
         InitSourceProjectFolderPath();
         ParseSettingsRegistryValues();
+
+        AZ_Info("ccc", "AWSCoreConfiguration::InitConfig end\n");
     }
 
     void AWSCoreConfiguration::InitSourceProjectFolderPath()
     {
+        AZ_Info("ccc", "AWSCoreConfiguration::InitSourceProjectFolderPath begin\n");
+
         auto sourceProjectFolder = AZ::IO::FileIOBase::GetInstance()->GetAlias("@projectroot@");
         if (!sourceProjectFolder)
         {
@@ -79,10 +85,14 @@ namespace AWSCore
         {
             m_sourceProjectFolder = sourceProjectFolder;
         }
+
+        AZ_Info("ccc", "AWSCoreConfiguration::InitSourceProjectFolderPath end\n");
     }
 
     void AWSCoreConfiguration::ParseSettingsRegistryValues()
     {
+        AZ_Info("ccc", "AWSCoreConfiguration::ParseSettingsRegistryValues begin\n");
+
         AZ::SettingsRegistryInterface*  settingsRegistry = AZ::SettingsRegistry::Get();
         if (!settingsRegistry)
         {
@@ -114,6 +124,8 @@ namespace AWSCore
             AZ_Warning(AWSCoreConfigurationName, false, AllowAWSMetadataCredentialsNotFoundMessage);
             m_allowAWSMetadataCredentials = false;
         }
+
+        AZ_Info("ccc", "AWSCoreConfiguration::ParseSettingsRegistryValues end\n");
     }
 
     void AWSCoreConfiguration::ResetSettingsRegistryData()

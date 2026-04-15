@@ -758,12 +758,14 @@ namespace AZ
 
         for (Component* component : componentsToActivate)
         {
-            AZ_Info("ccc", "  activate component %llx of type %s\n", component->GetId(), component->GetUnderlyingComponentType().ToString<AZStd::string>().c_str());
+            AZ_Info("ccc", "  activate component begin %llx of type %s\n", component->GetId(), component->RTTI_GetTypeName());
 
             ModuleEntity::ActivateComponent(*component);
 
             componentNamesArray += AZStd::string::format(R"(%s"%s")", comma, component->RTTI_GetTypeName());
             comma = ", ";
+
+            AZ_Info("ccc", "  activate component end %llx of type %s\n", component->GetId(), component->RTTI_GetTypeName());
         }
         componentNamesArray += R"(]})";
 
