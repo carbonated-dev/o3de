@@ -93,7 +93,8 @@ namespace AWSNativeSDKInit
 
         AZ_Info("ccc", "InitializationManager::InitializeAwsApiInternal before Aws::InitAPI\n");
 
-        Aws::InitAPI(m_awsSDKOptions);
+        //Aws::InitAPI(m_awsSDKOptions);  // AWSless
+        AZ_Info("ccc", "InitializationManager::InitializeAwsApiInternal drop Aws::InitAPI\n");
 
         AZ_Info("ccc", "InitializationManager::InitializeAwsApiInternal after Aws::InitAPI\n");
 
