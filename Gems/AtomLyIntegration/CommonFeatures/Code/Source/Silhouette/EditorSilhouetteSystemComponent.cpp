@@ -12,7 +12,6 @@
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/Serialization/EditContextConstants.inl>
 
-#include <AssetBuilderSDK/AssetBuilderSDK.h>
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
 #include <AzFramework/Application/Application.h>
 
@@ -30,8 +29,7 @@ namespace AZ::Render
         if (AZ::SerializeContext* serialize = azrtti_cast<AZ::SerializeContext*>(context))
         {
             serialize->Class<EditorSilhouetteSystemComponent, AZ::Component>()
-                ->Version(1)
-                ->Attribute(Edit::Attributes::SystemComponentTags, AZStd::vector<Crc32>({ AssetBuilderSDK::ComponentTags::AssetBuilder }))
+                ->Version(0)
                 ;
 
             if (AZ::EditContext* ec = serialize->GetEditContext())

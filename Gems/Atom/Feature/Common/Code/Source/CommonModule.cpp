@@ -23,9 +23,6 @@
 #ifdef ATOM_FEATURE_COMMON_EDITOR
 #include <EditorCommonSystemComponent.h>
 #include <Material/MaterialConverterSystemComponent.h>
-#if defined(CARBONATED)
-#include <Silhouette/EditorSilhouetteSystemComponent.h>
-#endif
 #endif
 
 namespace AZ
@@ -55,9 +52,6 @@ namespace AZ
 #ifdef ATOM_FEATURE_COMMON_EDITOR
                     EditorCommonSystemComponent::CreateDescriptor(),
                     MaterialConverterSystemComponent::CreateDescriptor(),
-#if defined(CARBONATED)
-                    EditorSilhouetteSystemComponent::CreateDescriptor(),
-#endif
 #endif
                     });
             }
@@ -73,9 +67,6 @@ namespace AZ
                     azrtti_typeid<SkinnedMeshSystemComponent>(),
 #ifdef ATOM_FEATURE_COMMON_EDITOR
                     azrtti_typeid<EditorCommonSystemComponent>(),
-#if defined(CARBONATED)
-                    azrtti_typeid<EditorSilhouetteSystemComponent>(),
-#endif
 #endif
                 };
             }
