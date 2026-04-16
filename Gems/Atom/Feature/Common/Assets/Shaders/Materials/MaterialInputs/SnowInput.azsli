@@ -18,21 +18,29 @@
 // You can optionally provide a prefix for the set of inputs which corresponds to a prefix string supplied by the .materialtype file. This is common for multi-layered material types.
 
 #define COMMON_SRG_INPUTS_SNOW(prefix) \
-float prefix##m_snowAmount;  \
+float prefix##m_snowAmount; \
+float prefix##m_snowCenterX; \
+float prefix##m_snowCenterY; \
+float prefix##m_snowRadius; \
 Texture2D prefix##m_snowOpacityMap; \
 uint prefix##m_snowOpacityMapUvIndex; \
-float prefix##m_snowFactor;  \
+float prefix##m_snowOpacityMapUvScale; \
+float prefix##m_snowFactor; \
 Texture2D prefix##m_snowFactorMap; \
 uint prefix##m_snowFactorMapUvIndex; \
+float prefix##m_snowFactorMapUvScale; \
 float3 prefix##m_snowTintColor; \
 Texture2D prefix##m_snowAlbedoMap; \
 uint prefix##m_snowAlbedoMapUvIndex; \
+float prefix##m_snowAlbedoMapUvScale; \
 Texture2D prefix##m_snowNormalMap; \
 uint prefix##m_snowNormalMapUvIndex; \
-float prefix##m_snowNormalStrength;  \
-float prefix##m_snowRoughness;  \
+float prefix##m_snowNormalMapUvScale; \
+float prefix##m_snowNormalStrength; \
+float prefix##m_snowRoughness; \
 Texture2D prefix##m_snowRoughnessMap; \
-uint prefix##m_snowRoughnessMapUvIndex;
+uint prefix##m_snowRoughnessMapUvIndex; \
+float prefix##m_snowRoughnessMapUvScale; 
 
 #define COMMON_OPTIONS_SNOW(prefix) \
 option bool prefix##o_snow_enabled; \

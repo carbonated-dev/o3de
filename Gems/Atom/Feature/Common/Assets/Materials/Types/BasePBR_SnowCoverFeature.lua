@@ -57,40 +57,41 @@ function Process(context)
 end
 
 -- Note this logic matches that of the UseTextureFunctor class.
-function UpdateTextureDependentPropertyVisibility(context, textureMapPropertyName, useTexturePropertyName, uvPropertyName)
+function UpdateTextureDependentPropertyVisibility(context, textureMapPropertyName, useTexturePropertyName, uvPropertyName, uvScalePropertyName)
     local textureMap = context:GetMaterialPropertyValue_Image(textureMapPropertyName)
     local useTexture = context:GetMaterialPropertyValue_bool(useTexturePropertyName)
 
     if(textureMap == nil) then
         context:SetMaterialPropertyVisibility(useTexturePropertyName, MaterialPropertyVisibility_Hidden)
         context:SetMaterialPropertyVisibility(uvPropertyName, MaterialPropertyVisibility_Hidden)
+        context:SetMaterialPropertyVisibility(uvScalePropertyName, MaterialPropertyVisibility_Hidden)
     elseif(not useTexture) then
-        context:SetMaterialPropertyVisibility(uvPropertyName, MaterialPropertyVisibility_Disabled)
+        context:SetMaterialPropertyVisibility(uvPropertyName, MaterialPropertyVisibility_Hidden)
+        context:SetMaterialPropertyVisibility(uvScalePropertyName, MaterialPropertyVisibility_Hidden)
     end
 end
 
-function UpdateFactorPropertyVisibility(context, textureMapPropertyName, useTexturePropertyName)
+function UpdateExclusivePropertyVisibility(context, textureMapPropertyName, useTexturePropertyName, propertyName)
     local textureMap = context:GetMaterialPropertyValue_Image(textureMapPropertyName)
     local useTexture = context:GetMaterialPropertyValue_bool(useTexturePropertyName)
 
     if(textureMap == nil) or (not useTexture) then
-        context:SetMaterialPropertyVisibility("factor", MaterialPropertyVisibility_Enabled)
+        context:SetMaterialPropertyVisibility(propertyName, MaterialPropertyVisibility_Enabled)
     else
-        context:SetMaterialPropertyVisibility("factor", MaterialPropertyVisibility_Hidden)
+        context:SetMaterialPropertyVisibility(propertyName, MaterialPropertyVisibility_Hidden)
     end
 end
 
-function UpdateNormalStrengthPropertyVisibility(context, textureMapPropertyName, useTexturePropertyName)
+function UpdateInclusivePropertyVisibility(context, textureMapPropertyName, useTexturePropertyName, propertyName)
     local textureMap = context:GetMaterialPropertyValue_Image(textureMapPropertyName)
     local useTexture = context:GetMaterialPropertyValue_bool(useTexturePropertyName)
 
     if(textureMap == nil) or (not useTexture) then
-        context:SetMaterialPropertyVisibility("normalStrength", MaterialPropertyVisibility_Hidden)
+        context:SetMaterialPropertyVisibility(propertyName, MaterialPropertyVisibility_Hidden)
     else
-        context:SetMaterialPropertyVisibility("normalStrength", MaterialPropertyVisibility_Enabled)
+        context:SetMaterialPropertyVisibility(propertyName, MaterialPropertyVisibility_Enabled)
     end
 end
-
 
 function ProcessEditor(context)
     local enable = context:GetMaterialPropertyValue_bool("enable")
@@ -103,37 +104,51 @@ function ProcessEditor(context)
     end
 
     context:SetMaterialPropertyVisibility("amount", mainVisibility)
+
+    -- Note: the following 2 parameters are controlled programmatically and thus hidden, with defaults (0, 0)
+    context:SetMaterialPropertyVisibility("centerX", MaterialPropertyVisibility_Hidden)
+    context:SetMaterialPropertyVisibility("centerY", MaterialPropertyVisibility_Hidden)
+    -- Note: the following parameter is controlled programmatically and thus hidden, with default 5000.0
+    context:SetMaterialPropertyVisibility("radius", MaterialPropertyVisibility_Hidden)
+
     context:SetMaterialPropertyVisibility("opacityMap", mainVisibility)
     context:SetMaterialPropertyVisibility("useOpacityMap", mainVisibility)
     context:SetMaterialPropertyVisibility("opacityMapUv", mainVisibility)
+    context:SetMaterialPropertyVisibility("opacityMapUvScale", mainVisibility)
     
     context:SetMaterialPropertyVisibility("factor", mainVisibility)
     context:SetMaterialPropertyVisibility("factorMap", mainVisibility)
     context:SetMaterialPropertyVisibility("useFactorMap", mainVisibility)
     context:SetMaterialPropertyVisibility("factorMapUv", mainVisibility)
+    context:SetMaterialPropertyVisibility("factorMapUvScale", mainVisibility)
     
     context:SetMaterialPropertyVisibility("tintColor", mainVisibility)
+    
     context:SetMaterialPropertyVisibility("albedoMap", mainVisibility)
     context:SetMaterialPropertyVisibility("useAlbedoMap", mainVisibility)
     context:SetMaterialPropertyVisibility("albedoMapUv", mainVisibility)
+    context:SetMaterialPropertyVisibility("albedoMapUvScale", mainVisibility)
     
     context:SetMaterialPropertyVisibility("normalMap", mainVisibility)
     context:SetMaterialPropertyVisibility("useNormalMap", mainVisibility)
     context:SetMaterialPropertyVisibility("normalMapUv", mainVisibility)
+    context:SetMaterialPropertyVisibility("normalMapUvScale", mainVisibility)
     context:SetMaterialPropertyVisibility("normalStrength", mainVisibility)
     
     context:SetMaterialPropertyVisibility("roughness", mainVisibility)
     context:SetMaterialPropertyVisibility("roughnessMap", mainVisibility)
     context:SetMaterialPropertyVisibility("useRoughnessMap", mainVisibility)
     context:SetMaterialPropertyVisibility("roughnessMapUv", mainVisibility)
+    context:SetMaterialPropertyVisibility("roughnessMapUvScale", mainVisibility)
 
     if(enable) then
-        UpdateTextureDependentPropertyVisibility(context, "opacityMap", "useOpacityMap", "opacityMapUv")
-        UpdateTextureDependentPropertyVisibility(context, "factorMap",  "useFactorMap",  "factorMapUv")
-        UpdateFactorPropertyVisibility(context, "factorMap", "useFactorMap")
-        UpdateTextureDependentPropertyVisibility(context, "albedoMap",  "useAlbedoMap",  "albedoMapUv")
-        UpdateTextureDependentPropertyVisibility(context, "normalMap",  "useNormalMap",  "normalMapUv")
-        UpdateNormalStrengthPropertyVisibility(context, "normalMap", "useNormalMap")
-        UpdateTextureDependentPropertyVisibility(context, "roughnessMap", "useRoughnessMap", "roughnessMapUv")
+        UpdateTextureDependentPropertyVisibility(context, "opacityMap", "useOpacityMap", "opacityMapUv", "opacityMapUvScale")
+        UpdateTextureDependentPropertyVisibility(context, "factorMap",  "useFactorMap",  "factorMapUv", "factorMapUvScale")
+        UpdateExclusivePropertyVisibility(context, "factorMap", "useFactorMap", "factor")
+        UpdateTextureDependentPropertyVisibility(context, "albedoMap",  "useAlbedoMap",  "albedoMapUv", "albedoMapUvScale")
+        UpdateTextureDependentPropertyVisibility(context, "normalMap",  "useNormalMap",  "normalMapUv", "normalMapUvScale")
+        UpdateInclusivePropertyVisibility(context, "normalMap", "useNormalMap", "normalStrength")
+        UpdateTextureDependentPropertyVisibility(context, "roughnessMap", "useRoughnessMap", "roughnessMapUv", "roughnessMapUvScale")
+        UpdateExclusivePropertyVisibility(context, "roughnessMap", "useRoughnessMap", "roughness")
     end
 end

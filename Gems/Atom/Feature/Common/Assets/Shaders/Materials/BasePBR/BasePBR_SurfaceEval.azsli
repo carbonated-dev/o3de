@@ -111,11 +111,11 @@ Surface EvaluateSurface_BasePBR(
     if (o_useWet)
     {
         float wetFactor = saturate(MaterialSrg::m_wetFactor);
-        const float wetAmount = saturate(MaterialSrg::m_wetAmount);
+        float wetAmount = saturate(MaterialSrg::m_wetAmount);
         
         if (o_wet_useTexture)
         {
-            const float2 wetMapUv = uvs[MaterialSrg::m_wetMapUvIndex];
+            const float2 wetMapUv = uvs[MaterialSrg::m_wetMapUvIndex] * MaterialSrg::m_wetMapUvScale;
             wetFactor = GetWetInput(MaterialSrg::m_wetMap, MaterialSrg::m_sampler, wetMapUv);
         }
         
@@ -126,6 +126,19 @@ Surface EvaluateSurface_BasePBR(
         // Approximation:
         const float porosity = saturate(pow(1.15f, wetFactor) - 0.1f);
         const float maxDarken = pow(1.25f, wetFactor) * 0.95f;
+
+        // Vanishing wetness with distance.
+        const float2 rainCenter = float2(MaterialSrg::m_wetCenterX, MaterialSrg::m_wetCenterY);
+        const float rainRadius = max(10.0f, MaterialSrg::m_wetRadius);
+        const float relativeDistance = length(positionWS.xy - rainCenter) / rainRadius;
+        if (relativeDistance > 1.0f)
+        {
+            wetAmount = 0.0f;
+        }
+        else if (relativeDistance > 0.75f)
+        {
+            wetAmount *= (1.0f - relativeDistance) * 4.0f;
+        }
         
         // Overall amount depends on setup amount, surface properties and surface normal
         const float effectiveWetness = saturate(wetFactor + 0.1f) * wetAmount * saturate(surface.normal.z + 0.25f);
@@ -161,15 +174,28 @@ Surface EvaluateSurface_BasePBR(
         float snowAmount = saturate(MaterialSrg::m_snowAmount);
         if (o_snow_opacity_useTexture)
         {
-            const float2 snowOpacityMapUv = uvs[MaterialSrg::m_snowOpacityMapUvIndex];
+            const float2 snowOpacityMapUv = uvs[MaterialSrg::m_snowOpacityMapUvIndex] * MaterialSrg::m_snowOpacityMapUvScale;
             const float snowOpacity = GetSnowOpacityInput(MaterialSrg::m_snowOpacityMap, MaterialSrg::m_sampler, snowOpacityMapUv);
             snowAmount = saturate(snowAmount + snowAmount * snowOpacity * 2.0f);
         }
-        
+
+        // Vanishing snow cover with distance.
+        const float2 snowCenter = float2(MaterialSrg::m_snowCenterX, MaterialSrg::m_snowCenterY);
+        const float snowRadius = max(10.0f, MaterialSrg::m_snowRadius);
+        const float relativeDistance = length(positionWS.xy - snowCenter) / snowRadius;
+        if (relativeDistance > 1.0f)
+        {
+            snowAmount = 0.0f;
+        }
+        else if (relativeDistance > 0.75f)
+        {
+            snowAmount *= (1.0f - relativeDistance) * 4.0f;
+        }
+
         float snowFactor = saturate(MaterialSrg::m_snowFactor);
         if (o_snow_factor_useTexture)
         {
-            const float2 snowFactorMapUv = uvs[MaterialSrg::m_snowFactorMapUvIndex];
+            const float2 snowFactorMapUv = uvs[MaterialSrg::m_snowFactorMapUvIndex] * MaterialSrg::m_snowFactorMapUvScale;
             snowFactor = GetSnowFactorInput(MaterialSrg::m_snowFactorMap, MaterialSrg::m_sampler, snowFactorMapUv);
         }
         // Overall amount depends on setup amount, surface properties and surface normal
@@ -178,7 +204,7 @@ Surface EvaluateSurface_BasePBR(
         real3 snowColor = MaterialSrg::m_snowTintColor;
         if (o_snow_albedo_useTexture)
         {
-            const float2 snowAlbedoMapUv = uvs[MaterialSrg::m_snowAlbedoMapUvIndex];
+            const float2 snowAlbedoMapUv = uvs[MaterialSrg::m_snowAlbedoMapUvIndex] * MaterialSrg::m_snowAlbedoMapUvScale;
             real4 snowAlbedo = GetSnowAlbedoInput(MaterialSrg::m_snowAlbedoMap, MaterialSrg::m_sampler, snowAlbedoMapUv);
             snowColor = saturate(snowColor * 0.1 + snowAlbedo.xyz * 0.1 + snowColor * snowAlbedo.xyz);
             snowAmount *= snowAlbedo.w;
@@ -187,7 +213,7 @@ Surface EvaluateSurface_BasePBR(
         real3 snowNormal = vertexNormal;
         if (o_snow_normal_useTexture)
         {
-            const float2 snowNormalMapUv = uvs[MaterialSrg::m_snowNormalMapUvIndex];
+            const float2 snowNormalMapUv = uvs[MaterialSrg::m_snowNormalMapUvIndex] * MaterialSrg::m_snowNormalMapUvScale;
             snowNormal = GetNormalInputWS(MaterialSrg::m_snowNormalMap, MaterialSrg::m_sampler, snowNormalMapUv, false, false, isFrontFace, vertexNormal,
                                            tangents[MaterialSrg::m_snowNormalMapUvIndex], bitangents[MaterialSrg::m_snowNormalMapUvIndex], uvMatrix,
                                            o_snow_normal_useTexture, real(MaterialSrg::m_snowNormalStrength), float4(0.0f, 0.0f, 0.0f, 0.0f), false);
@@ -196,7 +222,7 @@ Surface EvaluateSurface_BasePBR(
         real snowRoughness = MaterialSrg::m_snowRoughness;
         if (o_snow_roughness_useTexture)
         {
-            const float2 snowRoughnessMapUv = uvs[MaterialSrg::m_snowRoughnessMapUvIndex];
+            const float2 snowRoughnessMapUv = uvs[MaterialSrg::m_snowRoughnessMapUvIndex] * MaterialSrg::m_snowRoughnessMapUvScale;;
             snowRoughness = GetSnowRoughnessInput(MaterialSrg::m_snowRoughnessMap, MaterialSrg::m_sampler, snowRoughnessMapUv);
         }
         
