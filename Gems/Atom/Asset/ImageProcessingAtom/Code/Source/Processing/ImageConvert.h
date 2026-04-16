@@ -61,6 +61,19 @@ namespace ImageProcessingAtom
     void GetOutputExtent(AZ::u32 inputWidth, AZ::u32 inputHeight, AZ::u32& outWidth, AZ::u32& outHeight, AZ::u32& outReduce,
         const TextureSettings* textureSettings, const PresetSettings* presetSettings);
 
+#if defined(CARBONATED)
+    // Converts a 2D flipbook texture into a 3D volume texture (R32G32B32A32F, EIF_Volumetexture).
+    IImageObjectPtr CreateVolumeTextureFromFlipbook(const IImageObjectPtr& srcImage, const TextureSettings::FlipbookSettings& settings);
+
+    // Fills one mip level of a 3D volume texture from a source volume texture.
+    // XY is resampled via FilterImage; Z is reduced with a box filter.
+    void FilterVolumeImage(
+        MipGenType filterType,
+        MipGenEvalType evalType,
+        const IImageObjectPtr& srcImg, AZ::u32 srcMip,
+        IImageObjectPtr& dstImg, AZ::u32 dstMip);
+#endif // defined(CARBONATED)
+
     // The structure used to create a ImageConvertProcess
     struct ImageConvertProcessDescriptor
     {
@@ -162,6 +175,17 @@ namespace ImageProcessingAtom
         //mipmap generation for cubemap
         bool FillCubemapMipmaps();
 
+#if defined(CARBONATED)
+        // Converts the current 2D processing image into a 3D volume texture using the
+        // FlipbookSettings from the input descriptor. Called from StepConvertFromFlipbook.
+        bool ConvertFromFlipbook();
+
+        // Mipmap generation for 3D volume textures. Respects the enableMipmap setting and
+        // applies GetOutputExtent for XY size reduction. Called from StepMipmap when the
+        // current image has EIF_Volumetexture set.
+        bool FillVolumeMipmaps();
+#endif // defined(CARBONATED)
+
         //set (alpha-weighted) average color computed from given mip
         bool SetAverageColor(AZ::u32 mip);
 
@@ -185,5 +209,10 @@ namespace ImageProcessingAtom
 
         //if the input image is a pre-convolved cubemap
         bool IsPreconvolvedCubemap();
+
+#if defined(CARBONATED)
+        //if the input is a 2D flipbook
+        bool IsFlipbook();
+#endif // defined(CARBONATED)
     };
 }// namespace ImageProcessingAtom

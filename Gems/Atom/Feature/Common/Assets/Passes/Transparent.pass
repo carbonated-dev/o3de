@@ -73,6 +73,12 @@
                     "ShaderInputName": "m_linearDepthTexture",
                     "ScopeAttachmentUsage": "Shader"
                 },
+                {
+                    "Name": "FroxelVolumetricFog",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_froxelVolumetricFog",
+                    "ScopeAttachmentUsage": "Shader"
+                },
                 // Input/Outputs
                 {
                     "Name": "DepthStencil",

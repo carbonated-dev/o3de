@@ -221,6 +221,62 @@
                     ]
                 },
                 {
+                    "Name": "FroxelParentPass",
+                    "TemplateName": "FroxelParentTemplate",
+                    "Enabled": false,                    
+                    "Connections": [
+                        {
+                            "LocalSlot": "TileLightData",
+                            "AttachmentRef": {
+                                "Pass": "LightCullingPass",
+                                "Attachment": "TileLightData"
+                            }
+                        },
+                        {
+                            "LocalSlot": "LightListRemapped",
+                            "AttachmentRef": {
+                                "Pass": "LightCullingPass",
+                                "Attachment": "LightListRemapped"
+                            }
+                        },
+                        {
+                            "LocalSlot": "PipelineOutput",
+                            "AttachmentRef": {
+                                "Pass": "PipelineGlobal",
+                                "Attachment": "PipelineOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DirectionalShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Shadows",
+                                "Attachment": "DirectionalShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DirectionalESM",
+                            "AttachmentRef": {
+                                "Pass": "Shadows",
+                                "Attachment": "DirectionalESM"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ProjectedShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Shadows",
+                                "Attachment": "ProjectedShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ProjectedESM",
+                            "AttachmentRef": {
+                                "Pass": "Shadows",
+                                "Attachment": "ProjectedESM"
+                            }
+                        }
+                    ]
+                },
+                {
                     "Name": "TransparentPass",
                     "TemplateName": "TransparentParentTemplate",
                     "Connections": [
@@ -271,6 +327,13 @@
                             "AttachmentRef": {
                                 "Pass": "DepthPrePass",
                                 "Attachment": "DepthLinear"
+                            }
+                        },
+                        {
+                            "LocalSlot": "FroxelVolumetricFog",
+                            "AttachmentRef": {
+                                "Pass": "FroxelParentPass",
+                                "Attachment": "FroxelIntegrated"
                             }
                         },
                         {

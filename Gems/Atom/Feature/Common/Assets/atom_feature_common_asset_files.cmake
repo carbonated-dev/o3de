@@ -341,8 +341,10 @@ set(FILES
     ShaderResourceGroups/PostProcessing/SceneSrg.azsli
     ShaderResourceGroups/PostProcessing/ViewSrg.azsli
     ShaderResourceGroups/SkyBox/SceneSrg.azsli
-    # CARBONATED for Weather GEM
+#if defined(CARBONATED)
     ShaderResourceGroups/Weather/SceneSrg.azsli
+    ShaderResourceGroups/VolumetricFog/SceneSrg.azsli
+#endif
     Shaders/ForwardPassSrg.azsl
     Shaders/ForwardPassSrg.shader
     Shaders/AuxGeom/AuxGeomObject.azsl

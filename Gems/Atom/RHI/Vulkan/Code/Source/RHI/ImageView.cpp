@@ -93,14 +93,21 @@ namespace AZ
             }
 
             const VkImageViewType imageViewType = GetImageViewType(image);
+#if defined(CARBONATED)
+            m_vkCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            m_vkCreateInfo.pNext = nullptr;
+            m_vkCreateInfo.flags = createFlags;
+            m_vkCreateInfo.image = image.GetNativeImage();
+            m_vkCreateInfo.viewType = imageViewType;
+            m_vkCreateInfo.format = ConvertFormat(m_format);
+            m_vkCreateInfo.components = ConvertComponentMapping(componentMapping);
+            m_vkCreateInfo.subresourceRange = BuildImageSubresourceRange(imageViewType, aspectFlags);
+
+            const VkResult result =
+                device.GetContext().CreateImageView(device.GetNativeDevice(), &m_vkCreateInfo, VkSystemAllocator::Get(), &m_vkImageView);
+#else
             BuildImageSubresourceRange(imageViewType, aspectFlags);
-            const RHI::ImageSubresourceRange& range = GetImageSubresourceRange();
-            VkImageSubresourceRange vkRange{};
-            vkRange.baseMipLevel = range.m_mipSliceMin;
-            vkRange.levelCount = range.m_mipSliceMax - range.m_mipSliceMin + 1;
-            vkRange.baseArrayLayer = range.m_arraySliceMin;
-            vkRange.layerCount = range.m_arraySliceMax - range.m_arraySliceMin + 1;
-            vkRange.aspectMask = aspectFlags;
+
             VkImageViewCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             createInfo.pNext = nullptr;
@@ -109,10 +116,11 @@ namespace AZ
             createInfo.viewType = imageViewType;
             createInfo.format = ConvertFormat(m_format);
             createInfo.components = ConvertComponentMapping(componentMapping);
-            createInfo.subresourceRange = vkRange;
+            createInfo.subresourceRange = m_vkImageSubResourceRange;
 
             const VkResult result =
                 device.GetContext().CreateImageView(device.GetNativeDevice(), &createInfo, VkSystemAllocator::Get(), &m_vkImageView);
+#endif
             AssertSuccess(result);
             RETURN_RESULT_IF_UNSUCCESSFUL(ConvertResult(result));
 
@@ -125,7 +133,15 @@ namespace AZ
                                     viewDescriptor.m_aspectFlags != RHI::ImageAspectFlags::Depth &&
                                     viewDescriptor.m_aspectFlags != RHI::ImageAspectFlags::Stencil;
 
+#if defined(CARBONATED)
+            bool isArray = m_vkCreateInfo.subresourceRange.layerCount > 1;
+#endif
+
+#if defined(CARBONATED)
+            if (device.GetBindlessDescriptorPool().IsInitialized() && !isArray && !isDSRendertarget)
+#else
             if (device.GetBindlessDescriptorPool().IsInitialized() && !viewDescriptor.m_isArray && !isDSRendertarget)
+#endif
             {
                 if (!viewDescriptor.m_isCubemap)
                 {
@@ -276,13 +292,16 @@ namespace AZ
                 // One of the main usage of depth slices of a 3D Image would be to set the slice to a Framebuffer,
                 // and here we give an image view of 2D or 2D array.
                 AZ_Assert(arrayLayers == 1 && samples == 1, "Both of arrayLayers and samples must be 1 for Image3D.");
+#if defined(CARBONATED)
                 if (physicalDevice.IsFeatureSupported(DeviceFeature::Compatible2dArrayTexture))
                 {
                     if (imgViewDesc.m_depthSliceMin == imgViewDesc.m_depthSliceMax)
                     {
                         return VK_IMAGE_VIEW_TYPE_2D;
                     }
-                    else if (imgViewDesc.m_depthSliceMin == 0 && imgViewDesc.m_depthSliceMax + 1 >= depth)
+
+                    if (!RHI::CheckBitsAll(imgViewDesc.m_overrideBindFlags, RHI::ImageBindFlags::Color) &&
+                        (imgViewDesc.m_depthSliceMin == 0 && imgViewDesc.m_depthSliceMax + 1 >= depth))
                     {
                         // If ImageView's depth slice range covers the one of the base 3D Image,
                         // it returns the view of the entire depth slices.
@@ -295,8 +314,35 @@ namespace AZ
                 }
                 else
                 {
+                    AZ_Assert(
+                        !RHI::CheckBitsAll(imgViewDesc.m_overrideBindFlags, RHI::ImageBindFlags::Color),
+                        "Can't use 3D image as RenderTarget because the Compatible2dArrayTexture is not available");
                     return VK_IMAGE_VIEW_TYPE_3D;
                 }
+#else
+                if (physicalDevice.IsFeatureSupported(DeviceFeature::Compatible2dArrayTexture))
+                {
+                    if (!RHI::CheckBitsAll(imgViewDesc.m_overrideBindFlags, RHI::ImageBindFlags::Color) &&
+                        (imgViewDesc.m_depthSliceMin == 0 && imgViewDesc.m_depthSliceMax + 1 >= depth))
+                    {
+                        // If ImageView's depth slice range covers the one of the base 3D Image,
+                        // it returns the view of the entire depth slices.
+                        return VK_IMAGE_VIEW_TYPE_3D;
+                    }
+                    else if (imgViewDesc.m_depthSliceMin == imgViewDesc.m_depthSliceMax)
+                    {
+                        return VK_IMAGE_VIEW_TYPE_2D;
+                    }
+                    else
+                    {
+                        return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+                    }
+                }
+                else
+                {
+                    return VK_IMAGE_VIEW_TYPE_3D;
+                }
+#endif
             }
             default:
             {
@@ -306,7 +352,11 @@ namespace AZ
             }
         }
 
+#if defined(CARBONATED)
+        VkImageSubresourceRange ImageView::BuildImageSubresourceRange(VkImageViewType imageViewType, VkImageAspectFlags aspectFlags)
+#else
         void ImageView::BuildImageSubresourceRange(VkImageViewType imageViewType, VkImageAspectFlags aspectFlags)
+#endif
         {
             const Image& image = static_cast<const Image&>(GetImage());
             const RHI::ImageDescriptor& imageDesc = image.GetDescriptor();
@@ -346,16 +396,26 @@ namespace AZ
                 }
             }
 
-            m_vkImageSubResourceRange.aspectMask = aspectFlags;
-            m_vkImageSubResourceRange.baseArrayLayer = range.m_arraySliceMin;
-            m_vkImageSubResourceRange.layerCount = range.m_arraySliceMax - range.m_arraySliceMin + 1;
-            m_vkImageSubResourceRange.baseMipLevel = range.m_mipSliceMin;
-            m_vkImageSubResourceRange.levelCount = range.m_mipSliceMax - range.m_mipSliceMin + 1;            
+            VkImageSubresourceRange vkRange = {};
+            vkRange.aspectMask = aspectFlags;
+            vkRange.baseArrayLayer = range.m_arraySliceMin;
+            vkRange.layerCount = range.m_arraySliceMax - range.m_arraySliceMin + 1;
+            vkRange.baseMipLevel = range.m_mipSliceMin;
+            vkRange.levelCount = range.m_mipSliceMax - range.m_mipSliceMin + 1;
+#if defined(CARBONATED)
+            return vkRange;
+#else
+            m_vkImageSubResourceRange = vkRange;
+#endif
         }
 
         const VkImageSubresourceRange& ImageView::GetVkImageSubresourceRange() const
         {
+#if defined(CARBONATED)
+            return m_vkCreateInfo.subresourceRange;
+#else
             return m_vkImageSubResourceRange;
+#endif
         }
     }
 }

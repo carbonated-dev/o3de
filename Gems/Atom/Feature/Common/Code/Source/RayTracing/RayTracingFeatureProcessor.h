@@ -506,8 +506,8 @@ namespace AZ
             // without invalidating the indices held here in the m_meshBufferIndices and m_materialTextureIndices lists.
             
             // mesh buffer and material texture resource lists, accessed by the shader through an unbounded array
-            RayTracingResourceList<RHI::BufferView> m_meshBuffers;
-            RayTracingResourceList<const RHI::ImageView> m_materialTextures;
+            RayTracingResourceList<RHI::BufferView*> m_meshBuffers;
+            RayTracingResourceList<const RHI::ImageView*> m_materialTextures;
 #endif
 
             // RayTracingIndexList implements an internal freelist chain stored inside the list itself, allowing entries to be

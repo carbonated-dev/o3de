@@ -95,6 +95,10 @@ namespace AZ
             // to call SetTargetThreadCounts(), update shader constants, etc.
             virtual void OnShaderReloadedInternal();
             ComputeShaderReloadedCallback m_shaderReloadedCallback = nullptr;
+
+#if defined(CARBONATED)
+            RPI::ShaderOptionGroup m_shaderOptions;
+#endif
         };
     }   // namespace RPI
 }   // namespace AZ

@@ -76,6 +76,12 @@ namespace ImageProcessingAtomEditor
         m_resolutionSettingWidget.reset(aznew ResolutionSettingWidget(ResoultionWidgetType::TexturePropety, m_textureSetting, this));
         m_ui->settingsLayout->layout()->addWidget(m_resolutionSettingWidget.data());
 
+#if defined(CARBONATED)
+        //FlipbookSettingWidget shows the flipbook grid layout settings for volume texture conversion
+        m_flipbookSettingWidget.reset(aznew FlipbookSettingWidget(m_textureSetting, this));
+        m_ui->settingsLayout->layout()->addWidget(m_flipbookSettingWidget.data());
+#endif // defined(CARBONATED)
+
         //MipmapSettingWidget will be simple ReflectedProperty editor to reflect mipmap settings section
         m_mipmapSettingWidget.reset(aznew MipmapSettingWidget(m_textureSetting, this));
         m_ui->settingsLayout->layout()->addWidget(m_mipmapSettingWidget.data());

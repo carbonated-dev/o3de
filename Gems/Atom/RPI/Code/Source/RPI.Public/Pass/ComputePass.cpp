@@ -139,6 +139,20 @@ namespace AZ
 
             // Setup pipeline state...
             RHI::PipelineStateDescriptorForDispatch pipelineStateDescriptor;
+#if defined(CARBONATED)
+            if (!m_shaderOptions.GetShaderOptionLayout() ||
+                m_shaderOptions.GetShaderOptionLayout()->GetHash() != m_shader->GetDefaultShaderOptions().GetShaderOptionLayout()->GetHash())
+            {
+                m_shaderOptions = m_shader->GetDefaultShaderOptions();
+            }
+            m_shader->GetDefaultVariant().ConfigurePipelineState(pipelineStateDescriptor, m_shaderOptions);
+
+            m_dispatchItem.m_pipelineState = m_shader->AcquirePipelineState(pipelineStateDescriptor);
+            if (m_drawSrg && m_shader->GetDefaultVariant().UseKeyFallback())
+            {
+                m_drawSrg->SetShaderVariantKeyFallbackValue(m_shaderOptions.GetShaderVariantKeyFallbackValue());
+            }
+#else
             ShaderOptionGroup options = m_shader->GetDefaultShaderOptions();
             m_shader->GetDefaultVariant().ConfigurePipelineState(pipelineStateDescriptor, options);
 
@@ -147,6 +161,7 @@ namespace AZ
             {
                 m_drawSrg->SetShaderVariantKeyFallbackValue(options.GetShaderVariantKeyFallbackValue());
             }
+#endif
 
             OnShaderReloadedInternal();
 

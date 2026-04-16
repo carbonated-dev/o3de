@@ -10,6 +10,9 @@
 
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/Serialization/EditContext.h>
+#if defined(CARBONATED)
+#include <AzCore/RTTI/BehaviorContext.h>
+#endif
 
 namespace AZ
 {
@@ -40,6 +43,13 @@ namespace AZ
                      ;
                 }
             }
+
+#if defined(CARBONATED)
+            if (auto* behaviorContext = azrtti_cast<AZ::BehaviorContext*>(context))
+            {
+                behaviorContext->Class<LightingChannelConfiguration>();
+            }
+#endif
         }
 
         void LightingChannelConfiguration::SetLightingChannelMask(const uint32_t mask)

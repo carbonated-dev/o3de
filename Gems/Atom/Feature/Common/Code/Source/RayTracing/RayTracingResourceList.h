@@ -9,7 +9,11 @@
 #pragma once
 
 #include <AzCore/std/containers/vector.h>
+#if defined(CARBONATED)
+#include <AzCore/std/containers/unordered_map.h>
+#else
 #include <AzCore/std/containers/map.h>
+#endif
 #include <AzCore/Casting/numeric_cast.h>
 #include <RayTracing/RayTracingIndexList.h>
 
@@ -31,7 +35,11 @@ namespace AZ
         {
         public:
 
+#if defined(CARBONATED)
+            using ResourceVector = AZStd::vector<TResource>;
+#else
             using ResourceVector = AZStd::vector<const TResource*>;
+#endif
             using IndexVector = AZStd::vector<uint32_t>;
 
             RayTracingResourceList() = default;
@@ -39,11 +47,19 @@ namespace AZ
 
             // adds a resource to the list, or increments the reference count, and returns the index of the resource
             // Note: the index returned is an indirection index, meaning it is stable when other entries are removed
+#if defined(CARBONATED)
+            uint32_t AddResource(TResource resource);
+#else
             uint32_t AddResource(const TResource* resource);
+#endif
 
             // removes a resource from the list, or decrements the reference count
             // Note: removing a resource will not affect any previously returned indices for other resources
+#if defined(CARBONATED)
+            void RemoveResource(TResource resource);
+#else
             void RemoveResource(const TResource* resource);
+#endif
 
             // returns the resource list
             ResourceVector& GetResourceList() { return m_resources; }
@@ -68,7 +84,11 @@ namespace AZ
                 uint32_t m_count = 0;
             };
 
+#if defined(CARBONATED)
+            using ResourceMap = AZStd::unordered_map<TResource, IndexMapEntry>;
+#else
             using ResourceMap = AZStd::map<const TResource*, IndexMapEntry>;
+#endif
 
             ResourceVector m_resources;
             ResourceMap m_resourceMap;
@@ -76,9 +96,13 @@ namespace AZ
         };
 
         template<class TResource>
+#if defined(CARBONATED)
+        uint32_t RayTracingResourceList<TResource>::AddResource(TResource resource)
+#else
         uint32_t RayTracingResourceList<TResource>::AddResource(const TResource* resource)
+#endif
         {
-            if (resource == nullptr)
+            if (!resource)
             {
                 return InvalidIndex;
             }
@@ -111,9 +135,13 @@ namespace AZ
         }
 
         template<class TResource>
+#if defined(CARBONATED)
+        void RayTracingResourceList<TResource>::RemoveResource(TResource resource)
+#else
         void RayTracingResourceList<TResource>::RemoveResource(const TResource* resource)
+#endif
         {
-            if (resource == nullptr)
+            if (!resource)
             {
                 return;
             }

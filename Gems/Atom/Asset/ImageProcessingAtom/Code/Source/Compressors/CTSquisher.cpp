@@ -342,15 +342,22 @@ namespace ImageProcessingAtom
             uint32 dwDstPitch;
             dstImage->GetImagePointer(dwMip, pDstMem, dwDstPitch);
 
+#if defined(CARBONATED)
+            uint32 dwLocalDepth = srcImage->GetDepth(dwMip);
+
+            const uint32 dwSrcSliceBytes = dwLocalHeight * dwSrcPitch;
+            const uint32 dwDstSliceBytes = dstImage->GetMipBufSize(dwMip) / dwLocalDepth;
+
+            for (uint32 d = 0; d < dwLocalDepth; ++d)
             {
                 CrySquisherCallbackUserData userData;
                 userData.m_pImageObject = dstImage;
                 userData.m_dstOffset = 0;
-                userData.m_dstMem = pDstMem;
+                userData.m_dstMem = pDstMem + d * dwDstSliceBytes;
 
                 CryTextureSquisher::CompressorParameters compress;
 
-                compress.srcBuffer = pSrcMem;
+                compress.srcBuffer = pSrcMem + d * dwSrcSliceBytes;
                 compress.width = dwLocalWidth;
                 compress.height = dwLocalHeight;
                 compress.pitch = dwSrcPitch;
@@ -385,7 +392,51 @@ namespace ImageProcessingAtom
                 compress.preset = GetCompressPreset(fmtDst, fmtSrc);
 
                 CryTextureSquisher::Compress(compress);
+            } // for: depth slices
+#else
+            CrySquisherCallbackUserData userData;
+            userData.m_pImageObject = dstImage;
+            userData.m_dstOffset = 0;
+            userData.m_dstMem = pDstMem;
+
+            CryTextureSquisher::CompressorParameters compress;
+
+            compress.srcBuffer = pSrcMem;
+            compress.width = dwLocalWidth;
+            compress.height = dwLocalHeight;
+            compress.pitch = dwSrcPitch;
+
+            compress.srcType = (CPixelFormats::GetInstance().IsFormatFloatingPoint(fmtSrc, true) ?
+                                CryTextureSquisher::eBufferType_ufloat : CryTextureSquisher::eBufferType_uint8);
+            if (CPixelFormats::GetInstance().IsFormatSigned(fmtDst))
+            {
+                compress.srcType = (compress.srcType == CryTextureSquisher::eBufferType_ufloat ?
+                                    CryTextureSquisher::eBufferType_sfloat : CryTextureSquisher::eBufferType_sint8);
             }
+
+            const AZ::Vector3 uniform = AZ::Vector3(0.3333f, 0.3334f, 0.3333f);
+
+            compress.weights[0] = weights.GetX();
+            compress.weights[1] = weights.GetY();
+            compress.weights[2] = weights.GetZ();
+
+            compress.perceptual =
+                (compress.weights[0] != uniform.GetX()) ||
+                (compress.weights[1] != uniform.GetY()) ||
+                (compress.weights[2] != uniform.GetZ());
+
+            compress.quality =
+                (quality == eQuality_Preview ? CryTextureSquisher::eQualityProfile_Low :
+                 (quality == eQuality_Fast ? CryTextureSquisher::eQualityProfile_Low :
+                  (quality == eQuality_Slow ? CryTextureSquisher::eQualityProfile_High :
+                   CryTextureSquisher::eQualityProfile_Medium)));
+
+            compress.userPtr = &userData;
+            compress.userOutputFunction = CrySquisherOutputCallback;
+            compress.preset = GetCompressPreset(fmtDst, fmtSrc);
+
+            CryTextureSquisher::Compress(compress);
+#endif // defined(CARBONATED)
         } // for: all mips
 
         return dstImage;

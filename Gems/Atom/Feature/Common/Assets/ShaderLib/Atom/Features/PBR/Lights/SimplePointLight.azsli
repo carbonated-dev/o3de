@@ -10,8 +10,12 @@
 
 #include <Atom/Features/LightCulling/LightCullingTileIterator.azsli>
 
-void ApplySimplePointLight(ViewSrg::SimplePointLight light, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplySimplePointLight(ViewSrg::SimplePointLight light, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplySimplePointLight(ViewSrg::SimplePointLight light, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
+    real3 lightIntensity = 0;
     real3 posToLight = real3(light.m_position - surface.position);
     real d2 = dot(posToLight, posToLight); // light distance squared
     real falloff = d2 * real(light.m_invAttenuationRadiusSquared);
@@ -25,7 +29,7 @@ void ApplySimplePointLight(ViewSrg::SimplePointLight light, Surface surface, ino
         
         // Standard quadratic falloff
         d2 = max(0.001 * 0.001, d2); // clamp the light to at least 1mm away to avoid extreme values.
-        real3 lightIntensity = (real3(light.m_rgbIntensityCandelas) / d2) * radiusAttenuation;
+        lightIntensity = (real3(light.m_rgbIntensityCandelas) / d2) * radiusAttenuation;
         real3 posToLightDir = normalize(posToLight);
 
         // Diffuse contribution
@@ -34,9 +38,15 @@ void ApplySimplePointLight(ViewSrg::SimplePointLight light, Surface surface, ino
         // Specular contribution
         lightingData.specularLighting += GetSpecularLighting(surface, lightingData, lightIntensity, posToLightDir);
     }
+// Begin Carbonated
+    outInfo.m_intensity = lightIntensity;
+// End Carbonated
 }
 
-void ApplySimplePointLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplySimplePointLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplySimplePointLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
     if (o_enableSimplePointLights)
     {
@@ -45,9 +55,23 @@ void ApplySimplePointLightInternal(uint lightIndex, Surface surface, inout Light
         {
             return;
         }
-        ApplySimplePointLight(light, surface, lightingData);
+        ApplySimplePointLight(light, surface, lightingData, outInfo);
     }
 }
+
+// Begin Carbonated
+void ApplySimplePointLight(ViewSrg::SimplePointLight light, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplySimplePointLight(light, surface, lightingData, outInfo);
+}
+
+void ApplySimplePointLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplySimplePointLightInternal(lightIndex, surface, lightingData, outInfo);
+}
+// End Carbonated
 
 void ApplySimplePointLights(Surface surface, inout LightingData lightingData)
 {

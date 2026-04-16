@@ -1,0 +1,72 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#pragma once
+
+// Begin Carbonated
+#ifndef ENABLE_VOLUMETRIC_FOG
+#define ENABLE_VOLUMETRIC_FOG            1
+#endif
+// End Carbonated
+
+// Applies precomputed volumetric fog to a transparent surface.
+//
+// Prerequisites (the including shader must have these already set up):
+//   - PassSrg (ForwardPassSrg.azsli) — provides m_froxelVolumetricFog and LinearSampler
+//   - SceneSrg  — provides m_volumetricFogData (fog constants)
+//   - ViewSrg   — provides m_viewProjectionMatrix and m_viewMatrix
+//
+// Usage in a transparent material's lighting shader:
+//
+//   #include <Atom/Features/VolumetricFog/ApplyVolumetricFog.azsli>
+//
+//   float3 finalColor = litColor;
+//   finalColor = ApplyVolumetricFog(finalColor, surface.position);
+//
+// worldPosition — the fragment's world-space position (from the surface struct or VS output)
+// litColor      — the fully-lit surface color before fog
+// Returns       — float4: .rgb = fogged color (inScatter + litColor * transmittance)
+//                          .a  = fog transmittance [0,1] at worldPosition
+//                 For standard alpha blending, use only .rgb and keep original alpha.
+//                 For premultiplied alpha blending where the background is already fogged
+//                 (e.g. FroxelCompositePass ran before the transparent pass):
+//                   output.rgb = particleAlpha * result.rgb + litColor * result.a
+//                   output.a   = particleAlpha   (no transmittance correction needed)
+//                 When fog is disabled (m_enabled == 0) returns float4(litColor, 1.0).
+
+float4 ApplyVolumetricFog(float3 litColor, float3 worldPosition)
+{
+#if ENABLE_VOLUMETRIC_FOG
+    if (SceneSrg::m_volumetricFogData.m_enabled == 0)
+    {
+        return float4(litColor, 1.0);
+    }
+
+    // Project world position to clip space → NDC → screen UV
+    float4 clipPos  = mul(ViewSrg::m_viewProjectionMatrix, float4(worldPosition, 1.0));
+    float2 ndc      = clipPos.xy / clipPos.w;
+    // DX/Vulkan UV convention: (0,0) = top-left; NDC Y is inverted relative to UV Y
+    float2 screenUV = float2(ndc.x * 0.5 + 0.5, -ndc.y * 0.5 + 0.5);
+
+    // Linear view-space depth (positive distance along the view axis)
+    float viewZ = abs(mul(ViewSrg::m_viewMatrix, float4(worldPosition, 1.0)).z);
+
+    // Map to froxel UVW using the same log-depth distribution as FroxelUtil::GetFroxelUVW
+    float fogNear = SceneSrg::m_volumetricFogData.m_fogNear;
+    float fogFar  = SceneSrg::m_volumetricFogData.m_fogFar;
+    float zUVW    = log(max(viewZ, fogNear) / fogNear) / log(fogFar / fogNear);
+    float3 uvw    = float3(screenUV, saturate(zUVW));
+
+    // Sample the integrated froxel volume (in-scatter RGB, transmittance A)
+    float4 fog = PassSrg::m_froxelVolumetricFog.SampleLevel(PassSrg::LinearSampler, uvw, 0);
+
+    return float4(fog.rgb + litColor * fog.a, fog.a);
+#else
+    return float4(litColor, 1.0);
+#endif
+}

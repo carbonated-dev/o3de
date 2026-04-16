@@ -8,14 +8,26 @@
 
 #pragma once
 
+// Begin Carbonated
+#ifndef USING_COMPUTE_SHADER_LIGHT
+#define USING_COMPUTE_SHADER_LIGHT 0
+#endif
+// End Carbonated
+
 #include <Atom/Features/PBR/Lights/LightTypesCommon.azsli>
 
 #if ENABLE_SHADOWS
 #include <Atom/Features/Shadow/ProjectedShadow.azsli>
 #endif
 
-void ApplySimpleSpotLight(ViewSrg::SimpleSpotLight light, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplySimpleSpotLight(ViewSrg::SimpleSpotLight light, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplySimpleSpotLight(ViewSrg::SimpleSpotLight light, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
+    real3 lightIntensity = 0;
+    // shadow
+    real litRatio = 1.0;
     real3 posToLight = real3(light.m_position - surface.position);
     
     real3 dirToLight = normalize(posToLight);
@@ -40,11 +52,8 @@ void ApplySimpleSpotLight(ViewSrg::SimpleSpotLight light, Surface surface, inout
         
         // Standard quadratic falloff
         d2 = max(0.001 * 0.001, d2); // clamp the light to at least 1mm away to avoid extreme values.
-        real3 lightIntensity = (real3(light.m_rgbIntensityCandelas) / d2) * radiusAttenuation;
+        lightIntensity = (real3(light.m_rgbIntensityCandelas) / d2) * radiusAttenuation;
         real3 posToLightDir = normalize(posToLight);
-
-        // shadow
-        float litRatio = 1.0;
 
 #if ENABLE_SHADOWS
         if (o_enableShadows && o_enableSimpleSpotLightShadows)
@@ -65,7 +74,9 @@ void ApplySimpleSpotLight(ViewSrg::SimpleSpotLight light, Surface surface, inout
             float4 positionInView = mul(light.m_viewProjectionMatrix, float4(surface.position, 1.0));
             positionInView /= positionInView.w;
             float2 goboUv = float2((positionInView.x + 1.0)/2.0, (positionInView.y + 1.0)/2.0);
-            lightIntensity *= ViewSrg::m_goboTextures[light.m_goboTexIndex].Sample(PassSrg::LinearSampler, goboUv);
+// Begin Carbonated
+            lightIntensity *= SampleTexture(ViewSrg::m_goboTextures[light.m_goboTexIndex], PassSrg::LinearSampler, goboUv);   
+// End Carbonated
         }
 
         if (dotWithDirection < cosInnerConeAngle) // in penumbra
@@ -85,9 +96,16 @@ void ApplySimpleSpotLight(ViewSrg::SimpleSpotLight light, Surface surface, inout
         // Specular contribution
         lightingData.specularLighting += GetSpecularLighting(surface, lightingData, lightIntensity, posToLightDir);
     }
+// Begin Carbonated
+    outInfo.m_intensity = lightIntensity;
+    outInfo.m_litRatio = litRatio;
+// End Carbonated
 }
 
-void ApplySimpleSpotLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplySimpleSpotLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplySimpleSpotLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
     if (o_enableSimpleSpotLights)
     {
@@ -96,9 +114,23 @@ void ApplySimpleSpotLightInternal(uint lightIndex, Surface surface, inout Lighti
         {
             return;
         }
-        ApplySimpleSpotLight(light, surface, lightingData);
+        ApplySimpleSpotLight(light, surface, lightingData, outInfo);
     }
 }
+
+// Begin Carbonated
+void ApplySimpleSpotLight(ViewSrg::SimpleSpotLight light, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplySimpleSpotLight(light, surface, lightingData, outInfo);
+}
+
+void ApplySimpleSpotLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplySimpleSpotLightInternal(lightIndex, surface, lightingData, outInfo);
+}
+// End Carbonated
 
 void ApplySimpleSpotLights(Surface surface, inout LightingData lightingData)
 {

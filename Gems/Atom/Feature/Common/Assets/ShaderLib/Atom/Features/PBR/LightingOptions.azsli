@@ -77,6 +77,14 @@
 #define ENABLE_MOBILEBRDF               0
 #endif
 
+// --- Other defines ---
+
+// Begin Carbonated
+#ifndef ENABLE_VOLUMETRIC_FOG
+#define ENABLE_VOLUMETRIC_FOG            1
+#endif
+// End Carbonated
+
 // --- Shader Options ---
 
 option bool o_specularF0_enableMultiScatterCompensation = true;

@@ -1,0 +1,117 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "FroxelIntegrateTemplate",
+            "PassClass": "FroxelIntegratePass",
+            "Slots": [
+                {
+                    "Name": "FroxelScattered",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_froxelScattered",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "FroxelHistory",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_froxelHistory",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "FroxelMedium",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_froxelMedium",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "FroxelEmissive",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_froxelEmissive",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "FroxelIntegrated",
+                    "SlotType": "Output",
+                    "ShaderInputName": "m_froxelIntegrated",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "FroxelOutput",
+                    "SlotType": "Output",
+                    "ShaderInputName": "m_froxelTemporalOutput",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "Scattering1",
+                    "Lifetime": "Imported",
+                    "FormatSource": {
+                        "Pass": "This",
+                        "Attachment": "FroxelScattered"
+                    },
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "FroxelScattered"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Dimension": 3
+                    }
+                },
+                {
+                    "Name": "Scattering2",
+                    "Lifetime": "Imported",
+                    "FormatSource": {
+                        "Pass": "This",
+                        "Attachment": "FroxelScattered"
+                    },
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "FroxelScattered"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Dimension": 3
+                    }
+                },
+                {
+                    "Name": "FroxelIntegrated",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "FroxelScattered"
+                        }
+                    },
+                     "FormatSource": {
+                        "Pass": "This",
+                        "Attachment": "FroxelScattered"
+                    },
+                    "ImageDescriptor": {
+                        "Dimension": 3
+                    }
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "FroxelIntegrated",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "FroxelIntegrated"
+                    }
+                }
+            ],
+            "PassData": {
+                "$type": "ComputePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/VolumetricFog/FroxelIntegrate.shader"
+                },
+                "BindViewSrg": true
+            }
+        }
+    }
+}

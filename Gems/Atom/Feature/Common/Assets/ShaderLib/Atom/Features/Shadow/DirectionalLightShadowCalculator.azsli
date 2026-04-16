@@ -6,8 +6,8 @@
  *
  */
  
-#ifndef USING_COMPUTE_SHADER_DIRECTIONAL_LIGHT
-#define USING_COMPUTE_SHADER_DIRECTIONAL_LIGHT 0
+#ifndef USING_COMPUTE_SHADER_LIGHT
+#define USING_COMPUTE_SHADER_LIGHT 0
 #endif
 
 enum class ShadowFilterMethod {None, Pcf, Esm, EsmPcf};
@@ -198,7 +198,7 @@ void DirectionalShadowCalculator::ComputeShadowCoords()
     GetShadowCascadeRange(m_shadowCoords, m_cascadeCount, size, m_minCascade, m_maxCascade);
 
 // Todo: No ddx in compute, find a way to leverage world space normal for this
-#if !USING_COMPUTE_SHADER_DIRECTIONAL_LIGHT
+#if !USING_COMPUTE_SHADER_LIGHT
     if (m_receiverShadowPlaneBiasEnable)
     {
         for(int i = 0 ; i < m_cascadeCount; ++i)
@@ -309,7 +309,7 @@ real DirectionalShadowCalculator::SamplePcfBicubic(const float3 shadowCoord, con
     param.comparisonValue = shadowCoord.z;
     param.samplerState = SceneSrg::m_hwPcfSampler;
 
-#if USING_COMPUTE_SHADER_DIRECTIONAL_LIGHT
+#if USING_COMPUTE_SHADER_LIGHT
     param.receiverPlaneDepthBias = 0;
 #else
     param.receiverPlaneDepthBias = m_receiverShadowPlaneBiasEnable ? ComputeReceiverPlaneDepthBias(m_shadowPosDX[indexOfCascade], m_shadowPosDY[indexOfCascade]) : 0;

@@ -73,8 +73,15 @@ uint ComputeShadowIndex(const ViewSrg::PointLight light, const Surface surface)
 
 #endif // ENABLE_SHADOWS
 
-void ApplyPointLight(ViewSrg::PointLight light, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplyPointLight(ViewSrg::PointLight light, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplyPointLight(ViewSrg::PointLight light, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
+    // shadow
+    real litRatio = 1.0;
+    real3 lightIntensity = 0;
+
     real3 posToLight = real3(light.m_position) - real3(surface.position);
     real posToLightDist = length(posToLight);
     real d2 = dot(posToLight, posToLight); // light distance squared
@@ -89,10 +96,7 @@ void ApplyPointLight(ViewSrg::PointLight light, Surface surface, inout LightingD
         
         // Standard quadratic falloff
         d2 = max(0.001 * 0.001, d2); // clamp the light to at least 1mm away to avoid extreme values.
-        real3 lightIntensity = (real3(light.m_rgbIntensityCandelas) / d2) * radiusAttenuation;
-
-        // shadow
-        real litRatio = 1.0;
+        lightIntensity = (real3(light.m_rgbIntensityCandelas) / d2) * radiusAttenuation;
 
         // Distance travelled by the light inside the object. If not redefined to a non-negative value, it will take the following behavior:
         // - If transmission mode is thick object -> use transmission thickness parameter instead
@@ -149,6 +153,10 @@ void ApplyPointLight(ViewSrg::PointLight light, Surface surface, inout LightingD
         // Specular contribution
         lightingData.specularLighting += sphereIntensityNormalization * GetSpecularLighting(surface, lightingData, lightIntensity, normalize(posToLight)) * litRatio;
     }
+// Begin Carbonated
+    outInfo.m_intensity = lightIntensity;
+    outInfo.m_litRatio = litRatio;
+// End Carbonated
 }
 
 real3 SampleSphere(real2 randomPoint)
@@ -190,7 +198,10 @@ void ValidatePointLight(ViewSrg::PointLight light, Surface surface, inout Lighti
 #endif
 }
 
-void ApplyPointLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplyPointLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplyPointLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
     if (o_enableSphereLights)
     {
@@ -207,10 +218,24 @@ void ApplyPointLightInternal(uint lightIndex, Surface surface, inout LightingDat
         else
 #endif // ENABLE_AREA_LIGHT_VALIDATION
         {
-            ApplyPointLight(light, surface, lightingData);
+            ApplyPointLight(light, surface, lightingData, outInfo);
         }
     }
 }
+
+// Begin Carbonated
+void ApplyPointLight(ViewSrg::PointLight light, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplyPointLight(light, surface, lightingData, outInfo);
+}
+
+void ApplyPointLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplyPointLightInternal(lightIndex, surface, lightingData, outInfo);
+}
+// End Carbonated
 
 void ApplyPointLights(Surface surface, inout LightingData lightingData)
 {

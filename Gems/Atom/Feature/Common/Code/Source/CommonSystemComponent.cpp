@@ -85,6 +85,12 @@
 #include <SkyBox/SkyBoxFeatureProcessor.h>
 #include <SplashScreen/SplashScreenFeatureProcessor.h>
 #include <SplashScreen/SplashScreenPass.h>
+#if defined(CARBONATED)
+#include <VolumetricFog/VolumetricFogFeatureProcessor.h>
+#include <VolumetricFog/FogVolumeFeatureProcessor.h>
+#include <VolumetricFog/FroxelPass.h>
+#include <VolumetricFog/FroxelIntegratePass.h>
+#endif
 
 #include <Atom/RPI.Public/Pass/PassSystemInterface.h>
 
@@ -151,13 +157,15 @@ namespace AZ
             RenderDebugFeatureProcessor::Reflect(context);
             SplashScreenFeatureProcessor::Reflect(context);
             SplashScreenSettings::Reflect(context);
-
             LightingPreset::Reflect(context);
             ModelPreset::Reflect(context);
             RayTracingFeatureProcessor::Reflect(context);
             OcclusionCullingPlaneFeatureProcessor::Reflect(context);
             LightingChannelConfiguration::Reflect(context);
-
+#if defined(CARBONATED)
+            VolumetricFogFeatureProcessor::Reflect(context);
+            FogVolumeFeatureProcessor::Reflect(context);
+#endif
             if (SerializeContext* serialize = azrtti_cast<SerializeContext*>(context))
             {
                 serialize->Class<CommonSystemComponent, Component>()
@@ -219,6 +227,12 @@ namespace AZ
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessorWithInterface<OcclusionCullingPlaneFeatureProcessor, OcclusionCullingPlaneFeatureProcessorInterface>();
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessor<SplashScreenFeatureProcessor>();
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessor<SilhouetteFeatureProcessor>();
+#if defined(CARBONATED)
+                AZ::RPI::FeatureProcessorFactory::Get()
+                    ->RegisterFeatureProcessorWithInterface<VolumetricFogFeatureProcessor, VolumetricFogFeatureProcessorInterface>();
+                AZ::RPI::FeatureProcessorFactory::Get()
+                    ->RegisterFeatureProcessorWithInterface<FogVolumeFeatureProcessor, FogVolumeFeatureProcessorInterface>();
+#endif
             }
 
             AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessorWithInterface<AuxGeomFeatureProcessor, RPI::AuxGeomFeatureProcessorInterface>();
@@ -335,7 +349,11 @@ namespace AZ
 #if defined(CARBONATED)
             // Add Silhouette JFA passes
             passSystem->AddPassCreator(Name("SilhouetteJFAStepParentPass"), &SilhouetteJFAStepParentPass::Create);
+			// Volumetric Fog
+            passSystem->AddPassCreator(Name("FroxelPass"), &FroxelPass::Create);
+            passSystem->AddPassCreator(Name("FroxelIntegratePass"), &FroxelIntegratePass::Create);
 #endif
+
             // setup handler for load pass template mappings
             m_loadTemplatesHandler = RPI::PassSystemInterface::OnReadyLoadTemplatesEvent::Handler([this]() { this->LoadPassTemplateMappings(); });
             RPI::PassSystemInterface::Get()->ConnectEvent(m_loadTemplatesHandler);
@@ -368,6 +386,10 @@ namespace AZ
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<RenderDebugFeatureProcessor>();
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<SplashScreenFeatureProcessor>();
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<SilhouetteFeatureProcessor>();
+#if defined(CARBONATED)
+                AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<VolumetricFogFeatureProcessor>();
+                AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<FogVolumeFeatureProcessor>();
+#endif
             }
 
             AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<MeshFeatureProcessor>();

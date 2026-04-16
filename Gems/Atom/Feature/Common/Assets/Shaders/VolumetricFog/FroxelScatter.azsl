@@ -1,0 +1,336 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#define USING_COMPUTE_SHADER_LIGHT 1
+
+#ifndef ENABLE_ESM_SHADOW
+#define ENABLE_ESM_SHADOW               1
+#endif
+
+#define ENABLE_TRANSMISSION 0
+#define ENABLE_FULLSCREEN_SHADOW 0
+#define ENABLE_BRDF_MAP 0
+
+#include <scenesrg.srgi>
+#include <viewsrg.srgi>
+#include <Atom/Features/LightCulling/LightCullingTileIterator.azsli>
+#include <Atom/RPI/Math.azsli>
+#include "FroxelUtil.azsli"
+
+ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
+{
+    RWTexture3D<float4> m_froxelScatterResult;
+
+    Texture2D<uint4> m_tileLightData;
+    StructuredBuffer<uint> m_lightListRemapped;
+
+    Sampler LinearSampler
+    {
+        MinFilter = Linear;
+        MagFilter = Linear;
+        MipFilter = Linear;
+        AddressU = Clamp;
+        AddressV = Clamp;
+        AddressW = Clamp;
+    };
+
+    Sampler PointSampler
+    {
+        MinFilter = Point;
+        MagFilter = Point;
+        MipFilter = Point;
+        AddressU = Clamp;
+        AddressV = Clamp;
+        AddressW = Clamp;
+    };
+
+    Texture2DArray<float> m_directionalLightShadowmap;
+    Texture2DArray<float> m_directionalLightExponentialShadowmap;
+    Texture2D<float> m_fullscreenShadow;
+    Texture2DArray<float> m_projectedShadowmaps;
+    Texture2DArray<float>   m_projectedExponentialShadowmap;
+    Texture2D m_brdfMap;
+}
+
+#include <Atom/Features/PBR/Surfaces/StandardSurface.azsli>
+#include <Atom/Features/PBR/Lighting/LightingData.azsli>
+
+enum FogCullLightType
+{
+    SimplePointLight,
+    PointLight,
+    SimpleSpot,
+    DiskLight,
+    CapsuleLight,
+    QuadLight,
+    PolygonLight
+};
+
+real3 GetDiffuseLighting(Surface surface, LightingData lightingData, real3 lightIntensity, real3 dirToLight)
+{
+    return 0; 
+}
+
+real3 GetSpecularLighting(Surface surface, LightingData lightingData, const real3 lightIntensity, const real3 dirToLight)
+{
+    return 0;
+}
+
+#include <Atom/Features/PBR/Lights/Lights.azsli>
+
+static const float3 FogNormal = float3(0, 0, 1);
+
+float HenyeyGreenstein(float cosTheta)
+{
+    float g  = SceneSrg::m_volumetricFogVolumeData.m_phaseG;
+    float g2    = g * g;
+    float denom = 1.0 + g2 - 2.0 * g * cosTheta;
+    return (1.0 - g2) / (4.0 * PI * pow(denom, 1.5));
+}
+
+void CalculatePhaseAndAttenuation(float3 lightPosWS, float3 posWS, float extintion, out float phase, out float light_attenuation)
+{
+    light_attenuation = 0;
+    phase = 0;
+    float3 toLight = lightPosWS - posWS;
+    float distToLight = length(toLight);
+    if (distToLight > 0)
+    {
+        float3 L = toLight / max(distToLight, 1e-5);
+        float3 V = normalize(posWS - ViewSrg::m_worldPosition.xyz);
+        // cos(theta) between L and V for phase function
+        float cosTheta = dot(L, V);
+
+        // Henyey-Greenstein phase function
+        phase = HenyeyGreenstein(cosTheta);
+        light_attenuation = exp(-extintion * distToLight);
+    }
+}
+
+float3 ApplyFogDirectionalLights(
+    inout Surface surface,
+    inout LightingData lightingData,
+    float extintion,
+    float4 screenUv)
+{
+    float3 inScattering = 0;
+    for (int index = 0; index < SceneSrg::m_directionalLightCount; index++)
+    {
+        SceneSrg::DirectionalLight light = SceneSrg::m_directionalLights[index];
+
+        float phase, light_attenuation;
+        CalculatePhaseAndAttenuation(surface.position -light.m_direction, surface.position, extintion, phase, light_attenuation);
+
+        float opticalDepth = 1.0f;
+        light_attenuation = exp(-extintion * opticalDepth);
+
+        ApplyLightingInfo outInfo;
+        outInfo.Init();
+        ApplyDirectionalLight(index, surface, lightingData, screenUv, outInfo);
+        // ---- In-scattering ---------------------------------------------------
+        inScattering += outInfo.m_intensity * light_attenuation * phase * outInfo.m_litRatio;
+    }
+    return inScattering;
+}
+
+float3 ApplyLightsByType(
+    FogCullLightType type,
+    Surface surface,
+    inout LightingData lightingData,
+    float extintion)
+{
+    float3 inScattering = 0;
+    lightingData.tileIterator.LoadAdvance();    
+    while( !lightingData.tileIterator.IsDone() ) 
+    { 
+        uint lightIndex = lightingData.tileIterator.GetValue(); 
+        lightingData.tileIterator.LoadAdvance();
+
+        float3 lightPosWS = 0;
+        ApplyLightingInfo outInfo;
+        outInfo.Init();
+        switch(type)
+        {
+            case FogCullLightType::SimplePointLight:
+                lightPosWS = ViewSrg::m_simplePointLights[lightIndex].m_position;
+                ApplySimplePointLightInternal(lightIndex, surface, lightingData, outInfo);
+                break;
+            case FogCullLightType::PointLight:
+            {
+                ViewSrg::PointLight light = ViewSrg::m_pointLights[lightIndex];
+                float3 lightDir = normalize(surface.position - light.m_position);
+                lightPosWS = light.m_position + lightDir * light.m_bulbRadius;
+                ApplyPointLightInternal(lightIndex, surface, lightingData, outInfo);
+                break;
+            }
+            case FogCullLightType::SimpleSpot:
+                lightPosWS = ViewSrg::m_simpleSpotLights[lightIndex].m_position;
+                ApplySimpleSpotLightInternal(lightIndex, surface, lightingData, outInfo);
+                break;
+            case FogCullLightType::DiskLight:
+            {
+                ViewSrg::DiskLight light = ViewSrg::m_diskLights[lightIndex];
+                float3 posToLight = light.m_position - surface.position;
+                float3 B = light.m_position - dot(posToLight, -light.m_direction) * (-light.m_direction);
+                float3 centerToB = B - light.m_position;
+                float lateralDistance = length(centerToB);
+                lightPosWS = light.m_position + normalize(centerToB) * min(lateralDistance, light.m_diskRadius);
+                ApplyDiskLightInternal(lightIndex, surface, lightingData, outInfo);
+                break;
+            }
+            case FogCullLightType::CapsuleLight:
+            {
+                ViewSrg::CapsuleLight light = ViewSrg::m_capsuleLights[lightIndex];
+                float lightLength = light.m_length;
+                float3 startPoint = light.m_startPoint;
+                
+                float3 surfaceToStart = startPoint - surface.position;
+                float closestPointDistance = dot(-surfaceToStart, light.m_direction);
+                closestPointDistance = clamp(closestPointDistance, 0.0f, lightLength);
+
+                float3 dirToClosestPoint = surfaceToStart + closestPointDistance * light.m_direction;
+                lightPosWS = surface.position + dirToClosestPoint;
+                ApplyCapsuleLightInternal(lightIndex, surface, lightingData, outInfo);
+                break;
+            }
+            case FogCullLightType::QuadLight:
+            {
+                ViewSrg::QuadLight light = ViewSrg::m_quadLights[lightIndex];
+                lightPosWS = ClosestPointRect(surface.position, light.m_position, light.m_leftDir, light.m_upDir, float2(light.m_halfWidth, light.m_halfHeight));
+                ApplyQuadLightInternal(lightIndex, surface, lightingData, outInfo);
+                break;
+            }
+            case FogCullLightType::PolygonLight:
+                // Just use the light position as the light source. Calculating a "proper" source point is too expensive.
+                lightPosWS = ViewSrg::m_polygonLights[lightIndex].m_position;
+                ApplyPoylgonLight(ViewSrg::m_polygonLights[lightIndex], surface, lightingData, outInfo);
+                break;
+        }
+
+        float phase, light_attenuation;
+        CalculatePhaseAndAttenuation(lightPosWS, surface.position, extintion, phase, light_attenuation);
+        
+        // ---- In-scattering ---------------------------------------------------
+        inScattering += outInfo.m_intensity * light_attenuation * phase * outInfo.m_litRatio;
+    }
+    return inScattering;
+}
+
+float3 SampleIBL(float3 dir)
+{
+    float3 iblIrradianceDir = MultiplyVectorQuaternion(dir, SceneSrg::m_iblOrientation);
+    float3 iblCubemapCoords = GetCubemapCoords(iblIrradianceDir);
+    return SceneSrg::m_diffuseEnvMap.SampleLevel(SceneSrg::m_samplerEnv, iblCubemapCoords, 0).rgb;
+}
+
+float3 EvaluateAmbientFog(float3 positionWS)
+{
+    // Approximate spherical ambient for fog
+    // Two samples, weighted by typical sky/ground solid angle ratio
+    float3 skyColor    = SampleIBL(float3(0, 0, 1));
+    float3 groundColor = SampleIBL(float3(0, 0, -1));
+
+    float  iblExposureScale  = pow(2.0f, SceneSrg::m_iblExposure);
+
+    // froxelWS.z is world height (assuming Z-up, adjust for your convention)
+    float groundHeight = 0.0;
+    float heightAboveGround = max(positionWS.z - groundHeight, 0.0);
+
+    // At ground level: 50/50 sky/ground. At height: sky dominates.
+    // Exponential blend — 5m above ground is already ~80% sky
+    float groundFactor = exp(-heightAboveGround * 0.2);
+    float skyFactor    = 1.0 - groundFactor * 0.5;       // sky never below 0.5
+
+    float3 ambientFog = skyColor * skyFactor + groundColor * groundFactor * 0.5;
+    return ambientFog * iblExposureScale;
+}
+
+void SkipLightGroup(inout LightCullingTileIterator tileIterator)
+{
+    tileIterator.LoadAdvance();    
+    while( !tileIterator.IsDone() ) 
+    { 
+        tileIterator.LoadAdvance();
+    }
+}
+
+[numthreads(NUM_THREADS_PER_GROUP, NUM_THREADS_PER_GROUP, 1)]
+void MainCS(uint3 froxelId : SV_DispatchThreadID)
+{
+    if (any(froxelId >= SceneSrg::m_volumetricFogData.m_froxelCount))
+    {
+        return;
+    }
+
+    float extinction = SceneSrg::m_volumetricFogVolumeData.m_fogDensity;
+
+    if (extinction < 1e-6)
+    {
+        PassSrg::m_froxelScatterResult[froxelId] = float4(0, 0, 0, 0);
+        return;
+    }
+
+    uint jitterIdx    = (SceneSrg::m_volumetricFogData.m_frameIndex) % SceneSrg::m_volumetricFogData.m_sequenceLength;
+    float3 jitter     = SceneSrg::m_volumetricFogData.m_haltonSequence[jitterIdx].xyz;
+
+    // --- XY: jitter in normalized froxel UV space ---
+    // froxelUV is the center of the froxel tile in [0,1] screen UV
+    float2 froxelCenter = float2(froxelId.xy) + 0.5;
+    float2 jitterFroxelCenter = froxelCenter + jitter.xy;
+    float2 jitteredUV   = jitterFroxelCenter / float2(SceneSrg::m_volumetricFogData.m_froxelCount.xy);
+
+    // --- Z: jitter in linear depth ---
+    float sliceNear     = SliceToViewZ(froxelId.z,     SceneSrg::m_volumetricFogData.m_fogNear, SceneSrg::m_volumetricFogData.m_fogFar, SceneSrg::m_volumetricFogData.m_froxelCount.z);
+    float sliceFar      = SliceToViewZ(froxelId.z + 1, SceneSrg::m_volumetricFogData.m_fogNear, SceneSrg::m_volumetricFogData.m_fogFar, SceneSrg::m_volumetricFogData.m_froxelCount.z);
+    float sliceCenter   = (sliceNear + sliceFar) * 0.5f;
+    float sliceThick    = sliceFar - sliceNear;
+    float jitteredDepth = sliceCenter + jitter.z * sliceThick;
+
+    // Froxel center in screen UV
+    float3 jitterPositionVS = ViewSrg::GetViewSpacePosition(jitteredUV, jitteredDepth);
+    jitterPositionVS.z = -jitterPositionVS.z;
+
+    // Transform to world space for density sampling
+    float3 jitteredPosWS = mul(ViewSrg::m_viewMatrixInverse, float4(jitterPositionVS, 1.0)).xyz;
+
+    float3 inScatter = 0;
+    float2 screenPos = float2(froxelId.xy) * SceneSrg::m_volumetricFogData.m_tileSize  + 0.5;  // Pixel center
+    float4 svPosition = float4(screenPos, 0, sliceCenter);
+
+    Surface surface = (Surface)0;
+    surface.position = jitteredPosWS;
+    surface.normal = FogNormal;
+    surface.vertexNormal = FogNormal;
+
+    LightingData lightingData;
+    lightingData.tileIterator.Init(svPosition, PassSrg::m_lightListRemapped, PassSrg::m_tileLightData);
+    lightingData.lightingChannels = SceneSrg::m_volumetricFogData.m_lightingChannelMask;
+
+    // Ambient / directional (not in light list, always evaluated)
+    inScatter += ApplyFogDirectionalLights(surface, lightingData, extinction, svPosition);
+
+    if (SceneSrg::m_volumetricFogVolumeData.m_ambientIntensity > 0)
+    {
+        // Ambient IBL contribution — scatteringCoeff is applied in FroxelIntegrate, not here
+        float3 ambientIBL = EvaluateAmbientFog(surface.position);
+        inScatter += ambientIBL * SceneSrg::m_volumetricFogVolumeData.m_ambientIntensity;
+    }
+
+    // Skip Decals group
+    SkipLightGroup(lightingData.tileIterator);
+    lightingData.Init(surface.position, surface.normal, surface.roughnessLinear, ViewSrg::m_worldPosition.xyz);
+    inScatter += ApplyLightsByType(FogCullLightType::SimplePointLight, surface, lightingData, extinction);
+    inScatter += ApplyLightsByType(FogCullLightType::SimpleSpot, surface, lightingData, extinction);
+    inScatter += ApplyLightsByType(FogCullLightType::PointLight, surface, lightingData, extinction);
+    inScatter += ApplyLightsByType(FogCullLightType::DiskLight, surface, lightingData, extinction);
+    inScatter += ApplyLightsByType(FogCullLightType::CapsuleLight, surface, lightingData, extinction);
+    inScatter += ApplyLightsByType(FogCullLightType::QuadLight, surface, lightingData, extinction);
+    inScatter += ApplyLightsByType(FogCullLightType::PolygonLight, surface, lightingData, extinction);
+
+    PassSrg::m_froxelScatterResult[froxelId] = float4(inScatter, 0);
+}

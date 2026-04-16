@@ -82,4 +82,10 @@ set(FILES
     Include/AtomLyIntegration/CommonFeatures/Scripting/EntityReferenceRequestBus.h
     Include/AtomLyIntegration/CommonFeatures/Scripting/EntityReferenceConstants.h
     Include/AtomLyIntegration/CommonFeatures/Scripting/EntityReferenceComponentConfig.h
+#if defined(CARBONATED)
+    Include/AtomLyIntegration/CommonFeatures/VolumetricFog/VolumetricFogBus.h
+    Include/AtomLyIntegration/CommonFeatures/VolumetricFog/VolumetricFogComponentConfig.h
+    Include/AtomLyIntegration/CommonFeatures/VolumetricFog/FogVolumeBus.h
+    Include/AtomLyIntegration/CommonFeatures/VolumetricFog/FogVolumeComponentConfig.h
+#endif
 )

@@ -41,6 +41,9 @@ namespace ImageProcessingAtom
 
     void TextureSettings::Reflect(AZ::ReflectContext* context)
     {
+#if defined(CARBONATED)
+        FlipbookSettings::Reflect(context);
+#endif // defined(CARBONATED)
         AZ::SerializeContext* serialize = azrtti_cast<AZ::SerializeContext*>(context);
         if (serialize)
         {
@@ -57,7 +60,11 @@ namespace ImageProcessingAtom
                 ->Field("MipMapAlphaAdjustments", &TextureSettings::m_mipAlphaAdjust)
                 ->Field("PlatformSpecificOverrides", &TextureSettings::m_platfromOverrides)
                 ->Field("OverridingPlatform", &TextureSettings::m_overridingPlatform)
-                ->Field("Tags", &TextureSettings::m_tags);
+                ->Field("Tags", &TextureSettings::m_tags)
+#if defined(CARBONATED)
+                ->Field("Flipbook", &TextureSettings::m_flipBookSettings)
+#endif // defined(CARBONATED)
+                ;
 
             AZ::EditContext* edit = serialize->GetEditContext();
             if (edit)
@@ -350,4 +357,51 @@ namespace ImageProcessingAtom
 
         return STRING_OUTCOME_SUCCESS;
     }
-}
+
+#if defined(CARBONATED)
+    void TextureSettings::FlipbookSettings::Reflect(AZ::ReflectContext* context)
+    {
+        AZ::SerializeContext* serialize = azrtti_cast<AZ::SerializeContext*>(context);
+        if (serialize)
+        {
+            serialize->Class<FlipbookSettings>()
+                ->Version(0)
+                ->Field("Columns", &FlipbookSettings::m_numColumns)
+                ->Field("Rows", &FlipbookSettings::m_numRows);
+
+            AZ::EditContext* edit = serialize->GetEditContext();
+            if (edit)
+            {
+                edit->Class<FlipbookSettings>("Flipbook Settings", "")
+                    ->ClassElement(AZ::Edit::ClassElements::EditorData, "")
+                    ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
+                    ->Attribute(AZ::Edit::Attributes::Visibility, AZ::Edit::PropertyVisibility::ShowChildrenOnly)
+
+                    ->ClassElement(AZ::Edit::ClassElements::Group, "Flipbook Settings")
+                    ->Attribute(AZ::Edit::Attributes::AutoExpand, false)
+
+                    ->DataElement(
+                        AZ::Edit::UIHandlers::Default,
+                        &FlipbookSettings::m_numColumns,
+                        "Number of columns",
+                        "Number of columns in the flipbook")
+                    ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
+                    ->Attribute(AZ::Edit::Attributes::ContainerCanBeModified, false)
+                    ->ElementAttribute(AZ::Edit::UIHandlers::Handler, AZ::Edit::UIHandlers::Slider)
+                    ->ElementAttribute(AZ::Edit::Attributes::Min, 0)
+                    ->ElementAttribute(AZ::Edit::Attributes::Max, 128)
+                    ->ElementAttribute(AZ::Edit::Attributes::Step, 1)
+
+                    ->DataElement(
+                        AZ::Edit::UIHandlers::Default, &FlipbookSettings::m_numRows, "Number of rows", "Number of rows in the flipbook")
+                    ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
+                    ->Attribute(AZ::Edit::Attributes::ContainerCanBeModified, false)
+                    ->ElementAttribute(AZ::Edit::UIHandlers::Handler, AZ::Edit::UIHandlers::Slider)
+                    ->ElementAttribute(AZ::Edit::Attributes::Min, 0)
+                    ->ElementAttribute(AZ::Edit::Attributes::Max, 128)
+                    ->ElementAttribute(AZ::Edit::Attributes::Step, 1);
+            }
+        }
+    }
+#endif // defined(CARBONATED)
+} // namespace ImageProcessingAtom

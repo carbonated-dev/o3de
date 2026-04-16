@@ -8,10 +8,15 @@
 
 #pragma once
 
+#ifndef USING_COMPUTE_SHADER_LIGHT
+#define USING_COMPUTE_SHADER_LIGHT 0
+#endif
+
 #include <viewsrg.srgi>
 #include <Atom/Features/Debug.azsli>
 #include <Atom/Features/LightCulling/LightCullingTileIterator.azsli>
 #include <Atom/Features/PBR/LightingUtils.azsli>
+
 
 class LightingData
 {
@@ -82,7 +87,11 @@ void LightingData::Init(real3 positionWS, real3 normal, real roughnessLinear, fl
     // sample BRDF map (indexed by smoothness values rather than roughness)
     NdotV = saturate(dot(normal, dirToCamera));
     real2 brdfUV = real2(NdotV, (1.0 - roughnessLinear));
+#if USING_COMPUTE_SHADER_LIGHT
+    brdf = real2(PassSrg::m_brdfMap.SampleLevel(PassSrg::LinearSampler, brdfUV, 0).rg);
+#else
     brdf = real2(PassSrg::m_brdfMap.Sample(PassSrg::LinearSampler, brdfUV).rg);
+#endif
 }
 
 void LightingData::CalculateMultiscatterCompensation(real3 specularF0, bool enabled)

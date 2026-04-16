@@ -24,6 +24,9 @@ AZ_POP_DISABLE_WARNING
 #include <Source/Editor/TexturePreviewWidget.h>
 #include <Source/Editor/ResolutionSettingWidget.h>
 #include <Source/Editor/MipmapSettingWidget.h>
+#if defined(CARBONATED)
+#include <Source/Editor/FlipbookSettingWidget.h>
+#endif // defined(CARBONATED)
 #endif
 
 namespace Ui
@@ -63,6 +66,9 @@ namespace ImageProcessingAtomEditor
         QScopedPointer<TexturePresetSelectionWidget> m_presetSelectionWidget;
         QScopedPointer<ResolutionSettingWidget> m_resolutionSettingWidget;
         QScopedPointer<MipmapSettingWidget> m_mipmapSettingWidget;
+#if defined(CARBONATED)
+        QScopedPointer<FlipbookSettingWidget> m_flipbookSettingWidget;
+#endif // defined(CARBONATED)
 
         EditorTextureSetting m_textureSetting;
         bool m_validImage = true;

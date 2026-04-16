@@ -152,6 +152,30 @@ namespace ImageProcessingAtom
 
         AZStd::set<AZStd::string> m_tags;
 
+#if defined(CARBONATED)
+        // Describes the grid layout of frames packed in a 2D flipbook texture.
+        // Each tile becomes one depth slice of the resulting 3D volume texture.
+        struct FlipbookSettings
+        {
+            AZ_TYPE_INFO(FlipbookSettings, "{334D20DF-3D5D-42D7-B60F-C5AF7A00CB23}");
+            static void Reflect(AZ::ReflectContext* context);
+
+            AZ::u32 m_numColumns = 0;
+            AZ::u32 m_numRows = 0;
+
+            bool IsValid() const
+            {
+                return m_numColumns > 0 && m_numRows > 0;
+            }
+        };
+
+        // Optional flipbook settings. When valid (IsValid() == true), the input image is treated as a
+        // 2D flipbook: it will be sliced into frames and assembled into a 3D volume texture before the
+        // rest of the pipeline runs. The input image must already be in R32G32B32A32F at that point
+        // (i.e. after StepConvertToLinear). Ignored when the input already has EIF_Volumetexture set.
+        FlipbookSettings m_flipBookSettings;
+#endif // defined(CARBONATED)
+
     private:
         // Platform overrides in form of DataPatch. Each entry is a patch for a specified platform.
         // This map is used to generate TextureSettings with overridden values. The map is empty if

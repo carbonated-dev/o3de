@@ -1,0 +1,235 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ * FroxelLocalVolumeRaster.azsl — local fog volume injection via rasterization
+ *
+ * One shader, one fragment output. Five blend modes are selected entirely
+ * by pipeline state (HW fixed-function blending):
+ *   - ADDITIVE:  Src + Dst        — BlendOp::Add,    factors One, One
+ *   - MULTIPLY:  Src * Dst        — BlendOp::Add,    factors ColorDest, Zero
+ *   - OVERWRITE: Src              — BlendOp::Add,    factors One, Zero
+ *   - MIN:       min(Src, Dst)    — BlendOp::Min     (factors ignored)
+ *   - MAX:       max(Src, Dst)    — BlendOp::Max     (factors ignored)
+ *
+ * Architecture:
+ *   - One draw call per blend-mode batch (volumes sorted CPU-side)
+ *   - Each volume drawn as a unit cube (box) or icosphere (sphere) proxy
+ *   - instanceCount = number of slices the volume covers
+ *   - SV_RenderTargetArrayIndex routes each instance to its Z slice
+ *   - Fragment shader writes (scattering, extinction); HW blends into V-buffer
+ */
+
+#include <scenesrg.srgi>
+#include <viewsrg.srgi>
+#include "FroxelUtil.azsli"
+
+// Volume shape types
+enum FogVolumeShape
+{
+    Box = 0,
+    Sphere
+};
+
+// --------------------------------------------------------------------------
+// Per-volume GPU data — keep packed. Must match LocalVolumeData on C++ side.
+// --------------------------------------------------------------------------
+struct LocalVolumeData
+{
+    float3 m_center;
+    uint m_shape;
+    float3 m_right;
+    float  m_extentX;
+    float3 m_up;
+    float  m_extentY;
+    float3 m_forward;
+    float  m_extentZ;
+    float3 m_rcpFadePos;
+    int    m_noiseTextureIndex;  // -1 if no noise texture
+    float3 m_rcpFadeNeg;
+    uint   m_sliceMin;
+    uint   m_sliceMax;
+    uint   m_priority;
+    uint   m_blendMode;
+    uint   m_pad0;
+    SceneSrg::VolumetricFogVolumeConstants m_volumeData;
+};
+
+// --------------------------------------------------------------------------
+// Map a volume-local position (range [-1, 1] for box, unit ball for sphere)
+// to an edge fade factor in [0, 1].
+// --------------------------------------------------------------------------
+float ComputeBoxEdgeFade(float3 localPos, float3 rcpFadePos, float3 rcpFadeNeg)
+{
+    // localPos is in [-1, 1] range.
+    // For each axis, distance to nearest face is (1 - |localPos|).
+    // Multiply by rcpFade to get the fade factor.
+    float3 fadePos = saturate((1.0 - localPos) * rcpFadePos);
+    float3 fadeNeg = saturate((1.0 + localPos) * rcpFadeNeg);
+    float3 fade    = min(fadePos, fadeNeg);
+    return fade.x * fade.y * fade.z;
+}
+
+float ComputeSphereEdgeFade(float3 localPos, float rcpFadePos)
+{
+    // For a sphere, only one falloff distance makes sense (the radial one).
+    // Use rcpFadePos.x as the fade distance.
+    float r = length(localPos);
+    return saturate((1.0 - r) * rcpFadePos);
+}
+
+// --------------------------------------------------------------------------
+// Transform a world-space point into the volume's local space.
+// For a box: returns position in [-1, 1] when inside.
+// For a sphere: returns position in unit ball when inside.
+// --------------------------------------------------------------------------
+float3 WorldToVolumeLocal(float3 posWS, LocalVolumeData volume)
+{
+    float3 toPos = posWS - volume.m_center;
+    float3 localPos;
+    localPos.x = dot(toPos, volume.m_right)   / max(volume.m_extentX, 1e-5);
+    localPos.y = dot(toPos, volume.m_up)      / max(volume.m_extentY, 1e-5);
+    localPos.z = dot(toPos, volume.m_forward) / max(volume.m_extentZ, 1e-5);
+    return localPos;
+}
+
+// --------------------------------------------------------------------------
+// Test if a local-space position is inside the volume's actual shape.
+// --------------------------------------------------------------------------
+bool IsInsideVolume(float3 localPos, uint shape)
+{
+    if (shape == FogVolumeShape::Box)
+    {
+        return all(abs(localPos) <= 1.0);
+    }
+    else // FogVolumeShape::Sphere
+    {
+        return dot(localPos, localPos) <= 1.0;
+    }
+}
+
+// --------------------------------------------------------------------------
+// Compute the volume's contribution at a froxel center.
+// Returns scattering (rgb) and extinction (a). Returns 0 if outside.
+// --------------------------------------------------------------------------
+bool EvaluateVolume(float3 froxelWS, float3 cameraWS, LocalVolumeData volume, Texture3D<float> noiseTexture, out float4 contribution)
+{
+    float3 localPos = WorldToVolumeLocal(froxelWS, volume);
+
+    if (!IsInsideVolume(localPos, volume.m_shape))
+    {
+        contribution = 0;
+        return false;
+    }
+
+    // Edge fade based on shape
+    float edgeFade;
+    if (volume.m_shape == FogVolumeShape::Box)
+    {
+        edgeFade = ComputeBoxEdgeFade(localPos, volume.m_rcpFadePos, volume.m_rcpFadeNeg);
+    }
+    else
+    {
+        edgeFade = ComputeSphereEdgeFade(localPos, volume.m_rcpFadePos.x);
+    }
+
+    contribution = CalculateMediumContribution(froxelWS, volume.m_volumeData, noiseTexture, volume.m_noiseTextureIndex >= 0);
+    contribution *= edgeFade;
+    return true;
+}
+
+ShaderResourceGroup PassSrg : SRG_PerPass
+{
+    Buffer<float3>          m_proxyVertices[2];
+    Buffer<uint>            m_proxyIndices[2];
+    StructuredBuffer<LocalVolumeData> m_volumes;
+    Buffer<uint2>           m_instanceToVolumeSlice;
+    Texture3D<float>        m_noiseTextures[];
+};
+
+struct VSOutput
+{
+    float4 m_position        : SV_Position;
+    nointerpolation uint m_volumeIndex   : VOLUME_INDEX;
+    nointerpolation uint m_sliceIndex    : SLICE_INDEX;
+    nointerpolation uint m_rtArrayIndex  : SV_RenderTargetArrayIndex;
+};
+
+VSOutput MainVS(uint vertexId   : SV_VertexID,
+                uint instanceId : SV_InstanceID)
+{
+    VSOutput output;
+
+    uint2 mapping    = PassSrg::m_instanceToVolumeSlice[instanceId];
+    uint volumeIndex = mapping.x;
+    uint sliceIndex  = mapping.y;
+
+    LocalVolumeData volume = PassSrg::m_volumes[volumeIndex];
+    StructuredBuffer<float3> vertices;
+    StructuredBuffer<uint> indices;
+
+    uint actualVertexIndex = PassSrg::m_proxyIndices[volume.m_shape][vertexId];
+    float3 localVertex     = PassSrg::m_proxyVertices[volume.m_shape][actualVertexIndex];
+
+    // Transform proxy vertex by the OBB basis to get the actual world-space corner.
+    // Same transform works for box (vertices in [-1, 1]) and sphere (vertices on unit ball).
+    float3 worldVertex = volume.m_center
+                       + localVertex.x * volume.m_right   * volume.m_extentX
+                       + localVertex.y * volume.m_up      * volume.m_extentY
+                       + localVertex.z * volume.m_forward * volume.m_extentZ;
+
+    output.m_position     = mul(ViewSrg::m_viewProjectionMatrix, float4(worldVertex, 1.0));
+    output.m_volumeIndex  = volumeIndex;
+    output.m_sliceIndex   = sliceIndex;
+    output.m_rtArrayIndex = sliceIndex;
+    return output;
+}
+
+// --------------------------------------------------------------------------
+// Fragment shader — mode-agnostic. Writes (scattering, extinction).
+// Blend mode is applied by HW fixed-function blending.
+//
+// For OVERWRITE on froxels OUTSIDE the volume, we must NOT clobber existing fog.
+// The cleanest way: discard fragments outside the actual OBB/sphere. This
+// prevents the rasterizer from invoking the blend at those pixels at all.
+// (For ADDITIVE/MIN/MAX, writing zero would also work — but for OVERWRITE,
+// writing zero would erase existing fog. discard is the universal fix.)
+// --------------------------------------------------------------------------
+struct PSOutput
+{
+    float4 m_color    : SV_Target0;  // RGB = scattering, A = extinction
+    float4 m_emissive : SV_Target1;  // RGB = emissive, A = unused
+};
+
+PSOutput MainPS(VSOutput input)
+{
+    PSOutput output;
+
+    LocalVolumeData volume = PassSrg::m_volumes[input.m_volumeIndex];
+
+    // Reconstruct froxel center world position
+    uint3 froxelId  = uint3(uint2(input.m_position.xy), input.m_sliceIndex);
+    float3 froxelWS = GetFroxelWorldPosition(froxelId);
+
+    float4 contribution = 0;
+    bool isValid = EvaluateVolume(  froxelWS,
+                                     ViewSrg::m_worldPosition.xyz,
+                                     volume,
+                                     PassSrg::m_noiseTextures[volume.m_noiseTextureIndex],
+                                     contribution);
+
+    if (!isValid)
+    {
+        discard;
+    }
+
+    output.m_color = contribution;
+    // Emissive: density + edge-fade weighted (contribution.a = extinction × edgeFade).
+    // Written to RT1 and blended additively so contributions from multiple volumes accumulate.
+    output.m_emissive = float4(
+        volume.m_volumeData.m_emissiveColor * volume.m_volumeData.m_emissiveIntensity * contribution.a,
+        0.0);
+    return output;
+}

@@ -54,8 +54,13 @@ void SampleCapsule(float2 randomPoint, ViewSrg::CapsuleLight light, float capToC
     }
 }
 
-void ApplyCapsuleLight(ViewSrg::CapsuleLight light, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplyCapsuleLight(ViewSrg::CapsuleLight light, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplyCapsuleLight(ViewSrg::CapsuleLight light, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
+    float lightIntensity = 0;
+
     float lightLength = light.m_length;
     float3 startPoint = light.m_startPoint;
     float3 startToEnd = light.m_direction * lightLength;
@@ -121,7 +126,7 @@ void ApplyCapsuleLight(ViewSrg::CapsuleLight light, Surface surface, inout Light
         float intensity = (NdotStart + NdotEnd) / (distanceToStart * distanceToEnd + dot(surfaceToStart, surfaceToEnd));
         intensity *= INV_PI; // normalize for lambert reflectance.
 
-        float3 lightIntensity = (intensity * radiusAttenuation * ratioVisible) * light.m_rgbIntensityCandelas;
+        lightIntensity = (intensity * radiusAttenuation * ratioVisible) * light.m_rgbIntensityCandelas;
         lightingData.diffuseLighting += max(0.0, surface.albedo * lightIntensity);
 
         // Calculate the reflection of the normal from the view direction
@@ -174,10 +179,13 @@ void ApplyCapsuleLight(ViewSrg::CapsuleLight light, Surface surface, inout Light
         float sphereToCapsuleAreaRatio = 2.0 * light.m_radius / max(2.0 * light.m_radius + light.m_length, EPSILON);
 
         // Specular contribution
-        lightIntensity = sphereToCapsuleAreaRatio * radiusAttenuation / d2;
-        lightIntensity *= light.m_rgbIntensityCandelas;
-        lightingData.specularLighting += sphereIntensityNormalization * GetSpecularLighting(surface, lightingData, lightIntensity, normalize(posToLight));
+        float3 specularLightIntensity = sphereToCapsuleAreaRatio * radiusAttenuation / d2;
+        specularLightIntensity *= light.m_rgbIntensityCandelas;
+        lightingData.specularLighting += sphereIntensityNormalization * GetSpecularLighting(surface, lightingData, specularLightIntensity, normalize(posToLight));
     }
+// Begin Carbonated
+    outInfo.m_intensity = lightIntensity;
+// End Carbonated
 }
 
 void ValidateCapsuleLight(ViewSrg::CapsuleLight light, Surface surface, inout LightingData lightingData)
@@ -228,7 +236,10 @@ void ValidateCapsuleLight(ViewSrg::CapsuleLight light, Surface surface, inout Li
 #endif
 }
 
-void ApplyCapsuleLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplyCapsuleLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplyCapsuleLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
     if (o_enableCapsuleLights)
     {
@@ -246,10 +257,24 @@ void ApplyCapsuleLightInternal(uint lightIndex, Surface surface, inout LightingD
         else
 #endif // ENABLE_AREA_LIGHT_VALIDATION
         {
-            ApplyCapsuleLight(light, surface, lightingData);
+            ApplyCapsuleLight(light, surface, lightingData, outInfo);
         }
     }
 }
+
+// Begin Carbonated
+void ApplyCapsuleLight(ViewSrg::CapsuleLight light, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplyCapsuleLight(light, surface, lightingData, outInfo);
+}
+
+void ApplyCapsuleLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplyCapsuleLightInternal(lightIndex, surface, lightingData, outInfo);
+}
+// End Carbonated
 
 void ApplyCapsuleLights(Surface surface, inout LightingData lightingData)
 {    

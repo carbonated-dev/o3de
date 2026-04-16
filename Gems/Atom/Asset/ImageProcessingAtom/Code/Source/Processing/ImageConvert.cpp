@@ -21,7 +21,11 @@
 #include <BuilderSettings/PresetSettings.h>
 
 
+#if defined(CARBONATED)
+#include <AzCore/std/algorithm.h>
+#endif // defined(CARBONATED)
 #include <AzCore/std/time.h>
+
 #include <AzCore/StringFunc/StringFunc.h>
 
 #include <Atom/RHI.Reflect/Format.h>
@@ -52,6 +56,9 @@ namespace ImageProcessingAtom
     {
         StepValidateInput = 0,
         StepConvertToLinear,
+#if defined(CARBONATED)
+        StepConvertFromFlipbook, // Assemble 2D flipbook frames into a 3D volume texture (no-op when not a flipbook).
+#endif // defined(CARBONATED)
         StepSwizzle,
         StepCubemapLayout,
         StepPreNormalize,
@@ -70,6 +77,9 @@ namespace ImageProcessingAtom
     {
         "ValidateInput",
         "ConvertToLinear",
+#if defined(CARBONATED)
+        "ConvertFromFlipbook",
+#endif // defined(CARBONATED)
         "Swizzle",
         "CubemapLayout",
         "PreNormalize",
@@ -144,6 +154,13 @@ namespace ImageProcessingAtom
         return (cubemapSettings != nullptr && cubemapSettings->m_requiresConvolve == false);
     }
 
+#if defined(CARBONATED)
+    bool ImageConvertProcess::IsFlipbook()
+    {
+        return m_input->m_textureSetting.m_flipBookSettings.IsValid();
+    }
+#endif // defined(CARBONATED)
+
     void ImageConvertProcess::UpdateProcess()
     {
         if (m_isFinished)
@@ -192,6 +209,20 @@ namespace ImageProcessingAtom
             // convert to linear space and the output image pixel format should be rgba32f
             ConvertToLinear();
             break;
+#if defined(CARBONATED)
+        case StepConvertFromFlipbook:
+            // When the input descriptor carries valid FlipbookSettings, slice the current
+            // 2D image (already in R32G32B32A32F from StepConvertToLinear) into a 3D volume
+            // texture. For all other inputs this step is a no-op.
+            if (IsFlipbook())
+            {
+                if (!ConvertFromFlipbook())
+                {
+                    m_image->Set(nullptr);
+                }
+            }
+            break;
+#endif // defined(CARBONATED)
         case StepSwizzle:
             {
                 // swizzle if swizzle was set or decard alpha
@@ -289,6 +320,16 @@ namespace ImageProcessingAtom
                     }
                 }
             }
+#if defined(CARBONATED)
+            else if (m_image->Get() && m_image->Get()->HasImageFlags(EIF_Volumetexture))
+            {
+                if (!FillVolumeMipmaps())
+                {
+                    m_isSucceed = false;
+                    m_isFinished = true;
+                }
+            }
+#endif // defined(CARBONATED)
             else
             {
                 FillMipmaps();
@@ -543,6 +584,233 @@ namespace ImageProcessingAtom
         m_image->Set(outImage);
         return true;
     }
+
+#if defined(CARBONATED)
+    // ──────────────────────────────────────────────────────────────────────────────
+    // Flipbook / volume texture helpers
+    // ──────────────────────────────────────────────────────────────────────────────
+
+    static inline AZ::u8* SlicePtr(AZ::u8* base, AZ::u32 sliceIndex, AZ::u32 rowCount, AZ::u32 pitch)
+    {
+        return base + static_cast<size_t>(sliceIndex) * rowCount * pitch;
+    }
+
+    static inline const AZ::u8* SlicePtrConst(const AZ::u8* base, AZ::u32 sliceIndex, AZ::u32 rowCount, AZ::u32 pitch)
+    {
+        return base + static_cast<size_t>(sliceIndex) * rowCount * pitch;
+    }
+
+    IImageObjectPtr CreateVolumeTextureFromFlipbook(const IImageObjectPtr& srcImage, const TextureSettings::FlipbookSettings& settings)
+    {
+        if (!settings.IsValid())
+        {
+            AZ_Error("Image Processing", false,
+                "CreateVolumeTextureFromFlipbook: FlipbookSettings must have non-zero numColumns and numRows");
+            return nullptr;
+        }
+
+        if (!srcImage || srcImage->GetPixelFormat() != ePixelFormat_R32G32B32A32F)
+        {
+            AZ_Error("Image Processing", false,
+                "CreateVolumeTextureFromFlipbook: source image must be in R32G32B32A32F format");
+            return nullptr;
+        }
+
+        const AZ::u32 numCols = settings.m_numColumns;
+        const AZ::u32 numRows = settings.m_numRows;
+        const AZ::u32 totalW  = srcImage->GetWidth(0);
+        const AZ::u32 totalH  = srcImage->GetHeight(0);
+
+        if (totalW % numCols != 0 || totalH % numRows != 0)
+        {
+            AZ_Error("Image Processing", false,
+                "CreateVolumeTextureFromFlipbook: source image size (%ux%u) is not evenly divisible "
+                "by the flipbook grid (%ux%u)",
+                totalW, totalH, numCols, numRows);
+            return nullptr;
+        }
+
+        const AZ::u32 frameW = totalW / numCols;
+        const AZ::u32 frameH = totalH / numRows;
+        const AZ::u32 depth  = numCols * numRows;
+        constexpr AZ::u32 bytesPerPixel = 16; // R32G32B32A32F: 4 channels × 4 bytes
+
+        IImageObjectPtr volumeImage(IImageObject::CreateImage(frameW, frameH, depth, 1, ePixelFormat_R32G32B32A32F));
+        volumeImage->CopyPropertiesFrom(srcImage);
+        volumeImage->AddImageFlags(EIF_Volumetexture);
+
+        AZ::u8* srcMem; AZ::u32 srcPitch;
+        srcImage->GetImagePointer(0, srcMem, srcPitch);
+
+        AZ::u8* dstMem; AZ::u32 dstPitch;
+        volumeImage->GetImagePointer(0, dstMem, dstPitch);
+
+        for (AZ::u32 frameIdx = 0; frameIdx < depth; ++frameIdx)
+        {
+            const AZ::u32 colIdx = frameIdx % numCols;
+            const AZ::u32 rowIdx = frameIdx / numCols;
+
+            for (AZ::u32 y = 0; y < frameH; ++y)
+            {
+                const AZ::u32 srcY = rowIdx * frameH + y;
+                const AZ::u8* srcRow = srcMem + srcY * srcPitch + colIdx * frameW * bytesPerPixel;
+                AZ::u8* dstRow = SlicePtr(dstMem, frameIdx, frameH, dstPitch) + y * dstPitch;
+                memcpy(dstRow, srcRow, frameW * bytesPerPixel);
+            }
+        }
+
+        return volumeImage;
+    }
+
+    void FilterVolumeImage(
+        MipGenType filterType,
+        MipGenEvalType evalType,
+        const IImageObjectPtr& srcImg, AZ::u32 srcMip,
+        IImageObjectPtr& dstImg, AZ::u32 dstMip)
+    {
+        const AZ::u32 srcW = srcImg->GetWidth(srcMip);
+        const AZ::u32 srcH = srcImg->GetHeight(srcMip);
+        const AZ::u32 srcD = srcImg->GetDepth(srcMip);
+        const AZ::u32 dstW = dstImg->GetWidth(dstMip);
+        const AZ::u32 dstH = dstImg->GetHeight(dstMip);
+        const AZ::u32 dstD = dstImg->GetDepth(dstMip);
+        constexpr AZ::u32 numChannels = 4;
+
+        // Step 1: XY resample — filter each source slice from (srcW x srcH) to (dstW x dstH).
+        IImageObjectPtr xyFiltered(IImageObject::CreateImage(dstW, dstH, srcD, 1, ePixelFormat_R32G32B32A32F));
+        xyFiltered->AddImageFlags(EIF_Volumetexture);
+
+        IImageObjectPtr srcSlice(IImageObject::CreateImage(srcW, srcH, 1, 1, ePixelFormat_R32G32B32A32F));
+        IImageObjectPtr dstSlice(IImageObject::CreateImage(dstW, dstH, 1, 1, ePixelFormat_R32G32B32A32F));
+
+        AZ::u8* srcMem; AZ::u32 srcPitch;
+        srcImg->GetImagePointer(srcMip, srcMem, srcPitch);
+
+        AZ::u8* filtMem; AZ::u32 filtPitch;
+        xyFiltered->GetImagePointer(0, filtMem, filtPitch);
+
+        for (AZ::u32 d = 0; d < srcD; ++d)
+        {
+            {
+                AZ::u8* sliceMem; AZ::u32 slicePitch;
+                srcSlice->GetImagePointer(0, sliceMem, slicePitch);
+                memcpy(sliceMem, SlicePtr(srcMem, d, srcH, srcPitch), srcH * srcPitch);
+            }
+
+            FilterImage(filterType, evalType, 0.0f, 0.0f, srcSlice, 0, dstSlice, 0, nullptr, nullptr);
+
+            {
+                AZ::u8* sliceMem; AZ::u32 slicePitch;
+                dstSlice->GetImagePointer(0, sliceMem, slicePitch);
+                memcpy(SlicePtr(filtMem, d, dstH, filtPitch), sliceMem, dstH * filtPitch);
+            }
+        }
+
+        // Step 2: Z box filter — average (srcD / dstD) consecutive XY-filtered slices per output slice.
+        AZ::u8* dstMem; AZ::u32 dstPitch;
+        dstImg->GetImagePointer(dstMip, dstMem, dstPitch);
+
+        const AZ::u32 ratio = AZStd::max(srcD / dstD, 1u);
+        const float invRatio = 1.0f / static_cast<float>(ratio);
+
+        for (AZ::u32 d = 0; d < dstD; ++d)
+        {
+            const AZ::u32 firstSrcSlice = d * ratio;
+
+            for (AZ::u32 y = 0; y < dstH; ++y)
+            {
+                float* dst = reinterpret_cast<float*>(SlicePtr(dstMem, d, dstH, dstPitch) + y * dstPitch);
+
+                const float* row0 = reinterpret_cast<const float*>(
+                    SlicePtrConst(filtMem, firstSrcSlice, dstH, filtPitch) + y * filtPitch);
+                memcpy(dst, row0, dstW * numChannels * sizeof(float));
+
+                for (AZ::u32 s = 1; s < ratio; ++s)
+                {
+                    const float* rowS = reinterpret_cast<const float*>(
+                        SlicePtrConst(filtMem, firstSrcSlice + s, dstH, filtPitch) + y * filtPitch);
+                    for (AZ::u32 x = 0; x < dstW * numChannels; ++x)
+                    {
+                        dst[x] += rowS[x];
+                    }
+                }
+
+                if (ratio > 1)
+                {
+                    for (AZ::u32 x = 0; x < dstW * numChannels; ++x)
+                    {
+                        dst[x] *= invRatio;
+                    }
+                }
+            }
+        }
+    }
+
+    bool ImageConvertProcess::ConvertFromFlipbook()
+    {
+        const EPixelFormat srcPixelFormat = m_image->Get()->GetPixelFormat();
+        if (srcPixelFormat != ePixelFormat_R32G32B32A32F)
+        {
+            AZ_Assert(false, "%s requires pixel format R32G32B32A32F (run after StepConvertToLinear)", __FUNCTION__);
+            return false;
+        }
+
+        IImageObjectPtr volumeImage = CreateVolumeTextureFromFlipbook(m_image->Get(), m_input->m_textureSetting.m_flipBookSettings);
+        if (!volumeImage)
+        {
+            return false;
+        }
+
+        m_image->Set(volumeImage);
+        return true;
+    }
+
+    bool ImageConvertProcess::FillVolumeMipmaps()
+    {
+        const EPixelFormat srcPixelFormat = m_image->Get()->GetPixelFormat();
+        if (srcPixelFormat != ePixelFormat_R32G32B32A32F)
+        {
+            AZ_Assert(false, "%s only works with pixel format R32G32B32A32F", __FUNCTION__);
+            return false;
+        }
+
+        if (m_image->Get()->GetMipCount() != 1)
+        {
+            AZ_Assert(false, "%s called for an already-mipmapped image", __FUNCTION__);
+            return false;
+        }
+
+        // Determine the desired XY output size, same as the 2D FillMipmaps.
+        // Size reduction (maxTextureSize, sizeReduceLevel, etc.) is absorbed into mip 0
+        // by GenerateVolumeMipmaps, which always filters directly from the original source.
+        AZ::u32 outWidth, outHeight, outReduce;
+        GetOutputExtent(
+            m_image->Get()->GetWidth(0), m_image->Get()->GetHeight(0),
+            outWidth, outHeight, outReduce,
+            &m_input->m_textureSetting, &m_input->m_presetSetting);
+
+        const AZ::u32 mipCount =
+            (m_input->m_presetSetting.m_mipmapSetting == nullptr || !m_input->m_textureSetting.m_enableMipmap)
+            ? 1
+            : UINT32_MAX;
+
+        const AZ::u32 depth = m_image->Get()->GetDepth(0);
+        IImageObjectPtr outImage(IImageObject::CreateImage(outWidth, outHeight, depth, mipCount, ePixelFormat_R32G32B32A32F));
+        outImage->CopyPropertiesFrom(m_image->Get());
+
+        for (AZ::u32 mip = 0; mip < outImage->GetMipCount(); ++mip)
+        {
+            FilterVolumeImage(
+                m_input->m_textureSetting.m_mipGenType,
+                m_input->m_textureSetting.m_mipGenEval,
+                m_image->Get(), 0,
+                outImage, mip);
+        }
+
+        m_image->Set(outImage);
+        return true;
+    }
+#endif // defined(CARBONATED)
 
     // Set (alpha-weighted) average color computed from given mip
     bool ImageConvertProcess::SetAverageColor(AZ::u32 mip)

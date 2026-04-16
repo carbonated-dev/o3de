@@ -116,7 +116,7 @@
                             }
                         }
                     ]
-                },
+                },                
                 {
                     "Name": "Shadows",
                     "TemplateName": "ShadowParentTemplate",
@@ -140,6 +140,62 @@
                             "AttachmentRef": {
                                 "Pass": "DepthPrePass",
                                 "Attachment": "DepthMSAA" 
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "FroxelParentPass",
+                    "TemplateName": "FroxelParentTemplate",
+                    "Enabled": false,
+                    "Connections": [
+                        {
+                            "LocalSlot": "TileLightData",
+                            "AttachmentRef": {
+                                "Pass": "LightCullingPass",
+                                "Attachment": "TileLightData"
+                            }
+                        },
+                        {
+                            "LocalSlot": "LightListRemapped",
+                            "AttachmentRef": {
+                                "Pass": "LightCullingPass",
+                                "Attachment": "LightListRemapped"
+                            }
+                        },
+                        {
+                            "LocalSlot": "PipelineOutput",
+                            "AttachmentRef": {
+                                "Pass": "PipelineGlobal",
+                                "Attachment": "PipelineOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DirectionalShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Shadows",
+                                "Attachment": "DirectionalShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DirectionalESM",
+                            "AttachmentRef": {
+                                "Pass": "Shadows",
+                                "Attachment": "DirectionalESM"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ProjectedShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Shadows",
+                                "Attachment": "ProjectedShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ProjectedESM",
+                            "AttachmentRef": {
+                                "Pass": "Shadows",
+                                "Attachment": "ProjectedESM"
                             }
                         }
                     ]
@@ -214,6 +270,34 @@
                     ]
                 },
                 {
+                    "Name": "FroxelCompositePass",
+                    "TemplateName": "FroxelCompositeTemplate",
+                    "Enabled": false,
+                    "Connections": [
+                        {
+                            "LocalSlot": "InputLinearDepth",
+                            "AttachmentRef": {
+                                "Pass": "DepthPrePass",
+                                "Attachment": "DepthLinear"
+                            }
+                        },
+                        {
+                            "LocalSlot": "FroxelIntegrated",
+                            "AttachmentRef": {
+                                "Pass": "FroxelParentPass",
+                                "Attachment": "FroxelIntegrated"
+                            }
+                        },
+                        {
+                            "LocalSlot": "RenderTargetInputOutput",
+                            "AttachmentRef": {
+                                "Pass": "OpaquePass",
+                                "Attachment": "Output"
+                            }
+                        }
+                    ]
+                },
+                {
                     "Name": "TransparentPass",
                     "TemplateName": "TransparentParentTemplate",
                     "Connections": [
@@ -267,6 +351,13 @@
                             }
                         },
                         {
+                            "LocalSlot": "FroxelVolumetricFog",
+                            "AttachmentRef": {
+                                "Pass": "FroxelParentPass",
+                                "Attachment": "FroxelIntegrated"
+                            }
+                        },
+                        {
                             "LocalSlot": "DepthStencil",
                             "AttachmentRef": {
                                 "Pass": "DepthPrePass",
@@ -276,8 +367,8 @@
                         {
                             "LocalSlot": "InputOutput",
                             "AttachmentRef": {
-                                "Pass": "OpaquePass",
-                                "Attachment": "Output"
+                                "Pass": "FroxelCompositePass",
+                                "Attachment": "RenderTargetInputOutput"
                             }
                         }
                     ]

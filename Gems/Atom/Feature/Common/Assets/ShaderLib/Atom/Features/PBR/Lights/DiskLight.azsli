@@ -20,8 +20,15 @@ enum DiskLightFlag
     UseConeAngle = 1,
 };
 
-void ApplyDiskLight(ViewSrg::DiskLight light, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplyDiskLight(ViewSrg::DiskLight light, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplyDiskLight(ViewSrg::DiskLight light, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
+    float3 lightIntensity = 0;
+    // shadow
+    float litRatio = 1.0;
+
     float3 posToLight = light.m_position - surface.position;
     float distanceToLight2 = dot(posToLight, posToLight); // light distance squared
     float falloff = distanceToLight2 * light.m_invAttenuationRadiusSquared;
@@ -71,15 +78,12 @@ void ApplyDiskLight(ViewSrg::DiskLight light, Surface surface, inout LightingDat
 
         // Standard quadratic falloff
         distanceToDisk2 = max(0.001 * 0.001, distanceToDisk2); // clamp the light to at least 1mm away to avoid extreme values.
-        float3 lightIntensity = (light.m_rgbIntensityCandelas / distanceToDisk2) * radiusAttenuation * angleFalloff;
+        lightIntensity = (light.m_rgbIntensityCandelas / distanceToDisk2) * radiusAttenuation * angleFalloff;
 
         // Adjust brightness based on the disk size relative to its distance.
         // The larger the disk is relative to the surface point, the dimmer it becomes.
         // 0 radius disks are unaffected.
         lightIntensity /= ((light.m_diskRadius / distanceToPlane) + 1.0);
-
-        // shadow
-        float litRatio = 1.0;
 
         // Distance travelled by the light inside the object. If not redefined to a non-negative value, it will take the following behavior:
         // - If transmission mode is thick object -> use transmission thickness parameter instead
@@ -167,6 +171,11 @@ void ApplyDiskLight(ViewSrg::DiskLight light, Surface surface, inout LightingDat
         // Specular contribution
         lightingData.specularLighting += diskIntensityNormalization * GetSpecularLighting(surface, lightingData, lightIntensity, normalize(posToLight)) * litRatio;
     }
+
+// Begin Carbonated
+    outInfo.m_intensity = lightIntensity;
+    outInfo.m_litRatio = litRatio;
+// End Carbonated
 }
 
 float3 SampleDisk(float2 randomPoint, ViewSrg::DiskLight light)
@@ -215,7 +224,10 @@ void ValidateDiskLight(ViewSrg::DiskLight light, Surface surface, inout Lighting
     lightingData.specularLighting += (specularAcc / float(sampleCount)) * light.m_rgbIntensityCandelas;
 }
 
-void ApplyDiskLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplyDiskLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplyDiskLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
     if (o_enableDiskLights)
     {
@@ -232,10 +244,24 @@ void ApplyDiskLightInternal(uint lightIndex, Surface surface, inout LightingData
         else
 #endif // ENABLE_AREA_LIGHT_VALIDATION
         {
-            ApplyDiskLight(light, surface, lightingData);
+            ApplyDiskLight(light, surface, lightingData, outInfo);
         }
     }
 }
+
+// Begin Carbonated
+void ApplyDiskLight(ViewSrg::DiskLight light, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplyDiskLight(light, surface, lightingData, outInfo);
+}
+
+void ApplyDiskLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplyDiskLightInternal(lightIndex, surface, lightingData, outInfo);
+}
+// End Carbonated
 
 void ApplyDiskLights(Surface surface, inout LightingData lightingData)
 {    

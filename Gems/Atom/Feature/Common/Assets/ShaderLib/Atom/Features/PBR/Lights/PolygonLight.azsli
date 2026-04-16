@@ -14,8 +14,12 @@
 
 #if ENABLE_POLYGON_LTC_LIGHTS
 // Polygon lights using Linearly Transformed Cosines
-void ApplyPoylgonLight(ViewSrg::PolygonLight light, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplyPoylgonLight(ViewSrg::PolygonLight light, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplyPoylgonLight(ViewSrg::PolygonLight light, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
+    float3 intensity = 0;
     float3 posToLight = light.m_position - surface.position;
     float distanceToLight2 = dot(posToLight, posToLight); // light distance squared
     float falloff = distanceToLight2 * abs(light.m_invAttenuationRadiusSquared);
@@ -52,11 +56,24 @@ void ApplyPoylgonLight(ViewSrg::PolygonLight light, Surface surface, inout Light
     specularRgb = doubleSided ? abs(specularRgb) : max(0.0, specularRgb);
 
     // Scale by inverse surface area of hemisphere (1/2pi), attenuation, and light intensity
-    float3 intensity = 0.5 * INV_PI * radiusAttenuation * abs(light.m_rgbIntensityNits);
+    intensity = 0.5 * INV_PI * radiusAttenuation * abs(light.m_rgbIntensityNits);
 
     lightingData.diffuseLighting += surface.albedo * diffuse * intensity;
     lightingData.specularLighting += specularRgb * intensity;
+
+// Begin Carbonated
+    outInfo.m_intensity = intensity;
+// End Carbonated
 }
+
+// Begin Carbonated
+void ApplyPoylgonLight(ViewSrg::PolygonLight light, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplyPoylgonLight(light, surface, lightingData, outInfo);
+}
+// End Carbonated
+
 
 void ApplyPolygonLights(Surface surface, inout LightingData lightingData)
 {

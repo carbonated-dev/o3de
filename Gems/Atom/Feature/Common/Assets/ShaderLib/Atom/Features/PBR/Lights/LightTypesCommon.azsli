@@ -13,6 +13,30 @@
 #include <Atom/Features/PBR/BackLighting.azsli>
 #include <Atom/Features/PBR/Hammersley.azsli>
 
+// Begin Carbonated
+#ifndef USING_COMPUTE_SHADER_LIGHT
+#define USING_COMPUTE_SHADER_LIGHT 0
+#endif
+
+#if USING_COMPUTE_SHADER_LIGHT
+    #define SampleTexture(text, sampler, coord) text.SampleLevel(sampler, coord, 0)
+#else
+    #define SampleTexture(text, sampler, coord) text.Sample(sampler, coord)
+#endif
+
+class ApplyLightingInfo
+{
+    float3 m_intensity;
+    float m_litRatio;
+
+    void Init()
+    {
+        m_intensity = 0;
+        m_litRatio = 1.0;
+    }
+};
+// End Carbonated
+
 //! Adjust the intensity of specular light based on the radius of the light source and roughness of the surface to approximate energy conservation.
 real GetIntensityAdjustedByRadiusAndRoughness(real roughnessA, real radius, real distance2)
 {

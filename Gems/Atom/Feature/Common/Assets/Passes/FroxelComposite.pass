@@ -1,0 +1,37 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "FroxelCompositePassTemplate",
+            "PassClass": "FullScreenTriangle",
+            "Slots": [
+                {
+                    "Name": "RenderTargetInputOutput",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget"
+                },
+                {
+                    "Name": "FroxelIntegrated",
+                    "ShaderInputName": "m_froxelIntegrated",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "InputLinearDepth",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_linearDepthTexture",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "PassData": {
+                "$type": "FullscreenTrianglePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/VolumetricFog/FroxelComposite.shader"
+                },
+                "BindViewSrg": true
+            }
+        }
+    }
+}

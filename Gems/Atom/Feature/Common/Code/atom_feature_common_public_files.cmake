@@ -99,6 +99,14 @@ set(FILES
     Include/Atom/Feature/TransformService/TransformServiceFeatureProcessorInterface.h
     Include/Atom/Feature/SkyBox/SkyBoxFeatureProcessorInterface.h
     Include/Atom/Feature/SkyAtmosphere/SkyAtmosphereFeatureProcessorInterface.h
+#if defined(CARBONATED)
+    Include/Atom/Feature/VolumetricFog/VolumetricFogFeatureProcessorInterface.h
+    Include/Atom/Feature/VolumetricFog/FogVolumeFeatureProcessorInterface.h
+    Include/Atom/Feature/VolumetricFog/VolumetricFogParams.inl
+    Include/Atom/Feature/VolumetricFog/FogVolumeParams.inl
+    Include/Atom/Feature/VolumetricFog/VolumetricFogConstants.h
+    Include/Atom/Feature/VolumetricFog/VolumetricFogSettings.h
+#endif
     Source/CoreLights/PhotometricValue.cpp
     Source/MorphTargets/MorphTargetInputBuffers.cpp
     Source/SkinnedMesh/SkinnedMeshInputBuffers.cpp

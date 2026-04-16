@@ -76,8 +76,12 @@ float3 GetSpecularDominantDirection(float3 normal, float3 reflection, float roug
 }
 
 // Quad light approximation. Diffuse portion based on https://seblagarde.files.wordpress.com/2015/07/course_notes_moving_frostbite_to_pbr_v32.pdf Pages 49-50.
-void ApplyQuadLight(ViewSrg::QuadLight light, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplyQuadLight(ViewSrg::QuadLight light, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplyQuadLight(ViewSrg::QuadLight light, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
+    float3 intensity = 0;
     float3 lightDirection = cross(light.m_leftDir, light.m_upDir); // left and up are already normalized.
 
     float3 posToLight = light.m_position - surface.position;
@@ -118,7 +122,7 @@ void ApplyQuadLight(ViewSrg::QuadLight light, Surface surface, inout LightingDat
             LtcQuadEvaluate(surface, lightingData, SceneSrg::m_ltcMatrix, SceneSrg::m_ltcAmplification, p, doubleSided, diffuse, specular);
 
             // Scale by inverse surface area of hemisphere (1/2pi), attenuation, and light intensity
-            float3 intensity = 0.5 * INV_PI * radiusAttenuation * light.m_rgbIntensityNits;
+            intensity = 0.5 * INV_PI * radiusAttenuation * light.m_rgbIntensityNits;
 
             lightingData.diffuseLighting += surface.albedo * diffuse * intensity;
             lightingData.specularLighting += specular * intensity;
@@ -138,7 +142,7 @@ void ApplyQuadLight(ViewSrg::QuadLight light, Surface surface, inout LightingDat
 
             // Intensity is the solid angle times the brightness of the light surface.
             // Each position contributes 1/5 of the light (4 corners + center)
-            float3 intensity = solidAngle * 0.2 * radiusAttenuation * light.m_rgbIntensityNits;
+            intensity = solidAngle * 0.2 * radiusAttenuation * light.m_rgbIntensityNits;
 
             lightingData.diffuseLighting += 
             (
@@ -209,6 +213,9 @@ void ApplyQuadLight(ViewSrg::QuadLight light, Surface surface, inout LightingDat
             lightingData.specularLighting += GetSpecularLighting(surface, lightingData, specularintensity, dirToLight) * radiusAttenuation;
         }
     }
+// Begin Carbonated
+    outInfo.m_intensity = intensity;
+// End Carbonated
 }
 
 float3 SampleRectangle(float2 randomPoint, ViewSrg::QuadLight light)
@@ -252,7 +259,10 @@ void ValidateQuadLight(ViewSrg::QuadLight light, Surface surface, inout Lighting
 #endif
 }
 
-void ApplyQuadLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// Begin Carbonated
+void ApplyQuadLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData, out ApplyLightingInfo outInfo)
+// was: void ApplyQuadLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+// End Carbonated
 {
     if (o_enableQuadLightApprox || o_enableQuadLightLTC)
     {
@@ -269,10 +279,24 @@ void ApplyQuadLightInternal(uint lightIndex, Surface surface, inout LightingData
         else
 #endif //ENABLE_AREA_LIGHT_VALIDATION
         {
-            ApplyQuadLight(light, surface, lightingData);
+            ApplyQuadLight(light, surface, lightingData, outInfo);
         }
     }
 }
+
+// Begin Carbonated
+void ApplyQuadLight(ViewSrg::QuadLight light, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplyQuadLight(light, surface, lightingData, outInfo);
+}
+
+void ApplyQuadLightInternal(uint lightIndex, Surface surface, inout LightingData lightingData)
+{
+    ApplyLightingInfo outInfo;
+    ApplyQuadLightInternal(lightIndex, surface, lightingData, outInfo);
+}
+// End Carbonated
 
 void ApplyQuadLights(Surface surface, inout LightingData lightingData)
 {

@@ -643,6 +643,30 @@
             {
                 "Name": "TaaParentTemplate",
                 "Path": "Passes/TaaParent.pass"
+            },
+            {
+                "Name": "FroxelParentTemplate",
+                "Path": "Passes/FroxelParent.pass"
+            },
+            {
+                "Name": "FroxelInjectTemplate",
+                "Path": "Passes/FroxelInject.pass"
+            },
+            {
+                "Name": "FroxelScatterTemplate",
+                "Path": "Passes/FroxelScatter.pass"
+            },
+            {
+                "Name": "FroxelIntegrateTemplate",
+                "Path": "Passes/FroxelIntegrate.pass"
+            },
+            {
+                "Name": "FroxelCompositeTemplate",
+                "Path": "Passes/FroxelComposite.pass"
+            },
+            {
+                "Name": "FroxelLocalVolumeTemplate",
+                "Path": "Passes/FroxelLocalVolume.pass"
             }
         ]
     }

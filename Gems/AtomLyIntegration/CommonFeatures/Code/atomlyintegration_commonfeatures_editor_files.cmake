@@ -128,7 +128,10 @@ set(FILES
 #if defined(CARBONATED)
     Source/Silhouette/EditorSilhouetteSystemComponent.cpp
     Source/Silhouette/EditorSilhouetteSystemComponent.h
+    Source/VolumetricFog/EditorVolumetricFogComponent.cpp
+    Source/VolumetricFog/EditorVolumetricFogComponent.h
+    Source/VolumetricFog/EditorFogVolumeComponent.cpp
+    Source/VolumetricFog/EditorFogVolumeComponent.h
 #endif
-
     Resources/AtomLyIntegrationResources.qrc
 )
