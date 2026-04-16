@@ -33,3 +33,8 @@
 #define AZ_GFX_TEXTURE2D_PARAM(Name, MemberName, DefaultValue)                                          \
         AZ_GFX_COMMON_PARAM(AZStd::string, Name, MemberName, DefaultValue)                              \
 
+// Begin CARBONATED
+#define AZ_GFX_TEXTURE_ASSET_PARAM(Name, MemberName, DefaultValue)                                      \
+        AZ_GFX_COMMON_PARAM(Data::Asset<AZ::RPI::StreamingImageAsset>, Name, MemberName, DefaultValue)  \
+// End CARBONATED
+

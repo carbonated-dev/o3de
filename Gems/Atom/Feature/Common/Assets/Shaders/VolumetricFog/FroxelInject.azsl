@@ -1,0 +1,39 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#include <scenesrg.srgi>
+#include <viewsrg.srgi>
+#include "FroxelUtil.azsli"
+
+ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
+{
+    RWTexture3D<float4> m_froxelVolume;
+    RWTexture3D<float4> m_froxelEmissive;
+}
+
+option bool o_enableNoiseTexture = true;
+
+[numthreads(NUM_THREADS_PER_GROUP, NUM_THREADS_PER_GROUP, 1)]
+void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    uint3 froxelId = dispatchThreadID;
+    if (any(froxelId >= SceneSrg::m_volumetricFogData.m_froxelCount))
+    {
+        return;
+    }
+
+    float3 positionWS = GetFroxelWorldPosition(froxelId);
+    float4 medium = CalculateMediumContribution(positionWS, SceneSrg::m_volumetricFogVolumeData, SceneSrg::m_noiseTexture, o_enableNoiseTexture);
+    PassSrg::m_froxelVolume[froxelId] = medium;
+
+    // Global emissive: density-proportional (medium.a = extinction = local fog density)
+    float3 emissive = SceneSrg::m_volumetricFogVolumeData.m_emissiveColor
+                    * SceneSrg::m_volumetricFogVolumeData.m_emissiveIntensity
+                    * medium.a;
+    PassSrg::m_froxelEmissive[froxelId] = float4(emissive, 0.0);
+}

@@ -16,5 +16,8 @@
 #define AZ_GFX_VEC3_PARAM(Name, MemberName, DefaultValue)
 #define AZ_GFX_VEC4_PARAM(Name, MemberName, DefaultValue)
 #define AZ_GFX_TEXTURE2D_PARAM(Name, MemberName, DefaultValue)
+#if defined(CARBONATED)
+#define AZ_GFX_TEXTURE_ASSET_PARAM(Name, MemberName, DefaultValue)
+#endif
 
 #define AZ_GFX_COMMON_PARAM(ValueType, Name, MemberName, DefaultValue)

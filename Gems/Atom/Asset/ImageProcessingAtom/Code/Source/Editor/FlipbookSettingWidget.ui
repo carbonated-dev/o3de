@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+    <class>FlipbookSettingWidget</class>
+    <widget class="QWidget" name="FlipbookSettingWidget">
+        <property name="geometry">
+            <rect>
+                <x>0</x>
+                <y>0</y>
+                <width>461</width>
+                <height>90</height>
+            </rect>
+        </property>
+        <property name="maximumSize">
+            <size>
+                <width>16777215</width>
+                <height>70</height>
+            </size>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="leftMargin"><number>0</number></property>
+            <property name="topMargin"><number>0</number></property>
+            <property name="rightMargin"><number>0</number></property>
+            <property name="bottomMargin"><number>0</number></property>
+            <item>
+                <widget class="AzToolsFramework::ReflectedPropertyEditor" name="propertyEditor"/>
+            </item>
+        </layout>
+    </widget>
+    <customwidgets>
+        <customwidget>
+            <class>AzToolsFramework::ReflectedPropertyEditor</class>
+            <extends>QFrame</extends>
+            <header location="global">AzToolsFramework/UI/PropertyEditor/ReflectedPropertyEditor.hxx</header>
+            <container>1</container>
+        </customwidget>
+    </customwidgets>
+    <resources/>
+    <connections/>
+</ui>

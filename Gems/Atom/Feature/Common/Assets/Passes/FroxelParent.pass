@@ -1,0 +1,155 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "FroxelParentTemplate",
+            "PassClass": "ParentPass",
+            "Slots": [
+                {
+                    "Name": "PipelineOutput",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "TileLightData",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "LightListRemapped",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "FroxelIntegrated",
+                    "SlotType": "Output"
+                },
+                {
+                    "Name": "DirectionalShadowmap",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "DirectionalESM",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "ProjectedShadowmap",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "ProjectedESM",
+                    "SlotType": "Input"
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "FroxelIntegrated",
+                    "AttachmentRef": {
+                        "Pass": "FroxeIntegratePass",
+                        "Attachment": "FroxelIntegrated"
+                    }
+                }
+            ],
+            "PassRequests": [
+                {
+                    "Name": "FroxelInjectPass",
+                    "TemplateName": "FroxelInjectTemplate"
+                },
+                {
+                    "Name": "FroxelLocalVolumePass",
+                    "TemplateName": "FroxelLocalVolumeTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "FroxelMedium",
+                            "AttachmentRef": {
+                                "Pass": "FroxelInjectPass",
+                                "Attachment": "FroxelVolume"
+                            }
+                        },
+                        {
+                            "LocalSlot": "FroxelEmissive",
+                            "AttachmentRef": {
+                                "Pass": "FroxelInjectPass",
+                                "Attachment": "FroxelEmissive"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "FroxeScatterPass",
+                    "TemplateName": "FroxelScatterTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "TileLightData",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "TileLightData"
+                            }
+                        },
+                        {
+                            "LocalSlot": "LightListRemapped",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "LightListRemapped"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DirectionalShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DirectionalShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DirectionalESM",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DirectionalESM"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ProjectedShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "ProjectedShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ExponentialShadowmapProjected",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "ProjectedESM"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "FroxeIntegratePass",
+                    "TemplateName": "FroxelIntegrateTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "FroxelScattered",
+                            "AttachmentRef": {
+                                "Pass": "FroxeScatterPass",
+                                "Attachment": "FroxelScatterResult"
+                            }
+                        },
+                        {
+                            "LocalSlot": "FroxelEmissive",
+                            "AttachmentRef": {
+                                "Pass": "FroxelLocalVolumePass",
+                                "Attachment": "FroxelEmissive"
+                            }
+                        },
+                        {
+                            "LocalSlot": "FroxelMedium",
+                            "AttachmentRef": {
+                                "Pass": "FroxelLocalVolumePass",
+                                "Attachment": "FroxelMedium"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

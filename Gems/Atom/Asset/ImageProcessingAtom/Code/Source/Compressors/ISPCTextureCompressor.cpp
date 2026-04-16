@@ -189,6 +189,80 @@ namespace ImageProcessingAtom
         const uint32 mipCount = destinationImage->GetMipCount();
         for (uint32_t mip = 0; mip < mipCount; mip++)
         {
+#if defined(CARBONATED)
+            // Create rgba_surface as input
+            uint32 sourcePitch = 0;
+            AZ::u8* sourceImageData = nullptr;
+            sourceImage->GetImagePointer(mip, sourceImageData, sourcePitch);
+
+            // Get the mip image destination pointer
+            uint32_t destinationPitch = 0;
+            AZ::u8* destinationImageData = nullptr;
+            destinationImage->GetImagePointer(mip, destinationImageData, destinationPitch);
+
+            const uint32_t mipWidth  = sourceImage->GetWidth(mip);
+            const uint32_t mipHeight = sourceImage->GetHeight(mip);
+            const uint32_t mipDepth  = sourceImage->GetDepth(mip);
+            const uint32_t srcSliceBytes = mipHeight * sourcePitch;
+            AZ_Assert(mipDepth > 0, "ISPCTextureCompressor: mip depth must be greater than zero");
+            AZ_Assert(
+                destinationImage->GetMipBufSize(mip) % mipDepth == 0,
+                "ISPCTextureCompressor: destination mip size is not evenly divisible by depth");
+            const uint32_t dstSliceBytes = destinationImage->GetMipBufSize(mip) / mipDepth;
+            [[maybe_unused]] const uint32_t expectedBytes = ((mipWidth + 3) / 4) * ((mipHeight + 3) / 4) * 16;
+            AZ_Assert(
+                dstSliceBytes == expectedBytes,
+                "ISPCTextureCompressor: bytes per slice doesn't match the expected value: found %d, expected %d",
+                dstSliceBytes, expectedBytes);
+            for (uint32_t d = 0; d < mipDepth; ++d)
+            {
+                rgba_surface sourceSurface = {};
+                sourceSurface.ptr    = sourceImageData + d * srcSliceBytes;
+                sourceSurface.width  = mipWidth;
+                sourceSurface.height = mipHeight;
+                sourceSurface.stride = static_cast<int32_t>(sourcePitch);
+
+                AZ::u8* sliceDst = destinationImageData + d * dstSliceBytes;
+
+                // Compress with the correct function, depending on the destination format
+                switch (destinationFormat)
+                {
+                case ePixelFormat_BC3:
+                    CompressBlocksBC3(&sourceSurface, sliceDst);
+                    break;
+                case ePixelFormat_BC6UH:
+                {
+                    // Get the profile setter
+                    bc6h_enc_settings settings = {};
+                    const auto setProfile = compressionProfile->GetBC6();
+                    setProfile(&settings);
+
+                    // Compress with BC6 half precision
+                    CompressBlocksBC6H(&sourceSurface, sliceDst, &settings);
+                }
+                break;
+                case ePixelFormat_BC7:
+                case ePixelFormat_BC7t:
+                {
+                    // Get the profile setter
+                    bc7_enc_settings settings = {};
+                    const auto setProfile = compressionProfile->GetBC7(discardAlpha);
+                    setProfile(&settings);
+
+                    // Compress with BC7
+                    CompressBlocksBC7(&sourceSurface, sliceDst, &settings);
+                }
+                break;
+                default:
+                {
+                    // No valid pixel format
+                    AZ_Assert(false, "Unhandled pixel format %d", destinationFormat);
+                    return nullptr;
+                }
+                break;
+                }
+            } // for: depth slices
+#else
             // Create rgba_surface as input
             uint32 sourcePitch = 0;
             AZ::u8* sourceImageData = nullptr;
@@ -243,6 +317,7 @@ namespace ImageProcessingAtom
             }
             break;
             }
+#endif // defined(CARBONATED)
         }
 
         return destinationImage;

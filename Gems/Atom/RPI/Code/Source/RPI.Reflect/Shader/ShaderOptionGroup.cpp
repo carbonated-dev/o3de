@@ -60,6 +60,13 @@ namespace AZ
 
         ShaderOptionIndex ShaderOptionGroup::FindShaderOptionIndex(const Name& optionName) const
         {
+#if defined(CARBONATED)
+            if (!m_layout)
+            {
+                return ShaderOptionIndex::Null;
+            }
+#endif
+
             return m_layout->FindShaderOptionIndex(optionName);
         }
 
@@ -83,6 +90,14 @@ namespace AZ
                 AZ_Error(DebugCategory, false, "Invalid ShaderOptionIndex");
                 return false;
             }
+
+#if defined(CARBONATED)
+            if (!m_layout)
+            {
+                AZ_Error(DebugCategory, false, "Invalid ShaderOptionLayout");
+                return false;
+            }
+#endif
 
             return true;
         }
@@ -206,6 +221,13 @@ namespace AZ
 
         void ShaderOptionGroup::SetAllToDefaultValues()
         {
+#if defined(CARBONATED)
+            if (!m_layout)
+            {
+                return;
+            }
+#endif
+
             for (auto& option : m_layout->GetShaderOptions())
             {
                 option.Set(*this, option.GetDefaultValue());                    
@@ -214,6 +236,13 @@ namespace AZ
 
         void ShaderOptionGroup::SetUnspecifiedToDefaultValues()
         {
+#if defined(CARBONATED)
+            if (!m_layout)
+            {
+                return;
+            }
+#endif
+
             for (auto& option : m_layout->GetShaderOptions())
             {
                 if (!(m_id.m_mask & option.GetBitMask()).any())
@@ -225,6 +254,13 @@ namespace AZ
 
         bool ShaderOptionGroup::IsFullySpecified() const
         {
+#if defined(CARBONATED)
+            if (!m_layout)
+            {
+                return false;
+            }
+#endif
+
             for (auto& option : m_layout->GetShaderOptions())
             {
                 if (!(m_id.m_mask & option.GetBitMask()).any())
@@ -245,6 +281,13 @@ namespace AZ
         {
             // By default the fallback value is the search key
             auto fallbackValueKey = m_id.m_key;
+
+#if defined(CARBONATED)
+            if (!m_layout)
+            {
+                return fallbackValueKey;
+            }
+#endif
 
             // However, we have to make sure that all options are set, opting for default values where missing
             for (auto& option : m_layout->GetShaderOptions())
@@ -296,6 +339,13 @@ namespace AZ
         AZStd::string ShaderOptionGroup::ToString() const
         {
             AZStd::string s;
+#if defined(CARBONATED)
+            if (!m_layout)
+            {
+                return s;
+            }
+#endif
+
             for (int i = 0; i < GetShaderOptionLayout()->GetShaderOptionCount(); ++i)
             {
                 ShaderOptionIndex index{i};
@@ -323,6 +373,14 @@ namespace AZ
 
         const AZStd::vector<AZ::RPI::ShaderOptionDescriptor>& ShaderOptionGroup::GetShaderOptionDescriptors() const
         {
+#if defined(CARBONATED)
+            if (!m_layout)
+            {
+                static const AZStd::vector<AZ::RPI::ShaderOptionDescriptor> invalidDescriptors;
+                return invalidDescriptors;
+            }
+#endif
+
             return m_layout->GetShaderOptions();
         }
 
