@@ -1045,6 +1045,46 @@ void UiCanvasComponent::SetAttachmentImageAsset(const AZ::Data::Asset<AZ::RPI::A
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+AZ::Data::Instance<AZ::RPI::Image> UiCanvasComponent::GetBackdropCaptureImage()
+{
+    UiRenderer* uiRenderer = m_renderInEditor ? GetUiRendererForEditor() : GetUiRendererForGame();
+    if (!uiRenderer || !uiRenderer->GetViewportContext())
+    {
+        return nullptr;
+    }
+
+    if (const AZ::RPI::ScenePtr& scene = uiRenderer->GetViewportContext()->GetRenderScene())
+    {
+        AZ::Data::Instance<AZ::RPI::AttachmentImage> backdropCaptureImage;
+        LyShinePassRequestBus::EventResult(
+            backdropCaptureImage,
+            scene->GetId(),
+            &LyShinePassRequestBus::Events::GetBackdropCaptureImage);
+        return backdropCaptureImage;
+    }
+
+    return nullptr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+AZ::Vector2 UiCanvasComponent::GetBackdropCaptureSize()
+{
+    if (AZ::Data::Instance<AZ::RPI::Image> backdropCaptureImage = GetBackdropCaptureImage())
+    {
+        const AZ::RHI::Size size = backdropCaptureImage->GetDescriptor().m_size;
+        return AZ::Vector2(aznumeric_cast<float>(size.m_width), aznumeric_cast<float>(size.m_height));
+    }
+
+    UiRenderer* uiRenderer = m_renderInEditor ? GetUiRendererForEditor() : GetUiRendererForGame();
+    if (uiRenderer)
+    {
+        return uiRenderer->GetViewportSize();
+    }
+
+    return GetCanvasSize();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool UiCanvasComponent::GetIsPositionalInputSupported()
 {
     return m_isPositionalInputSupported;
@@ -2064,12 +2104,12 @@ void UiCanvasComponent::RenderCanvas(bool isInGame, AZ::Vector2 viewportSize, Ui
     }
 
     m_isRendering = true;
+    const bool renderToTexture = !m_renderInEditor && GetIsRenderToTexture();
 
     if (m_renderGraph.GetDirtyFlag())
     {
         m_renderGraph.ResetGraph();
 
-        bool renderToTexture = !m_renderInEditor && GetIsRenderToTexture();
         if (renderToTexture)
         {
             if (m_attachmentImageId.IsEmpty())
@@ -3843,7 +3883,6 @@ void UiCanvasComponent::DestroyRenderTarget()
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
 bool UiCanvasComponent::SaveCanvasToFile(const AZStd::string& pathname, AZ::DataStream::StreamType streamType)
 {
     // Note: This is ok for saving in tools, but we should use the streamer to write objects directly (no memory store)
