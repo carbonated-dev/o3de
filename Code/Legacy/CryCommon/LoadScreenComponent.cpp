@@ -103,8 +103,6 @@ static float GetAsyncTime()
 
 void LoadScreenComponent::Reset()
 {
-    AZ_Info("ccc", "LoadScreenComponent::Reset begin\n");
-
     m_loadScreenState = LoadScreenState::None;
 
     m_fixedDeltaTimeInSeconds = -1.0f;
@@ -129,8 +127,6 @@ void LoadScreenComponent::Reset()
             var->Set("");
         }
     }
-
-    AZ_Info("ccc", "LoadScreenComponent::Reset end\n");
 }
 
 void LoadScreenComponent::LoadConfigSettings(const char* fixedFpsVarName, const char* maxFpsVarName, const char* minimumLoadTimeVarName)
@@ -169,13 +165,9 @@ void LoadScreenComponent::Init()
 
 void LoadScreenComponent::Activate()
 {
-    AZ_Info("ccc", "LoadScreenComponent::Activate begin\n");
-
     CrySystemEventBus::Handler::BusConnect();
     LoadScreenBus::Handler::BusConnect(GetEntityId());
     AZ::AssetLoadNotification::AssetLoadNotificatorBus::Handler::BusConnect();
-
-    AZ_Info("ccc", "LoadScreenComponent::Activate end\n");
 }
 
 void LoadScreenComponent::Deactivate()

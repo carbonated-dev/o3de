@@ -23,8 +23,6 @@ namespace AZ
 
         RHI::PhysicalDeviceList PhysicalDevice::Enumerate()
         {
-            AZ_Info("ccc", "PhysicalDevice::Enumerate begin\n");
-
             RHI::PhysicalDeviceList physicalDeviceList;
             VkResult result = VK_SUCCESS;
 
@@ -42,10 +40,8 @@ namespace AZ
             AZStd::vector<VkPhysicalDevice> physicalDevices;
             physicalDevices.resize(physicalDeviceCount);
 
-            AZ_Info("ccc", "PhysicalDevice::Enumerate before actual enumeration\n");
             result =
                 instance.GetContext().EnumeratePhysicalDevices(instance.GetNativeInstance(), &physicalDeviceCount, physicalDevices.data());
-            AZ_Info("ccc", "PhysicalDevice::Enumerate after actual enumeration, result %d\n", int(result));
             AssertSuccess(result);
 
             if (ConvertResult(result) != RHI::ResultCode::Success)
@@ -67,7 +63,6 @@ namespace AZ
                 physicalDeviceList.emplace_back(physicalDevice);
             }
 
-            AZ_Info("ccc", "PhysicalDevice::Enumerate end\n");
             return physicalDeviceList;
         }
 

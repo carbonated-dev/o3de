@@ -48,13 +48,9 @@ namespace AWSNativeSDKInit
 
     void InitializationManager::InitAwsApi()
     {
-        AZ_Info("ccc", "InitializationManager::InitAwsApi begin\n");
-
         s_initManager = AZ::Environment::CreateVariable<InitializationManager>(initializationManagerTag);
 
         Platform::CopyCaCertBundle();
-
-        AZ_Info("ccc", "InitializationManager::InitAwsApi end\n");
     }
 
     void InitializationManager::Shutdown()
@@ -69,10 +65,7 @@ namespace AWSNativeSDKInit
 
     void InitializationManager::InitializeAwsApiInternal()
     {
-        AZ_Info("ccc", "InitializationManager::InitializeAwsApiInternal begin\n");
-
 #if defined(PLATFORM_SUPPORTS_AWS_NATIVE_SDK)
-        AZ_Info("ccc", "InitializationManager::InitializeAwsApiInternal supports netive SDK\n");
         Aws::Utils::Logging::LogLevel logLevel;
 #if defined(AZ_DEBUG_BUILD) || defined(AZ_PROFILE_BUILD)
         logLevel = Aws::Utils::Logging::LogLevel::Warn;
@@ -87,19 +80,13 @@ namespace AWSNativeSDKInit
 
         m_awsSDKOptions.memoryManagementOptions.memoryManager = &m_memoryManager;
 
-        AZ_Info("ccc", "InitializationManager::InitializeAwsApiInternal before CustomizeSDKOptions\n");
-
         Platform::CustomizeSDKOptions(m_awsSDKOptions);
-
-        AZ_Info("ccc", "InitializationManager::InitializeAwsApiInternal before Aws::InitAPI\n");
-
-        //Aws::InitAPI(m_awsSDKOptions);  // AWSless
-        AZ_Info("ccc", "InitializationManager::InitializeAwsApiInternal drop Aws::InitAPI\n");
-
-        AZ_Info("ccc", "InitializationManager::InitializeAwsApiInternal after Aws::InitAPI\n");
-
+#if defined(CARBONATED) && defined(CARBONATED_NO_AWS)
+        //Aws::InitAPI(m_awsSDKOptions);
+#else        
+        Aws::InitAPI(m_awsSDKOptions);
+#endif        
 #endif // #if defined(PLATFORM_SUPPORTS_AWS_NATIVE_SDK)
-        AZ_Info("ccc", "InitializationManager::InitializeAwsApiInternal end\n");
     }
 
     bool InitializationManager::PreventAwsEC2MetadataCalls(bool force)

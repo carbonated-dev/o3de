@@ -80,8 +80,6 @@ namespace AZ
 
         void RPISystem::Initialize(const RPISystemDescriptor& rpiSystemDescriptor)
         {
-            AZ_Info("ccc", "RPISystem::Initialize begin\n");
-
             // Init RHI device(s)
             auto commandLineMultipleDevicesValue{ RHI::GetCommandLineValue("device-count") };
             m_rhiSystem.InitDevices((commandLineMultipleDevicesValue != "") ? AZStd::stoi(commandLineMultipleDevicesValue) : 1);
@@ -111,14 +109,10 @@ namespace AZ
             Debug::TraceMessageBus::Handler::BusConnect();
 #endif
             m_descriptor = rpiSystemDescriptor;
-
-            AZ_Info("ccc", "RPISystem::Initialize end\n");
         }
 
         void RPISystem::Shutdown()
         {
-            AZ_Info("ccc", "RPISystem::Shutdown begin\n");
-
             m_viewportContextManager.Shutdown();
             m_viewSrgLayout = nullptr;
             m_sceneSrgLayout = nullptr;
@@ -155,8 +149,6 @@ namespace AZ
             Data::AssetManager::Instance().DispatchEvents();
             m_assetHandlers.clear();
             Data::AssetManager::Instance().DispatchEvents();
-
-            AZ_Info("ccc", "RPISystem::Shutdown end\n");
         }
 
         void RPISystem::RegisterScene(ScenePtr scene)
