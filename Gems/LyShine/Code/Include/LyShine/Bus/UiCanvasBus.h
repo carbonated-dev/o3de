@@ -12,11 +12,16 @@
 #include <AzCore/Math/Matrix4x4.h>
 #include <AzFramework/Input/Channels/InputChannelDigitalWithSharedModifierKeyStates.h>
 #include <AzFramework/Input/User/LocalUserId.h>
+#include <AtomCore/Instance/InstanceData.h>
 #include <LyShine/UiBase.h>
 #include <Atom/RPI.Reflect/Image/AttachmentImageAsset.h>
 
 // Forward declarations
 struct IUiAnimationSystem;
+namespace AZ::RPI
+{
+    class Image;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 class UiCanvasInterface
@@ -227,6 +232,12 @@ public: // member functions
 
     //! Set the attachment image that this canvas will render to
     virtual void SetAttachmentImageAsset(const AZ::Data::Asset<AZ::RPI::AttachmentImageAsset>& attachmentImageAsset) = 0;
+
+    //! Get the captured scene color that can be sampled by backdrop UI
+    virtual AZ::Data::Instance<AZ::RPI::Image> GetBackdropCaptureImage() = 0;
+
+    //! Get the size of the captured scene color in pixels
+    virtual AZ::Vector2 GetBackdropCaptureSize() = 0;
 
     //! Get flag that controls whether this canvas automatically handles positional input (mouse/touch)
     virtual bool GetIsPositionalInputSupported() = 0;

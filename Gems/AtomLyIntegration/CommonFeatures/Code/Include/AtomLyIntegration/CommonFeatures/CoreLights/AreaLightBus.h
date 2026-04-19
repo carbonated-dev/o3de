@@ -36,6 +36,9 @@ namespace AZ
 
             //! Gets an area light's visibility
             virtual bool GetVisible() const = 0;
+
+            //! Gets an area light's type
+            virtual AreaLightComponentConfig::LightType GetType() const = 0;
 #endif
 
             //! Gets an area light's color. This value is independent from its intensity.
