@@ -153,6 +153,7 @@ public:
     void SetInputFocus();
 #if defined(CARBONATED)
     bool HasInputFocus() const;
+    void SetAutoScroll(bool autoScroll);
 #endif
     void AddToConsole(const QString& text, bool bNewLine);
     void FlushText();
