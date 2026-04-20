@@ -85,7 +85,7 @@ namespace AWSNativeSDKInit
         //Aws::InitAPI(m_awsSDKOptions);
 #else        
         Aws::InitAPI(m_awsSDKOptions);
-#endif        
+#endif
 #endif // #if defined(PLATFORM_SUPPORTS_AWS_NATIVE_SDK)
     }
 
