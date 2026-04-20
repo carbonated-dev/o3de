@@ -752,7 +752,6 @@ namespace AZ
 
         AZStd::string componentNamesArray = R"({ "SystemComponents":[)";
         const char* comma = "";
-
         // Activate the entities in the appropriate order
         for (Component* component : componentsToActivate)
         {
