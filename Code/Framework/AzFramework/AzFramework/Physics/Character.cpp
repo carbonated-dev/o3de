@@ -85,7 +85,11 @@ namespace Physics
         if (serializeContext)
         {
             serializeContext->Class<CharacterConfiguration, AzPhysics::SimulatedBodyConfiguration>()
+#if defined(CARBONATED)
+                ->Version(7)
+#else
                 ->Version(6)
+#endif
                 ->Field("CollisionLayer", &CharacterConfiguration::m_collisionLayer)
                 ->Field("CollisionGroupId", &CharacterConfiguration::m_collisionGroupId)
                 ->Field("MaterialSlots", &CharacterConfiguration::m_materialSlots)
@@ -96,6 +100,9 @@ namespace Physics
                 ->Field("MaxSpeed", &CharacterConfiguration::m_maximumSpeed)
                 ->Field("ColliderTag", &CharacterConfiguration::m_colliderTag)
                 ->Field("ApplyMoveOnPhysicsTick", &CharacterConfiguration::m_applyMoveOnPhysicsTick)
+#if defined(CARBONATED)
+                ->Field("ApplyVisualInterpolation", &CharacterConfiguration::m_applyVisualInterpolation)
+#endif
             ;
 
             if (AZ::EditContext* editContext = serializeContext->GetEditContext())
@@ -132,6 +139,10 @@ namespace Physics
                     ->DataElement(AZ::Edit::UIHandlers::Default, &CharacterConfiguration::m_applyMoveOnPhysicsTick,
                         "Apply Move On Tick", "Requests to add velocity will be accumulated and applied once on the physics pre-simulation tick "
                         "If unticked, explicit call to apply requested velocity is required")
+#if defined(CARBONATED)
+                    ->DataElement(AZ::Edit::UIHandlers::Default, &CharacterConfiguration::m_applyVisualInterpolation,
+                        "Apply Visualization Interpolation", "Helps smooth character movement by interpolating physx updates across render frames")
+#endif
                 ;
             }
         }
