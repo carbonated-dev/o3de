@@ -214,7 +214,6 @@ namespace AZ
             // Check that we have at least one device that meets the requirements.
             m_supportedDevices = EnumerateSupportedDevices(minVersion);           
             AZ_Warning("Vulkan", !m_supportedDevices.empty(), "Could not find any Vulkan supported device");
-
             return !m_supportedDevices.empty();
         }
 

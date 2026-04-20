@@ -113,9 +113,7 @@ namespace AWSCore
         m_awsCoreConfiguration->ActivateConfig();
 
         InitAWSApi();
-
         m_awsCredentialManager->ActivateManager();
-
         m_awsResourceMappingManager->ActivateManager();
 
         AWSCoreRequestBus::Handler::BusConnect();
