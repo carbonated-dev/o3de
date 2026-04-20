@@ -363,10 +363,7 @@ CConsoleSCB::CConsoleSCB(QWidget* parent)
     {
         if (m_autoScroll && value != ui->textEdit->verticalScrollBar()->maximum())
         {
-            m_autoScroll = false;
-            ui->autoScrollButton->setChecked(false);
-            ui->autoScrollButton->setIcon(QIcon(ConsoleConstants::AutoScrollOffIcon));
-            ui->autoScrollButton->setToolTip(tr("Auto Scroll: Off"));
+            SetAutoScroll(false);
         }
     });
 
@@ -375,10 +372,7 @@ CConsoleSCB::CConsoleSCB(QWidget* parent)
     {
         if (m_autoScroll && ui->textEdit->textCursor().hasSelection())
         {
-            m_autoScroll = false;
-            ui->autoScrollButton->setChecked(false);
-            ui->autoScrollButton->setIcon(QIcon(ConsoleConstants::AutoScrollOffIcon));
-            ui->autoScrollButton->setToolTip(tr("Auto Scroll: Off"));
+            SetAutoScroll(false);
         }
     });
 #endif
@@ -446,16 +440,23 @@ void CConsoleSCB::toggleClearOnPlay()
 #if defined(CARBONATED)
 void CConsoleSCB::toggleAutoScroll()
 {
-    m_autoScroll = !m_autoScroll;
-    ui->autoScrollButton->setChecked(m_autoScroll);
-    ui->autoScrollButton->setIcon(QIcon(m_autoScroll ? ConsoleConstants::AutoScrollOnIcon : ConsoleConstants::AutoScrollOffIcon));
-    ui->autoScrollButton->setToolTip(m_autoScroll ? tr("Auto Scroll: On") : tr("Auto Scroll: Off"));
+    SetAutoScroll(!m_autoScroll);
+}
 
-    // If re-enabling, jump to the bottom immediately
-    if (m_autoScroll)
+void CConsoleSCB::SetAutoScroll(bool autoScroll)
+{
+    if (m_autoScroll != autoScroll)
     {
-        QScrollBar* scrollBar = ui->textEdit->verticalScrollBar();
-        scrollBar->setValue(scrollBar->maximum());
+        m_autoScroll = autoScroll;
+        ui->autoScrollButton->setChecked(m_autoScroll);
+        ui->autoScrollButton->setIcon(QIcon(m_autoScroll ? ConsoleConstants::AutoScrollOnIcon : ConsoleConstants::AutoScrollOffIcon));
+        ui->autoScrollButton->setToolTip(m_autoScroll ? tr("Auto Scroll: On") : tr("Auto Scroll: Off"));
+
+        if (m_autoScroll)
+        {
+            QScrollBar* scrollBar = ui->textEdit->verticalScrollBar();
+            scrollBar->setValue(scrollBar->maximum());
+        }
     }
 }
 #endif
