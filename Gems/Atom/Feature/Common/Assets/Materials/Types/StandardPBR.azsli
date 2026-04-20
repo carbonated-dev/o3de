@@ -10,6 +10,7 @@
 
 #define ENABLE_VERTEX_COLOR 1
 #define CARBONATED_ENABLE_WETNESS 1
+#define CARBONATED_ENABLE_SNOWOVERLAY 1
 
 //TODO(MaterialPipeline): Inline the MaterialSrg files since they aren't reused.
 //TODO(MaterialPipeline): Try removing different parts of the SRG and see how hard/easy it is to customize the surface function.
@@ -30,8 +31,9 @@
     COMMON_OPTIONS_OCCLUSION()
     COMMON_OPTIONS_EMISSIVE()
     COMMON_OPTIONS_PARALLAX()
-    COMMON_OPTIONS_WET()
-   
+    COMMON_OPTIONS_WET()  // CARBONATED Addition.
+    COMMON_OPTIONS_SNOW() // CARBONATED Addition.
+
     bool ShouldHandleParallax()
     {
         // Parallax mapping's non uniform uv transformations break screen space subsurface scattering, disable it when subsurface scattering is enabled.
