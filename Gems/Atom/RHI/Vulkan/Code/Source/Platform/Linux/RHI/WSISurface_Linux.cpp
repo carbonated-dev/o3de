@@ -13,6 +13,9 @@
 
 #if PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
 #include <AzFramework/XcbConnectionManager.h>
+#elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+#include <SDL2/SDL_vulkan.h>
+#include <AzFramework/SDLConnectionManager.h>
 #endif
 
 namespace AZ
@@ -43,6 +46,23 @@ namespace AZ
             AssertSuccess(result);
 
             return ConvertResult(result);
+#elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+            SDL_Window* window = nullptr;
+            if (auto sdlConnectionManager = AzFramework::SDLConnectionManagerInterface::Get();
+                sdlConnectionManager != nullptr)
+            {
+                window = sdlConnectionManager->GetApplicationWindow()->GetSDLWindow();
+            }
+
+            if (SDL_Vulkan_CreateSurface(window, instance.GetNativeInstance(), &m_nativeSurface) == SDL_TRUE)
+            {
+                return RHI::ResultCode::Success;
+            }
+            else
+            {
+                AZ_Assert(false, "SDL could not create Vulkan surface: %s", SDL_GetError());
+                return RHI::ResultCode::Fail;
+            }
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
             #error "Linux Window Manager Wayland not supported."
             return RHI::ResultCode::Unimplemented;

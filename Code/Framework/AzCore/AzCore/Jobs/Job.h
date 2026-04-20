@@ -176,14 +176,21 @@ namespace AZ
         int GetState() const    { return m_state; }
 #endif // AZ_DEBUG_JOB_STATE
 
+#if defined(CARBONATED)
+        void SetState(int state);
+#endif
+
     protected:
 
         /// Override to implement your processing.
         virtual void Process() = 0;
 
+
+#if !defined(CARBONATED)
 #ifdef AZ_DEBUG_JOB_STATE
         void SetState(int state);
 #endif // AZ_ENABLE_TRACING
+#endif
 
         void StoreDependent(Job* job);
         void SetDependentChild(Job* dependent);
@@ -241,6 +248,15 @@ namespace AZ
         return m_context;
     }
 
+#if defined(CARBONATED)
+
+    inline void Job::SetState(int state)
+    {
+        m_state = state;
+    }
+
+#else  // CARBONATED
+
 #ifdef AZ_DEBUG_JOB_STATE
     inline void Job::SetState(int state)
     {
@@ -248,6 +264,7 @@ namespace AZ
     }
 #endif
 
+#endif  // CARBONATED
 
 }
 

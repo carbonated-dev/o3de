@@ -79,9 +79,13 @@ namespace AWSNativeSDKInit
         };
 
         m_awsSDKOptions.memoryManagementOptions.memoryManager = &m_memoryManager;
-        Platform::CustomizeSDKOptions(m_awsSDKOptions);
-        Aws::InitAPI(m_awsSDKOptions);
 
+        Platform::CustomizeSDKOptions(m_awsSDKOptions);
+#if defined(CARBONATED) && defined(CARBONATED_NO_AWS)
+        //Aws::InitAPI(m_awsSDKOptions);
+#else        
+        Aws::InitAPI(m_awsSDKOptions);
+#endif
 #endif // #if defined(PLATFORM_SUPPORTS_AWS_NATIVE_SDK)
     }
 
