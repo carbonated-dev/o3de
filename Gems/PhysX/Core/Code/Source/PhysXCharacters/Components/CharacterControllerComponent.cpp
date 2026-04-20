@@ -121,6 +121,9 @@ namespace PhysX
         // to respond false to IsPhysicsEnabled or IsPresent.
         // These buses' implementation in this class are protected to handle
         // the body being invalid.
+#if defined(CARBONATED)
+        AZ::TickBus::Handler::BusDisconnect();
+#endif
         Physics::CollisionFilteringRequestBus::Handler::BusDisconnect();
         AzPhysics::SimulatedBodyComponentRequestsBus::Handler::BusDisconnect();
         AZ::TransformNotificationBus::Handler::BusDisconnect();
@@ -512,8 +515,16 @@ namespace PhysX
     {
         if (auto* controller = GetController())
         {
+#if defined(CARBONATED)
+            if (!m_characterConfig->m_applyVisualInterpolation)
+            {
+                const AZ::Vector3 newPosition = controller->GetBasePosition();
+                AZ::TransformBus::Event(GetEntityId(), &AZ::TransformBus::Events::SetWorldTranslation, newPosition);
+            }
+#else
             const AZ::Vector3 newPosition = controller->GetBasePosition();
             AZ::TransformBus::Event(GetEntityId(), &AZ::TransformBus::Events::SetWorldTranslation, newPosition);
+#endif
             controller->ResetRequestedVelocityForTick();
         }
     }
@@ -674,7 +685,19 @@ namespace PhysX
             }
         }
 
+#if defined(CARBONATED)
+        if (m_characterConfig->m_applyVisualInterpolation)
+        {
+            AZ::TickBus::Handler::BusConnect();
+        }
+        else
+        {
+            AZ::TransformNotificationBus::Handler::BusConnect(GetEntityId());
+        }
+#else
         AZ::TransformNotificationBus::Handler::BusConnect(GetEntityId());
+#endif
+
         Physics::CharacterRequestBus::Handler::BusConnect(GetEntityId());
         Physics::CollisionFilteringRequestBus::Handler::BusConnect(GetEntityId());
         AzPhysics::SimulatedBodyComponentRequestsBus::Handler::BusConnect(GetEntityId());
@@ -708,4 +731,16 @@ namespace PhysX
             CharacterControllerRequestBus::Handler::BusDisconnect();
         }
     }
+
+#if defined(CARBONATED)
+    void CharacterControllerComponent::OnTick(float deltaTime,[[maybe_unused]] AZ::ScriptTimePoint time)
+    {
+        AZ::Vector3 physicsTranslation = GetBasePosition();
+
+        AZ::Vector3 visualTranslation;
+        AZ::TransformBus::EventResult(visualTranslation, GetEntityId(), &AZ::TransformBus::Events::GetWorldTranslation);
+        static float BLEND_FACTOR = 8.0f;
+        AZ::TransformBus::Event(GetEntityId(), &AZ::TransformBus::Events::SetWorldTranslation, visualTranslation.Lerp(physicsTranslation, fminf(deltaTime * BLEND_FACTOR, 1.0f)));
+    }
+#endif
 } // namespace PhysX

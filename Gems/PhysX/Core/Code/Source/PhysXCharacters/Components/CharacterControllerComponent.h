@@ -18,6 +18,10 @@
 #include <AzCore/Component/TransformBus.h>
 #include <PhysX/CharacterControllerBus.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Component/TickBus.h>
+#endif
+
 namespace AzPhysics
 {
     struct SimulatedBody;
@@ -37,6 +41,9 @@ namespace PhysX
         , public AZ::TransformNotificationBus::Handler
         , public CharacterControllerRequestBus::Handler
         , public Physics::CollisionFilteringRequestBus::Handler
+#if defined(CARBONATED)
+        , public AZ::TickBus::Handler
+#endif
     {
     public:
         AZ_COMPONENT(CharacterControllerComponent, "{BCBD8448-2FFC-450D-B82F-7C297D2F0C8C}");
@@ -133,6 +140,9 @@ namespace PhysX
         void SetMaterial(uint32_t index, const AZ::Data::Asset<Physics::MaterialAsset>& materialAsset) override;
         // Changes collider Tag to given AZ::Crc32(AZStd::string tagName).
         void SetTag(const AZ::Crc32& tag) override;
+
+        //TickBus for visual interpolation
+        void OnTick(float deltaTime, AZ::ScriptTimePoint time) override;
 #endif // defined(CARBONATED)
 
         // TransformNotificationBus
