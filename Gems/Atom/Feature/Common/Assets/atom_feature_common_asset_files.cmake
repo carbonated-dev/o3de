@@ -341,6 +341,7 @@ set(FILES
     ShaderResourceGroups/PostProcessing/SceneSrg.azsli
     ShaderResourceGroups/PostProcessing/ViewSrg.azsli
     ShaderResourceGroups/SkyBox/SceneSrg.azsli
+    ShaderResourceGroups/Weather/SceneSrg.azsli
     Shaders/ForwardPassSrg.azsl
     Shaders/ForwardPassSrg.shader
     Shaders/AuxGeom/AuxGeomObject.azsl
