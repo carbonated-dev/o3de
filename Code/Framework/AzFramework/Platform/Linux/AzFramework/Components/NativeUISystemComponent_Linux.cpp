@@ -14,7 +14,6 @@
 #if PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
 #include <AzFramework/XcbApplication.h>
 #include <AzFramework/XcbInputDeviceKeyboard.h>
-#include <AzFramework/XcbInputDeviceMouse.h>
 #include <AzFramework/XcbNativeWindow.h>
 #elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
 #include <AzFramework/SDLApplication.h>
@@ -88,26 +87,6 @@ namespace AzFramework
             return nullptr;
 #else
             #error "Linux Window Manager not recognized."
-            return nullptr;
-#endif // PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
-        }
-    };
-
-    struct LinuxDeviceMouseImplFactory
-        : public InputDeviceMouse::ImplementationFactory
-    {
-        AZStd::unique_ptr<InputDeviceMouse::Implementation> Create(InputDeviceMouse& inputDevice) override
-        {
-#if PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
-            
-            return AZStd::unique_ptr<InputDeviceMouse::Implementation>(XcbInputDeviceMouse::Create(inputDevice));
-#elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
-            return AZStd::unique_ptr<InputDeviceMouse::Implementation>(SDLInputDeviceMouse::Create(inputDevice));
-#elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
-#error "Linux Window Manager Wayland not supported."
-            return nullptr;
-#else
-#error "Linux Window Manager not recognized."
             return nullptr;
 #endif // PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
         }
@@ -188,8 +167,7 @@ namespace AzFramework
 
     void NativeUISystemComponent::InitializeDeviceMouseImplentationFactory()
     {
-        m_deviceMouseImplFactory = AZStd::make_unique<LinuxDeviceMouseImplFactory>();
-        AZ::Interface<InputDeviceMouse::ImplementationFactory>::Register(m_deviceMouseImplFactory.get());
+        // Mouse Input not supposed on Linux
     }
 
     void NativeUISystemComponent::InitializeDeviceTouchImplentationFactory()
