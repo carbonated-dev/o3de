@@ -104,13 +104,6 @@ function ProcessEditor(context)
     end
 
     context:SetMaterialPropertyVisibility("amount", mainVisibility)
-
-    -- Note: the following 2 parameters are controlled programmatically and thus hidden, with defaults (0, 0)
-    context:SetMaterialPropertyVisibility("centerX", MaterialPropertyVisibility_Hidden)
-    context:SetMaterialPropertyVisibility("centerY", MaterialPropertyVisibility_Hidden)
-    -- Note: the following parameter is controlled programmatically and thus hidden, with default 5000.0
-    context:SetMaterialPropertyVisibility("radius", MaterialPropertyVisibility_Hidden)
-
     context:SetMaterialPropertyVisibility("opacityMap", mainVisibility)
     context:SetMaterialPropertyVisibility("useOpacityMap", mainVisibility)
     context:SetMaterialPropertyVisibility("opacityMapUv", mainVisibility)

@@ -12,11 +12,11 @@
 #define ENABLE_VERTEX_COLOR 0
 #endif
 
-#ifndef CARBONATED_ENABLE_WETNESS // CARBONATED addition
+#ifndef CARBONATED_ENABLE_WETNESS
 #define CARBONATED_ENABLE_WETNESS 0
 #endif
 
-#ifndef CARBONATED_ENABLE_SNOWOVERLAY // CARBONATED addition
+#ifndef CARBONATED_ENABLE_SNOWOVERLAY
 #define CARBONATED_ENABLE_SNOWOVERLAY 0
 #endif
 
@@ -127,10 +127,9 @@ Surface EvaluateSurface_BasePBR(
         const float porosity = saturate(pow(1.15f, wetFactor) - 0.1f);
         const float maxDarken = pow(1.25f, wetFactor) * 0.95f;
 
-        // Vanishing wetness with distance.
-        const float2 rainCenter = float2(MaterialSrg::m_wetCenterX, MaterialSrg::m_wetCenterY);
-        const float rainRadius = max(10.0f, MaterialSrg::m_wetRadius);
-        const float relativeDistance = length(positionWS.xy - rainCenter) / rainRadius;
+        // Vanishing wetness with distance from weather provider center, - non-linear.
+        const float rainRadius =  clamp(SceneSrg::m_weatherRadius, 10.0f, 10000.0f);
+        const float relativeDistance = length(positionWS.xy - SceneSrg::m_weatherCenter) / rainRadius;
         if (relativeDistance > 1.0f)
         {
             wetAmount = 0.0f;
@@ -179,10 +178,9 @@ Surface EvaluateSurface_BasePBR(
             snowAmount = saturate(snowAmount + snowAmount * snowOpacity * 2.0f);
         }
 
-        // Vanishing snow cover with distance.
-        const float2 snowCenter = float2(MaterialSrg::m_snowCenterX, MaterialSrg::m_snowCenterY);
-        const float snowRadius = max(10.0f, MaterialSrg::m_snowRadius);
-        const float relativeDistance = length(positionWS.xy - snowCenter) / snowRadius;
+        // Vanishing snow cover with distance from weather provider center, - non-linear.
+        const float snowRadius = clamp(SceneSrg::m_weatherRadius, 10.0f, 10000.0f);
+        const float relativeDistance = length(positionWS.xy - SceneSrg::m_weatherCenter) / snowRadius;
         if (relativeDistance > 1.0f)
         {
             snowAmount = 0.0f;

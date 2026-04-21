@@ -39,12 +39,6 @@ function ProcessEditor(context)
         mainVisibility = MaterialPropertyVisibility_Hidden
     end
 
-    -- Note: the following 2 parameters are controlled programmatically and thus hidden, with defaults (0.0, 0.0)
-    context:SetMaterialPropertyVisibility("centerX", MaterialPropertyVisibility_Hidden)
-    context:SetMaterialPropertyVisibility("centerY", MaterialPropertyVisibility_Hidden)
-    -- Note: the following parameter is controlled programmatically and thus hidden, with default 5000.0
-    context:SetMaterialPropertyVisibility("radius", MaterialPropertyVisibility_Hidden)
-
     context:SetMaterialPropertyVisibility("wetAmount", mainVisibility)
     context:SetMaterialPropertyVisibility("wetFactor", mainVisibility)
     context:SetMaterialPropertyVisibility("useTexture", mainVisibility)

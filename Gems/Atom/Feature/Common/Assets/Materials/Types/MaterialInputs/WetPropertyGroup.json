@@ -1,7 +1,7 @@
 {
     "name": "wet",
     "displayName": "Wet",
-    "description": "Properties for configuring whether the surface is wet or not, (c) Carbonated.",
+    "description": "Rain wetness overlay properties controlled by the Weather Gem.",
     "properties": [
         {
             "name": "useWet",
@@ -9,45 +9,6 @@
             "description": "Use Wet properties or not.",
             "type": "Bool",
             "defaultValue": false
-        },
-        {
-            "name": "centerX",
-            "displayName": "Center X",
-            "description": "Wetness center point X coordinate.",
-            "type": "Float",
-            "defaultValue": 0.0,
-            "min": 0.0,
-            "max": 100000.0,
-            "connection": {
-                "type": "ShaderInput",
-                "name": "m_wetCenterX"
-            }
-        },
-        {
-            "name": "centerY",
-            "displayName": "Center Y",
-            "description": "Wetness center point Y coordinate.",
-            "type": "Float",
-            "defaultValue": 0.0,
-            "min": 10.0,
-            "max": 100000.0,
-            "connection": {
-                "type": "ShaderInput",
-                "name": "m_wetCenterY"
-            }
-        },
-        {
-            "name": "radius",
-            "displayName": "Radius",
-            "description": "Radius of wetness area.",
-            "type": "Float",
-            "defaultValue": 5000.0,
-            "min": 0.0,
-            "max": 10000.0,
-            "connection": {
-                "type": "ShaderInput",
-                "name": "m_wetRadius"
-            }
         },
         {
             "name": "wetAmount",
