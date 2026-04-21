@@ -16,6 +16,11 @@
 #include <AzFramework/XcbInputDeviceKeyboard.h>
 #include <AzFramework/XcbInputDeviceMouse.h>
 #include <AzFramework/XcbNativeWindow.h>
+#elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+#include <AzFramework/SDLApplication.h>
+#include <AzFramework/SDLInputDeviceKeyboard.h>
+#include <AzFramework/SDLInputDeviceMouse.h>
+#include <AzFramework/SDLNativeWindow.h>
 #endif
 
 // libevdev could be used for other devices in the future (Can do keyboard, mouse, etc), so it doesn't belong in the gamepad
@@ -57,6 +62,8 @@ namespace AzFramework
             }
 #if PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
             return AZStd::make_unique<XcbApplication>();
+#elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+            return AZStd::make_unique<SDLApplication>();
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
             #error "Linux Window Manager Wayland not supported."
             return nullptr;
@@ -74,6 +81,8 @@ namespace AzFramework
         {
 #if PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
             return AZStd::make_unique<XcbInputDeviceKeyboard>(inputDevice);
+#elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+            return AZStd::make_unique<SDLInputDeviceKeyboard>(inputDevice);
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
             #error "Linux Window Manager Wayland not supported."
             return nullptr;
@@ -92,6 +101,8 @@ namespace AzFramework
 #if PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
             
             return AZStd::unique_ptr<InputDeviceMouse::Implementation>(XcbInputDeviceMouse::Create(inputDevice));
+#elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+            return AZStd::unique_ptr<InputDeviceMouse::Implementation>(SDLInputDeviceMouse::Create(inputDevice));
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
 #error "Linux Window Manager Wayland not supported."
             return nullptr;
@@ -109,6 +120,8 @@ namespace AzFramework
         {
 #if PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
             return AZStd::make_unique<XcbNativeWindow>();
+#elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+            return AZStd::make_unique<SDLNativeWindow>();
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
             #error "Linux Window Manager Wayland not supported."
             return nullptr;

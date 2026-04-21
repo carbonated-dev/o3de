@@ -39,6 +39,7 @@ OPTION(ADVANCED_ASSET_TRACING "Take more CPU time to find asset names for precis
 OPTION(LOD_REMOVAL "Enable conditional LOD removal at runtime to save RAM" ON)
 OPTION(MIP_REMOVAL "Enable conditional mipmap level removal at runtime to save RAM" ON)
 OPTION(AP_OPTIMIZATION "Improves AP startup scan speed, but next AP scan might be longer" ON)
+OPTION(USE_SDL_LINUX "Use SDL library for window and input interfaces on linux" OFF)
 
 if(MEMORY_TAG_TRACING)
     add_compile_definitions(AZ_MEMORY_TAG_TRACING)
