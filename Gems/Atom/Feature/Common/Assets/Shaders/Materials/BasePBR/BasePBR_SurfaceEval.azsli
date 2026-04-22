@@ -16,8 +16,8 @@
 #define CARBONATED_ENABLE_WETNESS 0
 #endif
 
-#ifndef CARBONATED_ENABLE_SNOWOVERLAY
-#define CARBONATED_ENABLE_SNOWOVERLAY 0
+#ifndef CARBONATED_ENABLE_SNOW_OVERLAY
+#define CARBONATED_ENABLE_SNOW_OVERLAY 0
 #endif
 
 
@@ -90,10 +90,10 @@ Surface EvaluateSurface_BasePBR(
     float2 specularUv = uvs[MaterialSrg::m_specularF0MapUvIndex];
     real specularF0Factor = GetSpecularInput(MaterialSrg::m_specularF0Map, MaterialSrg::m_sampler, specularUv, real(MaterialSrg::m_specularF0Factor), o_specularF0_useTexture, uvDxDy, customDerivatives);
 
-#if !(CARBONATED_ENABLE_WETNESS || CARBONATED_ENABLE_SNOWOVERLAY) // CARBONATED addition
+#if !(CARBONATED_ENABLE_WETNESS || CARBONATED_ENABLE_SNOW_OVERLAY)
     // Wetness, if allowed, affects baseColor, specularF0Factor, surface.roughnessLinear, so final calculation is moved below
     surface.SetAlbedoAndSpecularF0(baseColor, specularF0Factor, metallic);
-#endif // !CARBONATED_ENABLE_WETNESS
+#endif // !(CARBONATED_ENABLE_WETNESS || CARBONATED_ENABLE_SNOW_OVERLAY)
     
     // ------- Roughness -------
 
@@ -101,12 +101,12 @@ Surface EvaluateSurface_BasePBR(
     surface.roughnessLinear = GetRoughnessInput(MaterialSrg::m_roughnessMap, MaterialSrg::m_sampler, roughnessUv, real(MaterialSrg::m_roughnessFactor),
                                         real(MaterialSrg::m_roughnessLowerBound), real(MaterialSrg::m_roughnessUpperBound), o_roughness_useTexture, uvDxDy, customDerivatives);
 
-#if !(CARBONATED_ENABLE_WETNESS || CARBONATED_ENABLE_SNOWOVERLAY) // CARBONATED addition
+#if !(CARBONATED_ENABLE_WETNESS || CARBONATED_ENABLE_SNOW_OVERLAY)
     // Wetness, if allowed, affects baseColor, specularF0Factor, surface.roughnessLinear, so final calculation is moved below
     surface.CalculateRoughnessA();
-#endif // !CARBONATED_ENABLE_WETNESS
+#endif // !(CARBONATED_ENABLE_WETNESS || CARBONATED_ENABLE_SNOW_OVERLAY)
 
-#if CARBONATED_ENABLE_WETNESS // CARBONATED addition
+#if CARBONATED_ENABLE_WETNESS
     // ------- Wetness ------- affects baseColor, specularF0Factor, surface.roughnessLinear
     if (o_useWet)
     {
@@ -166,7 +166,7 @@ Surface EvaluateSurface_BasePBR(
     
 #endif // CARBONATED_ENABLE_WETNESS
 
-#if CARBONATED_ENABLE_SNOWOVERLAY  // CARBONATED addition
+#if CARBONATED_ENABLE_SNOW_OVERLAY
     // ------- Snow Cover Overlay ------- affects baseColor, surface.normal, specularF0Factor, surface.roughnessLinear, metallic
     if (o_snow_enabled)
     {
@@ -236,7 +236,7 @@ Surface EvaluateSurface_BasePBR(
 
     surface.CalculateRoughnessA();
    
-#endif // CARBONATED_ENABLE_SNOWOVERLAY
+#endif // CARBONATED_ENABLE_SNOW_OVERLAY
 
     return surface;
 }

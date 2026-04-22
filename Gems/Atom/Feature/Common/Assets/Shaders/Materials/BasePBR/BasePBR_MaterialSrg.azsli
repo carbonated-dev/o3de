@@ -16,8 +16,8 @@
 #include "../MaterialInputs/NormalInput.azsli"
 #include "../MaterialInputs/UvSetCount.azsli"
 #include "../MaterialInputs/SilhouetteBlockerInput.azsli"
-#include "../MaterialInputs/WetInput.azsli"  // CARBONATED Addition.
-#include "../MaterialInputs/SnowInput.azsli" // CARBONATED Addition.
+#include "../MaterialInputs/WetInput.azsli"  // CARBONATED
+#include "../MaterialInputs/SnowInput.azsli" // CARBONATED
 
 #include <Atom/Features/SrgSemantics.azsli>
 

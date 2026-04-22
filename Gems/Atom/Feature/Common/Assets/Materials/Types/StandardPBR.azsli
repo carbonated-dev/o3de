@@ -10,7 +10,7 @@
 
 #define ENABLE_VERTEX_COLOR 1
 #define CARBONATED_ENABLE_WETNESS 1
-#define CARBONATED_ENABLE_SNOWOVERLAY 1
+#define CARBONATED_ENABLE_SNOW_OVERLAY 1
 
 //TODO(MaterialPipeline): Inline the MaterialSrg files since they aren't reused.
 //TODO(MaterialPipeline): Try removing different parts of the SRG and see how hard/easy it is to customize the surface function.
