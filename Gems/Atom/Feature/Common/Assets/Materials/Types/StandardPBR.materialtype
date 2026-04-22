@@ -1,6 +1,6 @@
 {
     "description": "Material Type with properties used to define Standard PBR, a metallic-roughness Physically-Based Rendering (PBR) material shading model.",
-    "version": 7,
+    "version": 8,
     "versionUpdates": [
         {
             "toVersion": 4,
@@ -65,6 +65,9 @@
             },
             {
                 "$import": "MaterialInputs/WetPropertyGroup.json"
+            },
+            {
+                "$import": "MaterialInputs/SnowPropertyGroup.json"
             }
         ]
     },

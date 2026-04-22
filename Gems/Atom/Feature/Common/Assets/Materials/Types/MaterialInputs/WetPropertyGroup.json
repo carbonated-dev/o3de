@@ -1,7 +1,7 @@
 {
     "name": "wet",
     "displayName": "Wet",
-    "description": "Properties for configuring whether the surface is wet or not.",
+    "description": "Rain wetness overlay properties controlled by the Weather Gem.",
     "properties": [
         {
             "name": "useWet",
@@ -41,7 +41,7 @@
             "displayName": "Use Texture",
             "description": "Whether to use the texture, or just default to the wetFactor value.",
             "type": "Bool",
-            "defaultValue": false
+            "defaultValue": true
         },
         {
             "name": "textureMap",
@@ -55,14 +55,27 @@
         },
         {
             "name": "textureMapUv",
-            "displayName": "UV",
+            "displayName": "    UV",
             "description": "Moistening properties map UV set",
             "type": "Enum",
             "enumIsUv": true,
-            "defaultValue": "Tiled",
+            "defaultValue": "Unwrapped",
             "connection": {
                 "type": "ShaderInput",
                 "name": "m_wetMapUvIndex"
+            }
+        },
+        {
+            "name": "textureMapUvScale",
+            "displayName": "    UV Scale",
+            "description": "Moistening properties map UV scale, [0.2 .. 20.0]",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.2,
+            "max": 20.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_wetMapUvScale"
             }
         }
     ],
