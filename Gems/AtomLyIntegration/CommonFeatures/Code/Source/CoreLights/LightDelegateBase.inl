@@ -158,6 +158,9 @@ namespace AZ
         {
             if (m_lightHandle.IsValid())
             {
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
+                m_attenuationRadius = radius;
+#endif
                 m_featureProcessor->SetAttenuationRadius(m_lightHandle, radius);
             }
         }
@@ -170,5 +173,15 @@ namespace AZ
                 m_featureProcessor->SetLightingChannelMask(m_lightHandle, lightingChannelMask);
             }
         }
-    }
+
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
+        template<typename FeatureProcessorType>
+        void LightDelegateBase<FeatureProcessorType>::SetShutterAngles(float innerAngleDegrees, float outerAngleDegrees)
+        {
+            m_innerShutterAngle = innerAngleDegrees;
+            m_outerShutterAngle = outerAngleDegrees;
+        }
+#endif
+
+    } // namespace Render
 }

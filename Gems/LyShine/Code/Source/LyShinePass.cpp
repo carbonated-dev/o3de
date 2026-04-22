@@ -36,6 +36,7 @@ namespace LyShine
     void LyShinePass::ResetInternal()
     {
         LyShinePassRequestBus::Handler::BusDisconnect();
+        m_backdropCaptureImage = nullptr;
 
         Base::ResetInternal();
     }
@@ -60,6 +61,29 @@ namespace LyShine
             LyShinePassRequestBus::Handler::BusConnect(scene->GetId());
         }
 
+        if (!m_ownedAttachments.empty())
+        {
+            AZ::Data::Instance<AZ::RPI::AttachmentImagePool> pool = AZ::RPI::ImageSystemInterface::Get()->GetSystemAttachmentPool();
+            AZ::RPI::Ptr<AZ::RPI::PassAttachment> backdropCaptureAttachment = m_ownedAttachments.front();
+
+            backdropCaptureAttachment->Update();
+            backdropCaptureAttachment->m_lifetime = AZ::RHI::AttachmentLifetimeType::Imported;
+
+            AZ::RHI::ImageDescriptor& imageDesc = backdropCaptureAttachment->m_descriptor.m_image;
+            imageDesc.m_bindFlags |= AZ::RHI::ImageBindFlags::CopyWrite | AZ::RHI::ImageBindFlags::ShaderRead;
+
+            AZ::RHI::ClearValue clearValue = AZ::RHI::ClearValue::CreateVector4Float(0.0f, 0.0f, 0.0f, 0.0f);
+            m_backdropCaptureImage = AZ::RPI::AttachmentImage::Create(
+                *pool.get(),
+                imageDesc,
+                AZ::Name(backdropCaptureAttachment->m_path.GetCStr()),
+                &clearValue,
+                nullptr);
+
+            backdropCaptureAttachment->m_path = m_backdropCaptureImage->GetAttachmentId();
+            backdropCaptureAttachment->m_importedResource = m_backdropCaptureImage;
+        }
+
         // Always recreate children when rebuild the pass
         m_flags.m_createChildren = true;
 
@@ -68,6 +92,8 @@ namespace LyShine
 
     void LyShinePass::CreateChildPassesInternal()
     {
+        Base::CreateChildPassesInternal();
+
         AZ::RPI::Scene* scene = GetScene();
         if (scene)
         {
@@ -104,6 +130,11 @@ namespace LyShine
     AZ::RPI::RasterPass* LyShinePass::GetUiCanvasPass()
     {
         return m_uiCanvasChildPass.get();
+    }
+
+    AZ::Data::Instance<AZ::RPI::AttachmentImage> LyShinePass::GetBackdropCaptureImage()
+    {
+        return m_backdropCaptureImage;
     }
 
     void LyShinePass::AddRttChildPasses(LyShine::AttachmentImagesAndDependencies attachmentImagesAndDependencies)
