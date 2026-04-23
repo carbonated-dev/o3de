@@ -9,23 +9,19 @@
             "Slots": [
                 {
                     "Name": "ColorInput",
-                    "SlotType": "Input",
-                    "ScopeAttachmentUsage": "Copy"
+                    "SlotType": "Input"
                 },
                 {
                     "Name": "ColorInputOutput",
-                    "SlotType": "InputOutput",
-                    "ScopeAttachmentUsage": "RenderTarget"
+                    "SlotType": "InputOutput"
                 },
                 {
                     "Name": "BackdropCaptureOutput",
-                    "SlotType": "Output",
-                    "ScopeAttachmentUsage": "Copy"
+                    "SlotType": "InputOutput"
                 },
                 {
                     "Name": "DepthInputOutput",
-                    "SlotType": "InputOutput",
-                    "ScopeAttachmentUsage": "DepthStencil"
+                    "SlotType": "InputOutput"
                 }
             ],
             "ImageAttachments": [
