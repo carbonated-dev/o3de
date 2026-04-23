@@ -116,7 +116,7 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
     float sceneDepth = PassSrg::m_depthTex.Load(int3(IN.m_position.xy, 0));
     OutlineData outlineData = DecodeOutlineData(PassSrg::m_outlineData.Load(int3(closestPosition.xy, 0)));
 
-    const float bias = 0.001;
+    const real bias = 0.001;
     uint sceneStencilVal = ReadStencil(PassSrg::m_stencilTex.Load(IN.m_position.xy, sampleIndex));
     if (sceneStencilVal & OutlineBlockMask)
     {

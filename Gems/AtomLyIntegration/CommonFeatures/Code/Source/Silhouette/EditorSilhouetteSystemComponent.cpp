@@ -105,29 +105,19 @@ namespace AZ::Render
 
     void EditorSilhouetteSystemComponent::OnStartPlayInEditor()
     {
-        if (auto featureProcessor = GetFeatureProcessor())
-        {
-            featureProcessor->SetPassesEnabled(true);
-        }
+        OnSilhouettesVisibilityChanged(true);
     }
 
     void EditorSilhouetteSystemComponent::OnStopPlayInEditor()
     {
-        if (auto featureProcessor = GetFeatureProcessor())
-        {               
-            featureProcessor->SetPassesEnabled(IsSilhouettesVisible());
-        }
+        OnSilhouettesVisibilityChanged(IsSilhouettesVisible());
     }
 
-    void EditorSilhouetteSystemComponent::OnSilhouettesVisibilityChanged([[maybe_unused]] bool enabled)
+    void EditorSilhouetteSystemComponent::OnSilhouettesVisibilityChanged(bool enabled)
     {
-        // Check if we are in game mode.
-        bool isInGameMode = true;
-        AzToolsFramework::EditorEntityContextRequestBus::BroadcastResult(
-            isInGameMode, &AzToolsFramework::EditorEntityContextRequestBus::Events::IsEditorRunningGame);
-        if (!isInGameMode)
+        if (auto featureProcessor = GetFeatureProcessor())
         {
-            OnStopPlayInEditor();
+            featureProcessor->SetPassesEnabled(enabled);
         }
     }
 

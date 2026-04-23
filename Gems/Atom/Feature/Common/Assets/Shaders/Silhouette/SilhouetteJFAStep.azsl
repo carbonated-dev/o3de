@@ -7,7 +7,7 @@
  */
 
 #include <viewsrg.srgi>
-
+#include <Atom/RPI/Math.azsli>
 #include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
 
 ShaderResourceGroup PassSrg : SRG_PerPass
@@ -25,11 +25,11 @@ PSOutput MainPS(VSOutput IN)
 {
     PSOutput OUT;
 
-    float2 position = IN.m_position.xy;
-    float2 uv = IN.m_texCoord;
-    float2 step  = PassSrg::m_stepSize;
-    float2 best  = float2(0, 0);
-    float  bestDist = 1e9;
+    real2 position = IN.m_position.xy;
+    real2 uv = IN.m_texCoord;
+    real2 step  = PassSrg::m_stepSize;
+    real2 best  = float2(0, 0);
+    real bestDist = FLOAT_16_MAX;
 
     // 3x3 neighbourhood at current step size
     [unroll]
@@ -38,11 +38,11 @@ PSOutput MainPS(VSOutput IN)
         [unroll]
         for (int dx = -1; dx <= 1; ++dx)
         {
-            float2 samplePos  = position + float2(dx, dy) * step;
-            float2 seedUV    = PassSrg::m_prevJFA.Load(int3(samplePos, 0));
+            real2 samplePos  = position + real2(dx, dy) * step;
+            real2 seedUV    = PassSrg::m_prevJFA.Load(int3(samplePos, 0));
             if (seedUV.x >= 0.0 && seedUV.y >= 0.0)
             {
-                float dist = length(uv - seedUV);
+                real dist = length(uv - seedUV);
                 if (dist < bestDist)
                 {
                     bestDist = dist;
