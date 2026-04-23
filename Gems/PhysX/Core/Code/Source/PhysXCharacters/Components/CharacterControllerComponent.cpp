@@ -735,12 +735,16 @@ namespace PhysX
 #if defined(CARBONATED)
     void CharacterControllerComponent::OnTick(float deltaTime,[[maybe_unused]] AZ::ScriptTimePoint time)
     {
-        AZ::Vector3 physicsTranslation = GetBasePosition();
+        //Wrapping this here rather than disconnected because there was a note about destroy not being appropriate for disconnecting from the tick bus?
+        if (auto* controller = GetControllerConst())
+        {
+            AZ::Vector3 physicsTranslation = GetBasePosition();
 
-        AZ::Vector3 visualTranslation;
-        AZ::TransformBus::EventResult(visualTranslation, GetEntityId(), &AZ::TransformBus::Events::GetWorldTranslation);
-        static float BLEND_FACTOR = 8.0f;
-        AZ::TransformBus::Event(GetEntityId(), &AZ::TransformBus::Events::SetWorldTranslation, visualTranslation.Lerp(physicsTranslation, fminf(deltaTime * BLEND_FACTOR, 1.0f)));
+            AZ::Vector3 visualTranslation;
+            AZ::TransformBus::EventResult(visualTranslation, GetEntityId(), &AZ::TransformBus::Events::GetWorldTranslation);
+            static float BLEND_FACTOR = 8.0f;
+            AZ::TransformBus::Event(GetEntityId(), &AZ::TransformBus::Events::SetWorldTranslation, visualTranslation.Lerp(physicsTranslation, fminf(deltaTime * BLEND_FACTOR, 1.0f)));
+        }
     }
 #endif
 } // namespace PhysX
