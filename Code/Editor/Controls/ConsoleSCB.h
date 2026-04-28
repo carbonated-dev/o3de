@@ -153,7 +153,6 @@ public:
     void SetInputFocus();
 #if defined(CARBONATED)
     bool HasInputFocus() const;
-    void SetAutoScroll(bool autoScroll);
 #endif
     void AddToConsole(const QString& text, bool bNewLine);
     void FlushText();
@@ -174,9 +173,6 @@ private Q_SLOTS:
     void findPrevious();
     void findNext();
     void toggleClearOnPlay();
-#if defined(CARBONATED)
-    void toggleAutoScroll();
-#endif
 
 private:
     void OnEditorNotifyEvent(EEditorNotifyEvent event) override;
@@ -196,9 +192,6 @@ private:
 
     QMenu* m_optionsMenu;
     QAction* m_clearOnPlayAction;
-#if defined(CARBONATED)
-    bool m_autoScroll = true;
-#endif
 };
 
 #endif // CRYINCLUDE_EDITOR_CONTROLS_CONSOLESCB_H

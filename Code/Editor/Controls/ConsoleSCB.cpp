@@ -47,10 +47,6 @@ namespace ConsoleConstants
     static constexpr const char* SearchIcon = ":/stylesheet/img/search.svg";
     static constexpr const char* ClearIcon = ":/stylesheet/img/lineedit-clear.png";
     static constexpr const char* MenuIcon = ":/Menu/menu.svg";
-#if defined(CARBONATED)
-    static constexpr const char* AutoScrollOnIcon = ":/stylesheet/img/lock_on.svg";
-    static constexpr const char* AutoScrollOffIcon = ":/stylesheet/img/lock_off.svg";
-#endif
 } // namespace ConsoleConstants
 
 class CConsoleSCB::SearchHighlighter : public QSyntaxHighlighter
@@ -355,27 +351,6 @@ CConsoleSCB::CConsoleSCB(QWidget* parent)
     GetIEditor()->RegisterNotifyListener(this);
 
     connect(ui->button, &QPushButton::clicked, this, &CConsoleSCB::showVariableEditor);
-#if defined(CARBONATED)
-    connect(ui->autoScrollButton, &QToolButton::clicked, this, &CConsoleSCB::toggleAutoScroll);
-
-    // Disable auto-scroll when the user manually scrolls away from the bottom
-    connect(ui->textEdit->verticalScrollBar(), &QScrollBar::valueChanged, this, [this](int value)
-    {
-        if (m_autoScroll && value != ui->textEdit->verticalScrollBar()->maximum())
-        {
-            SetAutoScroll(false);
-        }
-    });
-
-    // Disable auto-scroll when the user makes a text selection
-    connect(ui->textEdit, &QPlainTextEdit::selectionChanged, this, [this]()
-    {
-        if (m_autoScroll && ui->textEdit->textCursor().hasSelection())
-        {
-            SetAutoScroll(false);
-        }
-    });
-#endif
     connect(ui->findButton, &QPushButton::clicked, this, &CConsoleSCB::toggleConsoleSearch);
     connect(ui->textEdit, &AzToolsFramework::ConsoleTextEdit::searchBarRequested, this, [this]
     {
@@ -437,30 +412,6 @@ void CConsoleSCB::toggleClearOnPlay()
     gSettings.clearConsoleOnGameModeStart = !gSettings.clearConsoleOnGameModeStart;
 }
 
-#if defined(CARBONATED)
-void CConsoleSCB::toggleAutoScroll()
-{
-    SetAutoScroll(!m_autoScroll);
-}
-
-void CConsoleSCB::SetAutoScroll(bool autoScroll)
-{
-    if (m_autoScroll != autoScroll)
-    {
-        m_autoScroll = autoScroll;
-        ui->autoScrollButton->setChecked(m_autoScroll);
-        ui->autoScrollButton->setIcon(QIcon(m_autoScroll ? ConsoleConstants::AutoScrollOnIcon : ConsoleConstants::AutoScrollOffIcon));
-        ui->autoScrollButton->setToolTip(m_autoScroll ? tr("Auto Scroll: On") : tr("Auto Scroll: Off"));
-
-        if (m_autoScroll)
-        {
-            QScrollBar* scrollBar = ui->textEdit->verticalScrollBar();
-            scrollBar->setValue(scrollBar->maximum());
-        }
-    }
-}
-#endif
-
 void CConsoleSCB::RegisterViewClass()
 {
     AzToolsFramework::ViewPaneOptions opts;
@@ -486,10 +437,6 @@ void CConsoleSCB::OnEditorPreferencesChanged()
 void CConsoleSCB::RefreshStyle()
 {
     ui->button->setIcon(QIcon(ConsoleConstants::ButtonIcon));
-#if defined(CARBONATED)
-    ui->autoScrollButton->setIcon(QIcon(m_autoScroll ? ConsoleConstants::AutoScrollOnIcon : ConsoleConstants::AutoScrollOffIcon));
-    ui->autoScrollButton->setToolTip(m_autoScroll ? tr("Auto Scroll: On") : tr("Auto Scroll: Off"));
-#endif
     ui->findButton->setIcon(QIcon(ConsoleConstants::SearchIcon));
     ui->closeButton->setIcon(QIcon(ConsoleConstants::ClearIcon));
     ui->optionsButton->setIcon(QIcon(ConsoleConstants::MenuIcon));
@@ -604,13 +551,7 @@ void CConsoleSCB::FlushText()
     // If the user has selected some text in the text edit area or has scrolled
     // away from the bottom, then restore the previous cursor and keep the scroll
     // bar in the same location
-#if defined(CARBONATED)
-    // When auto-scroll is ON, always scroll to the bottom — the user signals intent
-    // to disable it by scrolling up or selecting text (handled via signal connections).
-    if (!m_autoScroll && (oldCursor.hasSelection() || scrolledOffBottom))
-#else
     if (oldCursor.hasSelection() || scrolledOffBottom)
-#endif
     {
         ui->textEdit->setTextCursor(oldCursor);
         scrollBar->setValue(oldScrollValue);
