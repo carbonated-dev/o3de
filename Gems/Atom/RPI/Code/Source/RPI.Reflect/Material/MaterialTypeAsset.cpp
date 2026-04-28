@@ -86,20 +86,13 @@ namespace AZ
             {
                 return false;
             }
-#if defined(CARBONATED)
-
-#if (defined(CARBONATED_MOBILE_PIPELINE_ON_MOBILE) && (defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_ANDROID))) || (defined(CARBONATED_MAIN_PIPELINE_ON_LINUX) && defined(AZ_PLATFORM_LINUX))
-            const char* allowedPipeline =
+#if defined(CARBONATED) && defined(CARBONATED_MOBILE_PIPELINE_ON_MOBILE)
 #if defined(AZ_PLATFORM_IOS) || defined(AZ_PLATFORM_ANDROID)
-                                          "MobilePipeline";
-#else // must be AZ_PLATFORM_LINUX
-                                          "MainPipeline";
-#endif                                                        
             //  erase non-mobile pipeline info from the pipeline payload map
             for (auto it = m_materialPipelinePayloads.begin(); it != m_materialPipelinePayloads.end(); )
             {
                 const char* pipelineName = it->first.GetCStr();
-                if (pipelineName[0] != 0 && strcmp(pipelineName, allowedPipeline) != 0)
+                if (pipelineName[0] != 0 && strcmp(pipelineName, "MobilePipeline") != 0)
                 {
                     it = m_materialPipelinePayloads.erase(it);
                 }
@@ -108,9 +101,8 @@ namespace AZ
                     it++;
                 }
             }
-#endif  // CARBONATED_MOBILE_PIPELINE_ON_MOBILE or CARBONATED_MAIN_PIPELINE_ON_LINUX
-
-#endif  // CARBONATED
+#endif
+#endif
             for (auto& materialPipelinePair : m_materialPipelinePayloads)
             {
                 if (!materialPipelinePair.second.m_shaderCollection.InitializeShaderOptionGroups())
