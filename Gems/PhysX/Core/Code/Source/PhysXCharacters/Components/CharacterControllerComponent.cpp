@@ -736,7 +736,7 @@ namespace PhysX
     void CharacterControllerComponent::OnTick(float deltaTime,[[maybe_unused]] AZ::ScriptTimePoint time)
     {
         //Wrapping this here rather than disconnected because there was a note about destroy not being appropriate for disconnecting from the tick bus?
-        if (auto* controller = GetControllerConst())
+        if ([[maybe_unused]] auto* controller = GetControllerConst())
         {
             AZ::Vector3 physicsTranslation = GetBasePosition();
 
