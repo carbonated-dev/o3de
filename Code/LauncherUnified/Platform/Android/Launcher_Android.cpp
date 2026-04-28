@@ -30,6 +30,10 @@
 
 #include <sys/resource.h>
 #include <sys/types.h>
+#if defined(CARBONATED)
+#include <AzCore/std/containers/deque.h>
+#include <pthread.h>
+#endif
 
 #if defined(AZ_ENABLE_TRACING) || defined(RELEASE_LOGGING)
     #define ENABLE_LOGGING
@@ -84,6 +88,74 @@ namespace
 
         ~NativeEventDispatcher() = default;
 
+#if defined(CARBONATED)
+        void PumpAllEvents() override
+        {
+            auto androidEnv = static_cast<AZ::Android::AndroidEnv*>(m_appState->userData);
+
+            if (!androidEnv)
+            {
+                LOGE("androidEnv is null");
+                return;
+            }
+
+            if (!androidEnv->IsRunning())
+            {
+                while (!androidEnv->IsRunning())
+                {
+                    usleep(100000);
+                    ProcessAllEvents();
+                }
+            }
+            else
+            {
+                ProcessAllEvents();
+            }
+        }
+
+        void PumpEventLoopOnce() override
+        {
+            AZStd::function<void()> event;
+            {
+                AZStd::lock_guard<AZStd::mutex> lock(m_eventQueueMutex);
+                if (!m_eventQueue.empty())
+                {
+                    event = AZStd::move(m_eventQueue.front());
+                    m_eventQueue.pop_front();
+                }
+            }
+
+            if (event)
+            {
+                event();
+                return;
+            }
+        }
+
+        void ProcessAllEvents()
+        {
+            AZStd::deque<AZStd::function<void()>> localQueue;
+            {
+                AZStd::lock_guard<AZStd::mutex> lock(m_eventQueueMutex);
+                if (!m_eventQueue.empty())
+                {
+                    localQueue = AZStd::move(m_eventQueue);
+                    m_eventQueue.clear();
+                }
+            }
+
+            for (auto& event : localQueue)
+            {
+                event();
+            }
+        }
+
+        void QueueEvent(AZStd::function<void()> event)
+        {
+            AZStd::lock_guard<AZStd::mutex> lock(m_eventQueueMutex);
+            m_eventQueue.push_back(AZStd::move(event));
+        }
+#else
         void PumpAllEvents() override
         {
             bool continueRunning = true;
@@ -97,6 +169,7 @@ namespace
         {
             PumpEvents(&ALooper_pollOnce);
         }
+#endif
 
         void SetAppState(android_app* appState)
         {
@@ -104,6 +177,7 @@ namespace
         }
 
     private:
+#if !defined(CARBONATED)
         // signature of ALooper_pollOnce and ALooper_pollAll -> int timeoutMillis, int* outFd, int* outEvents, void** outData
         typedef int (*EventPumpFunc)(int, int*, int*, void**);
 
@@ -117,42 +191,8 @@ namespace
             int events = 0;
             android_poll_source* source = nullptr;
             const AZ::Android::AndroidEnv* androidEnv = AZ::Android::AndroidEnv::Get();
-#if defined(CARBONATED)
-            // On some devices, when the application is in the background,
-            // ALOOPER_POLL_WAKE message may arrive (usually when opening another application),
-            // which will lead to an exit from the wait in looperFunc and the continuation
-            // of the execution of MainLoop and the execution of gameApplication.Tick().
-
-            // approximate call sequence for clarity
-            // Launcher.MainLoop
-            // |- gameApplication.PumpSystemEventLoopUntilEmpty
-            // |  |- PumpAllEvents [event loop]
-            // |  |  |- PumpEvents [event]
-            // |  |  |  |- looperFunc [block]
-            // |  |  |  |   (The main thread is blocked when androidEnv->IsRunning == false,
-            // |  |  |  |    until a message arrives from Android)
-            // |  |  |  |- source->process(m_appState, source);
-            // |  |  |  |   \- HandleApplicationLifecycleEvents
-            // |  |  |  |      \- androidEnv->SetIsRunning(true/false)
-            // \- gameApplication.Tick [update]
-
-            int result;
-            if (androidEnv->IsRunning())
-            {
-                result = looperFunc(0, nullptr, &events, reinterpret_cast<void**>(&source));
-            }
-            else
-            {
-                do
-                {
-                    result = looperFunc(-1, nullptr, &events, reinterpret_cast<void**>(&source));
-                }
-                while (result == ALOOPER_POLL_WAKE);
-            }
-#else
             // when timeout is negative, the function will block until an event is received
             const int result = looperFunc(androidEnv->IsRunning() ? 0 : -1, nullptr, &events, reinterpret_cast<void**>(&source));
-#endif
             // the value returned from the looper poll func is either:
             // 1. the identifier associated with the event source (>= 0) and has event data that needs to be processed manually
             // 2. an ALOOPER_POLL_* enum (< 0) indicating there is no data to be processed due to error or callback(s) registered
@@ -171,14 +211,27 @@ namespace
 
             return (validIdentifier && !destroyRequested);
         }
+#endif
 
         android_app* m_appState;
+#if defined(CARBONATED)
+        AZStd::deque<AZStd::function<void()>> m_eventQueue;
+        AZStd::mutex m_eventQueueMutex;
+#endif
     };
 
 
     NativeEventDispatcher g_eventDispatcher;
     bool g_windowInitialized = false;
 
+#if defined(CARBONATED)
+    pthread_t g_androidEventThread;
+    std::atomic<bool> g_isRequestingExit = false;
+    std::atomic<bool> g_eventHandlerInitialized = false;
+
+    pthread_mutex_t g_eventMutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_cond_t g_eventCond = PTHREAD_COND_INITIALIZER;
+#endif
 
     void OnPostAppStart()
     {
@@ -240,24 +293,44 @@ namespace
             {
 #if defined(CARBONATED)
                 androidEnv->SetIsRunning(true);
-#endif
+                g_eventDispatcher.QueueEvent([](){
+                    AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
+                            &AzFramework::AndroidLifecycleEvents::Bus::Events::OnGainedFocus);
+                });
+#else
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnGainedFocus);
+#endif
             }
             break;
 
             case APP_CMD_LOST_FOCUS:
             {
+#if defined(CARBONATED)
+                g_eventDispatcher.QueueEvent([]() {
+                    AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
+                            &AzFramework::AndroidLifecycleEvents::Bus::Events::OnLostFocus);
+                });
+#else
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnLostFocus);
+#endif
             }
             break;
 
             case APP_CMD_PAUSE:
             {
+#if defined(CARBONATED)
+                androidEnv->SetIsRunning(false);
+                g_eventDispatcher.QueueEvent([](){
+                    AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
+                        &AzFramework::AndroidLifecycleEvents::Bus::Events::OnPause);
+                });
+#else
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnPause);
                 androidEnv->SetIsRunning(false);
+#endif
             }
             break;
 
@@ -265,62 +338,108 @@ namespace
             {
 #if defined(CARBONATED)
                 // moved to APP_CMD_GAINED_FOCUS
+                g_eventDispatcher.QueueEvent([](){
+                    AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
+                            &AzFramework::AndroidLifecycleEvents::Bus::Events::OnResume);
+                });
 #else
                 androidEnv->SetIsRunning(true);
-#endif
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnResume);
+#endif
             }
             break;
 
             case APP_CMD_DESTROY:
             {
+#if defined(CARBONATED)
+                g_eventDispatcher.QueueEvent([](){
+                    AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
+                            &AzFramework::AndroidLifecycleEvents::Bus::Events::OnDestroy);
+                });
+#else
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnDestroy);
+#endif
             }
             break;
 
             case APP_CMD_INIT_WINDOW:
             {
+#if defined(CARBONATED)
+                g_eventDispatcher.QueueEvent([androidEnv, appState](){
+                    g_windowInitialized = true;
+                    androidEnv->SetWindow(appState->window);
+                    AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
+                        &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowInit);
+                });
+#else
                 g_windowInitialized = true;
                 androidEnv->SetWindow(appState->window);
 
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowInit);
+#endif
             }
             break;
 
             case APP_CMD_TERM_WINDOW:
             {
+#if defined(CARBONATED)
+                g_eventDispatcher.QueueEvent([androidEnv](){
+                    AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
+                            &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowDestroy);
+                    androidEnv->SetWindow(nullptr);
+                });
+                // On some devices, in some cases, the APP_CMD_TERM_WINDOW
+                // message may arrive before APP_CMD_PAUSE
+                androidEnv->SetIsRunning(false);
+#else
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowDestroy);
 
                 androidEnv->SetWindow(nullptr);
-#if defined(CARBONATED)
-                // On some devices, in some cases, the APP_CMD_TERM_WINDOW
-                // message may arrive before APP_CMD_PAUSE
-                androidEnv->SetIsRunning(false);
 #endif
             }
             break;
 
             case APP_CMD_LOW_MEMORY:
             {
+#if defined(CARBONATED)
+                g_eventDispatcher.QueueEvent([](){
+                    AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
+                        &AzFramework::AndroidLifecycleEvents::Bus::Events::OnLowMemory);
+                });
+            }
+#else
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnLowMemory);
-            }
+#endif
             break;
 
             case APP_CMD_CONFIG_CHANGED:
             {
+#if defined(CARBONATED)
+                g_eventDispatcher.QueueEvent([androidEnv](){
+                    androidEnv->UpdateConfiguration();
+                });
+#else
                 androidEnv->UpdateConfiguration();
+#endif
             }
             break;
 
             case APP_CMD_WINDOW_REDRAW_NEEDED:
             {
+#if defined(CARBONATED)
+                g_eventDispatcher.QueueEvent([](){
+                    AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
+                        &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowRedrawNeeded);
+                });
+#else
                 AzFramework::AndroidLifecycleEvents::Bus::Broadcast(
                     &AzFramework::AndroidLifecycleEvents::Bus::Events::OnWindowRedrawNeeded);
+#endif
             }
             break;
         }
@@ -337,6 +456,101 @@ namespace
     }
 }
 
+#if defined(CARBONATED)
+static void* AndroidEventThreadWorker(void* param)
+{
+    pthread_setname_np(pthread_self(), "AndroidEventWorker");
+
+    struct android_app* state = (struct android_app*)param;
+
+    ALooper* looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
+    ALooper_addFd(looper, state->msgread, LOOPER_ID_MAIN, ALOOPER_EVENT_INPUT, NULL, &state->cmdPollSource);
+    state->looper = looper;
+    state->onAppCmd = HandleApplicationLifecycleEvents;
+    state->onInputEvent = HandleInputEvents;
+
+    LOGI("Event thread started");
+
+    pthread_mutex_lock(&g_eventMutex);
+    g_eventHandlerInitialized = true;
+    pthread_cond_broadcast(&g_eventCond);
+    pthread_mutex_unlock(&g_eventMutex);
+
+    LOGI("Event handler initialized, starting event loop");
+
+    while (!g_isRequestingExit)
+    {
+        struct android_poll_source* source = nullptr;
+        int32_t result = ALooper_pollOnce(-1, nullptr, nullptr, (void**)&source);
+
+        if (result == ALOOPER_POLL_ERROR)
+        {
+            LOGE("AndroidEventThreadWorker - ALooper pool error");
+            state->destroyRequested = 1;
+            break;
+        }
+
+        if (source != nullptr)
+        {
+            source->process(state, source);
+        }
+    }
+
+    LOGI("Event thread exiting");
+    return nullptr;
+}
+
+static void StartPoolUpdateLoop(android_app* appState)
+{
+    LOGI("Looper prepared and fd registered");
+
+    pthread_attr_t threadAttr;
+    pthread_attr_init(&threadAttr);
+    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
+
+    int createResult = pthread_create(&g_androidEventThread, &threadAttr, AndroidEventThreadWorker, appState);
+
+    if (createResult != 0)
+    {
+        LOGE("Failed to create event thread: %d", createResult);
+        MAIN_EXIT_FAILURE(appState, "Failed to create Android event thread");
+    }
+
+    pthread_attr_destroy(&threadAttr);
+
+    LOGI("Event thread created, waiting for initialization...");
+
+    // Wait for event handler to be initialized
+    pthread_mutex_lock(&g_eventMutex);
+    while (!g_eventHandlerInitialized)
+    {
+        pthread_cond_wait(&g_eventCond, &g_eventMutex);
+    }
+    pthread_mutex_unlock(&g_eventMutex);
+
+    LOGI("Event handler initialized");
+}
+
+static void StopPoolUpdateLoop(android_app* appState)
+{
+    g_isRequestingExit = true;
+
+    if (appState->looper)
+    {
+        ALooper_wake(appState->looper);
+    }
+
+    // Wait for event thread to finish
+    pthread_join(g_androidEventThread, nullptr);
+
+    // Cleanup synchronization objects
+    pthread_mutex_destroy(&g_eventMutex);
+    pthread_cond_destroy(&g_eventCond);
+
+    LOGI("Event thread joined, cleaning up Android environment");
+}
+#endif
+
 // This is the main entry point of a native application that is using android_native_app_glue.
 // It runs in its own thread, with its own event loop for receiving input events
 void android_main(android_app* appState)
@@ -347,10 +561,12 @@ void android_main(android_app* appState)
     LOGI("*                      Launching Game...                       *");
     LOGI("****************************************************************");
 
+#if !defined(CARBONATED)
     // setup the system command handler which are guaranteed to be called on the same
     // thread the events are pumped
     appState->onAppCmd = HandleApplicationLifecycleEvents;
     appState->onInputEvent = HandleInputEvents;
+#endif
     g_eventDispatcher.SetAppState(appState);
 
     // This callback will notify us when the orientation of the device changes.
@@ -382,11 +598,16 @@ void android_main(android_app* appState)
         appState->userData = androidEnv;
         androidEnv->SetIsRunning(true);
     }
-
+#if defined(CARBONATED)
+    StartPoolUpdateLoop(appState);
+#endif
     // sync the window creation
     while (!g_windowInitialized)
     {
         g_eventDispatcher.PumpAllEvents();
+#if defined(CARBONATED)
+        usleep(16000);
+#endif
     }
 
     // Now that the window has been created we can show the java splash screen.  We need
@@ -463,7 +684,9 @@ void android_main(android_app* appState)
 #endif // defined(ENABLE_LOGGING)
 
     ReturnCode status = Run(mainInfo);
-
+#if defined(CARBONATED)
+    StopPoolUpdateLoop(appState);
+#endif
     AZ::Android::AndroidEnv::Destroy();
 
     if (status != ReturnCode::Success)

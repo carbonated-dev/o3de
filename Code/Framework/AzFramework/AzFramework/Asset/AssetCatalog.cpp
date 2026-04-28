@@ -252,8 +252,20 @@ namespace AzFramework
             return AZ::Data::AssetId();
         }
         m_pathBuffer = path;
+
+#if defined(CARBONATED) // To avoid a deadlock, we avoid calling ApplicationRequests::Bus::Broadcast(...)
+        AZStd::string cacheAssetPath;
+        if (auto settingsRegistry = AZ::SettingsRegistry::Get(); settingsRegistry != nullptr)
+        {
+            settingsRegistry->Get(cacheAssetPath, AZ::SettingsRegistryMergeUtils::FilePathKey_CacheRootFolder);
+        }
+
+        m_pathBuffer = AZ::IO::PathView(m_pathBuffer).LexicallyProximate(AZ::IO::PathView(cacheAssetPath.c_str())).StringAsPosix();
+        AZStd::to_lower(m_pathBuffer);
+#else
         AzFramework::ApplicationRequests::Bus::Broadcast(
             &AzFramework::ApplicationRequests::Bus::Events::MakePathAssetRootRelative, m_pathBuffer);
+#endif
         {
             AZStd::lock_guard<AZStd::recursive_mutex> lock(m_registryMutex);
 
