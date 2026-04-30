@@ -17,6 +17,10 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
     float m_alpha;
     float m_depthBias;
     float m_outlineSize;
-    float m_padding0;
+//#if defined(CARBONATED)
+    bool  m_outlineOnly;
+//#else
+//  float m_padding0;
+//#endif
     float3x3 m_uvMatrix;
 }

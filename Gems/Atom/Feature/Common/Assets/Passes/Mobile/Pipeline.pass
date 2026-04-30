@@ -88,20 +88,6 @@
                     }
                 },
                 {
-                    "Name": "SilhouetteGatherPass",
-                    "TemplateName": "SilhouetteGatherPassTemplate",
-                    "Enabled": true,
-                    "Connections": [
-                        {
-                            "LocalSlot": "DepthStencilInputOutput",
-                            "AttachmentRef": {
-                                "Pass": "ForwardPass",
-                                "Attachment": "DepthStencilOutput"
-                            }
-                        }
-                    ]
-                },
-                {
                     "Name": "SkyBoxPass",
                     "TemplateName": "MobileSkyBoxTemplate",
                     "Enabled": true,
@@ -175,21 +161,7 @@
                             }
                         }
                     ]
-                },
-                {
-                    "Name": "SilhouettePass",
-                    "TemplateName": "SilhouettePassTemplate",
-                    "Enabled": true,
-                    "Connections": [
-                        {
-                            "LocalSlot": "InputOutput",
-                            "AttachmentRef": {
-                                "Pass": "MobileTransparentPass",
-                                "Attachment": "InputOutput"
-                            }
-                        }
-                    ]
-                },
+                },              
                 {
                     "Name": "MobilePostProcessPass",
                     "TemplateName": "MobilePostProcessParentTemplate",
@@ -216,7 +188,35 @@
                             }
                         }
                     ]
-                },               
+                },
+                {
+                    "Name": "SilhouetteParentPass",
+                    "TemplateName": "SilhouetteParentPassTemplate",
+                    "Enabled": true,
+                    "Connections": [
+                        {
+                            "LocalSlot": "InputOutput",
+                            "AttachmentRef": {
+                                "Pass": "MobilePostProcessPass",
+                                "Attachment": "Output"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthStencilInputOutput",
+                            "AttachmentRef": {
+                                "Pass": "ForwardPass",
+                                "Attachment": "DepthStencilOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthStencilResolvedInputOutput",
+                            "AttachmentRef": {
+                                "Pass": "ForwardPass",
+                                "Attachment": "DepthStencilOutput"
+                            }
+                        }                        
+                    ]
+                },
                 {
                     "Name": "AuxGeomPass",
                     "TemplateName": "AuxGeomPassTemplate",

@@ -61,4 +61,9 @@ namespace AzToolsFramework
     bool PrefabEditModeEffectEnabled();
     void SetPrefabEditModeEffectEnabled(bool enabled);
 
+#if defined(CARBONATED)
+    bool SilhouettesVisible();
+    void SetSilhouettesVisible(bool visible);
+#endif
+
 } // namespace AzToolsFramework

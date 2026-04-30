@@ -231,6 +231,10 @@ namespace AzToolsFramework
             virtual bool HelpersVisible() const = 0;
             //! Returns if viewport helpers are only drawn for selected entities in the viewport.
             virtual bool OnlyShowHelpersForSelectedEntities() const = 0;
+#if defined(CARBONATED)
+            //! Returns if silhouettes are visible in the viewport.
+            virtual bool SilhouettesVisible() const = 0;
+#endif
 
         protected:
             ~ViewportSettingsRequests() = default;
@@ -264,6 +268,11 @@ namespace AzToolsFramework
             virtual void OnCameraSpeedScaleChanged([[maybe_unused]] float value)
             {
             }
+#if defined(CARBONATED)
+            virtual void OnSilhouettesVisibilityChanged([[maybe_unused]] bool enabled)
+            {
+            }
+#endif
 
         protected:
             ~ViewportSettingNotifications() = default;

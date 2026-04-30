@@ -183,6 +183,10 @@ set(FILES
     Source/OcclusionCullingPlane/OcclusionCullingPlane.cpp
     Source/Silhouette/SilhouetteFeatureProcessor.cpp
     Source/Silhouette/SilhouetteFeatureProcessor.h
+#if defined(CARBONATED)
+    Source/Silhouette/SilhouetteJFAStepParentPass.cpp
+    Source/Silhouette/SilhouetteJFAStepParentPass.h
+#endif
     Source/PostProcess/PostProcessBase.cpp
     Source/PostProcess/PostProcessBase.h
     Source/PostProcess/PostProcessFeatureProcessor.cpp

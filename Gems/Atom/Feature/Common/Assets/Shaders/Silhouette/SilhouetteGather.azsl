@@ -15,6 +15,9 @@
 #include <Atom/Feature/Common/Assets/Shaders/Materials/BasePBR/BasePBR_VertexData.azsli>
 #include <Atom/Feature/Common/Assets/Shaders/Materials/BasePBR/BasePBR_VertexEval.azsli>
 #include <Atom/Features/ColorManagement/TransformColor.azsli>
+// Begin CARBONATED
+#include <Atom/Feature/Common/Assets/Shaders/Silhouette/Silhouette.azsli>
+// End CARBONATED
 
 VsOutput MainVS(VsInput IN, uint instanceId : SV_InstanceID)
 {
@@ -28,6 +31,7 @@ VsOutput MainVS(VsInput IN, uint instanceId : SV_InstanceID)
     real distanceScale = 1.0 - OUT.position.z / OUT.position.w;
     OUT.position.z += MaterialSrg::m_depthBias * distanceScale;
 
+/*  Begin CARBONATED
     if(MaterialSrg::m_outlineSize > EPSILON)
     {
         real3 worldNormal = normalize(mul(GetObjectToWorldMatrixInverseTranspose(instanceId), IN.normal));
@@ -37,6 +41,7 @@ VsOutput MainVS(VsInput IN, uint instanceId : SV_InstanceID)
         const real sizeScale = 1.0 / 400.0;
         OUT.position.xy += screenSpaceNormal.xy * (MaterialSrg::m_outlineSize * OUT.position.w * sizeScale) * distanceScale;
     }
+*/
 
     return OUT;
 }
@@ -44,14 +49,27 @@ VsOutput MainVS(VsInput IN, uint instanceId : SV_InstanceID)
 struct PSOutput
 {
     float4 m_color : SV_Target0;
+// Begin CARBONATED
+    uint m_outlineData : SV_Target1;
+    float m_outlineDepth : SV_Target2;
+// End CARBONATED
 };
 
-PSOutput MainPS(VsOutput IN)
+PSOutput MainPS(VsOutput IN, in uint sampleIndex : SV_SampleIndex)
 {
-    PSOutput OUT;
+    PSOutput OUT = (PSOutput)0;
 
     // write at least something in the alpha to distinguish between silhouette and background
     OUT.m_color = float4(TransformColor(MaterialSrg::m_color, ColorSpaceId::ACEScg,ColorSpaceId::SRGB), max(0.01, MaterialSrg::m_alpha));
 
+// Begin CARBONATED
+    OutlineData data;
+    data.m_outlineSize = MaterialSrg::m_outlineSize;
+    data.m_outlineOnly = MaterialSrg::m_outlineOnly;
+    data.m_type = o_silhouetteType;
+
+    OUT.m_outlineData = EncodeOutlineData(data);
+    OUT.m_outlineDepth = IN.position.z;
+// End CARBONATED
     return OUT;
 }

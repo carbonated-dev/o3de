@@ -80,6 +80,9 @@ struct EditorViewportSettings : public AzToolsFramework::ViewportInteraction::Vi
     bool IconsVisible() const override;
     bool HelpersVisible() const override;
     bool OnlyShowHelpersForSelectedEntities() const override;
+#if defined(CARBONATED)
+    bool SilhouettesVisible() const override;
+#endif
 };
 
 //! EditorViewportWidget window
