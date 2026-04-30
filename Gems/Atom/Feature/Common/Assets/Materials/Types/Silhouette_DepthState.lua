@@ -33,6 +33,9 @@ local ComparisonFunc_Always = 7
 function Process(context)
     local silhouetteType = context:GetMaterialPropertyValue_enum("silhouetteType")
     local shaderItem = context:GetShaderByTag("SilhouetteGather")
+    -- CARBONATED Begin
+    shaderItem:SetStencilRefOverride(0xFF)
+    -- CARBONATED End
     if(silhouetteType == SilhouetteType_AlwaysDraw) then
         -- Always draws in ignores depth check, but won't draw where silhouettes are blocked
         shaderItem:GetRenderStatesOverride():SetDepthEnabled(false)

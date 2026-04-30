@@ -130,7 +130,11 @@ namespace AZ
                 //! Controls whether this shader/pass will be used for rendering a material.
                 void SetEnabled(bool enabled);
                 bool IsEnabled() const;
-
+#if defined(CARBONATED)
+                //! Return/Set the runtime stencil ref value override.
+                void SetStencilRefOverride(uint8_t stencilRef);
+                uint8_t GetStencilRefOverride() const;
+#endif
                 //! Returns the shader tag used to identify this item
                 const AZ::Name& GetShaderTag() const;
 
@@ -151,6 +155,7 @@ namespace AZ
                 RHI::DrawListTag  m_drawListTagOverride; //!< Holds and manipulates the DrawList at runtime.
 #if defined(CARBONATED)
                 EffectiveBitset m_ownedShaderOptionIndices; //!< Set of shader options in this shader that are owned by the material.
+                uint8_t m_stencilRef = 0;                     //!< Holds and manipulates the stencil ref at runtime. 
 #else
                 //[GFX TODO][ATOM-5636]: This may need to use a more efficient data structure. Consider switching to vector_set class (which will need to be updated to support serialization).
                 AZStd::unordered_set<ShaderOptionIndex> m_ownedShaderOptionIndices; //!< Set of shader options in this shader that are owned by the material.

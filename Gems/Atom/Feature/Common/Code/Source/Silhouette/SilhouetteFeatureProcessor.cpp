@@ -36,6 +36,33 @@ void OnSilhouetteActiveChanged(const bool& activate)
     }
 }
 
+#if defined(CARBONATED)
+void OnSilhouetteMaxOutlineSizeChanged([[maybe_unused]] const uint32_t& size)
+{
+    AzFramework::EntityContextId entityContextId;
+    AzFramework::GameEntityContextRequestBus::BroadcastResult(
+        entityContextId, &AzFramework::GameEntityContextRequestBus::Events::GetGameEntityContextId);
+
+    if (auto scene = AZ::RPI::Scene::GetSceneForEntityContextId(entityContextId); scene != nullptr)
+    {
+        // avoid unnecessary enable/disable to avoid warning log spam
+        auto featureProcessor = scene->GetFeatureProcessor<AZ::Render::SilhouetteFeatureProcessor>();
+        if (featureProcessor)
+        {
+            featureProcessor->SetMaxOutlineSize(size);
+        }
+    }
+}
+
+AZ_CVAR(
+    uint32_t,
+    r_silhouetteMaxOutlineSize,
+    14,
+    &OnSilhouetteMaxOutlineSizeChanged,
+    AZ::ConsoleFunctorFlags::Null,
+    "Controls the max size of the outline in pixels");
+#endif
+
 AZ_CVAR(
     bool,
     r_silhouette,
@@ -72,12 +99,36 @@ namespace AZ::Render
 
     void SilhouetteFeatureProcessor::SetPassesEnabled(bool enabled)
     {
+#if defined(CARBONATED)
+        enabled = enabled && r_silhouette;
+#endif
         if (m_compositePass && m_rasterPass)
         {
             m_compositePass->SetEnabled(enabled);
             m_rasterPass->SetEnabled(enabled);
         }
+#if defined(CARBONATED)
+        m_enabled = enabled;
+#endif
     }
+
+#if defined(CARBONATED)
+    void SilhouetteFeatureProcessor::SetMaxOutlineSize([[maybe_unused]] const uint32_t size)
+    {
+        if (m_renderPipeline)
+        {
+            Name jfaStepParentPassName = Name("SilhouetteJFAStepParentPass");
+            auto jfaParentPass = m_renderPipeline->FindFirstPass(jfaStepParentPassName); 
+            if (!jfaParentPass)
+            {
+                AZ_Warning("SilhouetteFeatureProcessor", false, "Can't find %s in the render pipeline.", jfaStepParentPassName.GetCStr());
+                return;
+            }
+
+            jfaParentPass->QueueForBuildAndInitialization();
+        }
+    }
+#endif
 
     void SilhouetteFeatureProcessor::OnEndPrepareRender()
     {
@@ -143,6 +194,7 @@ namespace AZ::Render
             return;
         }
 
+#if !defined(CARBONATED)
         Name forwardProcessPassName = Name("Forward");
         if (renderPipeline->FindFirstPass(forwardProcessPassName) == nullptr)
         {
@@ -177,6 +229,39 @@ namespace AZ::Render
             m_compositePass = pass.get();
             renderPipeline->AddPassAfter(pass, postProcessPassName);
         }
+#else
+        // Add the full screen silhouette pass which merges the silhouettes render target with
+        // the framebuffer diffuse, and adds outlines to the silhouette shapes
+        Name depthPrePassName = Name("DepthPrePass");
+        if (renderPipeline->FindFirstPass(depthPrePassName) == nullptr)
+        {
+            AZ_Warning("SilhouetteFeatureProcessor", false, "Can't find %s in the render pipeline.", depthPrePassName.GetCStr());
+            return;
+        }
+
+        Name opaquePassName = Name("OpaquePass");
+        if (renderPipeline->FindFirstPass(opaquePassName) == nullptr)
+        {
+            AZ_Warning("SilhouetteFeatureProcessor", false, "Can't find %s in the render pipeline.", opaquePassName.GetCStr());
+            return;
+        }
+
+        RPI::PassRequest compositePassRequest;
+        compositePassRequest.m_passName = Name("SilhouetteParentPass");
+        compositePassRequest.m_templateName = Name("SilhouetteParentPassTemplate");
+        compositePassRequest.AddInputConnection(
+            RPI::PassConnection{ Name("InputOutput"), RPI::PassAttachmentRef{ postProcessPassName, Name("Output") } });
+        compositePassRequest.AddInputConnection(
+            RPI::PassConnection{ Name("DepthStencilResolvedInputOutput"), RPI::PassAttachmentRef{ depthPrePassName, Name("Depth") } });
+        compositePassRequest.AddInputConnection(
+            RPI::PassConnection{ Name("DepthStencilInputOutput"), RPI::PassAttachmentRef{ opaquePassName, Name("DepthStencil") } });
+
+        if (auto pass = RPI::PassSystemInterface::Get()->CreatePassFromRequest(&compositePassRequest); pass != nullptr)
+        {
+            renderPipeline->AddPassAfter(pass, postProcessPassName);
+        }
+        UpdatePasses(renderPipeline);
+#endif
 
         // remember which render pipeline we added our passes to
         m_renderPipeline = renderPipeline;
@@ -208,7 +293,11 @@ namespace AZ::Render
             return;
         }
 
+#if defined(CARBONATED)
+        const auto mergeTemplateName = Name("SilhouetteJFAParentTemplate");
+#else
         const auto mergeTemplateName = Name("SilhouettePassTemplate");
+#endif
         auto compositePassFilter = AZ::RPI::PassFilter::CreateWithTemplateName(mergeTemplateName, renderPipeline);
         if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(compositePassFilter); foundPass)
         {
@@ -224,5 +313,8 @@ namespace AZ::Render
 
         // remember which render pipeline we found our passes on
         m_renderPipeline = (m_compositePass && m_rasterPass) ? renderPipeline : nullptr;
+#if defined(CARBONATED)
+        SetPassesEnabled(m_enabled);
+#endif
     }
 } // namespace AZ::Render

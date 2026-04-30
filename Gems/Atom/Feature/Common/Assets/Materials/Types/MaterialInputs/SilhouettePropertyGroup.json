@@ -55,7 +55,7 @@
         {
             "name": "outlineSize",
             "displayName": "Outline Size",
-            "description": "Modifies the vertex position alongside the normal vector direction.",
+            "description": "Amount of pixels that the silhouette extends (aka the border for Outline Only silouhettes).",
             "type": "float",
             "defaultValue": 0.0,
             "min":0.0,
@@ -63,6 +63,17 @@
             "connection": {
                 "type": "ShaderInput",
                 "name": "m_outlineSize"
+            }
+        },
+        {
+            "name": "outlineOnly",
+            "displayName": "Outline Only",
+            "description": "Whether to draw only the outline border.",
+            "type": "bool",
+            "defaultValue": false,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_outlineOnly"
             }
         }
     ],

@@ -1,0 +1,139 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#include <Silhouette/EditorSilhouetteSystemComponent.h>
+
+#include <AzCore/Serialization/SerializeContext.h>
+#include <AzCore/Serialization/EditContext.h>
+#include <AzCore/Serialization/EditContextConstants.inl>
+
+#include <AzToolsFramework/API/EditorAssetSystemAPI.h>
+#include <AzFramework/Application/Application.h>
+
+#include <AzFramework/Entity/GameEntityContextBus.h>
+#include <AzFramework/Scene/Scene.h>
+#include <AzFramework/Scene/SceneSystemInterface.h>
+#include <Silhouette/SilhouetteFeatureProcessor.h>
+#include <Atom/RPI.Public/Scene.h>
+
+namespace AZ::Render
+{
+    //! Main system component for the Atom Silhouette Feature Gem's editor/tools module.
+    void EditorSilhouetteSystemComponent::Reflect(AZ::ReflectContext* context)
+    {
+        if (AZ::SerializeContext* serialize = azrtti_cast<AZ::SerializeContext*>(context))
+        {
+            serialize->Class<EditorSilhouetteSystemComponent, AZ::Component>()
+                ->Version(0)
+                ;
+
+            if (AZ::EditContext* ec = serialize->GetEditContext())
+            {
+                ec->Class<EditorSilhouetteSystemComponent>("Common", "Configures editor- and tool-specific functionality for common render features.")
+                    ->ClassElement(AZ::Edit::ClassElements::EditorData, "")
+                    ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
+                    ;
+            }
+        }
+    }
+
+    void EditorSilhouetteSystemComponent::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided)
+    {
+        provided.push_back(AZ_CRC("EditorSilhouetteService"));
+    }
+
+    void EditorSilhouetteSystemComponent::GetIncompatibleServices(AZ::ComponentDescriptor::DependencyArrayType& incompatible)
+    {
+        incompatible.push_back(AZ_CRC("EditorSilhouetteService"));
+    }
+
+    void EditorSilhouetteSystemComponent::GetRequiredServices(AZ::ComponentDescriptor::DependencyArrayType& required)
+    {
+        AZ_UNUSED(required);
+    }
+
+    void EditorSilhouetteSystemComponent::GetDependentServices(AZ::ComponentDescriptor::DependencyArrayType& dependent)
+    {
+        AZ_UNUSED(dependent);
+    }
+
+    void EditorSilhouetteSystemComponent::Init()
+    {
+    }
+
+    void EditorSilhouetteSystemComponent::Activate()
+    {
+        constexpr AZ::s32 defaultSceneEntityDisplayId = AZ_CRC_CE("MainViewportEntityDisplayId");
+        AzToolsFramework::ViewportInteraction::ViewportSettingsNotificationBus::Handler::BusConnect(defaultSceneEntityDisplayId);
+        AzToolsFramework::EditorEntityContextNotificationBus::Handler::BusConnect();
+        AZ::RPI::ViewportContextManagerNotificationsBus::Handler::BusConnect();
+    }
+
+    void EditorSilhouetteSystemComponent::Deactivate()
+    {
+        AZ::RPI::ViewportContextManagerNotificationsBus::Handler::BusDisconnect();
+        AzToolsFramework::EditorEntityContextNotificationBus::Handler::BusDisconnect();
+        AzToolsFramework::ViewportInteraction::ViewportSettingsNotificationBus::Handler::BusDisconnect();
+    }
+
+    AZ::Render::SilhouetteFeatureProcessor* GetFeatureProcessor()
+    {
+        AzFramework::EntityContextId entityContextId;
+        AzFramework::GameEntityContextRequestBus::BroadcastResult(
+            entityContextId, &AzFramework::GameEntityContextRequestBus::Events::GetGameEntityContextId);
+
+        if (auto scene = AZ::RPI::Scene::GetSceneForEntityContextId(entityContextId); scene != nullptr)
+        {
+            return scene->GetFeatureProcessor<AZ::Render::SilhouetteFeatureProcessor>();
+        }
+
+        return nullptr;
+    }
+
+    bool IsSilhouettesVisible()
+    {
+        bool silhouetteVisible = true;
+        AzToolsFramework::ViewportInteraction::ViewportSettingsRequestBus::BroadcastResult(
+            silhouetteVisible, &AzToolsFramework::ViewportInteraction::ViewportSettingsRequestBus::Events::SilhouettesVisible);
+        return silhouetteVisible;
+    }
+
+    void EditorSilhouetteSystemComponent::OnStartPlayInEditor()
+    {
+        OnSilhouettesVisibilityChanged(true);
+    }
+
+    void EditorSilhouetteSystemComponent::OnStopPlayInEditor()
+    {
+        OnSilhouettesVisibilityChanged(IsSilhouettesVisible());
+    }
+
+    void EditorSilhouetteSystemComponent::OnSilhouettesVisibilityChanged(bool enabled)
+    {
+        if (auto featureProcessor = GetFeatureProcessor())
+        {
+            featureProcessor->SetPassesEnabled(enabled);
+        }
+    }
+
+    void EditorSilhouetteSystemComponent::OnViewportContextAdded(AZ::RPI::ViewportContextPtr viewportContext)
+    {
+        auto setupScene = [](RPI::ScenePtr scene)
+        {
+            if (scene)
+            {
+                if (auto fp = scene->GetFeatureProcessor<AZ::Render::SilhouetteFeatureProcessor>())
+                {
+                    fp->SetPassesEnabled(IsSilhouettesVisible());
+                }
+            }
+        };
+        m_sceneChangeHandler = AZ::RPI::ViewportContext::SceneChangedEvent::Handler(setupScene);
+        viewportContext->ConnectSceneChangedHandler(m_sceneChangeHandler);
+    }
+} // namespace AZ::Render

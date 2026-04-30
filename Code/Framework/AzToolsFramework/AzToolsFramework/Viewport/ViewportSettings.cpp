@@ -28,6 +28,9 @@ namespace AzToolsFramework
     constexpr AZStd::string_view OnlyShowHelpersForSelectedEntitiesSetting = "/Amazon/Preferences/Editor/OnlyShowHelpersForSelectedEntities";
     constexpr AZStd::string_view ComponentSwitcherEnabledSetting = "/Amazon/Preferences/Editor/ComponentSwitcherEnabled";
     constexpr AZStd::string_view PrefabEditModeEffectEnabledSetting = "/Amazon/Preferences/Editor/PrefabEditModeEffectEnabled";
+#if defined(CARBONATED)
+    constexpr AZStd::string_view SilhouettesVisibleSetting = "/Amazon/Preferences/Editor/SilhouettesVisible";
+#endif
 
     bool FlipManipulatorAxesTowardsView()
     {
@@ -173,4 +176,16 @@ namespace AzToolsFramework
     {
         SetRegistry(PrefabEditModeEffectEnabledSetting, enabled);
     }
+
+#if defined(CARBONATED)
+    bool SilhouettesVisible()
+    {
+        return GetRegistry(SilhouettesVisibleSetting, true);
+    }
+
+    void SetSilhouettesVisible(bool visible)
+    {
+        SetRegistry(SilhouettesVisibleSetting, visible);
+    }
+#endif
 } // namespace AzToolsFramework

@@ -2221,6 +2221,13 @@ bool EditorViewportSettings::OnlyShowHelpersForSelectedEntities() const
     return AzToolsFramework::OnlyShowHelpersForSelectedEntities();
 }
 
+#if defined(CARBONATED)
+bool EditorViewportSettings::SilhouettesVisible() const
+{
+    return AzToolsFramework::SilhouettesVisible();
+}
+#endif
+
 AZ_CVAR_EXTERNED(bool, ed_previewGameInFullscreen_once);
 
 bool EditorViewportWidget::ShouldPreviewFullscreen() const
