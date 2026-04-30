@@ -1,0 +1,91 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "SilhouetteParentPassTemplate",
+            "PassClass": "ParentPass",
+            "Slots": [
+                // Input/Outputs...
+                {
+                    "Name": "DepthStencilInputOutput",
+                    "SlotType": "InputOutput"
+                },
+                {
+                    "Name": "DepthStencilResolvedInputOutput",
+                    "SlotType": "InputOutput"
+                },
+                {
+                    "Name": "InputOutput",
+                    "SlotType": "InputOutput"
+                }
+            ],
+            "PassRequests": [
+                {
+                    "Name": "SilhouetteGatherPass",
+                    "TemplateName": "SilhouetteGatherPassTemplate",
+                    "Enabled": true,
+                    "Connections": [
+                        {
+                            "LocalSlot": "DepthStencilInput",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthStencilResolvedInputOutput"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "SilhouetteJFAParentPass",
+                    "TemplateName": "SilhouetteJFAParentTemplate",
+                    "Enabled": true,
+                    "Connections": [
+                        {
+                            "LocalSlot": "InputOutput",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "InputOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthStencilInputOutput",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthStencilInputOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthStencilResolvedInputOutput",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthStencilResolvedInputOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "SilhouetteData",
+                            "AttachmentRef": {
+                                "Pass": "SilhouetteGatherPass",
+                                "Attachment": "OutlineData"
+                            }
+                        },
+                        {
+                            "LocalSlot": "SilhouetteColor",
+                            "AttachmentRef": {
+                                "Pass": "SilhouetteGatherPass",
+                                "Attachment": "Output"
+                            }
+                        },
+                        {
+                            "LocalSlot": "SilhouetteDepth",
+                            "AttachmentRef": {
+                                "Pass": "SilhouetteGatherPass",
+                                "Attachment": "OutlineDepth"
+                            }
+                        }                        
+                    ]
+                }
+            ]
+        }
+    }
+}

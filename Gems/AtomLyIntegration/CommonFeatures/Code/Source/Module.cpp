@@ -87,6 +87,9 @@
 #include <Scripting/EditorEntityReferenceComponent.h>
 #include <SurfaceData/EditorSurfaceDataMeshComponent.h>
 #include <Animation/EditorAttachmentComponent.h>
+#if defined(CARBONATED)
+#include <Silhouette/EditorSilhouetteSystemComponent.h>
+#endif
 #endif
 
 namespace AZ
@@ -181,6 +184,9 @@ namespace AZ
                         EditorWhiteBalanceComponent::CreateDescriptor(),
                         EditorVignetteComponent::CreateDescriptor(),
                         EditorCubeMapCaptureComponent::CreateDescriptor(),
+#if defined(CARBONATED)
+                        EditorSilhouetteSystemComponent::CreateDescriptor(),
+#endif
 #endif
                     });
             }
@@ -194,6 +200,9 @@ namespace AZ
                     azrtti_typeid<EditorMeshSystemComponent>(),
                     azrtti_typeid<EditorCommonFeaturesSystemComponent>(),
                     azrtti_typeid<EditorPostFxSystemComponent>(),
+#if defined(CARBONATED)
+                    azrtti_typeid<EditorSilhouetteSystemComponent>(),
+#endif
 #endif
                 };
             }

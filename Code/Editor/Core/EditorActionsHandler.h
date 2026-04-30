@@ -86,6 +86,9 @@ private:
     void OnGridShowingChanged(bool showing) override;
     void OnGridSnappingChanged(bool enabled) override;
     void OnIconsVisibilityChanged(bool enabled) override;
+#if defined(CARBONATED)
+    void OnSilhouettesVisibilityChanged(bool enabled) override;
+#endif
 
     // EditorPickModeNotificationBus overrides ...
     void OnEntityPickModeStarted() override;

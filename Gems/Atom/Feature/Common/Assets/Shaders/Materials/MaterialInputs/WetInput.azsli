@@ -10,16 +10,22 @@
 
 #include <Atom/Features/Debug.azsli>
 
-// This file provides utilities for common handling of inputs for "metalness" of PBR materials.
+// This file provides utilities for common handling of inputs for "Wetness" properties of PBR materials, (C) Carbonated.
+// CARBONATED Addition.
 
 // These macros can be used to declare common shader inputs for this feature. 
 // Use the COMMON_SRG_INPUTS_* macro in your material SRG definition, and use the COMMON_OPTIONS_* macro at the global scope in your shader. Then you can pass these variables to the Get*Input() function below.
 // You can optionally provide a prefix for the set of inputs which corresponds to a prefix string supplied by the .materialtype file. This is common for multi-layered material types.
 
 #define COMMON_SRG_INPUTS_WET(prefix) \
+float prefix##m_wetCenterX; \
+float prefix##m_wetCenterY; \
+float prefix##m_wetRadius; \
+float prefix##m_wetAmount;  \
 float prefix##m_wetFactor;  \
 Texture2D prefix##m_wetMap; \
-uint prefix##m_wetMapUvIndex;
+uint prefix##m_wetMapUvIndex; \
+float prefix##m_wetMapUvScale; 
 
 #define COMMON_OPTIONS_WET(prefix) \
 option bool prefix##o_useWet; \

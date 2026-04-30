@@ -305,6 +305,18 @@ namespace AZ
             return m_enabled;
         }
 
+#if defined(CARBONATED)
+        void ShaderCollection::Item::SetStencilRefOverride(uint8_t stencilRef)
+        {
+            m_stencilRef = stencilRef;
+        }
+
+        uint8_t ShaderCollection::Item::GetStencilRefOverride() const
+        {
+            return m_stencilRef;
+        }
+#endif
+
         const AZ::Name& ShaderCollection::Item::GetShaderTag() const
         {
             return m_shaderTag;

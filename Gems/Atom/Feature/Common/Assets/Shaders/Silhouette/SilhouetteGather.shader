@@ -10,15 +10,14 @@
         "Stencil" :
         {
             "Enable" : true,
-            "ReadMask" : "0x40", // Needs to match BlockSilhouettes in RenderCommon.h
-            "WriteMask" : "0x0",
+            "ReadMask" : "0x0",
+            "WriteMask" : "0x20",
             "FrontFace" :
             {
-                "Func" : "Equal"
-            },
-            "BackFace" :
-            {
-                "Func" : "Equal"
+                "Func" : "Always",
+                "DepthFailOp" : "Keep",
+                "FailOp" : "Keep",
+                "PassOp" : "Replace"
             }
         }
     },
@@ -28,13 +27,7 @@
     },
 
     "GlobalTargetBlendState": {
-        "Enable": true,
-        "BlendSource" : "One",
-        "BlendDest" : "Zero",
-        "BlendOp" : "Maximum",
-        "BlendAlphaSource" : "Zero",
-        "BlendAlphaDest" : "One",
-        "BlendAlphaOp" : "Maximum"
+        "Enable": false
     },
     "ProgramSettings": {
         "EntryPoints": [

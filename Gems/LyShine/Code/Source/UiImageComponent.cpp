@@ -362,12 +362,19 @@ void UiImageComponent::Render(LyShine::IRenderGraph* renderGraph)
     uint8 desiredPackedAlpha = static_cast<uint8>(desiredAlpha * 255.0f);
 
     ISprite* sprite = (m_overrideSprite) ? m_overrideSprite : m_sprite;
+    const bool isBackdrop = IsSpriteTypeBackdrop();
+    const AZ::Vector2 backdropCaptureSize = isBackdrop ? GetBackdropCaptureSize() : AZ::Vector2::CreateZero();
+
+    if (isBackdrop && m_cachedBackdropCaptureSize != backdropCaptureSize)
+    {
+        m_isRenderCacheDirty = true;
+    }
 
     if (m_isRenderCacheDirty)
     {
         int cellIndex = (m_overrideSprite) ? m_overrideSpriteCellIndex : m_spriteSheetCellIndex;
 
-        bool isTextureSRGB = IsSpriteTypeRenderTarget() && m_isRenderTargetSRGB;
+        bool isTextureSRGB = isBackdrop || (IsSpriteTypeRenderTarget() && m_isRenderTargetSRGB);
 
         AZ::Color color = AZ::Color::CreateFromVector3AndFloat(m_overrideColor.GetAsVector3(), 1.0f);
         if (!isTextureSRGB)
@@ -381,56 +388,64 @@ void UiImageComponent::Render(LyShine::IRenderGraph* renderGraph)
         uint32 packedColor = (desiredPackedAlpha << 24) | (color.GetR8() << 16) | (color.GetG8() << 8) | color.GetB8();
 #endif
 
-        ImageType imageType = m_imageType;
-
-        // if there is no texture we will just use a white texture and want to stretch it
-        const bool spriteOrTextureIsNull = sprite == nullptr || sprite->GetImage() == nullptr;
-
-        // Zero texture size may occur even if the UiImageComponent has a valid non-zero-sized texture,
-        // because a canvas can be requested to Render() before the texture asset is done loading.
-        if (!spriteOrTextureIsNull)
+        if (isBackdrop)
         {
-            const AZ::Vector2 textureSize = sprite->GetSize();
-            if (textureSize.GetX() == 0 || textureSize.GetY() == 0)
+            RenderBackdrop(backdropCaptureSize, packedColor);
+            m_cachedBackdropCaptureSize = backdropCaptureSize;
+        }
+        else
+        {
+            ImageType imageType = m_imageType;
+
+            // if there is no texture we will just use a white texture and want to stretch it
+            const bool spriteOrTextureIsNull = sprite == nullptr || sprite->GetImage() == nullptr;
+
+            // Zero texture size may occur even if the UiImageComponent has a valid non-zero-sized texture,
+            // because a canvas can be requested to Render() before the texture asset is done loading.
+            if (!spriteOrTextureIsNull)
             {
-                // don't render to cache and leave m_isRenderCacheDirty set to true
-                return;        
+                const AZ::Vector2 textureSize = sprite->GetSize();
+                if (textureSize.GetX() == 0 || textureSize.GetY() == 0)
+                {
+                    // don't render to cache and leave m_isRenderCacheDirty set to true
+                    return;
+                }
             }
-        }
 
-        // if the borders are zero width then sliced is the same as stretched and stretched is simpler to render
-        const bool spriteIsSlicedAndBordersAreZeroWidth = imageType == ImageType::Sliced && sprite && sprite->AreCellBordersZeroWidth(cellIndex);
+            // if the borders are zero width then sliced is the same as stretched and stretched is simpler to render
+            const bool spriteIsSlicedAndBordersAreZeroWidth = imageType == ImageType::Sliced && sprite && sprite->AreCellBordersZeroWidth(cellIndex);
 
-        if (spriteOrTextureIsNull || spriteIsSlicedAndBordersAreZeroWidth)
-        {
-            imageType = ImageType::Stretched;
-        }
+            if (spriteOrTextureIsNull || spriteIsSlicedAndBordersAreZeroWidth)
+            {
+                imageType = ImageType::Stretched;
+            }
 
-        switch (imageType)
-        {
-        case ImageType::Stretched:
-            RenderStretchedSprite(sprite, cellIndex, packedColor);
-            break;
-        case ImageType::Sliced:
-            AZ_Assert(sprite, "Should not get here if no sprite path is specified");
-            RenderSlicedSprite(sprite, cellIndex, packedColor);   // will not get here if sprite is null since we change type in that case above
-            break;
-        case ImageType::Fixed:
-            AZ_Assert(sprite, "Should not get here if no sprite path is specified");
-            RenderFixedSprite(sprite, cellIndex, packedColor);
-            break;
-        case ImageType::Tiled:
-            AZ_Assert(sprite, "Should not get here if no sprite path is specified");
-            RenderTiledSprite(sprite, packedColor);
-            break;
-        case ImageType::StretchedToFit:
-            AZ_Assert(sprite, "Should not get here if no sprite path is specified");
-            RenderStretchedToFitOrFillSprite(sprite, cellIndex, packedColor, true);
-            break;
-        case ImageType::StretchedToFill:
-            AZ_Assert(sprite, "Should not get here if no sprite path is specified");
-            RenderStretchedToFitOrFillSprite(sprite, cellIndex, packedColor, false);
-            break;
+            switch (imageType)
+            {
+            case ImageType::Stretched:
+                RenderStretchedSprite(sprite, cellIndex, packedColor);
+                break;
+            case ImageType::Sliced:
+                AZ_Assert(sprite, "Should not get here if no sprite path is specified");
+                RenderSlicedSprite(sprite, cellIndex, packedColor);   // will not get here if sprite is null since we change type in that case above
+                break;
+            case ImageType::Fixed:
+                AZ_Assert(sprite, "Should not get here if no sprite path is specified");
+                RenderFixedSprite(sprite, cellIndex, packedColor);
+                break;
+            case ImageType::Tiled:
+                AZ_Assert(sprite, "Should not get here if no sprite path is specified");
+                RenderTiledSprite(sprite, packedColor);
+                break;
+            case ImageType::StretchedToFit:
+                AZ_Assert(sprite, "Should not get here if no sprite path is specified");
+                RenderStretchedToFitOrFillSprite(sprite, cellIndex, packedColor, true);
+                break;
+            case ImageType::StretchedToFill:
+                AZ_Assert(sprite, "Should not get here if no sprite path is specified");
+                RenderStretchedToFitOrFillSprite(sprite, cellIndex, packedColor, false);
+                break;
+            }
         }
 
         if (!UiCanvasPixelAlignmentNotificationBus::Handler::BusIsConnected())
@@ -465,12 +480,26 @@ void UiImageComponent::Render(LyShine::IRenderGraph* renderGraph)
             }
         }
 
-        AZ::Data::Instance<AZ::RPI::Image> image = GetSpriteImage(sprite);
-        bool isClampTextureMode = m_imageType == ImageType::Tiled ? false : true;
-        bool isTextureSRGB = IsSpriteTypeRenderTarget() && m_isRenderTargetSRGB;
+        AZ::Data::Instance<AZ::RPI::Image> image = isBackdrop ? GetBackdropImage() : GetSpriteImage(sprite);
+        bool isClampTextureMode = isBackdrop || m_imageType != ImageType::Tiled;
+        bool isTextureSRGB = isBackdrop || (IsSpriteTypeRenderTarget() && m_isRenderTargetSRGB);
         bool isTexturePremultipliedAlpha = false; // we are not rendering from a render target with alpha in it
 
-        renderGraph->AddPrimitive(&m_cachedPrimitive, image, isClampTextureMode, isTextureSRGB, isTexturePremultipliedAlpha, m_blendMode);
+        if (isBackdrop && image && m_backdropBlurRadius > 0.0f)
+        {
+            renderGraph->AddBackdropPrimitive(
+                &m_cachedPrimitive,
+                image,
+                isClampTextureMode,
+                isTextureSRGB,
+                isTexturePremultipliedAlpha,
+                m_blendMode,
+                m_backdropBlurRadius);
+        }
+        else
+        {
+            renderGraph->AddPrimitive(&m_cachedPrimitive, image, isClampTextureMode, isTextureSRGB, isTexturePremultipliedAlpha, m_blendMode);
+        }
     }
 }
 
@@ -984,6 +1013,7 @@ void UiImageComponent::Reflect(AZ::ReflectContext* context)
             ->Field("Index", &UiImageComponent::m_spriteSheetCellIndex)
             ->Field("AttachmentImageAsset", &UiImageComponent::m_attachmentImageAsset)
             ->Field("IsRenderTargetSRGB", &UiImageComponent::m_isRenderTargetSRGB)
+            ->Field("BackdropBlurRadius", &UiImageComponent::m_backdropBlurRadius)
             ->Field("Color", &UiImageComponent::m_color)
             ->Field("Alpha", &UiImageComponent::m_alpha)
             ->Field("ImageType", &UiImageComponent::m_imageType)
@@ -1012,6 +1042,7 @@ void UiImageComponent::Reflect(AZ::ReflectContext* context)
             editInfo->DataElement(AZ::Edit::UIHandlers::ComboBox, &UiImageComponent::m_spriteType, "SpriteType", "The sprite type.")
                 ->EnumAttribute(UiImageInterface::SpriteType::SpriteAsset, "Sprite/Texture asset")
                 ->EnumAttribute(UiImageInterface::SpriteType::RenderTarget, "Render target")
+                ->EnumAttribute(UiImageInterface::SpriteType::Backdrop, "Backdrop capture")
                 ->Attribute(AZ::Edit::Attributes::ChangeNotify, &UiImageComponent::OnEditorSpriteTypeChange)
                 ->Attribute(AZ::Edit::Attributes::ChangeNotify, AZ_CRC("RefreshEntireTree", 0xefbc823c));
             editInfo->DataElement("Sprite", &UiImageComponent::m_spritePathname, "Sprite path", "The sprite path. Can be overridden by another component such as an interactable.")
@@ -1026,6 +1057,11 @@ void UiImageComponent::Reflect(AZ::ReflectContext* context)
                 ->Attribute(AZ::Edit::Attributes::ChangeNotify, &UiImageComponent::OnSpriteAttachmentImageAssetChange);
             editInfo->DataElement(AZ::Edit::UIHandlers::CheckBox, &UiImageComponent::m_isRenderTargetSRGB, "Render Target sRGB", "Check this box if the render target is in sRGB space instead of linear RGB space.")
                 ->Attribute(AZ::Edit::Attributes::Visibility, &UiImageComponent::IsSpriteTypeRenderTarget)
+                ->Attribute(AZ::Edit::Attributes::ChangeNotify, &UiImageComponent::OnEditorRenderSettingChange);
+            editInfo->DataElement(AZ::Edit::UIHandlers::Slider, &UiImageComponent::m_backdropBlurRadius, "Backdrop Blur Radius", "The blur radius applied when sampling the captured backdrop behind this panel.")
+                ->Attribute(AZ::Edit::Attributes::Visibility, &UiImageComponent::IsSpriteTypeBackdrop)
+                ->Attribute(AZ::Edit::Attributes::Min, 0.0f)
+                ->Attribute(AZ::Edit::Attributes::Max, 32.0f)
                 ->Attribute(AZ::Edit::Attributes::ChangeNotify, &UiImageComponent::OnEditorRenderSettingChange);
             editInfo->DataElement(AZ::Edit::UIHandlers::Color, &UiImageComponent::m_color, "Color", "The color tint for the image. Can be overridden by another component such as an interactable.")
                 ->Attribute(AZ::Edit::Attributes::ChangeNotify, &UiImageComponent::OnColorChange);
@@ -1107,6 +1143,7 @@ void UiImageComponent::Reflect(AZ::ReflectContext* context)
             ->Enum<(int)UiImageInterface::ImageType::StretchedToFill>("eUiImageType_StretchedToFill")
             ->Enum<(int)UiImageInterface::SpriteType::SpriteAsset>("eUiSpriteType_SpriteAsset")
             ->Enum<(int)UiImageInterface::SpriteType::RenderTarget>("eUiSpriteType_RenderTarget")
+            ->Enum<(int)UiImageInterface::SpriteType::Backdrop>("eUiSpriteType_Backdrop")
             ->Enum<(int)UiImageInterface::FillType::None>("eUiFillType_None")
             ->Enum<(int)UiImageInterface::FillType::Linear>("eUiFillType_Linear")
             ->Enum<(int)UiImageInterface::FillType::Radial>("eUiFillType_Radial")
@@ -1200,6 +1237,10 @@ void UiImageComponent::Init()
             {
                 m_sprite = AZ::Interface<ILyShine>::Get()->CreateSprite(m_attachmentImageAsset);
             }
+        }
+        else if (IsSpriteTypeBackdrop())
+        {
+            m_sprite = nullptr;
         }
         else
         {
@@ -1507,6 +1548,36 @@ void UiImageComponent::RenderStretchedToFitOrFillSprite(ISprite* sprite, int cel
     else
     {
         RenderFilledQuad(points.pt, uvs, packedColor);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+void UiImageComponent::RenderBackdrop(const AZ::Vector2& captureSize, uint32 packedColor)
+{
+    UiTransformInterface::RectPoints points;
+    UiTransformBus::Event(GetEntityId(), &UiTransformBus::Events::GetViewportSpacePoints, points);
+
+    AZ::Vector2 safeCaptureSize = captureSize;
+    if (safeCaptureSize.GetX() <= 0.0f || safeCaptureSize.GetY() <= 0.0f)
+    {
+        safeCaptureSize = AZ::Vector2(1.0f, 1.0f);
+    }
+
+    const AZ::Vector2 uvs[4] =
+    {
+        AZ::Vector2(points.TopLeft().GetX() / safeCaptureSize.GetX(), points.TopLeft().GetY() / safeCaptureSize.GetY()),
+        AZ::Vector2(points.TopRight().GetX() / safeCaptureSize.GetX(), points.TopRight().GetY() / safeCaptureSize.GetY()),
+        AZ::Vector2(points.BottomRight().GetX() / safeCaptureSize.GetX(), points.BottomRight().GetY() / safeCaptureSize.GetY()),
+        AZ::Vector2(points.BottomLeft().GetX() / safeCaptureSize.GetX(), points.BottomLeft().GetY() / safeCaptureSize.GetY()),
+    };
+
+    if (m_fillType != FillType::None)
+    {
+        RenderFilledQuad(points.pt, uvs, packedColor);
+    }
+    else
+    {
+        RenderSingleQuad(points.pt, uvs, packedColor);
     }
 }
 
@@ -2431,6 +2502,12 @@ bool UiImageComponent::IsSpriteTypeRenderTarget()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+bool UiImageComponent::IsSpriteTypeBackdrop()
+{
+    return (m_spriteType == UiImageInterface::SpriteType::Backdrop);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 bool UiImageComponent::IsFilled()
 {
     return (m_fillType != FillType::None);
@@ -2576,10 +2653,44 @@ void UiImageComponent::OnSpriteTypeChange()
     {
         OnSpriteAttachmentImageAssetChange();
     }
+    else if (IsSpriteTypeBackdrop())
+    {
+        if (UiSpriteSettingsChangeNotificationBus::Handler::BusIsConnected())
+        {
+            UiSpriteSettingsChangeNotificationBus::Handler::BusDisconnect();
+        }
+
+        SAFE_RELEASE(m_sprite);
+        m_cachedBackdropCaptureSize = AZ::Vector2::CreateZero();
+        InvalidateLayouts();
+        ResetSpriteSheetCellIndex();
+    }
     else
     {
         AZ_Assert(false, "unhandled sprite type");
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+AZ::Data::Instance<AZ::RPI::Image> UiImageComponent::GetBackdropImage() const
+{
+    AZ::EntityId canvasEntityId;
+    UiElementBus::EventResult(canvasEntityId, GetEntityId(), &UiElementBus::Events::GetCanvasEntityId);
+
+    AZ::Data::Instance<AZ::RPI::Image> backdropImage;
+    UiCanvasBus::EventResult(backdropImage, canvasEntityId, &UiCanvasBus::Events::GetBackdropCaptureImage);
+    return backdropImage;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+AZ::Vector2 UiImageComponent::GetBackdropCaptureSize() const
+{
+    AZ::EntityId canvasEntityId;
+    UiElementBus::EventResult(canvasEntityId, GetEntityId(), &UiElementBus::Events::GetCanvasEntityId);
+
+    AZ::Vector2 backdropCaptureSize = AZ::Vector2::CreateZero();
+    UiCanvasBus::EventResult(backdropCaptureSize, canvasEntityId, &UiCanvasBus::Events::GetBackdropCaptureSize);
+    return backdropCaptureSize;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

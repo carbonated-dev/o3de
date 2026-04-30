@@ -1,0 +1,43 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#pragma once
+
+#include <Atom/Feature/Common/Assets/Shaders/Materials/MaterialInputs/SilhouetteInput.azsli>
+
+struct OutlineData
+{
+    float m_outlineSize;
+    bool  m_outlineOnly;
+    SilhouetteType m_type;
+};
+
+static const uint MaxOutlineThickness = 0x1F;
+static const uint OutlineOnlyPos = 7;
+static const uint OutlineTypePos = 5;
+static const uint OutlineInsideMask = 0x20;
+static const uint OutlineBlockMask = 0x40;
+static const uint OutlineInvalidData = 0xFF;
+
+uint EncodeOutlineData(in OutlineData data)
+{
+    uint lineThickness = min(data.m_outlineSize, MaxOutlineThickness);
+    uint outlineOnly = (uint)data.m_outlineOnly;
+    uint type = (uint)data.m_type;
+    uint encodedData = lineThickness | (outlineOnly << OutlineOnlyPos) | (type << OutlineTypePos);
+    return encodedData;
+}
+
+OutlineData DecodeOutlineData(uint encodedData)
+{
+    OutlineData data;
+    data.m_outlineSize = encodedData & MaxOutlineThickness;
+    data.m_outlineOnly = (encodedData >> OutlineOnlyPos) & 0x1;
+    data.m_type = (SilhouetteType)((encodedData >> OutlineTypePos) & 0x3);
+    return data;
+}

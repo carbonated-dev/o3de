@@ -437,6 +437,17 @@ namespace AZ
             const bool bIsArray = imageDescriptor.m_arraySize > 1 || imageViewDescriptor.m_isArray;;
             const bool bIsMsaa = imageDescriptor.m_multisampleState.m_samples > 1;
             const bool bIsCubemap = imageViewDescriptor.m_isCubemap != 0;
+#if defined(CARBONATED)
+            // If we are using an SRV for only the stencil plane, we need an image view with a stencil format.
+            // We also need to set the proper plane when creating the view.
+            // If not, it will not read the value correctly.
+            const bool bIsStencilOnly = RHI::ImageAspectFlags::Stencil == imageViewDescriptor.m_aspectFlags;
+            if (bIsStencilOnly)
+            {
+                shaderResourceView.Format = GetStencilFormat(shaderResourceView.Format);
+            }
+            const uint32_t planeSlice = bIsStencilOnly ? 1 : 0;
+#endif
 
             uint32_t ArraySize = (imageViewDescriptor.m_arraySliceMax - imageViewDescriptor.m_arraySliceMin) + 1;
             ArraySize = AZStd::min<uint32_t>(ArraySize, imageDescriptor.m_arraySize);
@@ -499,6 +510,9 @@ namespace AZ
                         shaderResourceView.Texture2DArray.FirstArraySlice = imageViewDescriptor.m_arraySliceMin;
                         shaderResourceView.Texture2DArray.MipLevels = mipLevelCount;
                         shaderResourceView.Texture2DArray.MostDetailedMip = imageViewDescriptor.m_mipSliceMin;
+#if defined(CARBONATED)
+                        shaderResourceView.Texture2DArray.PlaneSlice = planeSlice;
+#endif
                     }
                 }
                 else
@@ -512,6 +526,9 @@ namespace AZ
                         shaderResourceView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
                         shaderResourceView.Texture2D.MipLevels = mipLevelCount;
                         shaderResourceView.Texture2D.MostDetailedMip = imageViewDescriptor.m_mipSliceMin;
+#if defined(CARBONATED)
+                        shaderResourceView.Texture2D.PlaneSlice = planeSlice;
+#endif
                     }
                 }
                 break;

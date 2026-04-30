@@ -700,8 +700,13 @@ namespace EMotionFX
                     AZ::TransformBus::Event(entityId, &AZ::TransformBus::Events::SetWorldTM, newTransform);
                 }
             }
-            else // There is no physics controller, just use EMotion FX's actor instance transform directly.
+            // No need to update if it is an attachment, since both Motion FX's actor instance should have the same transform
+            // and any changes to the attached entity will affect this entity (becuause of the hierarchy).
+            // Applying the EMotion FX's actor instance transform directly could lead to different world positions with the attached
+            // actor instance if a physics motion controller is present.
+            else if (!actorInstance->GetIsAttachment()) 
             {
+                // There is no physics controller, just use EMotion FX's actor instance transform directly.
                 const AZ::Transform newTransform = actorInstance->GetWorldSpaceTransform().ToAZTransform();
                 AZ::TransformBus::Event(entityId, &AZ::TransformBus::Events::SetWorldTM, newTransform);
             }

@@ -8,14 +8,67 @@
             "PassClass": "LyShinePass",
             "Slots": [
                 {
+                    "Name": "ColorInput",
+                    "SlotType": "Input"
+                },
+                {
                     "Name": "ColorInputOutput",
                     "SlotType": "InputOutput"
                 },
                 {
+                    "Name": "BackdropCaptureOutput",
+                    "SlotType": "InputOutput"
+                },
+                {
                     "Name": "DepthInputOutput",
-                    "SlotType": "InputOutput",
-                    "ScopeAttachmentUsage": "DepthStencil"
-                }            
+                    "SlotType": "InputOutput"
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "BackdropCaptureImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "ColorInputOutput"
+                        }
+                    },
+                    "FormatSource": {
+                        "Pass": "This",
+                        "Attachment": "ColorInputOutput"
+                    }
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "BackdropCaptureOutput",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "BackdropCaptureImage"
+                    }
+                }
+            ],
+            "PassRequests": [
+                {
+                    "Name": "BackdropCapturePass",
+                    "TemplateName": "CopyPassTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "Input",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "ColorInput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "Output",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "BackdropCaptureOutput"
+                            }
+                        }
+                    ]
+                }
             ]
         }
     }

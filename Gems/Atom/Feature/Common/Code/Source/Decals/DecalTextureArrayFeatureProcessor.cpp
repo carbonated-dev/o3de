@@ -110,8 +110,10 @@ namespace AZ
             m_visibleDecalBufferHandlers.clear();
         }
 
-        DecalTextureArrayFeatureProcessor::DecalHandle DecalTextureArrayFeatureProcessor::AcquireDecal()
+#if defined(CARBONATED)
+        DecalTextureArrayFeatureProcessor::DecalHandle DecalTextureArrayFeatureProcessor::AcquireDecalInternal()
         {
+            // NO LOCK HERE. This is only called by functions that already hold a lock.
             const uint16_t id = m_decalData.GetFreeSlotIndex();
 
             if (id == IndexedDataVector<DecalData>::NoFreeSlot)
@@ -126,9 +128,38 @@ namespace AZ
                 return DecalHandle(id);
             }
         }
+#endif
+
+        DecalTextureArrayFeatureProcessor::DecalHandle DecalTextureArrayFeatureProcessor::AcquireDecal()
+        {
+#if defined(CARBONATED)
+            AZStd::unique_lock<AZStd::shared_mutex> writeLock(m_decalDataMutex);
+            // we are already locked so call the internal version that doesn't lock again to avoid deadlock.
+            return AcquireDecalInternal();
+#else
+
+            const uint16_t id = m_decalData.GetFreeSlotIndex();
+
+            if (id == IndexedDataVector<DecalData>::NoFreeSlot)
+            {
+                return DecalHandle(DecalHandle::NullIndex);
+            }
+            else
+            {
+                m_deviceBufferNeedsUpdate = true;
+                DecalData& decalData = m_decalData.GetData<0>(id);
+                decalData.m_textureArrayIndex = DecalData::UnusedIndex;
+                return DecalHandle(id);
+            }
+#endif
+        }
 
         bool DecalTextureArrayFeatureProcessor::ReleaseDecal(const DecalHandle decal)
         {
+#if defined(CARBONATED)
+            AZStd::unique_lock<AZStd::shared_mutex> writeLock(m_decalDataMutex);
+#endif
+
             if (decal.IsValid())
             {
                 if (m_materialLoadTracker.IsAssetLoading(decal))
@@ -152,10 +183,36 @@ namespace AZ
         {
             AZ_Assert(sourceDecal.IsValid(), "Invalid DecalHandle passed to DecalTextureArrayFeatureProcessor::CloneDecal().");
 
+#if defined(CARBONATED)
+            // Lock once for the entire cloning process.
+            AZStd::unique_lock<AZStd::shared_mutex> writeLock(m_decalDataMutex);
+
+            // Call the internal version that DOES NOT lock, preventing a deadlock.
+            const DecalHandle decal = AcquireDecalInternal();
+#else
             const DecalHandle decal = AcquireDecal();
+#endif
+
             if (decal.IsValid())
             {
                 m_decalData.GetData<0>(decal.GetIndex()) = m_decalData.GetData<0>(sourceDecal.GetIndex());
+
+#if defined(CARBONATED)
+                const auto materialAsset = GetMaterialUsedByDecal(sourceDecal);
+                if (materialAsset.IsValid())
+                {
+                    // Carbonated build: safer lookup for multi-threading
+                    auto iter = m_materialToTextureArrayLookupTable.find(materialAsset);
+                    if (iter != m_materialToTextureArrayLookupTable.end())
+                    {
+                        iter->second.m_useCount++;
+                    }
+                }
+                else
+                {
+                    AZ_Warning("DecalTextureArrayFeatureProcessor", false, "CloneDecal called on a decal with no material set.");
+                }
+#else
                 const auto materialAsset = GetMaterialUsedByDecal(sourceDecal);
                 if (materialAsset.IsValid())
                 {
@@ -165,6 +222,8 @@ namespace AZ
                 {
                     AZ_Warning("DecalTextureArrayFeatureProcessor", false, "CloneDecal called on a decal with no material set.");
                 }
+#endif
+
                 m_deviceBufferNeedsUpdate = true;
             }
             return decal;
@@ -210,6 +269,9 @@ namespace AZ
 
         void DecalTextureArrayFeatureProcessor::SetDecalData(const DecalHandle handle, const DecalData& data)
         {
+#if defined(CARBONATED)
+            AZStd::unique_lock<AZStd::shared_mutex> writeLock(m_decalDataMutex);
+#endif
             if (handle.IsValid())
             {
                 m_decalData.GetData<0>(handle.GetIndex()) = data;
@@ -233,8 +295,19 @@ namespace AZ
 
         void DecalTextureArrayFeatureProcessor::SetDecalPosition(const DecalHandle handle, const AZ::Vector3& position)
         {
+#if defined(CARBONATED)
+            // setting the lock here to prevent potential tearing issues with the position being read for culling while it's being updated.
+            AZStd::unique_lock<AZStd::shared_mutex> writeLock(m_decalDataMutex);
+#endif
             if (handle.IsValid())
             {
+#if defined(CARBONATED)
+                if (!IsVectorValid(position))
+                {
+                    AZ_Warning("DecalTextureArrayFeatureProcessor", false, "SetDecalPosition rejected: NaN detected in position for handle %u.", handle.GetIndex());
+                    return;
+                }
+#endif
                 AZStd::array<float, 3>& writePos = m_decalData.GetData<0>(handle.GetIndex()).m_position;
                 position.StoreToFloat3(writePos.data());
                 UpdateBounds(handle);
@@ -250,6 +323,9 @@ namespace AZ
         {
             if (handle.IsValid())
             {
+#if defined(CARBONATED)
+                AZStd::unique_lock<AZStd::shared_mutex> writeLock(m_decalDataMutex);
+#endif
                 orientation.StoreToFloat4(m_decalData.GetData<0>(handle.GetIndex()).m_quaternion.data());
                 m_deviceBufferNeedsUpdate = true;
             }
@@ -294,6 +370,9 @@ namespace AZ
 
         void DecalTextureArrayFeatureProcessor::SetDecalHalfSize(DecalHandle handle, const Vector3& halfSize)
         {
+#if defined(CARBONATED)
+            AZStd::unique_lock<AZStd::shared_mutex> writeLock(m_decalDataMutex);
+#endif
             if (handle.IsValid())
             {
                 halfSize.StoreToFloat3(m_decalData.GetData<0>(handle.GetIndex()).m_halfSize.data());
@@ -372,6 +451,14 @@ namespace AZ
         {
             if (handle.IsValid())
             {
+#if defined(CARBONATED)
+                // We don't lock SetDecalTransform, the other SetDecal functions used will handle their own locks.
+                if (!IsVectorValid(world.GetTranslation()))
+                {
+                    AZ_Error("DecalTextureArrayFeatureProcessor", false, "SetDecalTransform rejected: NaN detected in world translation for handle %u.", handle.GetIndex());
+                    return;
+                }
+#endif
                 SetDecalHalfSize(handle, nonUniformScale * world.GetUniformScale());
                 SetDecalPosition(handle, world.GetTranslation());
                 SetDecalOrientation(handle, world.GetRotation());
@@ -627,18 +714,57 @@ namespace AZ
                 return;
             }
 
+#if defined(CARBONATED)
+            // Acquire a shared lock to prevent the Main thread from resizing m_decalData
+            // while we are sorting and iterating over it.
+            AZStd::shared_lock<AZStd::shared_mutex> readLock(m_decalDataMutex);
+#endif
+
             const auto& dataVector = m_decalData.GetDataVector<0>();
             size_t numVisibleDecals =
                 r_maxVisibleDecals < 0 ? dataVector.size() : AZStd::min(dataVector.size(), static_cast<size_t>(r_maxVisibleDecals));
             AZStd::vector<uint32_t> sortedDecals(dataVector.size());
             // Initialize with all the decals indices
             std::iota(sortedDecals.begin(), sortedDecals.end(), 0);
-#if !defined(CARBONATED)
+
+#if defined(CARBONATED)
+            // Sort always due to the render pipeline can have its own limit for visible decals. And that limit can be much less than
+            // numVisibleDecals.
+            {
+                AZ::Vector3 viewPos = view->GetViewToWorldMatrix().GetTranslation();
+                AZStd::sort(
+                    sortedDecals.begin(),
+                    sortedDecals.end(),
+                    [&dataVector, &viewPos](uint32_t lhs, uint32_t rhs)
+                    {
+                        // It's possible that d1 or d2 could be NaN if the decal position data is invalid. We need to handle this case to
+                        // avoid undefined behavior in sorting and potential crashes. In this implementation, we will treat NaN values as
+                        // greater than any valid number, which effectively pushes decals with invalid positions to the end of the sorted
+                        // list.
+                        float d1 = (AZ::Vector3::CreateFromFloat3(dataVector[lhs].m_position.data()) - viewPos).GetLengthSq();
+                        float d2 = (AZ::Vector3::CreateFromFloat3(dataVector[rhs].m_position.data()) - viewPos).GetLengthSq();
+
+                        // The check: NaN is not equal to itself. IEEE 754 floating point standard defines that any comparison with NaN
+                        // should return false, except for != which returns true. So this is a common way to check for NaN values.
+                        bool d1Invalid = (d1 != d1);
+                        bool d2Invalid = (d2 != d2);
+
+                        if (d1Invalid || d2Invalid)
+                        {
+                            // Log the error using standard O3DE logging
+                            AZ_Printf("DecalTextureArrayFeatureProcessor", "Decal Math Error: NaN detected! Indices: %u, %u", lhs, rhs);
+
+                            // Strict Weak Ordering requires a consistent result.
+                            // This pushes invalid entries to the back.
+                            return d1Invalid < d2Invalid;
+                        }
+
+                        return d1 < d2;
+                    });
+            }
+#else
             // Only sort if we are going to limit the number of visible decals
             if (numVisibleDecals < dataVector.size())
-#else
-            // Sort always due to the render pipeline can have its own limit for visible decals. And that limit can be much less than numVisibleDecals.
-#endif
             {
                 AZ::Vector3 viewPos = view->GetViewToWorldMatrix().GetTranslation();
                 AZStd::sort(
@@ -651,6 +777,7 @@ namespace AZ
                         return d1 < d2;
                     });
             }
+#endif
 
             const AZ::Frustum viewFrustum = AZ::Frustum::CreateFromMatrixColumnMajor(view->GetWorldToClipMatrix());
             AZStd::vector<uint32_t> visibilityBuffer;
