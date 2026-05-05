@@ -24,14 +24,5 @@
         ] 
     },
 
-    "DrawList" : "froxelLocalVolume",
-    "Supervariants":
-    [
-        {
-            "Name": "",
-            "AddBuildArguments": {
-                "debug": true
-            }
-        }
-    ]
+    "DrawList" : "froxelLocalVolume"
 }

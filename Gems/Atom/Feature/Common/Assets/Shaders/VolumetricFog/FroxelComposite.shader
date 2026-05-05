@@ -29,13 +29,7 @@
         ]
     },
     "Supervariants":
-    [
-        {
-            "Name": "",
-            "AddBuildArguments": {
-                "debug": true
-            }
-        },
+    [        
         {
             "Name": "NoMSAA",
             "AddBuildArguments": {

@@ -10,15 +10,5 @@
                 "type" : "Compute"
             }
         ]
-    },
-    "Supervariants":
-    [
-        {
-            "Name": "",
-            "AddBuildArguments": {
-                "debug": true
-            }
-        }
-    ]
-
+    }
 }

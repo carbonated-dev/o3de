@@ -18,14 +18,5 @@
         ] 
     },
 
-    "DrawList" : "depthTransparentMin",
-    "Supervariants":
-    [
-        {
-            "Name": "",
-            "AddBuildArguments": {
-                "debug": true
-            }
-        }
-    ]
+    "DrawList" : "depthTransparentMin"
 }
