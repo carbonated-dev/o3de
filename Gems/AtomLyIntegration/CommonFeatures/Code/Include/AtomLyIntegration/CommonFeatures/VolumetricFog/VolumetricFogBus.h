@@ -12,7 +12,8 @@
 
 namespace AZ::Render
 {
-    //! The EBus for requests to modify volumetric fog components.
+    //! EBus request interface for the VolumetricFog component
+    //! Use this to read/write global fog settings from Lua or other components.
     class VolumetricFogRequests
         : public ComponentBus
     {

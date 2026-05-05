@@ -31,6 +31,9 @@ namespace AZ::Render
 {
     class FroxelPass;
 
+    //! Feature processor for global volumetric fog; owns the froxel grid, halton jitter sequence,
+    //! scene SRG constants, and the FroxelParent pass hierarchy. It handles enabling/disabling the passes
+    //! involved in the Volumetric Fog process. Manages the volumetric fog constant data that the passes access.
     class VolumetricFogFeatureProcessor final
         : public VolumetricFogFeatureProcessorInterface
         , protected AZ::Data::AssetBus::MultiHandler
@@ -45,14 +48,13 @@ namespace AZ::Render
         VolumetricFogFeatureProcessor() = default;
         virtual ~VolumetricFogFeatureProcessor() = default;
 
-        //! FeatureProcessor 
+        //! FeatureProcessor
         void Activate() override;
         void Deactivate() override;
-        void AddRenderPasses(RPI::RenderPipeline* renderPipeline) override;
         void Render(const RenderPacket& packet) override;
         void Simulate(const FeatureProcessor::SimulatePacket& packet) override;
 
-        //! VolumetricFogFeatureProcessorInterface — global fog
+        //! VolumetricFogFeatureProcessorInterface — global fog settings
         const VolumetricFogSettings& GetSettings() const override;
 
 #include <Atom/Feature/ParamMacros/StartParamFunctionsOverride.inl>
@@ -60,6 +62,7 @@ namespace AZ::Render
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 
     private:
+        //! 16-byte GPU-aligned Halton jitter sample.
         struct Offset
         {
             Offset() = default;
@@ -73,7 +76,7 @@ namespace AZ::Render
             float m_xOffset = 0.0f;
             float m_yOffset = 0.0f;
             float m_zOffset = 0.0f;
-            float m_padding0;
+            float m_padding0; // explicit pad to 16 bytes for constant buffer alignment.
         };
 
         RHI::ShaderInputConstantIndex m_shaderConstantsIndex;
@@ -103,14 +106,14 @@ namespace AZ::Render
 #include <Atom/Feature/ParamMacros/EndParams.inl>
         //---------------------------------------------------------
 
-        // Volumetric Fog scene global constants
+        //! CPU mirror of the global fog constants pushed to the scene SRG each frame.
         struct VolumetricFogConstants
         {
-            Offset m_haltonSequence[VolumetricFogMaxSequenceLength];
-            RHI::Size m_froxelCount;
-            uint32_t m_tileSize = 0;
-            uint32_t m_frameIndex = 0;
-            uint32_t m_lightingChannelMask = 0;
+            Offset m_haltonSequence[VolumetricFogMaxSequenceLength]; // pre-computed Halton jitter offsets, one per temporal frame.
+            RHI::Size m_froxelCount; // froxel grid dimensions (xy = screen tiles, z = depth slices).
+            uint32_t m_tileSize = 0; // pixels per froxel tile (e.g. 8 for High quality).
+            uint32_t m_frameIndex = 0; // monotonically increasing frame counter, wraps at sequenceLength.
+            uint32_t m_lightingChannelMask = 0; // bitmask selecting which lighting layers contribute to in-scattering.
 #define AZ_GFX_COMMON_PARAM(ValueType, Name, MemberName, DefaultValue) ValueType MemberName;
 
 #include <Atom/Feature/ParamMacros/MapAllCommon.inl>
@@ -121,7 +124,7 @@ namespace AZ::Render
 #include <Atom/Feature/VolumetricFog/VolumetricFogSRGConstants.inl>
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 
-            uint32_t m_enabled = 0;
+            uint32_t m_enabled = 0; // 0/1 toggle sent to the shader to short-circuit the composite pass.
             float m_padding0 = 0.0f;
         };
 
@@ -136,28 +139,33 @@ namespace AZ::Render
         void OnSettingsChanged();
         void UpdatePasses(AZ::RPI::RenderPipeline* renderPipeline);
         void UpdateSceneSrgConstants();
+        //! Creates draw packets for the transparent depth min/max pre-pass that positions one screen-space quad per froxel slice.
         void BuildDrawItems();
+        //! Creates draw items for the transparent depth min/max pre-pass that positions one screen-space quad per froxel slice.
         AZ::RHI::DrawPacket* BuildDrawItem(float depth, RHI::DrawListTag tag, const AZ::RPI::PipelineStateForDraw* pipelineState);
+        //! Compiles pipeline states for the two draw list tags (depthTransparentMin / depthTransparentMax).
         AZ::RPI::PipelineStateForDraw* BuildPipeline(RHI::DrawListTag tag, const Data::Instance<RPI::Shader>& shader);
+        //! Compiles pipeline states for the two draw list tags (depthTransparentMin / depthTransparentMax).
         void BuildPipelines();
         bool LoadShaders();
         void ResetShaderResources();
+        //! Generates the Halton low-discrepancy jitter sequence for temporal anti-aliasing.
         void SetupSubPixelOffsets(uint32_t haltonX, uint32_t haltonY, uint32_t haltonZ, uint32_t length);
+        //! Enables or disables child passes based on the current Enable setting.
         void SetPassesEnabled();
 
         VolumetricFogSettings m_settings;
 
-        // Indicates that the srg indices were set
-        bool m_needUpdate = true;
-        bool m_buildDrawPackets = false;
+        bool m_needUpdate = true; // set to true when SRG index cache must be rebuilt.
+        bool m_buildDrawPackets = false; // set when froxel size changes and draw packets must be rebuilt.
         RPI::ParentPass* m_froxelParentPass = nullptr;
         FroxelPass* m_injectPass = nullptr;
         RPI::Pass* m_froxelCompositePass = nullptr;
         AZ::RPI::RenderPipeline* m_renderPipeline = nullptr;
         Data::Instance<RPI::ShaderResourceGroup> m_sceneSrg;
-        AZStd::array<AZ::RHI::DrawListTag, 2> m_drawListTags;
+        AZStd::array<AZ::RHI::DrawListTag, 2> m_drawListTags; // one tag per transparent depth pass (min/max).
         AZStd::array<AZ::Name, 2> m_drawListTagNames = { AZ::Name("depthTransparentMin"), AZ::Name("depthTransparentMax") };
-        AZStd::array<AZ::RHI::ConstPtr<AZ::RHI::DrawPacket>,2> m_drawPackets;
+        AZStd::array<AZ::RHI::ConstPtr<AZ::RHI::DrawPacket>,2> m_drawPackets; // pre-built draw packets submitted each Render() call.
         AZStd::array<AZ::RPI::Ptr<AZ::RPI::PipelineStateForDraw>, 2> m_meshPipelineStates;
         AZStd::array<AZ::Data::Instance<AZ::RPI::Shader>, 2> m_shaders;
     };

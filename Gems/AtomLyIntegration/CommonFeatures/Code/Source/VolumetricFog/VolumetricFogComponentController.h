@@ -14,6 +14,8 @@
 
 namespace AZ::Render
 {
+    //! Handles VolumetricFogRequestsBus and forwards property changes to VolumetricFogFeatureProcessorInterface
+    //! One instance per active VolumetricFog component.
     class VolumetricFogComponentController final
         : public VolumetricFogRequestsBus::Handler
     {
@@ -29,14 +31,16 @@ namespace AZ::Render
         VolumetricFogComponentController() = default;
         VolumetricFogComponentController(const VolumetricFogComponentConfig& config);
 
+        //! Connects to the bus and acquires VolumetricFogFeatureProcessorInterface from the scene.
         void Activate(EntityId entityId);
+        //! Disconnects from the bus and releases the feature processor pointer.
         void Deactivate();
         void SetConfiguration(const VolumetricFogComponentConfig& config);
         const VolumetricFogComponentConfig& GetConfiguration() const;
 
          // Getter / Setter methods override declarations
          // Generate Get / Set methods
-            
+
 #define AZ_GFX_COMMON_PARAM(ValueType, Name, MemberName, DefaultValue)                                  \
         ValueType Get##Name() const override;                                                           \
         void Set##Name(ValueType val) override;                                                         \
@@ -48,9 +52,10 @@ namespace AZ::Render
     private:
         AZ_DISABLE_COPY(VolumetricFogComponentController);
 
+        //! Pushes all config values to the feature processor; called after any setter.
         void OnConfigChanged();
 
-        VolumetricFogFeatureProcessorInterface* m_featureProcessorInterface = nullptr;
+        VolumetricFogFeatureProcessorInterface* m_featureProcessorInterface = nullptr; // non-owning pointer; valid only between Activate / Deactivate
         VolumetricFogComponentConfig m_configuration;
         EntityId m_entityId;
     };

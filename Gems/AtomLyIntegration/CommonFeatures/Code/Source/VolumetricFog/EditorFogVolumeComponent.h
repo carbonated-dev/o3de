@@ -13,6 +13,8 @@
 
 namespace AZ::Render
 {
+    //! Editor component for a local fog volume override; requires a Box or Sphere shape
+    //! component on the same entity.
     class EditorFogVolumeComponent final
         : public EditorRenderComponentAdapter<FogVolumeComponentController, FogVolumeComponent, FogVolumeComponentConfig>
     {
@@ -30,9 +32,10 @@ namespace AZ::Render
 
     private:
         AZ::u32 OnConfigurationChanged() override;
+        //! Detects when the Shape property has changed in the config and swaps the attached shape component (Box <-> Sphere) accordingly.
         bool HandleShapeTypeChange();
 
-        FogVolumeShape m_shape = FogVolumeShape::Unknown;
+        FogVolumeShape m_shape = FogVolumeShape::Unknown; // cached shape from last frame to detect changes in HandleShapeTypeChange
     };
 
 } // namespace AZ::Render

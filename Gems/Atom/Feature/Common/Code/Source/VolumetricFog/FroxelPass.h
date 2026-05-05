@@ -14,6 +14,8 @@
 
 namespace AZ::Render
 {
+    //! Thin ComputePass subclass that exposes shader option control for quality/noise
+    //! variants and resizes the dispatch count to match the froxel grid.
     class FroxelPass final
         : public RPI::ComputePass
     {
@@ -27,6 +29,8 @@ namespace AZ::Render
 
         static RPI::Ptr<FroxelPass> Create(const RPI::PassDescriptor& descriptor);
 
+        //! Writes a named option value into the persistent m_shaderOptions group (from the modified ComputePass base);
+        //! Call before the pass is compiled.
         void SetShaderOption(const Name& optionName, const Name& valueName);
 
     private:
@@ -35,6 +39,7 @@ namespace AZ::Render
         // Pass behavior overrides...
         void BuildInternal() override;
 
+        //! Resolves froxel grid dimensions
         void UpdateFroxelVolumeSize();
     };
 }   // namespace AZ::Render

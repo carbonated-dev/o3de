@@ -16,6 +16,8 @@
 
 namespace AZ::Render
 {
+    //! POD settings bag that mirrors the VolumetricFogParams
+    //! The feature processor stores one of these and exposes it via GetSettings().
     class VolumetricFogSettings final
     {
     public:

@@ -19,12 +19,15 @@
 
 namespace AZ::Render
 {
+    //! Public interface for querying and mutating the scene-wide (global) volumetric fog
+    //! One froxel volume covering the whole view (camera) frustum.
     class VolumetricFogFeatureProcessorInterface
         : public RPI::FeatureProcessor
     {
     public:
         AZ_RTTI(AZ::Render::VolumetricFogFeatureProcessorInterface, "{B95F37FC-DF37-4F48-AE57-9A8AC6E3BE95}");
 
+        //! Returns the current fog settings snapshot
         virtual const VolumetricFogSettings& GetSettings() const = 0;
 
         // Generate global fog getters and setters.

@@ -9,9 +9,9 @@
 // Macros below are of the form:
 // PARAM(NAME, MEMBER_NAME, DEFAULT_VALUE, ...)
 
-AZ_GFX_BOOL_PARAM(Enable, m_enabled, true)
-AZ_GFX_COMMON_PARAM(Render::VolumetricFogQuality, FogQuality, m_quality, VolumetricFogQuality::Mid)
-AZ_GFX_COMMON_PARAM(Render::LightingChannelConfiguration, LightingChannels, m_lightingChannelConfig, Render::LightingChannelConfiguration())
+AZ_GFX_BOOL_PARAM(Enable, m_enabled, true)                                                                                                  // master toggle; when false the pass hierarchy is disabled
+AZ_GFX_COMMON_PARAM(Render::VolumetricFogQuality, FogQuality, m_quality, VolumetricFogQuality::Mid)                                        // froxel resolution preset (see VolumetricFogQuality)
+AZ_GFX_COMMON_PARAM(Render::LightingChannelConfiguration, LightingChannels, m_lightingChannelConfig, Render::LightingChannelConfiguration()) // which lighting layers contribute to in-scattering
 #include <Atom/Feature/VolumetricFog/VolumetricFogSRGConstants.inl>
 #include <Atom/Feature/VolumetricFog/VolumetricFogVolumeParams.inl>
 #include <Atom/Feature/VolumetricFog/VolumetricFogVolumeSRGConstants.inl>

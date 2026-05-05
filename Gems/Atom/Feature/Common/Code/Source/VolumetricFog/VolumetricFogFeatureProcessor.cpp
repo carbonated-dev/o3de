@@ -98,10 +98,6 @@ namespace AZ::Render
         m_settings = {};
     }   
 
-    void VolumetricFogFeatureProcessor::AddRenderPasses([[maybe_unused]] RPI::RenderPipeline* renderPipeline)
-    {
-    }
-
     void VolumetricFogFeatureProcessor::OnRenderPipelineChanged([[maybe_unused]] RPI::RenderPipeline* pipeline,
         RPI::SceneNotification::RenderPipelineChangeType changeType)
     {

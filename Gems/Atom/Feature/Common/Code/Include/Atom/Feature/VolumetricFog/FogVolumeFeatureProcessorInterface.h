@@ -17,8 +17,11 @@
 
 namespace AZ::Render
 {
-    using FogVolumeHandle = RHI::Handle<uint16_t, class FogVolumeTag>;
+    // opaque handle returned by AcquireVolume, invalidated after ReleaseVolume
+    using FogVolumeHandle = RHI::Handle<uint16_t, class FogVolumeTag>; 
 
+    //! Manages the array of local fog volumes (box/sphere shapes that override fog
+    //! parameters inside them) and their GPU buffer.
     class FogVolumeFeatureProcessorInterface
         : public RPI::FeatureProcessor
     {
@@ -27,9 +30,13 @@ namespace AZ::Render
 
         using VolumeHandle = FogVolumeHandle;
 
+        //! Allocates a new GPU-backed fog volume slot; returns an invalid handle if the budget is full.
         virtual VolumeHandle AcquireVolume() = 0;
+        //! Frees the slot and zeroes the handle.
         virtual bool ReleaseVolume(VolumeHandle& handle) = 0;
+        //! Sets the world transform used to position the volume proxy mesh in the froxel injection pass.
         virtual void SetVolumeTransform(VolumeHandle handle, const AZ::Transform& transform) = 0;
+        //! Sets the half-extents of the box volume in world units; ignored for sphere shapes.
         virtual void SetVolumeExtents(VolumeHandle handle, const AZ::Vector3& halfExtents) = 0;
 
         // Auto-gen per-property volume setters: SetVolume<Name>(handle, val)

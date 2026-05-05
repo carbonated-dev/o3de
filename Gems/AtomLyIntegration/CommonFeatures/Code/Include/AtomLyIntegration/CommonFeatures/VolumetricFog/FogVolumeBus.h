@@ -15,6 +15,7 @@
 
 namespace AZ::Render
 {
+    //! EBus request interface for the FogVolume component (local volume overrides).
     class FogVolumeRequests : public AZ::ComponentBus
     {
     public:

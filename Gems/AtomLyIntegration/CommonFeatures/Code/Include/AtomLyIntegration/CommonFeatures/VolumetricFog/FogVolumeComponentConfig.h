@@ -16,6 +16,8 @@
 
 namespace AZ::Render
 {
+    //! Serializable config for the FogVolume component
+    //! All fields are auto-generated from FogVolumeParams.inl macros.
     class FogVolumeComponentConfig final
         : public AZ::ComponentConfig
     {

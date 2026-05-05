@@ -20,6 +20,8 @@ namespace AZ::Render
 {
     class VolumetricFogFeatureProcessorInterface;
 
+    //! Serializable config for the VolumetricFog component
+    //! All fields are auto-generated from VolumetricFogParams.inl macros.
     class VolumetricFogComponentConfig final
         : public AZ::ComponentConfig
     {
@@ -31,7 +33,9 @@ namespace AZ::Render
 
         static void Reflect(AZ::ReflectContext* context);
 
+        //! Pulls current values from a live feature processor into this config.
         void CopySettingsFrom(VolumetricFogFeatureProcessorInterface* settings);
+        //! Pushes config values into a live feature processor.
         void CopySettingsTo(VolumetricFogFeatureProcessorInterface* settings);
 
         // Generate Get / Set methods

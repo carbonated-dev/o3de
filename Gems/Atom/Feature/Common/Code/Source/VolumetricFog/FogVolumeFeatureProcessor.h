@@ -33,6 +33,8 @@
 
 namespace AZ::Render
 {
+    //! Manages all local fog volumes; each frame it sorts, batches by (shape, blendMode),
+    //! builds GPU structured buffers, and drives the FroxelLocalVolume raster pass.
     class FogVolumeFeatureProcessor final
         : public FogVolumeFeatureProcessorInterface
         , protected AZ::Data::AssetBus::MultiHandler
@@ -66,7 +68,7 @@ namespace AZ::Render
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 
     private:
-        // CPU-side state per registered volume
+        //! CPU-side state for one registered fog volume; mirrors FogVolumeComponentConfig fields.
         struct VolumeState
         {
             AZ::Transform  m_transform   = AZ::Transform::CreateIdentity();
@@ -85,18 +87,19 @@ namespace AZ::Render
 #include <Atom/Feature/ParamMacros/EndParams.inl>
         };
 
-        // A contiguous run of volumes sharing (blendMode, shape) after sorting
+        //! A contiguous run of volumes that share blend mode and shape,
+        //! submitted as one multi-draw-indirect call.
         struct Batch
         {
             FogVolumeBlendMode m_mode;
             FogVolumeShape     m_shape;
-            uint32_t           m_volumeStart;
-            uint32_t           m_volumeCount;
-            uint32_t           m_instanceStart;
-            uint32_t           m_instanceCount;
+            uint32_t           m_volumeStart;  // index range in m_currentFrameVolumes.
+            uint32_t           m_volumeCount;  // index range in m_currentFrameVolumes.
+            uint32_t           m_instanceStart; // first draw instance and total instances (volumes × slices).
+            uint32_t           m_instanceCount; // first draw instance and total instances (volumes × slices).
         };
 
-        // Must match LocalVolumeData in FroxelLocalVolumeCommon.azsli — verified by static_assert in .cpp.
+        // Must match LocalVolumeData in FroxelLocalVolumeCommon.azsli
         struct LocalVolumeData
         {
             AZStd::array<float, 3> m_center;
@@ -107,11 +110,11 @@ namespace AZ::Render
             float m_extentY;
             AZStd::array<float, 3> m_forward;
             float m_extentZ;
-            AZStd::array<float, 3> m_rcpFadePos;
+            AZStd::array<float, 3> m_rcpFadePos; // reciprocal of the per-axis fade extents, precomputed to avoid division in the shader.
             int32_t m_noiseTextureIndex;
-            AZStd::array<float, 3> m_rcpFadeNeg;
-            uint32_t m_sliceMin = 1;
-            uint32_t m_sliceMax = 0;
+            AZStd::array<float, 3> m_rcpFadeNeg; // reciprocal of the per-axis fade extents, precomputed to avoid division in the shader.
+            uint32_t m_sliceMin = 1; // froxel Z slice range this volume overlaps in the current frame; used to cull draw instances.
+            uint32_t m_sliceMax = 0; // froxel Z slice range this volume overlaps in the current frame; used to cull draw instances.
             uint32_t m_priority;
             uint32_t m_blendMode;
             uint32_t m_pad0;
@@ -132,13 +135,20 @@ namespace AZ::Render
         void BuildSphereProxy();
         void BuildPipelines();
 
+        //! For each registered volume, computes the first/last froxel Z slice it occupies in the current view to tighten draw ranges.
         void ComputeSliceRanges(const RPI::ViewPtr& view, float fogNear, float fogFar, uint32_t sliceCount);
+        //! Sorts volumes by (blendMode, shape) and builds the Batch list.
         void SortAndPartitionVolumes();
+        //! Writes a GPU buffer that maps each draw instance to the volume + slice range it covers.
         void BuildInstanceMappingBuffer();
+        //! Packs LocalVolumeData structs into the GPU structured buffer.
         void UploadVolumeBuffer();
+        //! Assembles the unbounded texture array of per-volume noise textures.
         void BuildNoiseTextureArray();
 
+        //! Converts a VolumeState (CPU) into a LocalVolumeData (GPU-layout) struct.
         LocalVolumeData BuildVolumeGpuData(const VolumeState& state);
+        //! Converts a [0,1] edge fade fraction to a reciprocal for fast HLSL lookup.
         static float EdgeFadeToRcp(float edgeFraction);
 
         IndexedDataVector<VolumeState>   m_volumeStates;
@@ -146,14 +156,14 @@ namespace AZ::Render
         AZStd::vector<Batch>             m_batches;
         AZStd::vector<AZStd::pair<uint32_t, uint32_t>> m_instanceMapping;
 
-        Data::Instance<RPI::Buffer> m_volumeBuffer;
-        uint32_t                    m_volumeBufferCapacity = 0;
+        Data::Instance<RPI::Buffer> m_volumeBuffer; // GPU structured buffer holding all LocalVolumeData this frame; capacity doubles on overflow.
+        uint32_t                    m_volumeBufferCapacity = 0; // GPU structured buffer holding all LocalVolumeData this frame; capacity doubles on overflow.
 
-        Data::Instance<RPI::Buffer> m_instanceMappingBuffer;
+        Data::Instance<RPI::Buffer> m_instanceMappingBuffer; // maps draw instance index to (volumeIndex, sliceIndex) for the VS.
         uint32_t                    m_instanceMappingCapacity = 0;
 
-        AZStd::array<Data::Instance<RPI::Buffer>, FogVolumeShapeCount - 1> m_vertexBuffers;
-        AZStd::array<Data::Instance<RPI::Buffer>, FogVolumeShapeCount - 1> m_indexBuffers;
+        AZStd::array<Data::Instance<RPI::Buffer>, FogVolumeShapeCount - 1> m_vertexBuffers; // one VB/IB pair per shape (Box, Sphere); indexed by FogVolumeShape.
+        AZStd::array<Data::Instance<RPI::Buffer>, FogVolumeShapeCount - 1> m_indexBuffers;  // one VB/IB pair per shape (Box, Sphere); indexed by FogVolumeShape.
 
         RPI::RasterPass*             m_rasterPass = nullptr;
         Data::Instance<RPI::Shader>  m_shader;
@@ -170,8 +180,8 @@ namespace AZ::Render
 
         RHI::DrawListTag m_drawListTag;
 
-        RayTracingResourceList<AZ::Data::AssetId> m_noiseImageAssetsId;
-        AZStd::vector<Data::Instance<RPI::StreamingImage>> m_noiseImageImages;
+        RayTracingResourceList<AZ::Data::AssetId> m_noiseImageAssetsId; // parallel arrays tracking noise texture asset IDs and loaded StreamingImage instances.
+        AZStd::vector<Data::Instance<RPI::StreamingImage>> m_noiseImageImages; // Noise texture asset IDs and loaded StreamingImage instances.
     };
 } // namespace AZ::Render
 

@@ -18,6 +18,8 @@
 
 namespace AZ::Render
 {
+    //! Handles FogVolumeRequestsBus, TransformNotificationBus, and ShapeComponentNotificationsBus
+    //! Forwards position, extents, and property changes to FogVolumeFeatureProcessorInterface.
     class FogVolumeComponentController final
         : public FogVolumeRequestsBus::Handler
         , private AZ::TransformNotificationBus::Handler
@@ -54,18 +56,23 @@ namespace AZ::Render
         AZ_DISABLE_COPY(FogVolumeComponentController);
 
         // TransformNotificationBus::Handler
+        //! Re-uploads world transform of the volume to the feature processor.
         void OnTransformChanged(const AZ::Transform& local, const AZ::Transform& world) override;
 
         // ShapeComponentNotificationsBus::Handler
+        //! Re-uploads shape extents (half-extents extracted from the attached Shape component).
         void OnShapeChanged(LmbrCentral::ShapeComponentNotifications::ShapeChangeReasons reason) override;
 
         void OnConfigChanged();
+        //! Incremental update helper to avoid redundant uploads when only the transform changes.
         void PushTransform();
+        //! Incremental update helper to avoid redundant uploads when only the shape extents change.
         void PushShape();
+        //! Pushes transform, extents, and all config properties to the feature processor in one pass.
         void PushAllToFeatureProcessor();
 
         FogVolumeFeatureProcessorInterface*              m_featureProcessor = nullptr;
-        FogVolumeFeatureProcessorInterface::VolumeHandle m_handle;
+        FogVolumeFeatureProcessorInterface::VolumeHandle m_handle; // handle returned by FogVolumeFeatureProcessorInterface::AcquireVolume; released in Deactivate
         FogVolumeComponentConfig                         m_config;
         AZ::EntityId                                     m_entityId;
     };

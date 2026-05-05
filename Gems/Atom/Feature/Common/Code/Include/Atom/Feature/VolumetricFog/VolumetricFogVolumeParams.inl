@@ -9,4 +9,4 @@
 // Macros below are of the form:
 // PARAM(NAME, MEMBER_NAME, DEFAULT_VALUE, ...)
 
-AZ_GFX_TEXTURE_ASSET_PARAM(NoiseTexture, m_noiseTexture, {})
+AZ_GFX_TEXTURE_ASSET_PARAM(NoiseTexture, m_noiseTexture, {}) // optional 3D tiling noise texture; when absent, noise sampling is skipped

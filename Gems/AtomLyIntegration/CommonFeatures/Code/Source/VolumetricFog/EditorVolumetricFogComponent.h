@@ -13,6 +13,8 @@
 
 namespace AZ::Render
 {
+    //! Editor component for scene-wide (global) volumetric fog
+    //! Wraps the runtime component via EditorRenderComponentAdapter.
     class EditorVolumetricFogComponent final
         : public EditorRenderComponentAdapter<VolumetricFogComponentController, VolumetricFogComponent, VolumetricFogComponentConfig>
     {
@@ -27,9 +29,9 @@ namespace AZ::Render
         EditorVolumetricFogComponent(const VolumetricFogComponentConfig& config);
 
     private:
-        //! EditorRenderComponentAdapter
-        //! we override OnEntityVisibilityChanged to avoid deactivating and activating unnecessarily
+        //! Pushes config to the feature processor without component deactivation; returns ValuesOnly refresh level.
         AZ::u32 OnConfigurationChanged() override;
+        //! Toggles the Enable flag instead of deactivating/activating to avoid expensive pass teardown.
         void OnEntityVisibilityChanged(bool visibility) override;
     };
 } // namespace AZ::Render

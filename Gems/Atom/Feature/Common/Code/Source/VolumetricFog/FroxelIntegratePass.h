@@ -34,18 +34,23 @@ namespace AZ::Render
         FroxelIntegratePass(const RPI::PassDescriptor& descriptor);
 
         // Pass behavior overrides
+        //! Creates the two ping-pong scatter history attachments and wires them to the pass bindings.
         void BuildInternal() override;
+        //! Tears down ping-pong attachments so they are recreated on next resize.
         void ResetInternal() override;
+        //! Swaps the ping-pong index and rebinds history/output attachments for this frame.
         void FrameBeginInternal(FramePrepareParams params) override;
+        //! Advances the froxelFrameIndex in the scene SRG.
         void FrameEndInternal() override;
 
+        //! Allocates or resizes the Texture3D at the given ping-pong slot to match the current froxel grid.
         bool UpdateAttachmentImage(uint32_t attachmentIndex);
+        //! Sets dispatch thread count to match froxel XY.
         void UpdateThreadsCount();
 
-        // Ping-pong attachments for temporal history
-        AZStd::array<Data::Instance<RPI::PassAttachment>, 2> m_scatteringAttachments;
-        RPI::PassAttachmentBinding* m_historyScatteredBinding = nullptr;
-        RPI::PassAttachmentBinding* m_scatteredBinding = nullptr;
-        uint8_t m_scatteringOuptutIndex = 0;
+        AZStd::array<Data::Instance<RPI::PassAttachment>, 2> m_scatteringAttachments; // ping-pong pair of Texture3D attachments holding previous-frame scatter for temporal reprojection.
+        RPI::PassAttachmentBinding* m_historyScatteredBinding = nullptr; // cached binding pointers for fast per-frame rebind.
+        RPI::PassAttachmentBinding* m_scatteredBinding = nullptr; // cached binding pointers for fast per-frame rebind.
+        uint8_t m_scatteringOuptutIndex = 0; // 0 or 1, toggles each frame to alternate write target.
     };
 }   // namespace AZ::Render
