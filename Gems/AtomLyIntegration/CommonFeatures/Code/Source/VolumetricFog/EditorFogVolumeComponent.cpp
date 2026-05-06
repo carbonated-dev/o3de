@@ -74,10 +74,10 @@ namespace AZ::Render
                         &FogVolumeComponentConfig::m_blendMode,
                         "Blend Mode",
                         "How this volume's contribution is composited with existing froxel data.\n"
-                        "  Additive  — adds on top of existing fog\n"
-                        "  Multiply  — multiplies into existing fog (darkens/thins)\n"
-                        "  Overwrite — replaces fog inside the volume entirely\n"
-                        "  Min / Max — take per-froxel minimum or maximum")
+                        "  Additive: adds on top of existing fog\n"
+                        "  Multiply: multiplies into existing fog (darkens/thins)\n"
+                        "  Overwrite: replaces fog inside the volume entirely\n"
+                        "  Min / Max: take per-froxel minimum or maximum")
                         ->Attribute(AZ::Edit::Attributes::EnumValues, AZ::Edit::GetEnumConstantsFromTraits<Render::FogVolumeBlendMode>())
                         ->Attribute(AZ::Edit::Attributes::ChangeNotify, AZ::Edit::PropertyRefreshLevels::ValuesOnly)
 

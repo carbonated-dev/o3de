@@ -219,7 +219,7 @@ namespace AZ::Render
         }
         else
         {
-            // Fog disabled — clear the enabled flag so transparent shaders skip fog sampling
+            // Fog disabled. Clear the enabled flag so transparent shaders skip fog sampling
             m_sceneSrgGlobalConstants.m_enabled = 0u;
             m_sceneSrg->SetConstant(m_shaderConstantsIndex, m_sceneSrgGlobalConstants);
         }

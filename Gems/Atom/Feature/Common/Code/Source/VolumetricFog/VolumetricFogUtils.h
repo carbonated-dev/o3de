@@ -13,6 +13,6 @@
 
 namespace AZ::Render::VolumetricFog
 {
-    //! Maps a VolumetricFogQuality enum to the corresponding froxel grid Size (xy tile dims × z slices). Low = 16×16×64, Mid = 8×8×128, High = 4×4×128.
+    //! Maps a VolumetricFogQuality enum to the corresponding froxel grid Size (xy tile dims x z slices). Low = 16x16x64, Mid = 8x8x128, High = 4x4x128.
     RHI::Size ToFroxelSize(VolumetricFogQuality quality);
 }   // namespace AZ::Render::VolumetricFog

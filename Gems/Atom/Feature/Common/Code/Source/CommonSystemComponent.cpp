@@ -349,7 +349,7 @@ namespace AZ
 #if defined(CARBONATED)
             // Add Silhouette JFA passes
             passSystem->AddPassCreator(Name("SilhouetteJFAStepParentPass"), &SilhouetteJFAStepParentPass::Create);
-			// Volumetric Fog
+            // Volumetric Fog
             passSystem->AddPassCreator(Name("FroxelPass"), &FroxelPass::Create);
             passSystem->AddPassCreator(Name("FroxelIntegratePass"), &FroxelIntegratePass::Create);
 #endif

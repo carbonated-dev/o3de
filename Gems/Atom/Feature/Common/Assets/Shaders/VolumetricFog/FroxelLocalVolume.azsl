@@ -4,15 +4,15 @@
  *
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
- * FroxelLocalVolumeRaster.azsl — local fog volume injection via rasterization
+ * FroxelLocalVolumeRaster.azsl: local fog volume injection via rasterization
  *
  * One shader, one fragment output. Five blend modes are selected entirely
  * by pipeline state (HW fixed-function blending):
- *   - ADDITIVE:  Src + Dst        — BlendOp::Add,    factors One, One
- *   - MULTIPLY:  Src * Dst        — BlendOp::Add,    factors ColorDest, Zero
- *   - OVERWRITE: Src              — BlendOp::Add,    factors One, Zero
- *   - MIN:       min(Src, Dst)    — BlendOp::Min     (factors ignored)
- *   - MAX:       max(Src, Dst)    — BlendOp::Max     (factors ignored)
+ *   - ADDITIVE:  Src + Dst        : BlendOp::Add,    factors One, One
+ *   - MULTIPLY:  Src * Dst        : BlendOp::Add,    factors ColorDest, Zero
+ *   - OVERWRITE: Src              : BlendOp::Add,    factors One, Zero
+ *   - MIN:       min(Src, Dst)    : BlendOp::Min     (factors ignored)
+ *   - MAX:       max(Src, Dst)    : BlendOp::Max     (factors ignored)
  *
  * Architecture:
  *   - One draw call per blend-mode batch (volumes sorted CPU-side)
@@ -34,7 +34,7 @@ enum FogVolumeShape
 };
 
 // --------------------------------------------------------------------------
-// Per-volume GPU data — keep packed. Must match LocalVolumeData on C++ side.
+// Per-volume GPU data, keep packed. Must match LocalVolumeData on C++ side.
 // --------------------------------------------------------------------------
 struct LocalVolumeData
 {
@@ -188,13 +188,13 @@ VSOutput MainVS(uint vertexId   : SV_VertexID,
 }
 
 // --------------------------------------------------------------------------
-// Fragment shader — mode-agnostic. Writes (scattering, extinction).
+// Fragment shader mode-agnostic. Writes (scattering, extinction).
 // Blend mode is applied by HW fixed-function blending.
 //
 // For OVERWRITE on froxels OUTSIDE the volume, we must NOT clobber existing fog.
 // The cleanest way: discard fragments outside the actual OBB/sphere. This
 // prevents the rasterizer from invoking the blend at those pixels at all.
-// (For ADDITIVE/MIN/MAX, writing zero would also work — but for OVERWRITE,
+// (For ADDITIVE/MIN/MAX, writing zero would also work but for OVERWRITE,
 // writing zero would erase existing fog. discard is the universal fix.)
 // --------------------------------------------------------------------------
 struct PSOutput

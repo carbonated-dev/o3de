@@ -17,9 +17,9 @@
 // Applies precomputed volumetric fog to a transparent surface.
 //
 // Prerequisites (the including shader must have these already set up):
-//   - PassSrg (ForwardPassSrg.azsli) — provides m_froxelVolumetricFog and LinearSampler
-//   - SceneSrg  — provides m_volumetricFogData (fog constants)
-//   - ViewSrg   — provides m_viewProjectionMatrix and m_viewMatrix
+//   - PassSrg (ForwardPassSrg.azsli): provides m_froxelVolumetricFog and LinearSampler
+//   - SceneSrg: provides m_volumetricFogData (fog constants)
+//   - ViewSrg: provides m_viewProjectionMatrix and m_viewMatrix
 //
 // Usage in a transparent material's lighting shader:
 //
@@ -28,9 +28,9 @@
 //   float3 finalColor = litColor;
 //   finalColor = ApplyVolumetricFog(finalColor, surface.position);
 //
-// worldPosition — the fragment's world-space position (from the surface struct or VS output)
-// litColor      — the fully-lit surface color before fog
-// Returns       — float4: .rgb = fogged color (inScatter + litColor * transmittance)
+// worldPosition: the fragment's world-space position (from the surface struct or VS output)
+// litColor     : the fully-lit surface color before fog
+// Returns      : float4: .rgb = fogged color (inScatter + litColor * transmittance)
 //                          .a  = fog transmittance [0,1] at worldPosition
 //                 For standard alpha blending, use only .rgb and keep original alpha.
 //                 For premultiplied alpha blending where the background is already fogged

@@ -13,7 +13,7 @@
 
 namespace AZ::Render
 {
-    //! Controls froxel grid resolution — Low is coarser/faster, High is finer/slower.
+    //! Controls froxel grid resolution. Low is coarser/faster, High is finer/slower.
     //! Match VolumetricFogUtils::ToFroxelSize() for the actual tile sizes.
     AZ_ENUM_CLASS_WITH_UNDERLYING_TYPE(VolumetricFogQuality, uint32_t,
         Low,

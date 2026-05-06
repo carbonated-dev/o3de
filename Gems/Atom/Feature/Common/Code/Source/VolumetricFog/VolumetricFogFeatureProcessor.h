@@ -52,7 +52,7 @@ namespace AZ::Render
         void Render(const RenderPacket& packet) override;
         void Simulate(const FeatureProcessor::SimulatePacket& packet) override;
 
-        //! VolumetricFogFeatureProcessorInterface — global fog settings
+        //! VolumetricFogFeatureProcessorInterface. Global fog settings
         const VolumetricFogSettings& GetSettings() const override;
 
 #include <Atom/Feature/ParamMacros/StartParamFunctionsOverride.inl>

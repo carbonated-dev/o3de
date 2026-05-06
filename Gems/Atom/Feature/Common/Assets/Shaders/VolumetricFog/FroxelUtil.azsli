@@ -43,7 +43,7 @@ float3 GetFroxelWorldPosition(uint3 froxelId)
 
 float3 GetFroxelUVW(float2 screenUV, float viewZ)
 {
-    // Map to froxel UVW — XY from screen UV, Z from view depth
+    // Map to froxel UVW. XY from screen UV, Z from view depth
     float  fogRange = SceneSrg::m_volumetricFogData.m_fogFar - SceneSrg::m_volumetricFogData.m_fogNear;
     float  zNorm    = saturate((abs(viewZ) - SceneSrg::m_volumetricFogData.m_fogNear) / fogRange);
     // Invert the log mapping to find the correct froxel slice
@@ -95,14 +95,14 @@ float SampleNoiseOctave(float3 positionWS, float scale, float3 scroll, Texture3D
 //   - The result captures both large fog banks and fine wisps
 //
 // Two techniques prevent repeating column artifacts from tiling:
-//   1. Per-octave constant offsets — shift each octave into a different
+//   1. Per-octave constant offsets. Shift each octave into a different
 //      region of the tiling texture so their tile boundaries don't overlap.
-//   2. Per-octave axis permutation (yzx / zxy) — rotates the sampling
+//   2. Per-octave axis permutation (yzx / zxy). Rotates the sampling
 //      domain by ~120°/240° so the "column" direction differs per octave.
 //      Zero trig cost: just swizzles.
 //
-// positionWS  — world-space center of the froxel
-// time        — current time in seconds
+// positionWS  : world-space center of the froxel
+// time        : current time in seconds
 float SampleNoise(float3 positionWS, float time, SceneSrg::VolumetricFogVolumeConstants volumeData, Texture3D<float> noiseTexture)
 {
     const float  BASE_SCALE = volumeData.m_noiseScale;
@@ -113,19 +113,19 @@ float SampleNoise(float3 positionWS, float time, SceneSrg::VolumetricFogVolumeCo
     static const float3 OFFSET_2 = float3( 17.73,  43.31,  31.97);
     static const float3 OFFSET_3 = float3( 83.13,  11.71,  67.57);
 
-    // ---- Octave 1 — large scale fog banks (most influence) --------------
+    // ---- Octave 1: large scale fog banks (most influence) --------------
     float3 pos0    = positionWS;           // XYZ
     float3 scroll0 = WIND * 1.0 + OFFSET_1;
     float  n0      = SampleNoiseOctave(pos0, BASE_SCALE * 1.0, scroll0, noiseTexture);
 
-    // ---- Octave 2 — medium detail ---------------------------------------
+    // ---- Octave 2: medium detail ---------------------------------------
     // Domain permutation YZX rotates the column direction ~120°, breaking
     // alignment with octave 1 at zero cost.
     float3 pos1    = positionWS.yzx;
     float3 scroll1 = WIND * 1.4 + OFFSET_2;
     float  n1      = SampleNoiseOctave(pos1, BASE_SCALE * 2.0, scroll1, noiseTexture);
 
-    // ---- Octave 3 — fine wisps ------------------------------------------
+    // ---- Octave 3: fine wisps ------------------------------------------
     // Domain permutation ZXY rotates a further ~120° (~240° from octave 1).
     float3 pos2    = positionWS.zxy;
     float3 scroll2 = WIND * 1.8 + OFFSET_3;
@@ -137,13 +137,13 @@ float SampleNoise(float3 positionWS, float time, SceneSrg::VolumetricFogVolumeCo
                 + n1 * 0.3
                 + n2 * 0.2;
 
-    // Clamp to [0,1] — negative values would create negative density
+    // Clamp to [0,1]. Negative values would create negative density
     return saturate(noise);
 }
 
 float4 CalculateMediumContribution(float3 positionWS, SceneSrg::VolumetricFogVolumeConstants volumeData, Texture3D<float> noiseTexture, bool useNoiseTexture)
 {
-    // Sample fog density — combine height fog + noise
+    // Sample fog density. Combine height fog + noise
     float heightFog = exp(-max(0, positionWS.z - volumeData.m_fogBaseHeight) * volumeData.m_fogHeightFalloff);
 
     float noise = 1.0f;
@@ -157,7 +157,7 @@ float4 CalculateMediumContribution(float3 positionWS, SceneSrg::VolumetricFogVol
     //   σ_t (extinction) = density
     //   σ_s (scattering) = albedo × density  (per-channel)
     //   σ_a (absorption) = (1 - albedo) × density  (implicit)
-    // Artists control fog appearance with just two values — albedo and density — without
+    // Artists control fog appearance with just two values, albedo and density, without
     // needing to reason about raw scattering/absorption coefficients.
     float3 scattering = density * volumeData.m_fogAlbedo;
     float  extinction = density;

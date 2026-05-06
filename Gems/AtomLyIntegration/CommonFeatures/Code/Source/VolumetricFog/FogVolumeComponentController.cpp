@@ -218,7 +218,7 @@ namespace AZ::Render
     // -------------------------------------------------------------------------
     // Auto-gen FogVolumeRequestsBus getter/setter implementations.
     // Each setter updates the config and calls SetVolume<Name>(m_handle, val)
-    // directly on the FP — one property, one call, no full flush needed.
+    // directly on the FP one property, one call, no full flush needed.
     // -------------------------------------------------------------------------
 #define AZ_GFX_COMMON_PARAM(ValueType, Name, MemberName, DefaultValue)      \
     ValueType FogVolumeComponentController::Get##Name() const               \

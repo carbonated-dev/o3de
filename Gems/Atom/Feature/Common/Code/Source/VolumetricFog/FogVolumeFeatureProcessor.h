@@ -95,8 +95,8 @@ namespace AZ::Render
             FogVolumeShape     m_shape;
             uint32_t           m_volumeStart;  // index range in m_currentFrameVolumes.
             uint32_t           m_volumeCount;  // index range in m_currentFrameVolumes.
-            uint32_t           m_instanceStart; // first draw instance and total instances (volumes × slices).
-            uint32_t           m_instanceCount; // first draw instance and total instances (volumes × slices).
+            uint32_t           m_instanceStart; // first draw instance and total instances (volumes x slices).
+            uint32_t           m_instanceCount; // first draw instance and total instances (volumes x slices).
         };
 
         // Must match LocalVolumeData in FroxelLocalVolumeCommon.azsli

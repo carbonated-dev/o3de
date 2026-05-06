@@ -22,7 +22,7 @@
     AZ::Edit::UIHandlers::Slider,
     &CONFIG_COMPONENT_NAME::m_fogDensity,
     "Density",
-    "Total extinction coefficient (σ_t). Controls how quickly light is attenuated through the fog. "
+    "Total extinction coefficient (sigma_t). Controls how quickly light is attenuated through the fog. "
     "Higher values produce thicker, more opaque fog.")
     ->Attribute(AZ::Edit::Attributes::Min, 0.0f)
     ->Attribute(AZ::Edit::Attributes::Max, 1.0f)

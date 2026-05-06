@@ -509,7 +509,7 @@ namespace AZ::Render
         positions.clear();
         positions.reserve(numVertices);
 
-        // 1st pole vertex (top, along +Z — up axis in O3DE)
+        // 1st pole vertex (top, along +Z. Up axis in O3DE)
         positions.push_back(PosType{ 0.0f, 0.0f, radius });
 
         for (uint32_t ring = 1; ring < numRings - numberOfPoles + 2; ++ring)

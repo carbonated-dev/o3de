@@ -586,9 +586,7 @@ namespace ImageProcessingAtom
     }
 
 #if defined(CARBONATED)
-    // ──────────────────────────────────────────────────────────────────────────────
     // Flipbook / volume texture helpers
-    // ──────────────────────────────────────────────────────────────────────────────
 
     static inline AZ::u8* SlicePtr(AZ::u8* base, AZ::u32 sliceIndex, AZ::u32 rowCount, AZ::u32 pitch)
     {
@@ -633,7 +631,7 @@ namespace ImageProcessingAtom
         const AZ::u32 frameW = totalW / numCols;
         const AZ::u32 frameH = totalH / numRows;
         const AZ::u32 depth  = numCols * numRows;
-        constexpr AZ::u32 bytesPerPixel = 16; // R32G32B32A32F: 4 channels × 4 bytes
+        constexpr AZ::u32 bytesPerPixel = 16; // R32G32B32A32F: 4 channels x 4 bytes
 
         IImageObjectPtr volumeImage(IImageObject::CreateImage(frameW, frameH, depth, 1, ePixelFormat_R32G32B32A32F));
         volumeImage->CopyPropertiesFrom(srcImage);
@@ -676,7 +674,7 @@ namespace ImageProcessingAtom
         const AZ::u32 dstD = dstImg->GetDepth(dstMip);
         constexpr AZ::u32 numChannels = 4;
 
-        // Step 1: XY resample — filter each source slice from (srcW x srcH) to (dstW x dstH).
+        // Step 1: XY resample. Filter each source slice from (srcW x srcH) to (dstW x dstH).
         IImageObjectPtr xyFiltered(IImageObject::CreateImage(dstW, dstH, srcD, 1, ePixelFormat_R32G32B32A32F));
         xyFiltered->AddImageFlags(EIF_Volumetexture);
 
@@ -706,7 +704,7 @@ namespace ImageProcessingAtom
             }
         }
 
-        // Step 2: Z box filter — average (srcD / dstD) consecutive XY-filtered slices per output slice.
+        // Step 2: Z box filter. Average (srcD / dstD) consecutive XY-filtered slices per output slice.
         AZ::u8* dstMem; AZ::u32 dstPitch;
         dstImg->GetImagePointer(dstMip, dstMem, dstPitch);
 

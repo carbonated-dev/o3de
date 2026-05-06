@@ -242,7 +242,7 @@ float3 EvaluateAmbientFog(float3 positionWS)
     float heightAboveGround = max(positionWS.z - groundHeight, 0.0);
 
     // At ground level: 50/50 sky/ground. At height: sky dominates.
-    // Exponential blend — 5m above ground is already ~80% sky
+    // Exponential blend. 5m above ground is already ~80% sky
     float groundFactor = exp(-heightAboveGround * 0.2);
     float skyFactor    = 1.0 - groundFactor * 0.5;       // sky never below 0.5
 
@@ -316,7 +316,7 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID)
 
     if (SceneSrg::m_volumetricFogVolumeData.m_ambientIntensity > 0)
     {
-        // Ambient IBL contribution — scatteringCoeff is applied in FroxelIntegrate, not here
+        // Ambient IBL contribution; scatteringCoeff is applied in FroxelIntegrate, not here
         float3 ambientIBL = EvaluateAmbientFog(surface.position);
         inScatter += ambientIBL * SceneSrg::m_volumetricFogVolumeData.m_ambientIntensity;
     }
