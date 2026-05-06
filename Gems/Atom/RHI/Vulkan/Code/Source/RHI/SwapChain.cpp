@@ -547,12 +547,13 @@ namespace AZ
         {
             AZ_Assert(m_surface, "Surface is null.");
 
+#if !defined(CARBONATED) // it's unneeded call ValidateSurfaceDimensions
             if (!ValidateSurfaceDimensions(dimensions))
             {
                 AZ_Assert(false, "Swapchain dimensions are not supported.");
                 return RHI::ResultCode::InvalidArgument;
             }
-
+#endif
             auto& device = static_cast<Vulkan::Device&>(GetDevice());
             auto& queueContext = device.GetCommandQueueContext();
             const VkExtent2D extent = { dimensions.m_imageWidth, dimensions.m_imageHeight };
@@ -668,6 +669,24 @@ namespace AZ
             m_presentMode = GetSupportedPresentMode(GetDescriptor().m_verticalSyncInterval);
             m_compositeAlphaFlagBits = GetSupportedCompositeAlpha();
 
+#if defined(CARBONATED)
+            AZ_Info("Swapchain", "SurfaceCapabilities: min(%u, %u) max(%u, %u) extent(%u, %u).\n"
+                , m_surfaceCapabilities.minImageExtent.width, m_surfaceCapabilities.minImageExtent.height
+                , m_surfaceCapabilities.maxImageExtent.width, m_surfaceCapabilities.maxImageExtent.height
+                , m_surfaceCapabilities.currentExtent.width, m_surfaceCapabilities.currentExtent.height);
+
+            if (m_surfaceCapabilities.currentExtent.width != 0xFFFFFFFF
+                && m_surfaceCapabilities.currentExtent.height != 0xFFFFFFFF)
+            {
+                AZ_Info("Swapchain", "OS overrides a required (%u, %u) surface size by (%u, %u).\n"
+                    , m_dimensions.m_imageWidth, m_dimensions.m_imageHeight
+                    , m_surfaceCapabilities.currentExtent.width, m_surfaceCapabilities.currentExtent.height);
+
+                m_dimensions.m_imageWidth  = m_surfaceCapabilities.currentExtent.width;
+                m_dimensions.m_imageHeight = m_surfaceCapabilities.currentExtent.height;
+            }
+            else
+#endif
             if (!ValidateSurfaceDimensions(m_dimensions))
             {
                 [[maybe_unused]] uint32_t oldHeight = m_dimensions.m_imageHeight;
