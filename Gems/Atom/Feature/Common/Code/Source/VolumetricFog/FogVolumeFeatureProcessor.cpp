@@ -829,10 +829,9 @@ namespace AZ::Render
             }
         }
 
-        m_noiseImageImages.resize(resourceList.size());
+        AZStd::vector<Data::Instance<RPI::StreamingImage>> images(resourceList.size(), nullptr);
         for (uint32_t i = 0; i < resourceList.size(); ++i)
         {
-            m_noiseImageImages[i] = nullptr;
             const AZ::Data::AssetId& assetId = resourceList[i];
             if (assetId.IsValid())
             {
@@ -840,11 +839,12 @@ namespace AZ::Render
                     assetId, AZ::Data::AssetLoadBehavior::PreLoad);
                 if (textureAsset.IsReady())
                 {
-                    m_noiseImageImages[i] = RPI::StreamingImage::FindOrCreate(textureAsset);
+                    images[i] = RPI::StreamingImage::FindOrCreate(textureAsset);
                     continue;
                 }
             }
-        }        
+        }
+        m_noiseImageImages = AZStd::move(images);
     }
 
     // -------------------------------------------------------------------------
