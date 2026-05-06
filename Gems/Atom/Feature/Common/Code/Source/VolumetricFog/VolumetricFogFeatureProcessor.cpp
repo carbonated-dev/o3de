@@ -132,6 +132,32 @@ namespace AZ::Render
             return;
         }
 
+        // Update the froxel size every frame in case the pipeline output size changed.
+        UpdateFroxelSize();
+        m_sceneSrg->SetConstant(m_shaderConstantsIndex, m_sceneSrgGlobalConstants);
+        m_sceneSrg->SetConstant(m_shaderConstantsVolumeIndex, m_sceneSrgVolumeConstants);
+
+        #include <Atom/Feature/ParamMacros/MapParamEmpty.inl>
+
+        // The following macro overrides the regular macro defined above, loads an image and bind it
+#undef AZ_GFX_TEXTURE_ASSET_PARAM
+#define AZ_GFX_TEXTURE_ASSET_PARAM(Name, MemberName, DefaultValue)                                                                             \
+        if (MemberName##SrgIndex.IsValid())                                                                                                    \
+        {                                                                                                                                      \
+            if (!m_sceneSrg->SetImage(MemberName##SrgIndex, MemberName##Image))                                                                \
+            {                                                                                                                                  \
+                AZ_Error(                                                                                                                      \
+                    "VolumetricFogFeatureProcessor::Simulate",                                                                                 \
+                    false,                                                                                                                     \
+                    "Failed to bind SRG image for %s = %s",                                                                                    \
+                    #MemberName,                                                                                                               \
+                    m_settings.MemberName.GetHint().c_str());                                                                                  \
+            }                                                                                                                                  \
+        }
+
+#include <Atom/Feature/VolumetricFog/VolumetricFogParams.inl>
+#include <Atom/Feature/ParamMacros/EndParams.inl>
+
         auto toDepth = [this](uint32_t index)
         {
             return index == 0 ? m_settings.m_fogNear : m_settings.m_fogFar;
@@ -153,11 +179,10 @@ namespace AZ::Render
 
     void VolumetricFogFeatureProcessor::Simulate([[maybe_unused]] const FeatureProcessor::SimulatePacket& packet)
     {
+        AZ_PROFILE_SCOPE(RPI, "VolumetricFogFeatureProcessor: Simulate");
         SetPassesEnabled();
         if (m_settings.m_enabled)
         {
-            AZ_PROFILE_SCOPE(RPI, "VolumetricFogFeatureProcessor: Simulate");
-
             if (m_buildDrawPackets)
             {
                 BuildPipelines();
@@ -171,33 +196,18 @@ namespace AZ::Render
                 m_needUpdate = false;
             }
 
-            m_sceneSrg->SetConstant(m_shaderConstantsIndex, m_sceneSrgGlobalConstants);
-            m_sceneSrg->SetConstant(m_shaderConstantsVolumeIndex, m_sceneSrgVolumeConstants);
-
 #include <Atom/Feature/ParamMacros/MapParamEmpty.inl>
 
             // The following macro overrides the regular macro defined above, loads an image and bind it
 #undef AZ_GFX_TEXTURE_ASSET_PARAM
-#define AZ_GFX_TEXTURE_ASSET_PARAM(Name, MemberName, DefaultValue)                                  \
-            if (!MemberName##Image)                                                                 \
-            {                                                                                       \
-                if (m_settings.MemberName.IsReady())                                               \
-                {                                                                                   \
-                    MemberName##Image = RPI::StreamingImage::FindOrCreate(m_settings.MemberName);   \
-                }                                                                                   \
-            }                                                                                       \
-            if (MemberName##SrgIndex.IsValid())                                                     \
-            {                                                                                       \
-                if (!m_sceneSrg->SetImage(MemberName##SrgIndex, MemberName##Image))                 \
-                {                                                                                   \
-                    AZ_Error(                                                       \
-                        "VolumetricFogFeatureProcessor::Simulate",                  \
-                        false,                                                      \
-                        "Failed to bind SRG image for %s = %s",                     \
-                        #MemberName,                                                \
-                        m_settings.MemberName.GetHint().c_str());                   \
-                }                                                                   \
-            }                                                                       \
+#define AZ_GFX_TEXTURE_ASSET_PARAM(Name, MemberName, DefaultValue)                                                                         \
+        if (!MemberName##Image)                                                                                                                \
+        {                                                                                                                                      \
+            if (m_settings.MemberName.IsReady())                                                                                               \
+            {                                                                                                                                  \
+                MemberName##Image = RPI::StreamingImage::FindOrCreate(m_settings.MemberName);                                                  \
+            }                                                                                                                                  \
+        }                                                                                                                                      \
 
 #include <Atom/Feature/VolumetricFog/VolumetricFogParams.inl>
 #include <Atom/Feature/ParamMacros/EndParams.inl>
@@ -282,22 +292,8 @@ namespace AZ::Render
         RHI::Size tileSize = VolumetricFog::ToFroxelSize(m_settings.m_quality);
         m_sceneSrgGlobalConstants.m_enabled = static_cast<uint32_t>(m_settings.m_enabled);
         m_sceneSrgGlobalConstants.m_tileSize = tileSize.m_width;
-        if (m_froxelParentPass)
-        {
-            if (auto attachmentBinding = m_froxelParentPass->FindAttachmentBinding(Name("PipelineOutput")))
-            {
-                if (auto attachment = attachmentBinding->GetAttachment())
-                {
-                    RHI::Size outputSize = attachment->m_descriptor.m_image.m_size;
-                    m_sceneSrgGlobalConstants.m_froxelCount =
-                        RHI::Size(
-                            uint32_t(ceil(float(outputSize.m_width) * 1.0f / tileSize.m_width)),
-                            uint32_t(ceil(float(outputSize.m_height) * 1.0f / tileSize.m_height)),
-                            tileSize.m_depth);
-                }
-            }
-        }
         m_sceneSrgGlobalConstants.m_lightingChannelMask = m_settings.m_lightingChannelConfig.GetLightingChannelMask();
+
         // The coprimes 2, 3 and 5 are commonly used for halton sequences because they have an even distribution even for
         // few samples. With larger primes you need to offset by some amount between each prime to have the same
         // effect. We could allow this to be configurable in the future.
@@ -344,6 +340,23 @@ namespace AZ::Render
 #include <Atom/Feature/ParamMacros/EndParams.inl>
         
         m_sceneSrgGlobalConstants.m_blendPercentage /= 100.0f;
+    }
+
+    void VolumetricFogFeatureProcessor::UpdateFroxelSize()
+    {
+        if (auto attachmentBinding = m_froxelParentPass->FindAttachmentBinding(Name("PipelineOutput")))
+        {
+            if (auto attachment = attachmentBinding->GetAttachment())
+            {
+                auto outputSize = attachment->m_descriptor.m_image.m_size;
+                RHI::Size tileSize = VolumetricFog::ToFroxelSize(m_settings.m_quality);
+                m_sceneSrgGlobalConstants.m_froxelCount = RHI::Size(
+                    uint32_t(ceil(float(outputSize.m_width) * 1.0f / tileSize.m_width)),
+                    uint32_t(ceil(float(outputSize.m_height) * 1.0f / tileSize.m_height)),
+                    tileSize.m_depth);
+
+            }
+        }
     }
 
     void VolumetricFogFeatureProcessor::BuildDrawItems()

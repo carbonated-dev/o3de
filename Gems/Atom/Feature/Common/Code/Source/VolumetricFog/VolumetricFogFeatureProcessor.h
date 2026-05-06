@@ -18,12 +18,10 @@
 #include <AzCore/std/containers/vector.h>
 
 #include <Atom/RHI.Reflect/ShaderResourceGroupLayoutDescriptor.h>
-
 #include <Atom/RPI.Public/Shader/Shader.h>
 #include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
 #include <Atom/RPI.Public/Image/StreamingImage.h>
 #include <Atom/RPI.Public/PipelineState.h>
-
 
 #include <Atom/Feature/VolumetricFog/VolumetricFogFeatureProcessorInterface.h>
 
@@ -139,6 +137,7 @@ namespace AZ::Render
         void OnSettingsChanged();
         void UpdatePasses(AZ::RPI::RenderPipeline* renderPipeline);
         void UpdateSceneSrgConstants();
+        void UpdateFroxelSize();
         //! Creates draw packets for the transparent depth min/max pre-pass that positions one screen-space quad per froxel slice.
         void BuildDrawItems();
         //! Creates draw items for the transparent depth min/max pre-pass that positions one screen-space quad per froxel slice.

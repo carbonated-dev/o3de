@@ -204,6 +204,16 @@ namespace AZ::Render
             return;
         }
 
+        RPI::Pass* pass = m_rasterPass;
+        while (!pass)
+        {
+            if (!pass->IsEnabled())
+            {
+                return;
+            }
+            pass = pass->GetParent();
+        }
+
         // Find the first view with the froxelLocalVolume draw list tag to use for slice computation.
         RPI::ViewPtr computeView;
         for (const auto& view : packet.m_views)
@@ -322,6 +332,7 @@ namespace AZ::Render
         {
             return false;
         }
+        SetVolumeNoiseTexture(handle, {});
         m_volumeStates.RemoveIndex(handle.GetIndex());
         handle.Reset();
         return true;
@@ -352,7 +363,7 @@ namespace AZ::Render
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 
     void FogVolumeFeatureProcessor::SetVolumeNoiseTexture(
-        VolumeHandle handle, [[maybe_unused]] Data::Asset<AZ::RPI::StreamingImageAsset> val)
+        VolumeHandle handle, Data::Asset<AZ::RPI::StreamingImageAsset> val)
     {
         auto& state = m_volumeStates.GetData(handle.GetIndex());
         const auto& indirectionList = m_noiseImageAssetsId.GetIndirectionList();
