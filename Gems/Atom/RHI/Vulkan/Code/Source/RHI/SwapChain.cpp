@@ -678,7 +678,7 @@ namespace AZ
             if (m_surfaceCapabilities.currentExtent.width != 0xFFFFFFFF
                 && m_surfaceCapabilities.currentExtent.height != 0xFFFFFFFF)
             {
-                AZ_Info("Swapchain", "OS overrides a required (%u, %u) surface size by (%u, %u).\n"
+                AZ_Info("Swapchain", "OS overrides a requested (%u, %u) surface size by (%u, %u).\n"
                     , m_dimensions.m_imageWidth, m_dimensions.m_imageHeight
                     , m_surfaceCapabilities.currentExtent.width, m_surfaceCapabilities.currentExtent.height);
 
