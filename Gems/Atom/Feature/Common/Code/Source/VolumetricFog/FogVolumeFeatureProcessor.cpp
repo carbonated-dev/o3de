@@ -180,7 +180,7 @@ namespace AZ::Render
         Data::AssetBus::MultiHandler::BusDisconnect();
 
         m_noiseImageImages.clear();
-        m_noiseImageAssetsId.Reset();
+        m_noiseImageAssets.Reset();
         m_rasterPass = nullptr;
         m_drawPackets.clear();
         m_pipelineStates.fill(nullptr);
@@ -264,7 +264,7 @@ namespace AZ::Render
             AZStd::back_inserter(rhiImages),
             [](const Data::Instance<RPI::StreamingImage>& rpiImage)
             {
-                return rpiImage->GetImageView();
+                return rpiImage ? rpiImage->GetImageView() : nullptr;
             });
         passSrg->SetImageViewUnboundedArray(m_noiseTextureArrayIndex, rhiImages);
 
@@ -365,29 +365,31 @@ namespace AZ::Render
     void FogVolumeFeatureProcessor::SetVolumeNoiseTexture(
         VolumeHandle handle, Data::Asset<AZ::RPI::StreamingImageAsset> val)
     {
+        // This is a workaround because on certain cases the subId of the StreamingImageAsset doesn't load and it's 0
+        Data::AssetId id(val.GetId().m_guid, RPI::StreamingImageAsset::GetImageAssetSubId());
+        auto textureAsset = AZ::Data::AssetManager::Instance().GetAsset<RPI::StreamingImageAsset>(id, AZ::Data::AssetLoadBehavior::PreLoad);                                                                  \
         auto& state = m_volumeStates.GetData(handle.GetIndex());
-        const auto& indirectionList = m_noiseImageAssetsId.GetIndirectionList();
+        const auto& indirectionList = m_noiseImageAssets.GetIndirectionList();
         if (state.m_noiseTextureIndex >= 0 && state.m_noiseTextureIndex < static_cast<int>(indirectionList.size()))
         {
             uint32_t resourceIndex = indirectionList[state.m_noiseTextureIndex];
-            const auto& assetId = m_noiseImageAssetsId.GetResourceList()[resourceIndex];
-            if (assetId == val.GetId())
+            const auto& asset = m_noiseImageAssets.GetResourceList()[resourceIndex];
+            if (asset == textureAsset)
             {
                 return;
             }
 
-            m_noiseImageAssetsId.RemoveResource(assetId);
+            m_noiseImageAssets.RemoveResource(textureAsset);
         }
 
         int index = -1;
-        if (val.GetId().IsValid())
+        if (textureAsset.GetId().IsValid())
         {
-            index = static_cast<int>(m_noiseImageAssetsId.AddResource(val.GetId()));
-            if (!val.IsReady() && !val.IsLoading())
+            index = static_cast<int>(m_noiseImageAssets.AddResource(textureAsset));
+            if (!textureAsset.IsReady() && !textureAsset.IsLoading())
             {
-                val.QueueLoad();
+                textureAsset.QueueLoad();
             }
-
         }
         state.m_noiseTextureIndex = index;
 
@@ -815,13 +817,16 @@ namespace AZ::Render
 
     void FogVolumeFeatureProcessor::BuildNoiseTextureArray()
     {
-        const auto& resourceList = m_noiseImageAssetsId.GetResourceList();
-        const auto& indirectionLis = m_noiseImageAssetsId.GetIndirectionList();
+        const auto& resourceList = m_noiseImageAssets.GetResourceList();
+        const auto& indirectionLis = m_noiseImageAssets.GetIndirectionList();
+        AZStd::vector<Data::Instance<RPI::StreamingImage>> images(resourceList.size(), nullptr);
         for (auto& volume : m_currentFrameVolumes)
         {
-            if (volume.m_noiseTextureIndex >= 0 && volume.m_noiseTextureIndex < indirectionLis.size())
+            if (volume.m_noiseTextureIndex >= 0 && volume.m_noiseTextureIndex < indirectionLis.size() &&
+                resourceList[indirectionLis[volume.m_noiseTextureIndex]].IsReady())
             {
                 volume.m_noiseTextureIndex = indirectionLis[volume.m_noiseTextureIndex];
+                images[volume.m_noiseTextureIndex] = RPI::StreamingImage::FindOrCreate(resourceList[volume.m_noiseTextureIndex]);
             }
             else
             {
@@ -829,21 +834,6 @@ namespace AZ::Render
             }
         }
 
-        AZStd::vector<Data::Instance<RPI::StreamingImage>> images(resourceList.size(), nullptr);
-        for (uint32_t i = 0; i < resourceList.size(); ++i)
-        {
-            const AZ::Data::AssetId& assetId = resourceList[i];
-            if (assetId.IsValid())
-            {
-                auto textureAsset = AZ::Data::AssetManager::Instance().GetAsset<AZ::RPI::StreamingImageAsset>(
-                    assetId, AZ::Data::AssetLoadBehavior::PreLoad);
-                if (textureAsset.IsReady())
-                {
-                    images[i] = RPI::StreamingImage::FindOrCreate(textureAsset);
-                    continue;
-                }
-            }
-        }
         m_noiseImageImages = AZStd::move(images);
     }
 

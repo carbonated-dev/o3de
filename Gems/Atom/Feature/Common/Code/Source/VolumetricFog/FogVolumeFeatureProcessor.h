@@ -180,15 +180,9 @@ namespace AZ::Render
 
         RHI::DrawListTag m_drawListTag;
 
-        RayTracingResourceList<AZ::Data::AssetId> m_noiseImageAssetsId; // parallel arrays tracking noise texture asset IDs and loaded StreamingImage instances.
-        AZStd::vector<Data::Instance<RPI::StreamingImage>> m_noiseImageImages; // Noise texture asset IDs and loaded StreamingImage instances.
+        // Arrays tracking noise texture asset.
+        RayTracingResourceList<Data::Asset<AZ::RPI::StreamingImageAsset>> m_noiseImageAssets;
+        AZStd::vector<Data::Instance<RPI::StreamingImage>> m_noiseImageImages; // Noise texture loaded StreamingImage instances.
     };
 } // namespace AZ::Render
 
-namespace AZ::Data
-{
-    inline bool operator!(const AssetId& assetId)
-    {
-        return !assetId.IsValid();
-    }
-}

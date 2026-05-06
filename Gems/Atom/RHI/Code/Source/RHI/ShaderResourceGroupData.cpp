@@ -145,7 +145,16 @@ namespace AZ::RHI
             bool isValidAll = true;
             for (size_t i = 0; i < imageViews.size(); ++i)
             {
+#if defined(CARBONATED)
+                bool isValid = true;
+                if (imageViews[i])
+                {
+                    isValid = ValidateImageViewAccess<ShaderInputImageUnboundedArrayIndex, ShaderInputImageUnboundedArrayDescriptor>(
+                        inputIndex, imageViews[i], static_cast<uint32_t>(i));
+                }
+#else
                 const bool isValid = ValidateImageViewAccess<ShaderInputImageUnboundedArrayIndex, ShaderInputImageUnboundedArrayDescriptor>(inputIndex, imageViews[i], static_cast<uint32_t>(i));
+#endif
                 if (isValid)
                 {
                     m_imageViewsUnboundedArray.push_back(imageViews[i]);

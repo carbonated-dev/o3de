@@ -157,3 +157,20 @@ namespace AZ
         };
     }
 }
+
+#if defined(CARBONATED)
+namespace AZStd
+{
+    // hash specialization
+    template<>
+    struct hash<AZ::Data::Asset<AZ::RPI::StreamingImageAsset>>
+    {
+        using argument_type = AZ::Uuid;
+        using result_type = size_t;
+        size_t operator()(const AZ::Data::Asset<AZ::RPI::StreamingImageAsset>& asset) const
+        {
+            return asset.GetId().m_guid.GetHash();
+        }
+    };
+} // namespace AZStd
+#endif
