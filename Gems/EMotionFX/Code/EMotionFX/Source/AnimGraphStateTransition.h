@@ -124,6 +124,8 @@ namespace EMotionFX
         void ExtractMotion(AnimGraphInstance* animGraphInstance, AnimGraphRefCountedData* sourceData, Transform* outTransform, Transform* outTransformMirrored) const;
 
         void OnStartTransition(AnimGraphInstance* animGraphInstance);
+
+        static bool s_logTransitionsEnabled; //!< Set to true to log every transition start (source -> target state names)
         void OnEndTransition(AnimGraphInstance* animGraphInstance);
         bool GetIsDone(AnimGraphInstance* animGraphInstance) const;
         float GetBlendWeight(AnimGraphInstance* animGraphInstance) const;

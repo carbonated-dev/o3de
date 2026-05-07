@@ -317,8 +317,18 @@ namespace EMotionFX
         CalculateMotionExtractionDelta(m_extractionMode, sourceData, targetData, weight, true, *outTransform, *outTransformMirrored);
     }
 
+    bool AnimGraphStateTransition::s_logTransitionsEnabled = false;
+
     void AnimGraphStateTransition::OnStartTransition(AnimGraphInstance* animGraphInstance)
     {
+        if (s_logTransitionsEnabled)
+        {
+            const char* sourceName = m_sourceNode ? m_sourceNode->GetName() : "(none)";
+            const char* targetName = m_targetNode ? m_targetNode->GetName() : "(none)";
+            MCore::LogInfo("[AnimGraphTransition] actor=%p  %s -> %s",
+                animGraphInstance, sourceName, targetName);
+        }
+
         // get the unique data
         UniqueData* uniqueData = static_cast<UniqueData*>(animGraphInstance->FindOrCreateUniqueObjectData(this));
 

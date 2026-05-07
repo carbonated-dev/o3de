@@ -20,6 +20,7 @@
 #include <EMotionFX/Source/Allocators.h>
 #include <EMotionFX/Source/SingleThreadScheduler.h>
 #include <EMotionFX/Source/MultiThreadScheduler.h>
+#include <EMotionFX/Source/AnimGraphStateTransition.h>
 #include <EMotionFX/Source/EMotionFXManager.h>
 #include <EMotionFX/Source/AnimGraphManager.h>
 #include <EMotionFX/Source/AnimGraphObjectFactory.h>
@@ -593,6 +594,8 @@ namespace EMotionFX
                 "When non-zero, prints EMotionFX scheduler step/actor-instance counts each tick");
             REGISTER_CVAR2("emfx_animGraphTickLog", &CVars::emfx_animGraphTickLog, 0, VF_DEV_ONLY,
                 "When non-zero, logs actor ptr, thread index and nanosecond timestamp for every anim graph tick");
+            REGISTER_CVAR2("emfx_transitionLog", &CVars::emfx_transitionLog, 0, VF_DEV_ONLY,
+                "When non-zero, logs every anim graph state transition start (source -> target state names)");
         }
 
         //////////////////////////////////////////////////////////////////////////
@@ -602,6 +605,7 @@ namespace EMotionFX
             gEnv->pConsole->UnregisterVariable("emfx_ragdollManipulatorsEnabled");
             gEnv->pConsole->UnregisterVariable("emfx_schedulerPrint");
             gEnv->pConsole->UnregisterVariable("emfx_animGraphTickLog");
+            gEnv->pConsole->UnregisterVariable("emfx_transitionLog");
 
 #if !defined(AZ_MONOLITHIC_BUILD)
             gEnv = nullptr;
@@ -620,6 +624,7 @@ namespace EMotionFX
                 GetEMotionFX().Update(delta);
 
                 MultiThreadScheduler::s_animGraphTickLogEnabled = (CVars::emfx_animGraphTickLog != 0);
+                AnimGraphStateTransition::s_logTransitionsEnabled = (CVars::emfx_transitionLog != 0);
 
                 if (CVars::emfx_schedulerPrint)
                 {
