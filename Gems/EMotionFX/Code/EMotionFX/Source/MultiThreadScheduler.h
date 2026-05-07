@@ -84,7 +84,8 @@ namespace EMotionFX
          */
         void Print() override;
 
-        static bool s_animGraphTickLogEnabled; //!< Set to true to log timestamp+thread for every anim graph tick
+        static bool s_animGraphTickLogEnabled;  //!< Set to true to log timestamp+thread for every anim graph tick
+        static bool s_animGraphParamLogEnabled;  //!< Set to true to log all anim graph parameter values at tick start
 
         /**
          * Clear the schedule.

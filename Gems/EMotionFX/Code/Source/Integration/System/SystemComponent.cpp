@@ -596,6 +596,8 @@ namespace EMotionFX
                 "When non-zero, logs actor ptr, thread index and nanosecond timestamp for every anim graph tick");
             REGISTER_CVAR2("emfx_transitionLog", &CVars::emfx_transitionLog, 0, VF_DEV_ONLY,
                 "When non-zero, logs every anim graph state transition start (source -> target state names)");
+            REGISTER_CVAR2("emfx_paramLog", &CVars::emfx_paramLog, 0, VF_DEV_ONLY,
+                "When non-zero, logs all anim graph parameter values at the start of each actor instance tick");
         }
 
         //////////////////////////////////////////////////////////////////////////
@@ -606,6 +608,7 @@ namespace EMotionFX
             gEnv->pConsole->UnregisterVariable("emfx_schedulerPrint");
             gEnv->pConsole->UnregisterVariable("emfx_animGraphTickLog");
             gEnv->pConsole->UnregisterVariable("emfx_transitionLog");
+            gEnv->pConsole->UnregisterVariable("emfx_paramLog");
 
 #if !defined(AZ_MONOLITHIC_BUILD)
             gEnv = nullptr;
@@ -625,6 +628,7 @@ namespace EMotionFX
 
                 MultiThreadScheduler::s_animGraphTickLogEnabled = (CVars::emfx_animGraphTickLog != 0);
                 AnimGraphStateTransition::s_logTransitionsEnabled = (CVars::emfx_transitionLog != 0);
+                MultiThreadScheduler::s_animGraphParamLogEnabled = (CVars::emfx_paramLog != 0);
 
                 if (CVars::emfx_schedulerPrint)
                 {

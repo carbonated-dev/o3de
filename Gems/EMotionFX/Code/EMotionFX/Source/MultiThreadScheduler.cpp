@@ -11,6 +11,8 @@
 #include "ActorManager.h"
 #include "ActorInstance.h"
 #include "AnimGraphInstance.h"
+#include "AnimGraph.h"
+#include "Parameter/ValueParameter.h"
 #include "Attachment.h"
 #include "EMotionFXManager.h"
 #include <EMotionFX/Source/Allocators.h>
@@ -26,6 +28,7 @@
 namespace EMotionFX
 {
     bool MultiThreadScheduler::s_animGraphTickLogEnabled = false;
+    bool MultiThreadScheduler::s_animGraphParamLogEnabled = false;
     AZ_CLASS_ALLOCATOR_IMPL(MultiThreadScheduler, ActorUpdateAllocator)
 
     // constructor
@@ -199,6 +202,32 @@ namespace EMotionFX
                         const auto nowNs = AZStd::chrono::duration_cast<AZStd::chrono::nanoseconds>(now.time_since_epoch()).count();
                         MCore::LogInfo("[AnimGraphTick] actor=%p thread=%u time_ns=%lld sampleMotions=%d",
                             actorInstance, threadIndex, (long long)nowNs, (int)sampleMotions);
+                    }
+
+                    if (MultiThreadScheduler::s_animGraphParamLogEnabled)
+                    {
+                        AnimGraphInstance* animGraphInstance = actorInstance->GetAnimGraphInstance();
+                        if (animGraphInstance)
+                        {
+                            const AnimGraph* animGraph = animGraphInstance->GetAnimGraph();
+                            const size_t numParams = animGraph->GetNumValueParameters();
+                            AZStd::string paramLog;
+                            paramLog.reserve(256);
+                            for (size_t p = 0; p < numParams; ++p)
+                            {
+                                const ValueParameter* param = animGraph->FindValueParameter(p);
+                                MCore::Attribute* attr = animGraphInstance->GetParameterValue(p);
+                                AZStd::string valueStr;
+                                if (attr)
+                                    attr->ConvertToString(valueStr);
+                                if (p > 0)
+                                    paramLog += ", ";
+                                paramLog += param->GetName();
+                                paramLog += "=";
+                                paramLog += valueStr;
+                            }
+                            MCore::LogInfo("[AnimGraphParams] actor=%p [%s]", actorInstance, paramLog.c_str());
+                        }
                     }
 
                     actorInstance->UpdateTransformations(timePassedInSeconds, isVisible, sampleMotions);
