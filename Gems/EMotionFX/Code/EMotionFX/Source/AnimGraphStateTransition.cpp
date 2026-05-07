@@ -23,6 +23,7 @@
 #include "AnimGraph.h"
 #include "EMotionFXManager.h"
 #include <MCore/Source/IDGenerator.h>
+#include <MCore/Source/LogManager.h>
 #include <MCore/Source/ReflectionSerializer.h>
 #include <EMotionFX/Source/AnimGraphBus.h>
 
