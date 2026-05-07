@@ -25,6 +25,7 @@
 
 namespace EMotionFX
 {
+    bool MultiThreadScheduler::s_animGraphTickLogEnabled = false;
     AZ_CLASS_ALLOCATOR_IMPL(MultiThreadScheduler, ActorUpdateAllocator)
 
     // constructor
@@ -192,10 +193,13 @@ namespace EMotionFX
                     }
 
                     // update the actor instance
-                    const auto now = AZStd::chrono::steady_clock::now();
-                    const auto nowNs = AZStd::chrono::duration_cast<AZStd::chrono::nanoseconds>(now.time_since_epoch()).count();
-                    MCore::LogInfo("[AnimGraphTick] actor=%p thread=%u time_ns=%lld sampleMotions=%d",
-                        actorInstance, threadIndex, (long long)nowNs, (int)sampleMotions);
+                    if (MultiThreadScheduler::s_animGraphTickLogEnabled)
+                    {
+                        const auto now = AZStd::chrono::steady_clock::now();
+                        const auto nowNs = AZStd::chrono::duration_cast<AZStd::chrono::nanoseconds>(now.time_since_epoch()).count();
+                        MCore::LogInfo("[AnimGraphTick] actor=%p thread=%u time_ns=%lld sampleMotions=%d",
+                            actorInstance, threadIndex, (long long)nowNs, (int)sampleMotions);
+                    }
 
                     actorInstance->UpdateTransformations(timePassedInSeconds, isVisible, sampleMotions);
                 }, true, jobContext);

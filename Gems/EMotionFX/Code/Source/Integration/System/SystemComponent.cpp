@@ -19,6 +19,7 @@
 
 #include <EMotionFX/Source/Allocators.h>
 #include <EMotionFX/Source/SingleThreadScheduler.h>
+#include <EMotionFX/Source/MultiThreadScheduler.h>
 #include <EMotionFX/Source/EMotionFXManager.h>
 #include <EMotionFX/Source/AnimGraphManager.h>
 #include <EMotionFX/Source/AnimGraphObjectFactory.h>
@@ -588,6 +589,10 @@ namespace EMotionFX
             REGISTER_CVAR2(
                 "emfx_ragdollManipulatorsEnabled", &CVars::emfx_ragdollManipulatorsEnabled, 1, VF_DEV_ONLY,
                 "Feature flag for in development ragdoll manipulators");
+            REGISTER_CVAR2("emfx_schedulerPrint", &CVars::emfx_schedulerPrint, 0, VF_DEV_ONLY,
+                "When non-zero, prints EMotionFX scheduler step/actor-instance counts each tick");
+            REGISTER_CVAR2("emfx_animGraphTickLog", &CVars::emfx_animGraphTickLog, 0, VF_DEV_ONLY,
+                "When non-zero, logs actor ptr, thread index and nanosecond timestamp for every anim graph tick");
         }
 
         //////////////////////////////////////////////////////////////////////////
@@ -595,6 +600,8 @@ namespace EMotionFX
         {
             gEnv->pConsole->UnregisterVariable("emfx_updateEnabled");
             gEnv->pConsole->UnregisterVariable("emfx_ragdollManipulatorsEnabled");
+            gEnv->pConsole->UnregisterVariable("emfx_schedulerPrint");
+            gEnv->pConsole->UnregisterVariable("emfx_animGraphTickLog");
 
 #if !defined(AZ_MONOLITHIC_BUILD)
             gEnv = nullptr;
@@ -611,6 +618,14 @@ namespace EMotionFX
             {
                 // Main EMotionFX runtime update.
                 GetEMotionFX().Update(delta);
+
+                MultiThreadScheduler::s_animGraphTickLogEnabled = (CVars::emfx_animGraphTickLog != 0);
+
+                if (CVars::emfx_schedulerPrint)
+                {
+                    if (auto* scheduler = GetEMotionFX().GetActorManager()->GetScheduler())
+                        scheduler->Print();
+                }
 
                 bool inGameMode = true;
 #if defined (EMOTIONFXANIMATION_EDITOR)
