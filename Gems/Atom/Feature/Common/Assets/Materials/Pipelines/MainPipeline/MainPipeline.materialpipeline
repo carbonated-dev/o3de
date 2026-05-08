@@ -99,6 +99,11 @@
             "shader": "../Common/MeshMotionVector.shader.template",
             "azsli": "../Common/MeshMotionVector.azsli",
             "tag": "meshMotionVector"
+        },
+        {
+            "shader": "../Common/SilhouetteGather.shader.template",
+            "azsli": "../Common/SilhouetteGather.azsli",
+            "tag": "silhouetteGather"
         }
     ],
     "runtime": {
@@ -132,6 +137,11 @@
                 "name": "hasPerPixelClip",
                 "type": "Bool",
                 "defaultValue": false
+            },
+            {
+                "name": "silhouetteType",
+                "type": "UInt",
+                "defaultValue": 0
             }
         ],
         "functors": 
@@ -148,6 +158,13 @@
                 "args": {
                     //TODO(MaterialPipeline): Make the builder touch up this path so it can be relative to the .materialpipeline file
                     "file": "Materials/Pipelines/Common/DoubleSided.lua"
+                }
+            },
+            {
+                "type": "Lua",
+                "args": {
+                    //TODO(MaterialPipeline): Make the builder touch up this path so it can be relative to the .materialpipeline file
+                    "file": "Materials/Types/Silhouette_DepthState.lua"
                 }
             }
         ]

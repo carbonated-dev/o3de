@@ -561,8 +561,11 @@ namespace AZ
                 if (propertyIndex.IsValid())
                 {
                     foundProperty = true;
-
+#if defined(CARBONATED)
+                    if (m_wipMaterialProperty.GetAssetDataTypeId() != materialPipeline.m_materialPropertiesLayout->GetPropertyDescriptor(propertyIndex)->GetAssetDataTypeId())
+#else
                     if (m_wipMaterialProperty.GetDataType() != materialPipeline.m_materialPropertiesLayout->GetPropertyDescriptor(propertyIndex)->GetDataType())
+#endif
                     {
                         ReportError("Material property '%s': Cannot connect to internal property '%s' because the data types do not match.",
                             m_wipMaterialProperty.GetName().GetCStr(), propertyName.GetCStr());
@@ -578,7 +581,11 @@ namespace AZ
                 }
             }
 
-            if (!foundProperty)
+            if (!foundProperty
+#if defined(CARBONATED)
+                && !m_wipMaterialPropertyOptional
+#endif
+                )
             {
                 ReportError("Material property '%s': Material contains no internal property '%s'.",
                     m_wipMaterialProperty.GetName().GetCStr(), propertyName.GetCStr());

@@ -1,0 +1,67 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+// Begin CARBONATED
+#include <Atom/Feature/Common/Assets/Shaders/Silhouette/Silhouette.azsli>
+#include <Atom/Features/ColorManagement/TransformColor.azsli>
+// End CARBONATED
+
+VsOutput MainVS(VsInput IN, uint instanceId : SV_InstanceID)
+{
+    VsSystemValues SV;
+    SV.m_instanceId = instanceId;
+
+    VsOutput OUT = EvaluateVertexGeometry(IN, SV);
+
+    // this depth bias helps prevent silhouettes appearing where there are small intersections
+    // like the player feet with the ground
+    real distanceScale = 1.0 - OUT.position.z / OUT.position.w;
+    OUT.position.z += MaterialSrg::m_silhouetteDepthBias * distanceScale;
+
+/*  Begin CARBONATED
+    if(MaterialSrg::m_silhouetteOutlineSize > EPSILON)
+    {
+        real3 worldNormal = normalize(mul(GetObjectToWorldMatrixInverseTranspose(instanceId), IN.normal));
+        real4 screenSpaceNormal = mul(ViewSrg::m_viewProjectionMatrix, real4(worldNormal, 0.0));
+
+        // use a size scale so input m_outlineSize can be in range 0..100
+        const real sizeScale = 1.0 / 400.0;
+        OUT.position.xy += screenSpaceNormal.xy * (MaterialSrg::m_silhouetteOutlineSize * OUT.position.w * sizeScale) * distanceScale;
+    }
+*/
+
+    return OUT;
+}
+
+struct PSOutput
+{
+    float4 m_color : SV_Target0;
+// Begin CARBONATED
+    uint m_outlineData : SV_Target1;
+    float m_outlineDepth : SV_Target2;
+// End CARBONATED
+};
+
+PSOutput MainPS(VsOutput IN, in uint sampleIndex : SV_SampleIndex)
+{
+    PSOutput OUT = (PSOutput)0;
+
+    // write at least something in the alpha to distinguish between silhouette and background
+    OUT.m_color = float4(TransformColor(MaterialSrg::m_silhouetteColor, ColorSpaceId::ACEScg,ColorSpaceId::SRGB), max(0.01, MaterialSrg::m_silhouetteAlpha));
+
+// Begin CARBONATED
+    OutlineData data;
+    data.m_outlineSize = MaterialSrg::m_silhouetteOutlineSize;
+    data.m_outlineOnly = MaterialSrg::m_silhouetteOutlineOnly;
+    data.m_type = o_silhouetteType;
+
+    OUT.m_outlineData = EncodeOutlineData(data);
+    OUT.m_outlineDepth = IN.position.z;
+// End CARBONATED
+    return OUT;
+}

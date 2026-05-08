@@ -8,5 +8,17 @@
 
 #pragma once
 
-option enum class SilhouetteType { AlwaysDraw, Visible, XRay, NeverDraw } o_silhouetteType = SilhouetteType::AlwaysDraw;
+enum class SilhouetteType { AlwaysDraw, Visible, XRay, NeverDraw };
 
+// CARBONATED Begin
+#define COMMON_SRG_INPUTS_SILHOUETTE(prefix) \
+float3 prefix##m_silhouetteColor;			\
+float prefix##m_silhouetteAlpha;			\
+float prefix##m_silhouetteDepthBias;		\
+float prefix##m_silhouetteOutlineSize;		\
+bool  prefix##m_silhouetteOutlineOnly;		\
+float prefix##m_silhouettePad0;
+
+#define COMMON_OPTIONS_SILHOUETTE(prefix) \
+option SilhouetteType prefix##o_silhouetteType = SilhouetteType::AlwaysDraw;
+// CARBONATED End

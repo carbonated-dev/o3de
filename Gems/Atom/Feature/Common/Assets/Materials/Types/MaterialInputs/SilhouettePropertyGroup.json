@@ -7,13 +7,20 @@
             "name": "silhouetteType",
             "displayName": "Silhouette type",
             "description": "Silhouette type",
+            "optional" : true,
             "type": "Enum",
-            "defaultValue": "AlwaysDraw",
-            "enumValues": [ "AlwaysDraw", "Visible", "XRay", "NeverDraw" ],
-            "connection": {
-                "type": "ShaderOption",
-                "name": "o_silhouetteType"
-            }
+            "defaultValue": "NeverDraw",
+            "enumValues": [ "AlwaysDraw", "Visible", "XRay", "NeverDraw"],
+            "connection": [
+                {
+                    "type": "ShaderOption",
+                    "name": "o_silhouetteType"
+                },
+                {
+                    "type": "InternalProperty",
+                    "name": "silhouetteType"
+                }
+            ]
         },
         {
             "name": "color",
@@ -23,7 +30,7 @@
             "defaultValue": [ 1.0, 1.0, 1.0 ],
             "connection": {
                 "type": "ShaderInput",
-                "name": "m_color"
+                "name": "m_silhouetteColor"
             }
         },
         {
@@ -36,7 +43,7 @@
             "max": 1.0,
             "connection": {
                 "type": "ShaderInput",
-                "name": "m_alpha"
+                "name": "m_silhouetteAlpha"
             }
         },
         {
@@ -44,12 +51,12 @@
             "displayName": "Depth Bias",
             "description": "Modifies the depth to avoid intersecting small distances (e.g. character's feet through the ground)",
             "type": "float",
-            "defaultValue": 0.0,
+            "defaultValue": 0.01,
             "min":-1.0,
             "max":1.0,
             "connection": {
                 "type": "ShaderInput",
-                "name": "m_depthBias"
+                "name": "m_silhouetteDepthBias"
             }
         },
         {
@@ -62,7 +69,7 @@
             "max":100.0,
             "connection": {
                 "type": "ShaderInput",
-                "name": "m_outlineSize"
+                "name": "m_silhouetteOutlineSize"
             }
         },
         {
@@ -73,7 +80,7 @@
             "defaultValue": false,
             "connection": {
                 "type": "ShaderInput",
-                "name": "m_outlineOnly"
+                "name": "m_silhouetteOutlineOnly"
             }
         }
     ],
@@ -82,6 +89,12 @@
             "type": "Lua",
             "args": {
                 "file": "Materials/Types/Silhouette_DepthState.lua"
+            }
+        },
+        {
+            "type": "Lua",
+            "args": {
+                "file": "Materials/Types/StandardPBR_HandleSilhouetteMode.lua"
             }
         }
     ]
