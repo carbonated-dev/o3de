@@ -121,7 +121,7 @@ namespace AZ
             // Load the shader that contains the scene and view SRG layout that was used by the precompiled shaders.
             // Since View and Scene can be modified by projects, we may need to copy the content to the scene and view SRGs
             // that were used when creating the precompiled shaders (to avoid a layout mismatch).
-            m_sceneAndViewShader = RPI::LoadCriticalShader("Shaders/DiffuseGlobalIllumination/SceneAndViewSrgs.azshader");
+            m_sceneAndViewShader = RPI::LoadCriticalShader("Shaders/SceneAndViewSrgs.azshader");
             if (m_sceneAndViewShader)
             {
                 if (auto sceneSrgLayout = m_sceneAndViewShader->FindShaderResourceGroupLayout(RPI::SrgBindingSlot::Scene))
