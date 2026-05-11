@@ -184,6 +184,13 @@ namespace EMotionFX
     {
         // Full restore will skip the dirty flag check and restore everything to the animgraph from the snapshot data.
         // A full restore can happen either on the inital syncing, or after certian amount of server package lost.
+#if !defined(_RELEASE)
+        if (m_doFullRestore || (m_dirtyFlag & LODFlag::Parameter))
+        {
+            MCore::LogInfo("[AnimGraphSnapshot::Restore] authoritative=%d doFullRestore=%d dirtyFlag=%u  WILL RESTORE PARAMS",
+                (int)m_networkAuthoritative, (int)m_doFullRestore, (unsigned)m_dirtyFlag);
+        }
+#endif
         if (m_doFullRestore)
         {
             RestoreAttributes(instance);
