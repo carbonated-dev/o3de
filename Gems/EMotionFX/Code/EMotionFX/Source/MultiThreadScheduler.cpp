@@ -226,7 +226,9 @@ namespace EMotionFX
                                 paramLog += "=";
                                 paramLog += valueStr;
                             }
-                            MCore::LogInfo("[AnimGraphParams] actor=%p [%s]", actorInstance, paramLog.c_str());
+                            const auto now = AZStd::chrono::steady_clock::now();
+                            const auto nowNs = AZStd::chrono::duration_cast<AZStd::chrono::nanoseconds>(now.time_since_epoch()).count();
+                            MCore::LogInfo("[AnimGraphParams] actor=%p time_ns=%lld [%s]", actorInstance, (long long)nowNs, paramLog.c_str());
                         }
                     }
 
