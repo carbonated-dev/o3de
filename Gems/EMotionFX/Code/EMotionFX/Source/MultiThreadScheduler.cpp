@@ -199,9 +199,9 @@ namespace EMotionFX
                     if (MultiThreadScheduler::s_animGraphTickLogEnabled)
                     {
                         const auto now = AZStd::chrono::steady_clock::now();
-                        const auto nowNs = AZStd::chrono::duration_cast<AZStd::chrono::nanoseconds>(now.time_since_epoch()).count();
-                        MCore::LogInfo("[AnimGraphTick] actor=%p thread=%u time_ns=%lld sampleMotions=%d",
-                            actorInstance, threadIndex, (long long)nowNs, (int)sampleMotions);
+                        const double nowSec = AZStd::chrono::duration_cast<AZStd::chrono::nanoseconds>(now.time_since_epoch()).count() / 1.0e9;
+                        MCore::LogInfo("[AnimGraphTick] actor=%p thread=%u time=%.3fs sampleMotions=%d",
+                            actorInstance, threadIndex, nowSec, (int)sampleMotions);
                     }
 
                     if (MultiThreadScheduler::s_animGraphParamLogEnabled)
@@ -227,8 +227,8 @@ namespace EMotionFX
                                 paramLog += valueStr;
                             }
                             const auto now = AZStd::chrono::steady_clock::now();
-                            const auto nowNs = AZStd::chrono::duration_cast<AZStd::chrono::nanoseconds>(now.time_since_epoch()).count();
-                            MCore::LogInfo("[AnimGraphParams] actor=%p time_ns=%lld [%s]", actorInstance, (long long)nowNs, paramLog.c_str());
+                            const double nowSec = AZStd::chrono::duration_cast<AZStd::chrono::nanoseconds>(now.time_since_epoch()).count() / 1.0e9;
+                            MCore::LogInfo("[AnimGraphParams] actor=%p time=%.3fs [%s]", actorInstance, nowSec, paramLog.c_str());
                         }
                     }
 
