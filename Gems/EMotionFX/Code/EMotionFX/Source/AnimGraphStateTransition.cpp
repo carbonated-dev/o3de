@@ -326,8 +326,9 @@ namespace EMotionFX
         {
             const char* sourceName = m_sourceNode ? m_sourceNode->GetName() : "(none)";
             const char* targetName = m_targetNode ? m_targetNode->GetName() : "(none)";
-            MCore::LogInfo("[AnimGraphTransition] actor=%p  %s -> %s",
-                animGraphInstance, sourceName, targetName);
+            const float blendTime = GetBlendTime(animGraphInstance);
+            MCore::LogInfo("[AnimGraphTransition] actor=%p  %s -> %s  blendTime=%.3fs",
+                animGraphInstance, sourceName, targetName, blendTime);
         }
 
         // get the unique data

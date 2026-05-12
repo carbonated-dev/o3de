@@ -80,6 +80,7 @@ namespace EMotionFX
             uint32 m_activeMotionIndex = InvalidIndex32;
             MotionInstance* m_motionInstance = nullptr;
             bool m_reload = false;
+            bool m_loggedNullMotion = false; // true after the first null-motion warning so we don't spam
         };
 
         AnimGraphMotionNode();
