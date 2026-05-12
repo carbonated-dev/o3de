@@ -202,6 +202,17 @@ namespace EMotionFX
                         const double nowSec = AZStd::chrono::duration_cast<AZStd::chrono::nanoseconds>(now.time_since_epoch()).count() / 1.0e9;
                         MCore::LogInfo("[AnimGraphTick] actor=%p thread=%u time=%.3fs sampleMotions=%d",
                             actorInstance, threadIndex, nowSec, (int)sampleMotions);
+                        // uncomment the block below to see warnings instead of LogInfo
+                        /*
+                        AZ_Warning(
+                            "EMotionFX",
+                            false,
+                            "[AnimGraphTick] actor=%p thread=%u time=%.3fs sampleMotions=%d",
+                            actorInstance,
+                            threadIndex,
+                            nowSec,
+                            static_cast<int>(sampleMotions));
+                        */
                     }
 
                     if (MultiThreadScheduler::s_animGraphParamLogEnabled)
@@ -243,6 +254,58 @@ namespace EMotionFX
 
             jobCompletion.StartAndWaitForCompletion();
         } // for all steps
+
+#if defined(CARBONATED)
+        // Carbonated anim sync pass.
+        //
+        // This gives anim graphs one immediate zero-delta evaluation after the normal
+        // scheduled update. The goal is to consume animation trigger/parameter changes
+        // that arrived too late for the actor's first scheduler tick this frame, without
+        // advancing motion time a second time.
+        for (const ScheduleStep& currentStep : m_steps)
+        {
+            if (currentStep.m_actorInstances.empty())
+            {
+                continue;
+            }
+
+            AZ::JobCompletion jobCompletion;
+            for (ActorInstance* actorInstance : currentStep.m_actorInstances)
+            {
+                if (actorInstance->GetIsEnabled() == false)
+                {
+                    continue;
+                }
+
+                AZ::JobContext* jobContext = nullptr;
+                AZ::Job* job = AZ::CreateJobFunction([actorInstance]()
+                {
+                    AZ_PROFILE_SCOPE(Animation, "MultiThreadScheduler::Execute::CarbonatedAnimSyncPass");
+
+                    const AZ::u32 threadIndex = AZ::JobContext::GetGlobalContext()->GetJobManager().GetWorkerThreadId();
+                    actorInstance->SetThreadIndex(threadIndex);
+
+                    const bool isVisible = actorInstance->GetIsVisible();
+
+                   // AZ_Warning(
+                   //     "EMotionFX",
+                   //     false,
+                   //     "[CarbonatedAnimSyncPass] actor=%p thread=%u zeroDelta=1 sampleMotions=1",
+                   //     actorInstance,
+                   //     threadIndex);
+
+                    // Zero delta prevents double-advancing motion time.
+                    // sampleMotions=true forces the newly selected state to output this frame.
+                    actorInstance->UpdateTransformations(0.0f, isVisible, true);
+                }, true, jobContext);
+
+                job->SetDependent(&jobCompletion);
+                job->Start();
+            }
+
+            jobCompletion.StartAndWaitForCompletion();
+        }
+#endif        
     }
 
 
