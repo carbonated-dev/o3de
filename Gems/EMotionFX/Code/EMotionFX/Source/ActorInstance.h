@@ -24,6 +24,10 @@
 
 #include <Atom/RPI.Reflect/Model/ModelAsset.h>
 
+#if defined(CARBONATED)
+#include <AzCore/std/parallel/atomic.h>
+#endif
+
 
 namespace Physics
 {
@@ -299,6 +303,27 @@ namespace EMotionFX
         void UpdateMorphMeshDeformers(float timePassedInSeconds, bool processDisabledDeformers = false);
 
         void PostPhysicsUpdate(float timePassedInSeconds);
+
+#if defined(CARBONATED)
+        /**
+         * Request a one-shot, same-frame anim graph synchronization update for this actor instance.
+         *
+         * This is intended for gameplay code that has just set a transition-driving anim graph
+         * parameter or trigger and needs EMotionFX to evaluate that transition before the next
+         * rendered frame. The request is consumed by the actor update scheduler, which performs
+         * a zero-delta update for this actor only.
+         */
+        void RequestImmediateAnimGraphSync();
+
+        /**
+         * Consume and clear a pending same-frame anim graph synchronization request.
+         *
+         * Returns true only once for each call to RequestImmediateAnimGraphSync(). The scheduler
+         * uses this to decide whether this actor should receive the Carbonated zero-delta sync
+         * pass after the normal animation update.
+         */
+        bool ConsumeImmediateAnimGraphSyncRequest();
+#endif
 
         //-------------------------------------------------------------------------------------------
 
@@ -911,6 +936,10 @@ namespace EMotionFX
         uint8                   m_numAttachmentRefs;     /**< Specifies how many actor instances use this actor instance as attachment. */
         uint8                   m_boolFlags;             /**< Boolean flags. */
         uint32_t m_lightingChannelMask = 1;
+
+#if defined(CARBONATED)
+        AZStd::atomic_bool m_immediateAnimGraphSyncRequested = false; //!< Set when this actor needs a one-shot same-frame anim graph sync pass. thread-safe boolean
+#endif        
 
         /**
          * Boolean masks, as replacement for having several bools as members.
