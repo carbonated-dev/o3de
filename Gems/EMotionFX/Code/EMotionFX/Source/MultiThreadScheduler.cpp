@@ -256,12 +256,11 @@ namespace EMotionFX
         } // for all steps
 
 #if defined(CARBONATED)
-        // Carbonated anim sync pass.
+        // Carbonated same-frame animation sync pass.
         //
-        // This gives anim graphs one immediate zero-delta evaluation after the normal
-        // scheduled update. The goal is to consume animation trigger/parameter changes
-        // that arrived too late for the actor's first scheduler tick this frame, without
-        // advancing motion time a second time.
+        // This is intentionally one-shot per actor. Gameplay code must explicitly
+        // call RequestImmediateAnimGraphSync() after setting the trigger/parameter
+        // that needs to be consumed in the same frame.
         for (const ScheduleStep& currentStep : m_steps)
         {
             if (currentStep.m_actorInstances.empty())
@@ -277,22 +276,20 @@ namespace EMotionFX
                     continue;
                 }
 
+                if (actorInstance->ConsumeImmediateAnimGraphSyncRequest() == false)
+                {
+                    continue;
+                }
+
                 AZ::JobContext* jobContext = nullptr;
                 AZ::Job* job = AZ::CreateJobFunction([actorInstance]()
                 {
-                    AZ_PROFILE_SCOPE(Animation, "MultiThreadScheduler::Execute::CarbonatedAnimSyncPass");
+                    AZ_PROFILE_SCOPE(Animation, "MultiThreadScheduler::Execute::CarbonatedImmediateAnimGraphSync");
 
                     const AZ::u32 threadIndex = AZ::JobContext::GetGlobalContext()->GetJobManager().GetWorkerThreadId();
                     actorInstance->SetThreadIndex(threadIndex);
 
                     const bool isVisible = actorInstance->GetIsVisible();
-
-                   // AZ_Warning(
-                   //     "EMotionFX",
-                   //     false,
-                   //     "[CarbonatedAnimSyncPass] actor=%p thread=%u zeroDelta=1 sampleMotions=1",
-                   //     actorInstance,
-                   //     threadIndex);
 
                     // Zero delta prevents double-advancing motion time.
                     // sampleMotions=true forces the newly selected state to output this frame.
@@ -305,7 +302,8 @@ namespace EMotionFX
 
             jobCompletion.StartAndWaitForCompletion();
         }
-#endif        
+#endif   
+     
     }
 
 
