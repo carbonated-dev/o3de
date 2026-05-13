@@ -200,6 +200,7 @@ namespace EMotionFX
             virtual void ResetMotionSet() = 0;
             virtual AZ::Data::Asset<AZ::Data::AssetData> GetAnimGraphAsset() = 0;
             virtual AZ::Data::Asset<AZ::Data::AssetData> GetMotionSetAsset() = 0;
+            virtual void RequestImmediateAnimGraphSync() = 0;
 #endif
             // carbonated end EMotionFX_port
         };
