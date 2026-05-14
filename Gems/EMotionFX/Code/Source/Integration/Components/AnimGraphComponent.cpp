@@ -1274,11 +1274,25 @@ namespace EMotionFX
         }
         void AnimGraphComponent::RequestImmediateAnimGraphSync()
         {
-            if (m_actorInstance)
+            if (!m_actorInstance)
             {
-                m_actorInstance->RequestImmediateAnimGraphSync();
+                return;
             }
-        }        
+
+            if (m_actorInstance->GetIsEnabled() == false)
+            {
+                return;
+            }
+
+            if (m_actorInstance->GetAnimGraphInstance() == nullptr)
+            {
+                return;
+            }
+
+            const bool isVisible = m_actorInstance->GetIsVisible();
+
+            m_actorInstance->UpdateTransformations(0.0f, isVisible, true);
+        }  
 #endif
     } // namespace Integration
 } // namespace EMotionFXAnimation
