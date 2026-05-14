@@ -911,7 +911,7 @@ namespace EMotionFX
         uint8                   m_numAttachmentRefs;     /**< Specifies how many actor instances use this actor instance as attachment. */
         uint8                   m_boolFlags;             /**< Boolean flags. */
         uint32_t m_lightingChannelMask = 1;
-  
+
         /**
          * Boolean masks, as replacement for having several bools as members.
          */
