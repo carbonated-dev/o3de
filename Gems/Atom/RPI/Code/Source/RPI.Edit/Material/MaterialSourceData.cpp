@@ -74,6 +74,7 @@ namespace AZ
             if (!propertyId.IsEmpty())
             {
                 m_propertyValues[propertyId] = value;
+                AZ_Info("mmm", "MaterialSourceData %s, assign value N%d to property %s", m_materialType.c_str(), value.GetTypeNum(), propertyId.GetCStr());
             }
         }
 
@@ -93,6 +94,7 @@ namespace AZ
         void MaterialSourceData::RemovePropertyValue(const Name& propertyId)
         {
             m_propertyValues.erase(propertyId);
+            AZ_Info("mmm", "MaterialSourceData %s, erase property %s", m_materialType.c_str(), propertyId.GetCStr());
         }
         
         const MaterialSourceData::PropertyValueMap& MaterialSourceData::GetPropertyValues() const

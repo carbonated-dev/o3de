@@ -148,6 +148,12 @@ namespace AZ
             //! object is returned as-is.
             MaterialPropertyValue CastToType(TypeId requestedType) const;
 
+#if defined(CARBONATED)
+            size_t GetTypeNum() const
+            {
+                return m_value.index();
+            }
+#endif
         private:
 
             ValueType m_value;

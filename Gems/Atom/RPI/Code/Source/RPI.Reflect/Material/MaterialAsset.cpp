@@ -143,6 +143,12 @@ namespace AZ
 
             AZStd::vector<MaterialPropertyValue> finalizedPropertyValues(m_materialTypeAsset->GetDefaultPropertyValues().begin(), m_materialTypeAsset->GetDefaultPropertyValues().end());
 
+            AZ_Info("mmm", "finalizedPropertyValues for %s", m_materialTypeAsset.GetHint().c_str());
+            for (int i = 0; i < finalizedPropertyValues.size(); i++)
+            {
+                AZ_Info("mmm", "  %d N%d", i, finalizedPropertyValues[i].GetTypeNum());
+            }
+
             for (const auto& [name, value] : m_rawPropertyValues)
             {
                 const MaterialPropertyIndex propertyIndex = propertyLayout->FindPropertyIndex(name);
@@ -161,6 +167,7 @@ namespace AZ
                         else
                         {
                             finalizedPropertyValues[propertyIndex.GetIndex()] = enumValue;
+                            AZ_Info("mmm", "  set1 %d to N%d", propertyIndex.GetIndex(), finalizedPropertyValues[propertyIndex.GetIndex()].GetTypeNum());
                         }
                     }
                     else if (value.Is<AZStd::string>() && propertyDescriptor->GetDataType() == MaterialPropertyDataType::Image)
@@ -170,6 +177,7 @@ namespace AZ
                         AZ_Assert(value.GetValue<AZStd::string>().empty(), "Material property '%s' references in image '%s'. Image file paths must be resolved by the material asset builder.");
 
                         finalizedPropertyValues[propertyIndex.GetIndex()] = Data::Asset<ImageAsset>{};
+                        AZ_Info("mmm", "  set2 %d to N%d", propertyIndex.GetIndex(), finalizedPropertyValues[propertyIndex.GetIndex()].GetTypeNum());
                     }
                     else
                     {
@@ -183,6 +191,7 @@ namespace AZ
                         if (ValidateMaterialPropertyDataType(finalValue.GetTypeId(), propertyDescriptor, reportError))
                         {
                             finalizedPropertyValues[propertyIndex.GetIndex()] = finalValue;
+                            AZ_Info("mmm", "  set3 %d to N%d", propertyIndex.GetIndex(), finalizedPropertyValues[propertyIndex.GetIndex()].GetTypeNum());
                         }
                     }
                 }
@@ -197,8 +206,40 @@ namespace AZ
 
         const AZStd::vector<MaterialPropertyValue>& MaterialAsset::GetPropertyValues() const
         {
+#if defined(CARBONATED)
+            if (!GetMaterialPropertiesLayout())
+            {
+                AZ::Data::AssetInfo assetInfo;
+                AZ::Data::AssetCatalogRequestBus::BroadcastResult(
+                    assetInfo, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetInfoById, GetId());
+                AZ_Error("MaterialAsset", false,
+                    "MaterialAsset::GetPropertyValues %s but not GetMaterialPropertiesLayout",
+                    assetInfo.m_relativePath.c_str());
+            }
+            if (GetMaterialPropertiesLayout() && m_propertyValues.size() != GetMaterialPropertiesLayout()->GetPropertyCount())
+            {
+                AZ::Data::AssetInfo assetInfo;
+                AZ::Data::AssetCatalogRequestBus::BroadcastResult(
+                    assetInfo, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetInfoById, GetId());
+                AZ_Error("MaterialAsset", false,
+                    "MaterialAsset::GetPropertyValues %s properties mismatch: m_propertyValues %d, material %d",
+                    assetInfo.m_relativePath.c_str(),
+                    m_propertyValues.size(), GetMaterialPropertiesLayout()->GetPropertyCount());
+                AZ_Info("MaterialAsset", "m_propertyValues");
+                for (int i = 0; i < m_propertyValues.size(); i++)
+                {
+                    AZ_Info("MaterialAsset", "  %d is N%d", i, m_propertyValues[i].GetTypeNum());
+                }
+                AZ_Info("MaterialAsset", "MaterialPropertiesLayout");
+                for (int i = 0; i < GetMaterialPropertiesLayout()->GetPropertyCount(); i++)
+                {
+                    MaterialPropertyIndex index(i);
+                    const MaterialPropertyDescriptor* pDesc = GetMaterialPropertiesLayout()->GetPropertyDescriptor(index);
+                    AZ_Info("MaterialAsset", "  %d is N%d %s", i, int(pDesc->GetDataType()), pDesc->GetName().GetCStr());
+                }
+            }
+#endif
             AZ_Assert(GetMaterialPropertiesLayout() && m_propertyValues.size() == GetMaterialPropertiesLayout()->GetPropertyCount(), "MaterialAsset should be finalized but does not have the right number of property values.");
-        
             return m_propertyValues;
         }
 

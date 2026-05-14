@@ -59,10 +59,13 @@ namespace AZ
             AZ_Assert(defaultValues.size() == m_layout->GetPropertyCount(), "The number of properties in this material doesn't match the property layout");
             AZ_Assert(defaultValues.size() <= Limits::Material::PropertyCountMax, "Too many material properties. Max is %d.", Limits::Material::PropertyCountMax);
 
+            AZ_Info("mmm", "Set props for MaterialPropertyCollection");
+
             for (size_t i = 0; i < defaultValues.size(); ++i)
             {
                 const MaterialPropertyValue& value = defaultValues[i];
                 MaterialPropertyIndex propertyIndex{i};
+                AZ_Info("mmm", "  %d N%d", i, value.GetTypeNum());
                 if (!SetPropertyValue(propertyIndex, value))
                 {
                     return false;
