@@ -163,6 +163,9 @@ namespace EMotionFX
                     ->Event("SetNamedParameterRotationEuler", &AnimGraphComponentRequestBus::Events::SetNamedParameterRotationEuler)
                     ->Event("SetNamedParameterRotation", &AnimGraphComponentRequestBus::Events::SetNamedParameterRotation)
                     ->Event("SetVisualizeEnabled", &AnimGraphComponentRequestBus::Events::SetVisualizeEnabled)
+#if defined(CARBONATED)
+                    ->Event("RequestImmediateAnimGraphSync", &AnimGraphComponentRequestBus::Events::RequestImmediateAnimGraphSync)
+#endif                    
                     // Getters
                     ->Event("GetParameterFloat", &AnimGraphComponentRequestBus::Events::GetParameterFloat)
                     ->Event("GetParameterBool", &AnimGraphComponentRequestBus::Events::GetParameterBool)
@@ -1269,6 +1272,27 @@ namespace EMotionFX
             if (pMotionSet)
                 pInstance->SetMotionSet(pMotionSet);
         }
+        void AnimGraphComponent::RequestImmediateAnimGraphSync()
+        {
+            if (!m_actorInstance)
+            {
+                return;
+            }
+
+            if (m_actorInstance->GetIsEnabled() == false)
+            {
+                return;
+            }
+
+            if (m_actorInstance->GetAnimGraphInstance() == nullptr)
+            {
+                return;
+            }
+
+            const bool isVisible = m_actorInstance->GetIsVisible();
+
+            m_actorInstance->UpdateTransformations(0.0f, isVisible, true);
+        }  
 #endif
     } // namespace Integration
 } // namespace EMotionFXAnimation
