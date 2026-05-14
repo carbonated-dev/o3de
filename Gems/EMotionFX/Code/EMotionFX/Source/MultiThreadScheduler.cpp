@@ -254,56 +254,6 @@ namespace EMotionFX
 
             jobCompletion.StartAndWaitForCompletion();
         } // for all steps
-
-#if defined(CARBONATED)
-        // Carbonated same-frame animation sync pass.
-        //
-        // This is intentionally one-shot per actor. Gameplay code must explicitly
-        // call RequestImmediateAnimGraphSync() after setting the trigger/parameter
-        // that needs to be consumed in the same frame.
-        for (const ScheduleStep& currentStep : m_steps)
-        {
-            if (currentStep.m_actorInstances.empty())
-            {
-                continue;
-            }
-
-            AZ::JobCompletion jobCompletion;
-            for (ActorInstance* actorInstance : currentStep.m_actorInstances)
-            {
-                if (actorInstance->GetIsEnabled() == false)
-                {
-                    continue;
-                }
-
-                if (actorInstance->ConsumeImmediateAnimGraphSyncRequest() == false)
-                {
-                    continue;
-                }
-
-                AZ::JobContext* jobContext = nullptr;
-                AZ::Job* job = AZ::CreateJobFunction([actorInstance]()
-                {
-                    AZ_PROFILE_SCOPE(Animation, "MultiThreadScheduler::Execute::CarbonatedImmediateAnimGraphSync");
-
-                    const AZ::u32 threadIndex = AZ::JobContext::GetGlobalContext()->GetJobManager().GetWorkerThreadId();
-                    actorInstance->SetThreadIndex(threadIndex);
-
-                    const bool isVisible = actorInstance->GetIsVisible();
-
-                    // Zero delta prevents double-advancing motion time.
-                    // sampleMotions=true forces the newly selected state to output this frame.
-                    actorInstance->UpdateTransformations(0.0f, isVisible, true);
-                }, true, jobContext);
-
-                job->SetDependent(&jobCompletion);
-                job->Start();
-            }
-
-            jobCompletion.StartAndWaitForCompletion();
-        }
-#endif   
-     
     }
 
 

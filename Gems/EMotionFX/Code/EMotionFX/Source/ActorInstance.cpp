@@ -440,18 +440,6 @@ namespace EMotionFX
         }
     }
 
-#if defined(CARBONATED)
-    void ActorInstance::RequestImmediateAnimGraphSync()
-    {
-        m_immediateAnimGraphSyncRequested.store(true, AZStd::memory_order_release); //thread safe storage
-    }
-
-    bool ActorInstance::ConsumeImmediateAnimGraphSyncRequest()
-    {
-        return m_immediateAnimGraphSyncRequested.exchange(false, AZStd::memory_order_acq_rel); //thread safe consumption
-    }
-#endif    
-
     // add an attachment
     void ActorInstance::AddAttachment(Attachment* attachment)
     {
