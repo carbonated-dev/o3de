@@ -11,8 +11,10 @@
 #include "ActorManager.h"
 #include "ActorInstance.h"
 #include "AnimGraphInstance.h"
+#if defined(CARBONATED)
 #include "AnimGraph.h"
 #include "Parameter/ValueParameter.h"
+#endif
 #include "Attachment.h"
 #include "EMotionFXManager.h"
 #include <EMotionFX/Source/Allocators.h>
@@ -22,13 +24,17 @@
 #include <AzCore/Jobs/JobCompletion.h>
 #include <AzCore/Jobs/JobManagerBus.h>
 #include <AzCore/Jobs/JobContext.h>
+#if defined(CARBONATED)
 #include <AzCore/std/chrono/chrono.h>
+#endif
 
 
 namespace EMotionFX
 {
+#if defined(CARBONATED)
     bool MultiThreadScheduler::s_animGraphTickLogEnabled = false;
     bool MultiThreadScheduler::s_animGraphParamLogEnabled = false;
+#endif    
     AZ_CLASS_ALLOCATOR_IMPL(MultiThreadScheduler, ActorUpdateAllocator)
 
     // constructor
@@ -196,6 +202,7 @@ namespace EMotionFX
                     }
 
                     // update the actor instance
+#if defined(CARBONATED)                    
                     if (MultiThreadScheduler::s_animGraphTickLogEnabled)
                     {
                         const auto now = AZStd::chrono::steady_clock::now();
@@ -242,6 +249,7 @@ namespace EMotionFX
                             MCore::LogInfo("[AnimGraphParams] actor=%p time=%.3fs [%s]", actorInstance, nowSec, paramLog.c_str());
                         }
                     }
+#endif
 
                     actorInstance->UpdateTransformations(timePassedInSeconds, isVisible, sampleMotions);
                 }, true, jobContext);

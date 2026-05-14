@@ -19,8 +19,12 @@
 
 #include <EMotionFX/Source/Allocators.h>
 #include <EMotionFX/Source/SingleThreadScheduler.h>
+
+#if defined(CARBONATED)
 #include <EMotionFX/Source/MultiThreadScheduler.h>
 #include <EMotionFX/Source/AnimGraphStateTransition.h>
+#endif
+
 #include <EMotionFX/Source/EMotionFXManager.h>
 #include <EMotionFX/Source/AnimGraphManager.h>
 #include <EMotionFX/Source/AnimGraphObjectFactory.h>
@@ -590,6 +594,7 @@ namespace EMotionFX
             REGISTER_CVAR2(
                 "emfx_ragdollManipulatorsEnabled", &CVars::emfx_ragdollManipulatorsEnabled, 1, VF_DEV_ONLY,
                 "Feature flag for in development ragdoll manipulators");
+#if defined(CARBONATED)                
             REGISTER_CVAR2("emfx_schedulerPrint", &CVars::emfx_schedulerPrint, 0, VF_DEV_ONLY,
                 "When non-zero, prints EMotionFX scheduler step/actor-instance counts each tick");
             REGISTER_CVAR2("emfx_animGraphTickLog", &CVars::emfx_animGraphTickLog, 0, VF_DEV_ONLY,
@@ -598,6 +603,7 @@ namespace EMotionFX
                 "When non-zero, logs every anim graph state transition start (source -> target state names)");
             REGISTER_CVAR2("emfx_paramLog", &CVars::emfx_paramLog, 0, VF_DEV_ONLY,
                 "When non-zero, logs all anim graph parameter values at the start of each actor instance tick");
+#endif                
         }
 
         //////////////////////////////////////////////////////////////////////////
@@ -605,10 +611,12 @@ namespace EMotionFX
         {
             gEnv->pConsole->UnregisterVariable("emfx_updateEnabled");
             gEnv->pConsole->UnregisterVariable("emfx_ragdollManipulatorsEnabled");
+#if defined(CARBONATED)            
             gEnv->pConsole->UnregisterVariable("emfx_schedulerPrint");
             gEnv->pConsole->UnregisterVariable("emfx_animGraphTickLog");
             gEnv->pConsole->UnregisterVariable("emfx_transitionLog");
             gEnv->pConsole->UnregisterVariable("emfx_paramLog");
+#endif            
 
 #if !defined(AZ_MONOLITHIC_BUILD)
             gEnv = nullptr;
@@ -626,6 +634,7 @@ namespace EMotionFX
                 // Main EMotionFX runtime update.
                 GetEMotionFX().Update(delta);
 
+#if defined(CARBONATED)
                 MultiThreadScheduler::s_animGraphTickLogEnabled = (CVars::emfx_animGraphTickLog != 0);
                 AnimGraphStateTransition::s_logTransitionsEnabled = (CVars::emfx_transitionLog != 0);
                 MultiThreadScheduler::s_animGraphParamLogEnabled = (CVars::emfx_paramLog != 0);
@@ -635,6 +644,7 @@ namespace EMotionFX
                     if (auto* scheduler = GetEMotionFX().GetActorManager()->GetScheduler())
                         scheduler->Print();
                 }
+#endif
 
                 bool inGameMode = true;
 #if defined (EMOTIONFXANIMATION_EDITOR)
