@@ -143,6 +143,7 @@ namespace PhysX
 
         //TickBus for visual interpolation
         void OnTick(float deltaTime, AZ::ScriptTimePoint time) override;
+        int GetTickOrder() override { return AZ::ComponentTickBus::TICK_PHYSICS + 5; }
 #endif // defined(CARBONATED)
 
         // TransformNotificationBus
