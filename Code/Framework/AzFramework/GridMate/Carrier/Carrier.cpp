@@ -1320,7 +1320,8 @@ CarrierThread::CarrierThread(const CarrierDesc& desc, AZStd::shared_ptr<Compress
         {
             threadDesc.m_priority = desc.m_threadPriority;
         }
-        m_thread = AZStd::thread(AZStd::bind(&CarrierThread::ThreadPump, this), &threadDesc);
+        //m_thread = AZStd::thread(AZStd::bind(&CarrierThread::ThreadPump, this), &threadDesc);
+        m_thread = AZStd::thread(threadDesc, AZStd::bind(&CarrierThread::ThreadPump, this));
     }
     else
     {
