@@ -1291,7 +1291,9 @@ namespace EMotionFX
 
             const bool isVisible = m_actorInstance->GetIsVisible();
 
-            m_actorInstance->UpdateTransformations(0.0f, isVisible, true);
+            // timePassedInSeconds is set to a very small value to ensure that the anim graph instance gets updated and synced immediately,
+            // without causing any noticeable animation update. Avoiding 0.0f which results in invalid transforms.
+            m_actorInstance->UpdateTransformations(0.0001f, isVisible, true);
         }  
 #endif
     } // namespace Integration
