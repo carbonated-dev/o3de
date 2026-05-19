@@ -656,6 +656,7 @@ JobManagerWorkStealing::ThreadInfo* JobManagerWorkStealing::FindCurrentThreadInf
 
 JobManagerWorkStealing::ThreadList JobManagerWorkStealing::CreateWorkerThreads(const JobManagerDesc& jmDesc)
 {
+    AZ_Info("aaa", "Create %d threads for '%s'", jmDesc.m_workerThreads.size(), jmDesc.m_jobManagerName)
     const JobManagerDesc::DescList& workerDescList = jmDesc.m_workerThreads;
     ThreadList workerThreads(workerDescList.size());
     m_threads.reserve(workerDescList.size());

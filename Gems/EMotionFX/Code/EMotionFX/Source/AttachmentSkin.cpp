@@ -107,9 +107,12 @@ namespace EMotionFX
         {
             return;
         }
-
         // Pass the parent's world space transform into the attachment.
         const Transform worldTransform = m_actorInstance->GetWorldSpaceTransform();
+        AZ_Info("aaa", "AttachmentSkin::Update set world transform (%f, %f, %f) from %s to attachment %s",
+            worldTransform.m_position.GetX(), worldTransform.m_position.GetY(), worldTransform.m_position.GetZ(),
+            m_actorInstance->GetEntity()->GetName().c_str(),
+            m_attachment->GetEntity()->GetName().c_str());
         m_attachment->SetParentWorldSpaceTransform(worldTransform);
     }
 

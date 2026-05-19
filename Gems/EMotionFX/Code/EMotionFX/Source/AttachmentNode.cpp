@@ -51,6 +51,9 @@ namespace EMotionFX
         {
             const Transform worldTransform = m_actorInstance->GetTransformData()->GetCurrentPose()->GetWorldSpaceTransform(m_attachedToNode);
             m_attachment->SetParentWorldSpaceTransform(worldTransform);
+            AZ_Info("aaa", "AttachmentNode::Update set world transform (%f, %f, %f) to attachment %s",
+                worldTransform.m_position.GetX(), worldTransform.m_position.GetY(), worldTransform.m_position.GetZ(),
+                m_attachment->GetEntity()->GetName().c_str());
         }
     }
 
