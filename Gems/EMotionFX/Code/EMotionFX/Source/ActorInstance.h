@@ -30,6 +30,10 @@ namespace Physics
     class Ragdoll;
 }
 
+#if defined(CARBONATED)
+#define CARBONATED_EMOTION_TRANSFORM_DEBUG
+#endif
+
 namespace EMotionFX
 {
     class MotionSystem;
@@ -496,15 +500,49 @@ namespace EMotionFX
          * This is relative to its parent (if it is attached ot something). Otherwise it is in world space.
          * @param position The position/translation to use.
          */
-        MCORE_INLINE void SetLocalSpacePosition(const AZ::Vector3& position)          { m_localTransform.m_position = position; }
-
+        MCORE_INLINE void SetLocalSpacePosition(const AZ::Vector3& position)
+        {
+#if defined(CARBONATED)
+            m_uncorrectedLocalTransform.m_position =
+#endif
+            m_localTransform.m_position = position;
+        }
         /**
          * Set the local rotation of this actor instance.
          * This is relative to its parent (if it is attached ot something). Otherwise it is in world space.
          * @param rotation The rotation to use.
          */
-        MCORE_INLINE void SetLocalSpaceRotation(const AZ::Quaternion& rotation)    { m_localTransform.m_rotation = rotation; }
+        MCORE_INLINE void SetLocalSpaceRotation(const AZ::Quaternion& rotation)
+        {
+#if defined(CARBONATED)
+            m_uncorrectedLocalTransform.m_rotation =
+#endif
+            m_localTransform.m_rotation = rotation;
+        }
 
+#if defined(CARBONATED)
+        // the below is a macro, we cannot use preprocessor if-s there
+        EMFX_SCALECODE
+        (
+            /**
+             * Set the local scale of this actor instance.
+             * This is relative to its parent (if it is attached ot something). Otherwise it is in world space.
+             * @param scale The scale to use.
+             */
+            MCORE_INLINE void SetLocalSpaceScale(const AZ::Vector3& scale)
+            {
+                m_localTransform.m_scale = scale;
+                m_uncorrectedLocalTransform.m_scale = scale;
+            }
+
+            /**
+             * Get the local space scale.
+             * This is relative to its parent (if it is attached ot something). Otherwise it is in world space.
+             * @result The local space scale factor for each axis.
+             */
+            MCORE_INLINE const AZ::Vector3& GetLocalSpaceScale() const              { return m_localTransform.m_scale; }
+        )
+#else
         EMFX_SCALECODE
         (
             /**
@@ -521,7 +559,7 @@ namespace EMotionFX
              */
             MCORE_INLINE const AZ::Vector3& GetLocalSpaceScale() const              { return m_localTransform.m_scale; }
         )
-
+#endif
         /**
          * Get the local space position/translation of this actor instance.
          * This is relative to its parent (if it is attached ot something). Otherwise it is in world space.
@@ -541,6 +579,9 @@ namespace EMotionFX
         MCORE_INLINE const Transform& GetLocalSpaceTransform() const                { return m_localTransform; }
         MCORE_INLINE const Transform& GetWorldSpaceTransform() const                { return m_worldTransform; }
         MCORE_INLINE const Transform& GetWorldSpaceTransformInversed() const        { return m_worldTransformInv; }
+#if defined(CARBONATED)
+        MCORE_INLINE const Transform& GetUncorrectedWorldSpaceTransform() const                { return m_uncorrectedWorldTransform; }
+#endif
 
         //-------------------------------------------------------------------------------------------
 
@@ -878,6 +919,10 @@ namespace EMotionFX
 
         Transform               m_localTransform = Transform::CreateIdentity();
         Transform               m_worldTransform = Transform::CreateIdentity();
+#if defined(CARBONATED)
+        Transform m_uncorrectedLocalTransform = Transform::CreateIdentity();
+        Transform m_uncorrectedWorldTransform = Transform::CreateIdentity();
+#endif
         Transform               m_worldTransformInv = Transform::CreateIdentity();
         Transform               m_parentWorldTransform = Transform::CreateIdentity();
         Transform               m_trajectoryDelta = Transform::CreateIdentityWithZeroScale();

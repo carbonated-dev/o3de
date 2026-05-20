@@ -50,10 +50,12 @@ namespace EMotionFX
         if (!m_isManagedExternally)
         {
             const Transform worldTransform = m_actorInstance->GetTransformData()->GetCurrentPose()->GetWorldSpaceTransform(m_attachedToNode);
-            m_attachment->SetParentWorldSpaceTransform(worldTransform);
-            AZ_Info("aaa", "AttachmentNode::Update set world transform (%f, %f, %f) to attachment %s",
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+            AZ_Info("animtrans", "AttachmentNode::Update set world transform (%f, %f, %f) to attachment %s",
                 worldTransform.m_position.GetX(), worldTransform.m_position.GetY(), worldTransform.m_position.GetZ(),
                 m_attachment->GetEntity()->GetName().c_str());
+#endif
+            m_attachment->SetParentWorldSpaceTransform(worldTransform);
         }
     }
 

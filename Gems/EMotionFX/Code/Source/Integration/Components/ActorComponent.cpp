@@ -557,10 +557,6 @@ namespace EMotionFX
                         targetActorInstance->AddAttachment(attachment);
                         AZ::TransformBus::Event(GetEntityId(), &AZ::TransformBus::Events::SetParent, targetActorInstance->GetEntityId());
                         AZ::TransformBus::Event(GetEntityId(), &AZ::TransformBus::Events::SetLocalTM, AZ::Transform::CreateIdentity());
-
-                        {
-                            AZ_Info("aaa", "Attach %s to %s", GetEntity()->GetName().c_str(), targetActorInstance->GetEntity()->GetName().c_str());
-                        }
                     }
                 }
                 else

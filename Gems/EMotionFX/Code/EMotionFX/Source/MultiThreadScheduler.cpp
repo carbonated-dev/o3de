@@ -177,14 +177,9 @@ namespace EMotionFX
                 }
 
                 AZ::JobContext* jobContext = nullptr;
-                //AZ_Info("aaa", "Create job for step %d, actor %s, time %lld", i - 1, actorInstance->GetEntity()->GetName().c_str(), AZ::GetRealElapsedTimeUs());
                 AZ::Job* job = AZ::CreateJobFunction([this, timePassedInSeconds, actorInstance]()
                 {
                     AZ_PROFILE_SCOPE(Animation, "MultiThreadScheduler::Execute::ActorInstanceUpdateJob");
-                    /*AZ_Info("aaa", "Begin execute job actor %s, threads %d, time %lld",
-                        actorInstance->GetEntity()->GetName().c_str(),
-                        AZ::JobContext::GetGlobalContext()->GetJobManager().GetNumWorkerThreads(),
-                        AZ::GetRealElapsedTimeUs());*/
 
                     const AZ::u32 threadIndex = AZ::JobContext::GetGlobalContext()->GetJobManager().GetWorkerThreadId();                    
                     actorInstance->SetThreadIndex(threadIndex);
@@ -260,7 +255,6 @@ namespace EMotionFX
 #endif
 
                     actorInstance->UpdateTransformations(timePassedInSeconds, isVisible, sampleMotions);
-                    //AZ_Info("aaa", "End execute job actor %s, time %lld", actorInstance->GetEntity()->GetName().c_str(), AZ::GetRealElapsedTimeUs());
                 }, true, jobContext);
 
                 job->SetDependent(&jobCompletion);               
@@ -270,7 +264,6 @@ namespace EMotionFX
             }
 
             jobCompletion.StartAndWaitForCompletion();
-            //AZ_Info("aaa", "All jobs for step %d are done at %lld", i - 1, AZ::GetRealElapsedTimeUs());
         } // for all steps
     }
 
@@ -314,7 +307,6 @@ namespace EMotionFX
 
     void MultiThreadScheduler::RecursiveInsertActorInstance(ActorInstance* instance, size_t startStep)
     {
-        AZ_Info("aaa", "MultiThreadScheduler::RecursiveInsertActorInstance %s", instance->GetEntity()->GetName().c_str());
         MCore::LockGuardRecursive guard(m_mutex);
         AZ_Assert(!HasActorInstanceInSteps(instance), "Expected the actor instance not being part of another step already.");
 
@@ -326,8 +318,6 @@ namespace EMotionFX
             m_steps.emplace_back();
             outStep = m_steps.size() - 1;
         }
-
-        AZ_Info("aaa", "  selected step %d", outStep);
 
         // pre-allocate step size
         if (m_steps[outStep].m_actorInstances.size() % 10 == 0)
@@ -347,7 +337,6 @@ namespace EMotionFX
 
         // recursively add all attachments too
         const size_t numAttachments = instance->GetNumAttachments();
-        AZ_Info("aaa", "  add %d attachments to the next step %d", numAttachments, outStep + 1);
         for (size_t i = 0; i < numAttachments; ++i)
         {
             ActorInstance* attachment = instance->GetAttachment(i)->GetAttachmentActorInstance();

@@ -881,7 +881,6 @@ namespace EMotionFX
         Node* motionExtractNode = m_actorInstance->GetActor()->GetMotionExtractionNode();
         if (motionExtractNode == nullptr)
         {
-            AZ_Info("aaa", "  AnimGraphInstance::ApplyMotionExtraction no motionExtractNode");
             trajectoryDelta.IdentityWithZeroScale();
             m_actorInstance->SetTrajectoryDeltaTransform(trajectoryDelta);
             return;
@@ -902,7 +901,9 @@ namespace EMotionFX
     {
         AZ_PROFILE_SCOPE(Animation, "AnimGraphInstance::Update");
 
-        AZ_Info("aaa", "AnimGraphInstance::Update for actor %s", m_actorInstance->GetEntity()->GetName().c_str());
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+        AZ_Info("animtrans", "AnimGraphInstance::Update for actor %s", m_actorInstance->GetEntity()->GetName().c_str());
+#endif
 
 #if defined(CARBONATED) && defined(CARBONATED_ANIMGRAPH_PAUSE_RESUME)
         if (m_paused)

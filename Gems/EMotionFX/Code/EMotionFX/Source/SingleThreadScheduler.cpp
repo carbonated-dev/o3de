@@ -79,7 +79,6 @@ namespace EMotionFX
     // execute the actor instance, and its attachments
     void SingleThreadScheduler::RecursiveExecuteActorInstance(ActorInstance* actorInstance, float timePassedInSeconds)
     {
-        AZ_Info("aaa", "SingleThreadScheduler::RecursiveExecuteActorInstance %s", actorInstance->GetEntity()->GetName().c_str());
         actorInstance->SetThreadIndex(0);
 
         m_numUpdated.Increment();
@@ -113,7 +112,6 @@ namespace EMotionFX
         for (size_t i = 0; i < numAttachments; ++i)
         {
             ActorInstance* attachment = actorInstance->GetAttachment(i)->GetAttachmentActorInstance();
-            AZ_Info("aaa", "  RecursiveExecuteActorInstance attachment N%d %s", i, attachment->GetEntity()->GetName().c_str());
             if (attachment && attachment->GetIsEnabled())
             {
                 RecursiveExecuteActorInstance(attachment, timePassedInSeconds);

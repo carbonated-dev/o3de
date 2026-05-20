@@ -108,11 +108,18 @@ namespace EMotionFX
             return;
         }
         // Pass the parent's world space transform into the attachment.
+#if defined(CARBONATED)
+        const Transform worldTransform = m_actorInstance->GetUncorrectedWorldSpaceTransform();
+#else
         const Transform worldTransform = m_actorInstance->GetWorldSpaceTransform();
-        AZ_Info("aaa", "AttachmentSkin::Update set world transform (%f, %f, %f) from %s to attachment %s",
+#endif
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+        AZ_Info("animtrans", "AttachmentSkin::Update set uncorrected world transform (%f, %f, %f) from %s to its attachment %s",
             worldTransform.m_position.GetX(), worldTransform.m_position.GetY(), worldTransform.m_position.GetZ(),
             m_actorInstance->GetEntity()->GetName().c_str(),
             m_attachment->GetEntity()->GetName().c_str());
+#endif
         m_attachment->SetParentWorldSpaceTransform(worldTransform);
     }
 
