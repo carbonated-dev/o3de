@@ -16,5 +16,11 @@ namespace EMotionFX::Integration
         static inline int emfx_updateEnabled = 1;
         static inline int emfx_ragdollManipulatorsEnabled = 1;
         static inline int emfx_actorRenderEnabled = 1;
+#if defined(CARBONATED)
+        static inline int emfx_schedulerPrint = 0;      // When non-zero, prints scheduler step info each tick
+        static inline int emfx_animGraphTickLog = 0;     // When non-zero, logs timestamp+thread for every anim graph tick
+        static inline int emfx_transitionLog = 0;        // When non-zero, logs every anim graph state transition start
+        static inline int emfx_paramLog = 0;             // When non-zero, logs all anim graph parameter values at tick start
+#endif
     };
 };

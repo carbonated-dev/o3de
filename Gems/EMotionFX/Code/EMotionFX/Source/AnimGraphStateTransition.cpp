@@ -23,6 +23,11 @@
 #include "AnimGraph.h"
 #include "EMotionFXManager.h"
 #include <MCore/Source/IDGenerator.h>
+
+#if defined(CARBONATED)
+#include <MCore/Source/LogManager.h>
+#endif
+
 #include <MCore/Source/ReflectionSerializer.h>
 #include <EMotionFX/Source/AnimGraphBus.h>
 
@@ -316,9 +321,22 @@ namespace EMotionFX
         AnimGraphRefCountedData* targetData = m_targetNode->FindOrCreateUniqueNodeData(animGraphInstance)->GetRefCountedData();
         CalculateMotionExtractionDelta(m_extractionMode, sourceData, targetData, weight, true, *outTransform, *outTransformMirrored);
     }
+#if defined(CARBONATED)
+    bool AnimGraphStateTransition::s_logTransitionsEnabled = false;
+#endif
 
     void AnimGraphStateTransition::OnStartTransition(AnimGraphInstance* animGraphInstance)
     {
+#if defined(CARBONATED)
+        if (s_logTransitionsEnabled)
+        {
+            const char* sourceName = m_sourceNode ? m_sourceNode->GetName() : "(none)";
+            const char* targetName = m_targetNode ? m_targetNode->GetName() : "(none)";
+            const float blendTime = GetBlendTime(animGraphInstance);
+            MCore::LogInfo("[AnimGraphTransition] actor=%p  %s -> %s  blendTime=%.3fs",
+                animGraphInstance, sourceName, targetName, blendTime);
+        }
+#endif
         // get the unique data
         UniqueData* uniqueData = static_cast<UniqueData*>(animGraphInstance->FindOrCreateUniqueObjectData(this));
 
