@@ -34,7 +34,9 @@
 #include <EMotionFX/Source/DebugDraw.h>
 #include <EMotionFX/Source/RagdollInstance.h>
 
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
 #include <AzCore/Time/ITime.h>
+#endif
 
 #include <numeric>
 

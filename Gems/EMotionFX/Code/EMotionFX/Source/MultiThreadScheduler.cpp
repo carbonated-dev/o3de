@@ -25,7 +25,6 @@
 #include <AzCore/Jobs/JobManagerBus.h>
 #include <AzCore/Jobs/JobContext.h>
 #if defined(CARBONATED)
-#include <AzCore/Time/ITime.h>
 #include <AzCore/std/chrono/chrono.h>
 #endif
 
@@ -158,10 +157,8 @@ namespace EMotionFX
         m_numVisible.SetValue(0);
         m_numSampled.SetValue(0);
 
-        int i = 0;
         for (const ScheduleStep& currentStep : m_steps)
         {
-            i++;
             if (currentStep.m_actorInstances.empty())
             {
                 continue;
