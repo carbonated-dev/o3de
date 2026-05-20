@@ -107,6 +107,7 @@ namespace EMotionFX
         {
             return;
         }
+
         // Pass the parent's world space transform into the attachment.
 #if defined(CARBONATED)
         const Transform worldTransform = m_actorInstance->GetUncorrectedWorldSpaceTransform();

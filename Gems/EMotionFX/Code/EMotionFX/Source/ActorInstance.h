@@ -508,6 +508,7 @@ namespace EMotionFX
 #endif
             m_localTransform.m_position = position;
         }
+
         /**
          * Set the local rotation of this actor instance.
          * This is relative to its parent (if it is attached ot something). Otherwise it is in world space.
