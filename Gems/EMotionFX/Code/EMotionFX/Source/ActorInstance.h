@@ -31,7 +31,8 @@ namespace Physics
 }
 
 #if defined(CARBONATED)
-#define CARBONATED_EMOTION_TRANSFORM_DEBUG
+// uncomment to track bone follower misplacement bugs via log messages
+//#define CARBONATED_EMOTION_TRANSFORM_DEBUG
 #endif
 
 namespace EMotionFX

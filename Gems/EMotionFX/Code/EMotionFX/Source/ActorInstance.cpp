@@ -1428,7 +1428,7 @@ namespace EMotionFX
 #if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
         if (m_trajectoryDelta.m_position.GetLengthSq() > 0.001f)
         {
-            AZ_Info("animtrans", "  apply position corfrection (%f, %f, %f) for %s (%f, %f, %f) (%f, %f, %f)",
+            AZ_Info("animtrans", "  apply position correction (%f, %f, %f) for %s (%f, %f, %f) (%f, %f, %f)",
                 m_trajectoryDelta.m_position.GetX(), m_trajectoryDelta.m_position.GetY(), m_trajectoryDelta.m_position.GetZ(),
                 GetEntity()->GetName().c_str(),
                 m_localTransform.m_position.GetX(), m_localTransform.m_position.GetY(), m_localTransform.m_position.GetZ(),
