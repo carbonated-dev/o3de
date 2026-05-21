@@ -1471,7 +1471,7 @@ namespace EMotionFX
         }
 
 #if defined(CARBONATED)
-        m_uncorrectedLocalTransform =
+        m_uncorrectedLocalTransform = orgTransform;
 #endif
         m_localTransform = orgTransform;
     }

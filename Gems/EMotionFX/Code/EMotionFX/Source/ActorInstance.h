@@ -504,7 +504,7 @@ namespace EMotionFX
         MCORE_INLINE void SetLocalSpacePosition(const AZ::Vector3& position)
         {
 #if defined(CARBONATED)
-            m_uncorrectedLocalTransform.m_position =
+            m_uncorrectedLocalTransform.m_position = position;
 #endif
             m_localTransform.m_position = position;
         }
@@ -517,7 +517,7 @@ namespace EMotionFX
         MCORE_INLINE void SetLocalSpaceRotation(const AZ::Quaternion& rotation)
         {
 #if defined(CARBONATED)
-            m_uncorrectedLocalTransform.m_rotation =
+            m_uncorrectedLocalTransform.m_rotation = rotation;
 #endif
             m_localTransform.m_rotation = rotation;
         }
