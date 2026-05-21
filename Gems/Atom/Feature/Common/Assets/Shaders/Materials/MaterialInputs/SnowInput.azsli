@@ -19,9 +19,6 @@
 
 #define COMMON_SRG_INPUTS_SNOW(prefix) \
 float prefix##m_snowAmount; \
-float prefix##m_snowCenterX; \
-float prefix##m_snowCenterY; \
-float prefix##m_snowRadius; \
 Texture2D prefix##m_snowOpacityMap; \
 uint prefix##m_snowOpacityMapUvIndex; \
 float prefix##m_snowOpacityMapUvScale; \
