@@ -130,14 +130,7 @@ Surface EvaluateSurface_BasePBR(
         // Vanishing wetness with distance from weather provider center, - non-linear.
         const float rainRadius =  clamp(SceneSrg::m_weatherRadius, 10.0f, 10000.0f);
         const float relativeDistance = length(positionWS.xy - SceneSrg::m_weatherCenter) / rainRadius;
-        if (relativeDistance > 1.0f)
-        {
-            wetAmount = 0.0f;
-        }
-        else if (relativeDistance > 0.75f)
-        {
-            wetAmount *= (1.0f - relativeDistance) * 4.0f;
-        }
+        wetAmount *= clamp((1.0f - relativeDistance) * 4.0f, 0.0f, 1.0f);        
         
         // Overall amount depends on setup amount, surface properties and surface normal
         const float effectiveWetness = saturate(wetFactor + 0.1f) * wetAmount * saturate(surface.normal.z + 0.25f);
@@ -181,14 +174,7 @@ Surface EvaluateSurface_BasePBR(
         // Vanishing snow cover with distance from weather provider center, - non-linear.
         const float snowRadius = clamp(SceneSrg::m_weatherRadius, 10.0f, 10000.0f);
         const float relativeDistance = length(positionWS.xy - SceneSrg::m_weatherCenter) / snowRadius;
-        if (relativeDistance > 1.0f)
-        {
-            snowAmount = 0.0f;
-        }
-        else if (relativeDistance > 0.75f)
-        {
-            snowAmount *= (1.0f - relativeDistance) * 4.0f;
-        }
+        snowAmount *= clamp((1.0f - relativeDistance) * 4.0f, 0.0f, 1.0f);        
 
         float snowFactor = saturate(MaterialSrg::m_snowFactor);
         if (o_snow_factor_useTexture)
