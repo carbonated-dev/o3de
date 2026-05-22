@@ -34,6 +34,10 @@
 #include <EMotionFX/Source/DebugDraw.h>
 #include <EMotionFX/Source/RagdollInstance.h>
 
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+#include <AzCore/Time/ITime.h>
+#endif
+
 #include <numeric>
 
 namespace EMotionFX
@@ -116,6 +120,10 @@ namespace EMotionFX
         m_localTransform.Identity();
         m_worldTransform.Identity();
         m_worldTransformInv.Identity();
+#if defined(CARBONATED)
+        m_uncorrectedLocalTransform.Identity();
+        m_uncorrectedWorldTransform.Identity();
+#endif
 
         // init the morph setup instance
         m_morphSetup = MorphSetupInstance::Create();
@@ -222,6 +230,9 @@ namespace EMotionFX
     // update the transformation data
     void ActorInstance::UpdateTransformations(float timePassedInSeconds, bool updateJointTransforms, bool sampleMotions)
     {
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+        AZ_Info("animtrans", "ActorInstance::UpdateTransformations for %s at %lld", GetEntity()->GetName().c_str(), AZ::GetRealElapsedTimeUs());
+#endif
         // Update the LOD level in case a change was requested.
         UpdateLODLevel();
 
@@ -281,6 +292,9 @@ namespace EMotionFX
             // update the motion system, which performs all blending, and updates all local transforms (excluding the local matrices)
             if (m_animGraphInstance)
             {
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+                AZ_Info("animtrans", "  not an attachment, anim graph");
+#endif
                 m_animGraphInstance->Update(timePassedInSeconds);
                 UpdateWorldTransform();
                 if (updateJointTransforms && sampleMotions)
@@ -295,6 +309,9 @@ namespace EMotionFX
             }
             else if (m_motionSystem)
             {
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+                AZ_Info("animtrans", "  not an attachment, motion system");
+#endif
                 m_motionSystem->Update(timePassedInSeconds, (updateJointTransforms && sampleMotions));
             }
             else
@@ -317,13 +334,20 @@ namespace EMotionFX
             ApplyMorphSetup();
 
             UpdateSkinningMatrices();
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+            AZ_Info("animtrans", " UpdateAttachments attached to %s", GetEntity()->GetName().c_str());
+#endif
             UpdateAttachments();
         }
         else // we are a skin attachment
         {
             m_localTransform.Identity();
+            m_uncorrectedLocalTransform.Identity();
             if (m_animGraphInstance)
             {
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+                AZ_Info("animtrans", "  skin attachment, anim graph");
+#endif
                 m_animGraphInstance->Update(timePassedInSeconds);
                 UpdateWorldTransform();
 
@@ -334,6 +358,9 @@ namespace EMotionFX
             }
             else if (m_motionSystem)
             {
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+                AZ_Info("animtrans", "  skin attachment, motion system");
+#endif
                 m_motionSystem->Update(timePassedInSeconds, (updateJointTransforms && sampleMotions));
             }
             else
@@ -355,6 +382,9 @@ namespace EMotionFX
             m_transformData->GetCurrentPose()->ApplyMorphWeightsToActorInstance();
             ApplyMorphSetup();
             UpdateSkinningMatrices();
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+            AZ_Info("animtrans", " UpdateAttachments (skin) attached to %s", GetEntity()->GetName().c_str());
+#endif
             UpdateAttachments();
         }
 
@@ -373,9 +403,19 @@ namespace EMotionFX
     // update the world transformation
     void ActorInstance::UpdateWorldTransform()
     {
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+        AZ_Info("animtrans", "  UpdateWorldTransform for %s from local transform (%f, %f, %f) & (%f, %f, %f) and parent transform",
+            GetEntity()->GetName().c_str(),
+            m_localTransform.m_position.GetX(), m_localTransform.m_position.GetY(), m_localTransform.m_position.GetZ(),
+            m_uncorrectedLocalTransform.m_position.GetX(), m_uncorrectedLocalTransform.m_position.GetY(), m_uncorrectedLocalTransform.m_position.GetZ());
+#endif
         m_worldTransform = m_localTransform;
         m_worldTransform.Multiply(m_parentWorldTransform);
         m_worldTransformInv = m_worldTransform.Inversed();
+#if defined(CARBONATED)
+        m_uncorrectedWorldTransform = m_uncorrectedLocalTransform;
+        m_uncorrectedWorldTransform.Multiply(m_parentWorldTransform);
+#endif
     }
 
     // updates the skinning matrices of all nodes
@@ -1387,6 +1427,16 @@ namespace EMotionFX
     // apply the currently set motion extraction delta transform to the actor instance
     void ActorInstance::ApplyMotionExtractionDelta()
     {
+#if defined(CARBONATED) && defined(CARBONATED_EMOTION_TRANSFORM_DEBUG)
+        if (m_trajectoryDelta.m_position.GetLengthSq() > 0.001f)
+        {
+            AZ_Info("animtrans", "  apply position correction (%f, %f, %f) for %s (%f, %f, %f) (%f, %f, %f)",
+                m_trajectoryDelta.m_position.GetX(), m_trajectoryDelta.m_position.GetY(), m_trajectoryDelta.m_position.GetZ(),
+                GetEntity()->GetName().c_str(),
+                m_localTransform.m_position.GetX(), m_localTransform.m_position.GetY(), m_localTransform.m_position.GetZ(),
+                m_uncorrectedLocalTransform.m_position.GetX(), m_uncorrectedLocalTransform.m_position.GetY(), m_uncorrectedLocalTransform.m_position.GetZ());
+        }
+#endif
         ApplyMotionExtractionDelta(m_trajectoryDelta);
     }
 
@@ -1420,6 +1470,9 @@ namespace EMotionFX
             CalcNodeBasedAabb(&m_staticAabb);
         }
 
+#if defined(CARBONATED)
+        m_uncorrectedLocalTransform = orgTransform;
+#endif
         m_localTransform = orgTransform;
     }
 
