@@ -83,6 +83,10 @@ namespace EMotionFX
          * This can for example show the update order, in which order the actor instances will be updated.
          */
         void Print() override;
+#if defined(CARBONATED)
+        static bool s_animGraphTickLogEnabled;  //!< Set to true to log timestamp+thread for every anim graph tick
+        static bool s_animGraphParamLogEnabled;  //!< Set to true to log all anim graph parameter values at tick start
+#endif
 
         /**
          * Clear the schedule.
