@@ -168,12 +168,7 @@ void ImGuiManager::Initialize()
     // Initialize controller button mapping
     s_lyInputToImGuiNavIndexMap.insert(LyButtonImGuiNavIndexPair(InputDeviceGamepad::Button::A, ImGuiNavInput_Activate));
     s_lyInputToImGuiNavIndexMap.insert(LyButtonImGuiNavIndexPair(InputDeviceGamepad::Button::B, ImGuiNavInput_Cancel));
-#if defined(CARBONATED)
-    // Since the Netflix Controller does not have X button, assign Start button for changing focus
-    s_lyInputToImGuiNavIndexMap.insert(LyButtonImGuiNavIndexPair(InputDeviceGamepad::Button::Start, ImGuiNavInput_Menu));
-#else
     s_lyInputToImGuiNavIndexMap.insert(LyButtonImGuiNavIndexPair(InputDeviceGamepad::Button::X, ImGuiNavInput_Menu));
-#endif
     s_lyInputToImGuiNavIndexMap.insert(LyButtonImGuiNavIndexPair(InputDeviceGamepad::Button::Y, ImGuiNavInput_Input));
     s_lyInputToImGuiNavIndexMap.insert(LyButtonImGuiNavIndexPair(InputDeviceGamepad::Button::DU, ImGuiNavInput_DpadUp));
     s_lyInputToImGuiNavIndexMap.insert(LyButtonImGuiNavIndexPair(InputDeviceGamepad::Button::DD, ImGuiNavInput_DpadDown));
@@ -897,8 +892,12 @@ void ImGuiManager::RegisterImGuiCVARs()
     gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_EnableAssetExplorer_Name, 0, VF_DEV_ONLY, CVARHELP("Enable ImGui Asset Explorer on Startup"), OnEnableAssetExplorerCBFunc);
     gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_DiscreteInputMode_Name, 0, VF_DEV_ONLY, CVARHELP("Enable ImGui Discrete Input Mode, adds a 2nd Visibility Mode, with the 1st having input going toward ImGui and the 2nd having input going toward the game. If not set, Input will go to both ImGui and the game when ImGui is enabled."), OnDiscreteInputModeCBFunc);
 #if defined(CARBONATED)
+#if defined(_RELEASE)
+    gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_EnableController_Name, 0, VF_DEV_ONLY, CVARHELP("Enable ImGui Controller support. Default to Off on PC, On on Console."), OnEnableControllerCBFunc);
+#else
     // Enable the Contextual Controller support by default so Netflix Controller can navigate through the ImGui menu without mouse/keyboard input
     gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_EnableController_Name, 1, VF_DEV_ONLY, CVARHELP("Enable ImGui Controller support. Default to Off on PC, On on Console."), OnEnableControllerCBFunc);
+#endif
 #else
     // Enable the Contextual Controller support by default when the hardware mouse is not detected.
     gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_EnableController_Name, (m_hardwardeMouseConnected ? 0 : 1), VF_DEV_ONLY, CVARHELP("Enable ImGui Controller support. Default to Off on PC, On on Console."), OnEnableControllerCBFunc);
