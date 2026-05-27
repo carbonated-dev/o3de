@@ -260,6 +260,7 @@ private: // member functions
 
     AZ::Data::Instance<AZ::RPI::Image> GetBackdropImage() const;
     AZ::Vector2 GetBackdropCaptureSize() const;
+    AZ::Vector2 GetBackdropViewportSize() const;
 
 private: // static member functions
 
@@ -303,5 +304,6 @@ private: // data
     // cached rendering data for performance optimization
     LyShine::UiPrimitive m_cachedPrimitive;
     AZ::Vector2 m_cachedBackdropCaptureSize = AZ::Vector2::CreateZero();
+    AZ::Vector2 m_cachedBackdropViewportSize = AZ::Vector2::CreateZero();
     bool m_isRenderCacheDirty = true;
 };
