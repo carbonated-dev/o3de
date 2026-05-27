@@ -364,8 +364,9 @@ void UiImageComponent::Render(LyShine::IRenderGraph* renderGraph)
     ISprite* sprite = (m_overrideSprite) ? m_overrideSprite : m_sprite;
     const bool isBackdrop = IsSpriteTypeBackdrop();
     const AZ::Vector2 backdropCaptureSize = isBackdrop ? GetBackdropCaptureSize() : AZ::Vector2::CreateZero();
+    const AZ::Vector2 backdropViewportSize = isBackdrop ? GetBackdropViewportSize() : AZ::Vector2::CreateZero();
 
-    if (isBackdrop && m_cachedBackdropCaptureSize != backdropCaptureSize)
+    if (isBackdrop && (m_cachedBackdropCaptureSize != backdropCaptureSize || m_cachedBackdropViewportSize != backdropViewportSize))
     {
         m_isRenderCacheDirty = true;
     }
@@ -390,8 +391,9 @@ void UiImageComponent::Render(LyShine::IRenderGraph* renderGraph)
 
         if (isBackdrop)
         {
-            RenderBackdrop(backdropCaptureSize, packedColor);
+            RenderBackdrop(backdropViewportSize, packedColor);
             m_cachedBackdropCaptureSize = backdropCaptureSize;
+            m_cachedBackdropViewportSize = backdropViewportSize;
         }
         else
         {
@@ -2691,6 +2693,17 @@ AZ::Vector2 UiImageComponent::GetBackdropCaptureSize() const
     AZ::Vector2 backdropCaptureSize = AZ::Vector2::CreateZero();
     UiCanvasBus::EventResult(backdropCaptureSize, canvasEntityId, &UiCanvasBus::Events::GetBackdropCaptureSize);
     return backdropCaptureSize;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+AZ::Vector2 UiImageComponent::GetBackdropViewportSize() const
+{
+    AZ::EntityId canvasEntityId;
+    UiElementBus::EventResult(canvasEntityId, GetEntityId(), &UiElementBus::Events::GetCanvasEntityId);
+
+    AZ::Vector2 backdropViewportSize = AZ::Vector2::CreateZero();
+    UiCanvasBus::EventResult(backdropViewportSize, canvasEntityId, &UiCanvasBus::Events::GetCanvasSize);
+    return backdropViewportSize;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
