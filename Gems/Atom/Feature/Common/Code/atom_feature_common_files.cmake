@@ -183,10 +183,10 @@ set(FILES
     Source/OcclusionCullingPlane/OcclusionCullingPlane.cpp
     Source/Silhouette/SilhouetteFeatureProcessor.cpp
     Source/Silhouette/SilhouetteFeatureProcessor.h
-#if defined(CARBONATED)
+# Begin CARBONATED
     Source/Silhouette/SilhouetteJFAStepParentPass.cpp
     Source/Silhouette/SilhouetteJFAStepParentPass.h
-#endif
+# End CARBONATED
     Source/PostProcess/PostProcessBase.cpp
     Source/PostProcess/PostProcessBase.h
     Source/PostProcess/PostProcessFeatureProcessor.cpp
@@ -363,7 +363,7 @@ set(FILES
     Source/SplashScreen/SplashScreenPass.h
     Source/TransformService/TransformServiceFeatureProcessor.cpp
     Source/Utils/GpuBufferHandler.cpp
-#if defined(CARBONATED)
+# Begin CARBONATED
     Source/VolumetricFog/VolumetricFogFeatureProcessor.cpp
     Source/VolumetricFog/VolumetricFogFeatureProcessor.h
     Source/VolumetricFog/FogVolumeFeatureProcessor.cpp
@@ -374,7 +374,7 @@ set(FILES
     Source/VolumetricFog/FroxelIntegratePass.h
     Source/VolumetricFog/VolumetricFogUtils.cpp
     Source/VolumetricFog/VolumetricFogUtils.h    
-#endif
+# End CARBONATED
 )
 
 set(SKIP_UNITY_BUILD_INCLUSION_FILES

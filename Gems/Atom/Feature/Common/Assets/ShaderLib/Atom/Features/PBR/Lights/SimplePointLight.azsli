@@ -15,7 +15,9 @@ void ApplySimplePointLight(ViewSrg::SimplePointLight light, Surface surface, ino
 // was: void ApplySimplePointLight(ViewSrg::SimplePointLight light, Surface surface, inout LightingData lightingData)
 // End Carbonated
 {
+// Begin Carbonated
     real3 lightIntensity = 0;
+// End Carbonated
     real3 posToLight = real3(light.m_position - surface.position);
     real d2 = dot(posToLight, posToLight); // light distance squared
     real falloff = d2 * real(light.m_invAttenuationRadiusSquared);
@@ -55,7 +57,10 @@ void ApplySimplePointLightInternal(uint lightIndex, Surface surface, inout Light
         {
             return;
         }
+        // Begin Carbonated
+        // was: ApplySimplePointLight(light, surface, lightingData);
         ApplySimplePointLight(light, surface, lightingData, outInfo);
+        // End Carbonated
     }
 }
 

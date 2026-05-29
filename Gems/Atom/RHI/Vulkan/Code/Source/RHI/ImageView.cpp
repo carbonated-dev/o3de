@@ -117,6 +117,8 @@ namespace AZ
             VkImageViewCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             createInfo.pNext = nullptr;
+            createInfo.flags = createFlags;
+            createInfo.image = image.GetNativeImage();
             createInfo.viewType = imageViewType;
             createInfo.format = ConvertFormat(m_format);
             createInfo.components = ConvertComponentMapping(componentMapping);

@@ -59,7 +59,9 @@ void ApplyCapsuleLight(ViewSrg::CapsuleLight light, Surface surface, inout Light
 // was: void ApplyCapsuleLight(ViewSrg::CapsuleLight light, Surface surface, inout LightingData lightingData)
 // End Carbonated
 {
+// Begin Carbonated
     float lightIntensity = 0;
+// End Carbonated
 
     float lightLength = light.m_length;
     float3 startPoint = light.m_startPoint;
@@ -257,7 +259,10 @@ void ApplyCapsuleLightInternal(uint lightIndex, Surface surface, inout LightingD
         else
 #endif // ENABLE_AREA_LIGHT_VALIDATION
         {
+            // Begin Carbonated
             ApplyCapsuleLight(light, surface, lightingData, outInfo);
+            // was: ApplyCapsuleLight(light, surface, lightingData);
+            // End Carbonated
         }
     }
 }

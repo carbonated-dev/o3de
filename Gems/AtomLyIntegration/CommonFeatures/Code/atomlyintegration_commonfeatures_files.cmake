@@ -193,7 +193,7 @@ set(FILES
     Source/Scripting/EntityReferenceComponentController.h
     Source/SurfaceData/SurfaceDataMeshComponent.cpp
     Source/SurfaceData/SurfaceDataMeshComponent.h
-#if defined(CARBONATED)
+# Begin CARBONATED
     Source/VolumetricFog/VolumetricFogComponentConfig.cpp
     Source/VolumetricFog/VolumetricFogComponentController.cpp
     Source/VolumetricFog/VolumetricFogComponentController.h
@@ -204,5 +204,5 @@ set(FILES
     Source/VolumetricFog/FogVolumeComponentController.h
     Source/VolumetricFog/FogVolumeComponent.cpp
     Source/VolumetricFog/FogVolumeComponent.h
-#endif
+# End CARBONATED
 )
