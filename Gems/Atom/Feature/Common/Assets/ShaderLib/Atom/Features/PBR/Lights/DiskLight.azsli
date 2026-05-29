@@ -25,9 +25,11 @@ void ApplyDiskLight(ViewSrg::DiskLight light, Surface surface, inout LightingDat
 // was: void ApplyDiskLight(ViewSrg::DiskLight light, Surface surface, inout LightingData lightingData)
 // End Carbonated
 {
+    // Begin Carbonated
     float3 lightIntensity = 0;
     // shadow
     float litRatio = 1.0;
+    // End Carbonated
 
     float3 posToLight = light.m_position - surface.position;
     float distanceToLight2 = dot(posToLight, posToLight); // light distance squared

@@ -68,7 +68,7 @@ namespace AZ::Render
                         &VolumetricFogComponentConfig::m_fogNear,
                         "Start Distance", "The distance from the viewer when the fog starts")
                         ->Attribute(AZ::Edit::Attributes::Min, 0.0f)
-                        ->Attribute(AZ::Edit::Attributes::Max, 5000.0f)
+                        ->Attribute(AZ::Edit::Attributes::Max, 1500.0f)
                         ->Attribute(AZ::Edit::Attributes::SoftMin, 0.0f)
                         ->Attribute(AZ::Edit::Attributes::SoftMax, 10.0f)
                         ->Attribute(AZ::Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)

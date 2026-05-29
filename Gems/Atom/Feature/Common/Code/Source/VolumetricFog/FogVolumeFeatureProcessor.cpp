@@ -146,7 +146,7 @@ namespace AZ::Render
                 blend.m_blendAlphaDest  = RHI::BlendFactor::One;
                 break;
             default:
-                AZ_Assert(false, "Unknown FogVolumeBlendMode");
+                AZ_Assert(false, "Unknown FogVolumeBlendMode %d", mode);
                 break;
             }
             return blend;
@@ -205,7 +205,7 @@ namespace AZ::Render
         }
 
         RPI::Pass* pass = m_rasterPass;
-        while (!pass)
+        while (pass)
         {
             if (!pass->IsEnabled())
             {
@@ -603,6 +603,7 @@ namespace AZ::Render
     {
         if (!m_shader || !m_rasterPass)
         {
+            AZ_Error("FogVolumeFeatureProcessor", false, "Failed to build pipelines because shade or raster pass is invalid.");
             return;
         }
 

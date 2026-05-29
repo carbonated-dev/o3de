@@ -78,9 +78,11 @@ void ApplyPointLight(ViewSrg::PointLight light, Surface surface, inout LightingD
 // was: void ApplyPointLight(ViewSrg::PointLight light, Surface surface, inout LightingData lightingData)
 // End Carbonated
 {
+// Begin Carbonated
     // shadow
     real litRatio = 1.0;
     real3 lightIntensity = 0;
+// End Carbonated
 
     real3 posToLight = real3(light.m_position) - real3(surface.position);
     real posToLightDist = length(posToLight);

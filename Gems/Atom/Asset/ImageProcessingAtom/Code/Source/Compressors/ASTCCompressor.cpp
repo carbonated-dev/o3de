@@ -193,6 +193,7 @@ namespace ImageProcessingAtom
         const AZ::u32 dstMips = dstImage->GetMipCount();
         for (AZ::u32 mip = 0; mip < dstMips; ++mip)
         {
+#if defined(CARBONATED)
             AZ::u8* srcMem;
             AZ::u32 srcPitch;
             srcImage->GetImagePointer(mip, srcMem, srcPitch);
@@ -201,7 +202,6 @@ namespace ImageProcessingAtom
             AZ::u32 dstPitch;
             dstImage->GetImagePointer(mip, dstMem, dstPitch);
 
-#if defined(CARBONATED)
             const AZ::u32 mipWidth     = srcImage->GetWidth(mip);
             const AZ::u32 mipHeight    = srcImage->GetHeight(mip);
             const AZ::u32 mipDepth     = srcImage->GetDepth(mip);
@@ -293,17 +293,21 @@ namespace ImageProcessingAtom
                 astcenc_compress_reset(context);
             } // for: depth slices
 #else
-            const AZ::u32 mipWidth  = srcImage->GetWidth(mip);
-            const AZ::u32 mipHeight = srcImage->GetHeight(mip);
-            AZ::u32 dataSize = dstImage->GetMipBufSize(mip);
-
             astcenc_image image;
-            image.dim_x = mipWidth;
-            image.dim_y = mipHeight;
+            image.dim_x = srcImage->GetWidth(mip);
+            image.dim_y = srcImage->GetHeight(mip);
             image.dim_z = 1;
             image.data_type = dataType;
+
+            AZ::u8* srcMem;
+            AZ::u32 srcPitch;
+            srcImage->GetImagePointer(mip, srcMem, srcPitch);
             image.data = reinterpret_cast<void**>(&srcMem);
 
+            AZ::u8* dstMem;
+            AZ::u32 dstPitch;
+            dstImage->GetImagePointer(mip, dstMem, dstPitch);
+            AZ::u32 dataSize = dstImage->GetMipBufSize(mip);
             if (threadCount == 1)
             {
                 astcenc_error error = astcenc_compress_image(context, &image, &swizzle, dstMem, dataSize, 0);
@@ -331,7 +335,7 @@ namespace ImageProcessingAtom
                         }
                     };
 
-                    AZ::Job* simulationJob = AZ::CreateJobFunction(AZStd::move(jobLambda), true, nullptr);  //auto-deletes
+                    AZ::Job* simulationJob = AZ::CreateJobFunction(AZStd::move(jobLambda), true, nullptr); // auto-deletes
 
                     // adds this job as child to current job if there is a current job
                     // otherwise adds it as a dependent for the complete job

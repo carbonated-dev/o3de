@@ -105,31 +105,31 @@ float SampleNoiseOctave(float3 positionWS, float scale, float3 scroll, Texture3D
 // time        : current time in seconds
 float SampleNoise(float3 positionWS, float time, SceneSrg::VolumetricFogVolumeConstants volumeData, Texture3D<float> noiseTexture)
 {
-    const float  BASE_SCALE = volumeData.m_noiseScale;
-    const float3 WIND       = -volumeData.m_noiseWindVelocity * time;
+    const float  baseScale = volumeData.m_noiseScale;
+    const float3 wind       = -volumeData.m_noiseWindVelocity * time;
 
     // Large irrational offsets so each octave samples a different tile region.
-    static const float3 OFFSET_1 = float3(  0.00,   0.00,   0.00);
-    static const float3 OFFSET_2 = float3( 17.73,  43.31,  31.97);
-    static const float3 OFFSET_3 = float3( 83.13,  11.71,  67.57);
+    static const float3 offset1 = float3(  0.00,   0.00,   0.00);
+    static const float3 offset2 = float3( 17.73,  43.31,  31.97);
+    static const float3 offset3 = float3( 83.13,  11.71,  67.57);
 
     // ---- Octave 1: large scale fog banks (most influence) --------------
     float3 pos0    = positionWS;           // XYZ
-    float3 scroll0 = WIND * 1.0 + OFFSET_1;
-    float  n0      = SampleNoiseOctave(pos0, BASE_SCALE * 1.0, scroll0, noiseTexture);
+    float3 scroll0 = wind * 1.0 + offset1;
+    float  n0      = SampleNoiseOctave(pos0, baseScale * 1.0, scroll0, noiseTexture);
 
     // ---- Octave 2: medium detail ---------------------------------------
     // Domain permutation YZX rotates the column direction ~120°, breaking
     // alignment with octave 1 at zero cost.
     float3 pos1    = positionWS.yzx;
-    float3 scroll1 = WIND * 1.4 + OFFSET_2;
-    float  n1      = SampleNoiseOctave(pos1, BASE_SCALE * 2.0, scroll1, noiseTexture);
+    float3 scroll1 = wind * 1.4 + offset2;
+    float  n1      = SampleNoiseOctave(pos1, baseScale * 2.0, scroll1, noiseTexture);
 
     // ---- Octave 3: fine wisps ------------------------------------------
     // Domain permutation ZXY rotates a further ~120° (~240° from octave 1).
     float3 pos2    = positionWS.zxy;
-    float3 scroll2 = WIND * 1.8 + OFFSET_3;
-    float  n2      = SampleNoiseOctave(pos2, BASE_SCALE * 4.0, scroll2, noiseTexture);
+    float3 scroll2 = wind * 1.8 + offset3;
+    float  n2      = SampleNoiseOctave(pos2, baseScale * 4.0, scroll2, noiseTexture);
 
     // ---- Combine octaves with decreasing weights ------------------------
     // Weights sum to 1.0: 0.5 + 0.3 + 0.2

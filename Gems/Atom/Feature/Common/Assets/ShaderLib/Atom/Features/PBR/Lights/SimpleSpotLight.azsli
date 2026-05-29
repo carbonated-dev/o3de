@@ -25,9 +25,11 @@ void ApplySimpleSpotLight(ViewSrg::SimpleSpotLight light, Surface surface, inout
 // was: void ApplySimpleSpotLight(ViewSrg::SimpleSpotLight light, Surface surface, inout LightingData lightingData)
 // End Carbonated
 {
+// Begin Carbonated
     real3 lightIntensity = 0;
     // shadow
     real litRatio = 1.0;
+// End Carbonated
     real3 posToLight = real3(light.m_position - surface.position);
     
     real3 dirToLight = normalize(posToLight);

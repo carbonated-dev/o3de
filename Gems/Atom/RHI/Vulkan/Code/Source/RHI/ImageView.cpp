@@ -107,16 +107,20 @@ namespace AZ
                 device.GetContext().CreateImageView(device.GetNativeDevice(), &m_vkCreateInfo, VkSystemAllocator::Get(), &m_vkImageView);
 #else
             BuildImageSubresourceRange(imageViewType, aspectFlags);
-
+            const RHI::ImageSubresourceRange& range = GetImageSubresourceRange();
+            VkImageSubresourceRange vkRange{};
+            vkRange.baseMipLevel = range.m_mipSliceMin;
+            vkRange.levelCount = range.m_mipSliceMax - range.m_mipSliceMin + 1;
+            vkRange.baseArrayLayer = range.m_arraySliceMin;
+            vkRange.layerCount = range.m_arraySliceMax - range.m_arraySliceMin + 1;
+            vkRange.aspectMask = aspectFlags;
             VkImageViewCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             createInfo.pNext = nullptr;
-            createInfo.flags = createFlags;
-            createInfo.image = image.GetNativeImage();
             createInfo.viewType = imageViewType;
             createInfo.format = ConvertFormat(m_format);
             createInfo.components = ConvertComponentMapping(componentMapping);
-            createInfo.subresourceRange = m_vkImageSubResourceRange;
+            createInfo.subresourceRange = vkRange;
 
             const VkResult result =
                 device.GetContext().CreateImageView(device.GetNativeDevice(), &createInfo, VkSystemAllocator::Get(), &m_vkImageView);
@@ -134,7 +138,7 @@ namespace AZ
                                     viewDescriptor.m_aspectFlags != RHI::ImageAspectFlags::Stencil;
 
 #if defined(CARBONATED)
-            bool isArray = m_vkCreateInfo.subresourceRange.layerCount > 1;
+            const bool isArray = m_vkCreateInfo.subresourceRange.layerCount > 1;
 #endif
 
 #if defined(CARBONATED)
@@ -322,16 +326,15 @@ namespace AZ
 #else
                 if (physicalDevice.IsFeatureSupported(DeviceFeature::Compatible2dArrayTexture))
                 {
-                    if (!RHI::CheckBitsAll(imgViewDesc.m_overrideBindFlags, RHI::ImageBindFlags::Color) &&
-                        (imgViewDesc.m_depthSliceMin == 0 && imgViewDesc.m_depthSliceMax + 1 >= depth))
+                    if (imgViewDesc.m_depthSliceMin == imgViewDesc.m_depthSliceMax)
+                    {
+                        return VK_IMAGE_VIEW_TYPE_2D;
+                    }
+                    else if (imgViewDesc.m_depthSliceMin == 0 && imgViewDesc.m_depthSliceMax + 1 >= depth)
                     {
                         // If ImageView's depth slice range covers the one of the base 3D Image,
                         // it returns the view of the entire depth slices.
                         return VK_IMAGE_VIEW_TYPE_3D;
-                    }
-                    else if (imgViewDesc.m_depthSliceMin == imgViewDesc.m_depthSliceMax)
-                    {
-                        return VK_IMAGE_VIEW_TYPE_2D;
                     }
                     else
                     {
@@ -395,17 +398,21 @@ namespace AZ
                     break;
                 }
             }
-
+#if defined(CARBONATED)
             VkImageSubresourceRange vkRange = {};
             vkRange.aspectMask = aspectFlags;
             vkRange.baseArrayLayer = range.m_arraySliceMin;
             vkRange.layerCount = range.m_arraySliceMax - range.m_arraySliceMin + 1;
             vkRange.baseMipLevel = range.m_mipSliceMin;
             vkRange.levelCount = range.m_mipSliceMax - range.m_mipSliceMin + 1;
-#if defined(CARBONATED)
             return vkRange;
 #else
-            m_vkImageSubResourceRange = vkRange;
+
+            m_vkImageSubResourceRange.aspectMask = aspectFlags;
+            m_vkImageSubResourceRange.baseArrayLayer = range.m_arraySliceMin;
+            m_vkImageSubResourceRange.layerCount = range.m_arraySliceMax - range.m_arraySliceMin + 1;
+            m_vkImageSubResourceRange.baseMipLevel = range.m_mipSliceMin;
+            m_vkImageSubResourceRange.levelCount = range.m_mipSliceMax - range.m_mipSliceMin + 1;
 #endif
         }
 

@@ -189,6 +189,7 @@ namespace ImageProcessingAtom
         const uint32 mipCount = destinationImage->GetMipCount();
         for (uint32_t mip = 0; mip < mipCount; mip++)
         {
+#if defined(CARBONATED)
             // Create rgba_surface as input
             uint32 sourcePitch = 0;
             AZ::u8* sourceImageData = nullptr;
@@ -199,7 +200,6 @@ namespace ImageProcessingAtom
             AZ::u8* destinationImageData = nullptr;
             destinationImage->GetImagePointer(mip, destinationImageData, destinationPitch);
 
-#if defined(CARBONATED)
             const uint32_t mipWidth  = sourceImage->GetWidth(mip);
             const uint32_t mipHeight = sourceImage->GetHeight(mip);
             const uint32_t mipDepth  = sourceImage->GetDepth(mip);
@@ -255,11 +255,22 @@ namespace ImageProcessingAtom
                 }
             } // for: depth slices
 #else
+            // Create rgba_surface as input
+            uint32 sourcePitch = 0;
+            AZ::u8* sourceImageData = nullptr;
+            sourceImage->GetImagePointer(mip, sourceImageData, sourcePitch);
             rgba_surface sourceSurface = {};
-            sourceSurface.ptr    = sourceImageData;
-            sourceSurface.width  = sourceImage->GetWidth(mip);
-            sourceSurface.height = sourceImage->GetHeight(mip);
-            sourceSurface.stride = static_cast<int32_t>(sourcePitch);
+            {
+                sourceSurface.ptr = sourceImageData;
+                sourceSurface.width = sourceImage->GetWidth(mip);
+                sourceSurface.height = sourceImage->GetHeight(mip);
+                sourceSurface.stride = static_cast<int32_t>(sourcePitch);
+            }
+
+            // Get the mip image destination pointer
+            uint32_t destinationPitch = 0;
+            AZ::u8* destinationImageData = nullptr;
+            destinationImage->GetImagePointer(mip, destinationImageData, destinationPitch);
 
             // Compress with the correct function, depending on the destination format
             switch (destinationFormat)

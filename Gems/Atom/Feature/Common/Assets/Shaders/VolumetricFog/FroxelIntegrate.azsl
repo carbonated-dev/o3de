@@ -61,16 +61,19 @@ void ComputeNeighborhoodAABB(uint3 center, out float4 minVal, out float4 maxVal)
 {
     minVal =  1e10;
     maxVal = -1e10;
-    for (int dz = -1; dz <= 1; ++dz)
-    for (int dy = -1; dy <= 1; ++dy)
-    for (int dx = -1; dx <= 1; ++dx)
+    int3 start = max(int3(center) - 1, 0);
+    int3 end = min(int3(center) + 1, int3(SceneSrg::m_volumetricFogData.m_froxelCount) - 1);
+    for (int z = start.z; z <= end.z; ++z)
     {
-        int3 coord = clamp(int3(center) + int3(dx, dy, dz),
-                           int3(0, 0, 0),
-                           int3(SceneSrg::m_volumetricFogData.m_froxelCount) - 1);
-        float4 s = PassSrg::m_froxelScattered[coord];
-        minVal   = min(minVal, s);
-        maxVal   = max(maxVal, s);
+        for (int y = start.y; y <= end.y; ++y)
+        {
+            for (int x = start.x; x <= end.x; ++x)
+            {
+                float4 s = PassSrg::m_froxelScattered[int3(x, y, z)];
+                minVal   = min(minVal, s);
+                maxVal   = max(maxVal, s);
+            }
+        }
     }
 }
 

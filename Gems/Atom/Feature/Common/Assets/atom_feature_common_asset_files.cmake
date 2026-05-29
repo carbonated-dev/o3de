@@ -341,10 +341,10 @@ set(FILES
     ShaderResourceGroups/PostProcessing/SceneSrg.azsli
     ShaderResourceGroups/PostProcessing/ViewSrg.azsli
     ShaderResourceGroups/SkyBox/SceneSrg.azsli
-#if defined(CARBONATED)
+# Begin Carbonated
     ShaderResourceGroups/Weather/SceneSrg.azsli
     ShaderResourceGroups/VolumetricFog/SceneSrg.azsli
-#endif
+# End Carbonated
     Shaders/ForwardPassSrg.azsl
     Shaders/ForwardPassSrg.shader
     Shaders/AuxGeom/AuxGeomObject.azsl

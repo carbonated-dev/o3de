@@ -127,7 +127,7 @@ namespace AZ::Render
     void VolumetricFogFeatureProcessor::Render([[maybe_unused]] const FeatureProcessor::RenderPacket& packet)
     {
         AZ_PROFILE_SCOPE(RPI, "VolumetricFogFeatureProcessor: Render");
-        if (!m_settings.m_enabled)
+        if (!m_settings.m_enabled || !m_renderPipeline)
         {
             return;
         }
@@ -344,6 +344,11 @@ namespace AZ::Render
 
     void VolumetricFogFeatureProcessor::UpdateFroxelSize()
     {
+        if (!m_froxelParentPass)
+        {
+            return;
+        }
+
         if (auto attachmentBinding = m_froxelParentPass->FindAttachmentBinding(Name("PipelineOutput")))
         {
             if (auto attachment = attachmentBinding->GetAttachment())

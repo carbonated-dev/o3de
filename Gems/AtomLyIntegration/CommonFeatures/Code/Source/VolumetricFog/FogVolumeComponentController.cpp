@@ -88,7 +88,7 @@ namespace AZ::Render
 
         if (!m_featureProcessor)
         {
-            AZ_Warning("FogVolumeComponentController", false,
+            AZ_Error("FogVolumeComponentController", false,
                 "FogVolumeFeatureProcessor not found for entity %s.",
                 entityId.ToString().c_str());
             return;
