@@ -4,14 +4,14 @@
     "description": "Rain wetness overlay properties controlled by the Weather Gem.",
     "properties": [
         {
-            "name": "useWet",
-            "displayName": "Apply Wet",
-            "description": "Use Wet properties or not.",
+            "name": "enable",
+            "displayName": "Enable Wetness",
+            "description": "Use Wetness properties or not.",
             "type": "Bool",
             "defaultValue": false
         },
         {
-            "name": "wetAmount",
+            "name": "amount",
             "displayName": "Wetness Amount",
             "description": "Wetting factor, for example rain intensity, [0..1]: 0 is no wetting, 1 is maximal wetting.",
             "type": "Float",
@@ -24,7 +24,7 @@
             }
         },
         {
-            "name": "wetFactor",
+            "name": "factor",
             "displayName": "Wetness Factor",
             "description": "Moistening factor of surface material, [0..1]: 0 surface remains waterless, 1 surface is completely soaked.",
             "type": "Float",

@@ -13,7 +13,7 @@
 -- This functor controls the flag that enables the overall feature for the shader.
 
 function GetMaterialPropertyDependencies()
-    return { "useWet", "textureMap", "useTexture" }
+    return { "enable", "textureMap", "useTexture" }
 end
 
 function GetShaderOptionDependencies()
@@ -21,8 +21,8 @@ function GetShaderOptionDependencies()
 end
 
 function Process(context)
-    local useWet = context:GetMaterialPropertyValue_bool("useWet")
-    context:SetShaderOptionValue_bool("o_useWet", useWet)
+    local enable = context:GetMaterialPropertyValue_bool("enable")
+    context:SetShaderOptionValue_bool("o_useWet", enable)
 
     local textureMap = context:GetMaterialPropertyValue_Image("textureMap")
     local useTexture = context:GetMaterialPropertyValue_bool("useTexture")
@@ -30,17 +30,17 @@ function Process(context)
 end
 
 function ProcessEditor(context)
-    local useWet = context:GetMaterialPropertyValue_bool("useWet")
+    local enable = context:GetMaterialPropertyValue_bool("enable")
     
     local mainVisibility
-    if(useWet) then
+    if(enable) then
         mainVisibility = MaterialPropertyVisibility_Enabled
     else
         mainVisibility = MaterialPropertyVisibility_Hidden
     end
 
-    context:SetMaterialPropertyVisibility("wetAmount", mainVisibility)
-    context:SetMaterialPropertyVisibility("wetFactor", mainVisibility)
+    context:SetMaterialPropertyVisibility("amount", mainVisibility)
+    context:SetMaterialPropertyVisibility("factor", mainVisibility)
     context:SetMaterialPropertyVisibility("useTexture", mainVisibility)
     context:SetMaterialPropertyVisibility("textureMap", mainVisibility)
     context:SetMaterialPropertyVisibility("textureMapUv", mainVisibility)
@@ -49,7 +49,7 @@ function ProcessEditor(context)
     local textureMap = context:GetMaterialPropertyValue_Image("textureMap")
     local useTexture = context:GetMaterialPropertyValue_bool("useTexture")
 
-    if(useWet) then
+    if(enable) then
         if(nil == textureMap) then
             context:SetMaterialPropertyVisibility("useTexture", MaterialPropertyVisibility_Hidden)
             context:SetMaterialPropertyVisibility("textureMapUv", MaterialPropertyVisibility_Hidden)
