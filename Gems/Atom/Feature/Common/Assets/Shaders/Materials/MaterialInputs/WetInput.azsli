@@ -18,9 +18,6 @@
 // You can optionally provide a prefix for the set of inputs which corresponds to a prefix string supplied by the .materialtype file. This is common for multi-layered material types.
 
 #define COMMON_SRG_INPUTS_WET(prefix) \
-float prefix##m_wetCenterX; \
-float prefix##m_wetCenterY; \
-float prefix##m_wetRadius; \
 float prefix##m_wetAmount;  \
 float prefix##m_wetFactor;  \
 Texture2D prefix##m_wetMap; \

@@ -349,6 +349,87 @@
                                     "Value": 1.0
                                 }
                             }
+                        },
+                        {
+                            "Key": {
+                                "m_name": "inSnowEnable"
+                            },
+                            "Value": {
+                                "m_value": {
+                                    "$type": "bool",
+                                    "Value": false
+                                }
+                            }
+                        },
+                        {
+                            "Key": {
+                                "m_name": "inSnowAmount"
+                            },
+                            "Value": {
+                                "m_value": {
+                                    "$type": "float",
+                                    "Value": 0.75
+                                }
+                            }
+                        },
+                        {
+                            "Key": {
+                                "m_name": "inSnowFactor"
+                            },
+                            "Value": {
+                                "m_value": {
+                                    "$type": "float",
+                                    "Value": 1.0
+                                }
+                            }
+                        },
+                        {
+                            "Key": {
+                                "m_name": "inSnowColor"
+                            },
+                            "Value": {
+                                "m_value": {
+                                    "$type": "Vector3",
+                                    "Value": [
+                                        0.92,
+                                        0.98,
+                                        1.0
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "Key": {
+                                "m_name": "inWetEnable"
+                            },
+                            "Value": {
+                                "m_value": {
+                                    "$type": "bool",
+                                    "Value": false
+                                }
+                            }
+                        },
+                        {
+                            "Key": {
+                                "m_name": "inWetAmount"
+                            },
+                            "Value": {
+                                "m_value": {
+                                    "$type": "float",
+                                    "Value": 0.75
+                                }
+                            }
+                        },
+                        {
+                            "Key": {
+                                "m_name": "inWetFactor"
+                            },
+                            "Value": {
+                                "m_value": {
+                                    "$type": "float",
+                                    "Value": 0.61
+                                }
+                            }
                         }
                     ],
                     "toolId": {
@@ -565,6 +646,33 @@
                         "Value": 2034248906
                     },
                     "configId": "{2E53F7CC-3C6D-4737-B092-2FB41204ECAC}"
+                }
+            },
+            {
+                "Key": 11,
+                "Value": {
+                    "$type": "DynamicNode",
+                    "m_inputDataSlots": [
+                        {
+                            "Key": {
+                                "m_name": "inValue"
+                            },
+                            "Value": {
+                                "m_value": {
+                                    "$type": "Vector3",
+                                    "Value": [
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "toolId": {
+                        "Value": 2034248906
+                    },
+                    "configId": "{CE1EF97A-5BFE-4459-8967-53878C7F074F}"
                 }
             }
         ],
