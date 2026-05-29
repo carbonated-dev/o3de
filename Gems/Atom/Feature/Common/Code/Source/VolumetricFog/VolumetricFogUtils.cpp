@@ -12,6 +12,8 @@ namespace AZ::Render::VolumetricFog
 {
     RHI::Size ToFroxelSize(VolumetricFogQuality quality)
     {
+        // The width and height are the pixel size of a froxel
+        // The depth is the number of froxels in the z direction
         switch (quality)
         {
         case VolumetricFogQuality::Low:
