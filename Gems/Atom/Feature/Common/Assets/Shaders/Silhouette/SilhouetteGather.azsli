@@ -24,6 +24,7 @@ VsOutput MainVS(VsInput IN, uint instanceId : SV_InstanceID)
     OUT.position.z += MaterialSrg::m_silhouetteDepthBias * distanceScale;
 
 /*  Begin CARBONATED
+    // The outline size is now done in screen space and not by extruding the geometry. This is not needed anymore.
     if(MaterialSrg::m_silhouetteOutlineSize > EPSILON)
     {
         real3 worldNormal = normalize(mul(GetObjectToWorldMatrixInverseTranspose(instanceId), IN.normal));
