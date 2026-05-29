@@ -17,7 +17,11 @@ namespace AZ
             static constexpr float DefaultIntensity = 0.2f;
             static constexpr float DefaultLuminanceDampening = 0.0f;
             static constexpr float DefaultTilingScale = 1.0f;
+#if defined(CARBONATED)
+            static const constexpr char* DefaultGrainPath = "textures/filmgrain.jpg.streamingimage";
+#else
             static const constexpr char* DefaultGrainPath = "textures/FilmGrain.jpg.streamingimage";
+#endif
         } // namespace FilmGrain
     } // namespace Render
 } // namespace AZ
