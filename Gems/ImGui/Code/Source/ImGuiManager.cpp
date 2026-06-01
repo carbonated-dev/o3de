@@ -518,6 +518,10 @@ bool ImGuiManager::OnInputChannelEventFiltered(const InputChannel& inputChannel)
             {
                 const ImGuiNavInput_ imGuiNavInput = lyButtonToImGuiNav->second;
                 io.NavInputs[imGuiNavInput] = inputChannel.GetValue();
+#if defined(CARBONATED)
+                //Make the controller input to be consumed so it won't affect the other UI that are in the background
+                consumeEvent = true;
+#endif
             }
         }
 
@@ -887,8 +891,17 @@ void ImGuiManager::RegisterImGuiCVARs()
     gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_EnableCameraMonitor_Name, 0, VF_DEV_ONLY, CVARHELP("Enable ImGui Camera Monitor on Startup"), OnEnableCameraMonitorCBFunc);
     gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_EnableAssetExplorer_Name, 0, VF_DEV_ONLY, CVARHELP("Enable ImGui Asset Explorer on Startup"), OnEnableAssetExplorerCBFunc);
     gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_DiscreteInputMode_Name, 0, VF_DEV_ONLY, CVARHELP("Enable ImGui Discrete Input Mode, adds a 2nd Visibility Mode, with the 1st having input going toward ImGui and the 2nd having input going toward the game. If not set, Input will go to both ImGui and the game when ImGui is enabled."), OnDiscreteInputModeCBFunc);
+#if defined(CARBONATED)
+#if defined(_RELEASE)
+    gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_EnableController_Name, 0, VF_DEV_ONLY, CVARHELP("Enable ImGui Controller support. Default to Off on PC, On on Console."), OnEnableControllerCBFunc);
+#else
+    // Enable the Contextual Controller support by default so Netflix Controller can navigate through the ImGui menu without mouse/keyboard input
+    gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_EnableController_Name, 1, VF_DEV_ONLY, CVARHELP("Enable ImGui Controller support. Default to Off on PC, On on Console."), OnEnableControllerCBFunc);
+#endif
+#else
     // Enable the Contextual Controller support by default when the hardware mouse is not detected.
     gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_EnableController_Name, (m_hardwardeMouseConnected ? 0 : 1), VF_DEV_ONLY, CVARHELP("Enable ImGui Controller support. Default to Off on PC, On on Console."), OnEnableControllerCBFunc);
+#endif
     gEnv->pConsole->RegisterInt(ImGuiCVARNames::s_imgui_EnableControllerMouse_Name, 0, VF_DEV_ONLY, CVARHELP("Enable ImGui Controller Mouse support. Default to Off on PC, On on Console."), OnEnableControllerMouseCBFunc);
     gEnv->pConsole->RegisterFloat(ImGuiCVARNames::s_imgui_ControllerMouseSensitivity_Name, 5.0f, VF_DEV_ONLY, CVARHELP("ImGui Controller Mouse Sensitivty. Frame Multiplier for stick mouse sensitivity"), OnControllerMouseSensitivityCBFunc);
 
