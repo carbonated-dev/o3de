@@ -35,6 +35,7 @@ uint prefix##m_snowNormalMapUvIndex; \
 float prefix##m_snowNormalMapUvScale; \
 float prefix##m_snowNormalStrength; \
 float prefix##m_snowRoughness; \
+float prefix##m_snowRoughnessAmount; \
 Texture2D prefix##m_snowRoughnessMap; \
 uint prefix##m_snowRoughnessMapUvIndex; \
 float prefix##m_snowRoughnessMapUvScale; 

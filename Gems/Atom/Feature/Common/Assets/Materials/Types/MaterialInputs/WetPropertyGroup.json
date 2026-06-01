@@ -1,21 +1,21 @@
 {
     "name": "wet",
     "displayName": "Wet",
-    "description": "Rain wetness overlay properties controlled by the Weather Gem.",
+    "description": "Rain wetness overlay properties, partially controlled by the Weather Gem.",
     "properties": [
         {
             "name": "enable",
             "displayName": "Enable Wetness",
-            "description": "Use Wetness properties or not.",
+            "description": "Use Wetness properties or not, code-controllable.",
             "type": "Bool",
             "defaultValue": false
         },
         {
             "name": "amount",
             "displayName": "Wetness Amount",
-            "description": "Wetting factor, for example rain intensity, [0..1]: 0 is no wetting, 1 is maximal wetting.",
+            "description": "Wetting amount, for example rain intensity, code-controllable, 0 - no wetting, 1 - maximal wetting.",
             "type": "Float",
-            "defaultValue": 0.0,
+            "defaultValue": 1.0,
             "min": 0.0,
             "max": 1.0,
             "connection": {
@@ -26,9 +26,9 @@
         {
             "name": "factor",
             "displayName": "Wetness Factor",
-            "description": "Moistening factor of surface material, [0..1]: 0 surface remains waterless, 1 surface is completely soaked.",
+            "description": "Moistening factor of surface material, 0 surface remains waterless, 1 surface is completely soaked.",
             "type": "Float",
-            "defaultValue": 0.0,
+            "defaultValue": 0.61,
             "min": 0.0,
             "max": 1.0,
             "connection": {
@@ -37,24 +37,17 @@
             }
         },
         {
-            "name": "useTexture",
-            "displayName": "Use Texture",
-            "description": "Whether to use the texture, or just default to the wetFactor value.",
-            "type": "Bool",
-            "defaultValue": true
-        },
-        {
-            "name": "textureMap",
-            "displayName": "Texture",
+            "name": "factorMap",
+            "displayName": "    Factor Map",
             "description": "Texture defining surface Moistening properties.",
             "type": "Image",
             "connection": {
                 "type": "ShaderInput",
-                "name": "m_wetMap"
+                "name": "m_wetFactorMap"
             }
         },
         {
-            "name": "textureMapUv",
+            "name": "factorMapUv",
             "displayName": "    UV",
             "description": "Moistening properties map UV set",
             "type": "Enum",
@@ -62,21 +55,96 @@
             "defaultValue": "Unwrapped",
             "connection": {
                 "type": "ShaderInput",
-                "name": "m_wetMapUvIndex"
+                "name": "m_wetFactorMapUvIndex"
             }
         },
         {
-            "name": "textureMapUvScale",
+            "name": "factorMapUvScale",
             "displayName": "    UV Scale",
-            "description": "Moistening properties map UV scale, [0.2 .. 20.0]",
+            "description": "Moistening properties map UV scale, [0.2 .. 20.0].",
             "type": "Float",
             "defaultValue": 1.0,
             "min": 0.2,
             "max": 20.0,
             "connection": {
                 "type": "ShaderInput",
-                "name": "m_wetMapUvScale"
+                "name": "m_wetFactorMapUvScale"
             }
+        },
+        {
+            "name": "useFactorMap",
+            "displayName": "    Use Factor Map",
+            "description": "Whether to use the factor texture, or just default to the factor value.",
+            "type": "Bool",
+            "defaultValue": true
+        },
+        {
+            "name": "roughness",
+            "displayName": "Wetness roughness",
+            "description": "Wetted surface roughness.",
+            "type": "Float",
+            "defaultValue": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_wetRoughness"
+            }
+        },
+        {
+            "name": "roughnessAmount",
+            "displayName": "Wetness roughness amount.",
+            "description": "Wetted surface roughness amount, code-controllable.",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.0,
+            "max": 1.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_wetRoughnessAmount"
+            }
+        },
+        {
+            "name": "roughnessMap",
+            "displayName": "    Roughness Map",
+            "description": "Texture for re-defining wetted surface roughness.",
+            "type": "Image",
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_wetRoughnessMap"
+            }
+        },
+        {
+            "name": "roughnessMapUv",
+            "displayName": "    UV",
+            "description": "Wetted surface roughness map UV set.",
+            "type": "Enum",
+            "enumIsUv": true,
+            "defaultValue": "Unwrapped",
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_wetRoughnessMapUvIndex"
+            }
+        },
+        {
+            "name": "roughnessMapUvScale",
+            "displayName": "    UV Scale",
+            "description": "Wetted surface roughness map UV scale, [0.2 .. 20.0].",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.2,
+            "max": 20.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_wetRoughnessMapUvScale"
+            }
+        },
+        {
+            "name": "useRoughnessMap",
+            "displayName": "    Use Roughness Map",
+            "description": "Whether to use the roughness texture, or just default to the roughness value.",
+            "type": "Bool",
+            "defaultValue": true
         }
     ],
     "functors": [
