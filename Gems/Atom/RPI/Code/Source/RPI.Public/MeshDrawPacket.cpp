@@ -511,7 +511,13 @@ namespace AZ
                         const int64_t startTime = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
                         appendShader(shaderItem, materialPipelineName);
                         const int64_t dt = static_cast<int64_t>(AZ::GetRealElapsedTimeMs()) - startTime;
-                        if (dt > 50)
+                        const int64_t threshold =
+#if defined(AZ_PLATFORM_LINUX)
+                                                  20;
+#else
+                                                  50;
+#endif
+                        if (dt > threshold)
                         {
                             AZ_Info("PrimitiveLoadTime", "appended shader '%s' for pipeline '%s' in  %d ms", shaderItem.GetShaderAsset().GetHint().c_str(), materialPipelineName.GetCStr(), dt);
                         }
