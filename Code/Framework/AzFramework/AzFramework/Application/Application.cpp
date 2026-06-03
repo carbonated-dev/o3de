@@ -104,6 +104,8 @@ namespace AzFramework
         static constexpr const char* FilesystemAliasesRoot = "/O3DE/Filesystem/Aliases";
     }
 
+    AZ_CVAR(AZ::CVarFixedString, sys_user_path, "", nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Override user path");
+
     Application::Application()
         : Application(nullptr, nullptr, {})
     {
@@ -735,8 +737,10 @@ namespace AzFramework
 
 #if defined(CARBONATED)
             bool hasCliUserDirOverride = false;
+            bool hasCliUserPathOverride = false;
 
             AZStd::string userDirName("user");
+            AZStd::string userPathName;
             const int argC = GetArgC() ? *GetArgC() : 0;
             char** argV = GetArgV() ? *GetArgV() : nullptr;            
             // This isn't particularly elegant, but check for the user_dir override here.  Needs to be done early so that the aliases
@@ -745,16 +749,32 @@ namespace AzFramework
             {
                 for (int i = 0; i < (argC - 1); i++)
                 {
-                    if (AZStd::string(argV[i]) == "+user_dir")
+                    if (AZStd::string(argV[i]) == "+user_dir")  // this overrides User dir name relative to the project fodler
                     {
                         userDirName = argV[i + 1];
                         hasCliUserDirOverride = true;
+                    }
+                    if (AZStd::string(argV[i]) == "+user_path")  // this sets a user fodler absolute path
+                    {
+                        userPathName = argV[i + 1];
+                        hasCliUserPathOverride = true;
                         break;
                     }
                 }
             }
 
-            if (hasCliUserDirOverride)
+#if defined(CARBONATED_OCGA) && defined(AZ_PLATFORM_LINUX)
+            if (!hasCliUserPathOverride) // command line has priority over the default
+            {
+                userPathName = "/tmp";  // can be /tmp or /home/game
+            }
+#endif
+
+            if (hasCliUserPathOverride)
+            {
+                projectUserPath = userPathName;
+            }
+            else if (hasCliUserDirOverride)
             {
                 projectUserPath = projectRootPath.Append(userDirName);
             }
@@ -768,7 +788,8 @@ namespace AzFramework
             CreateUserCache(projectUserPath, *fileIoBase);
 
             AZ::IO::FixedMaxPath projectLogPath;
-            if (hasCliUserDirOverride || !m_settingsRegistry->Get(projectLogPath.Native(), AZ::SettingsRegistryMergeUtils::FilePathKey_ProjectLogPath))
+            if (hasCliUserPathOverride || hasCliUserDirOverride ||
+                !m_settingsRegistry->Get(projectLogPath.Native(), AZ::SettingsRegistryMergeUtils::FilePathKey_ProjectLogPath))
             {
                 projectLogPath = projectUserPath / "log";
             }
