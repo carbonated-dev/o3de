@@ -85,6 +85,10 @@
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <AzFramework/Network/NetworkContext.h>
 #endif
+
+#if defined(CARBONATED) && defined(CARBONATED_OCGA) && defined(AZ_PLATFORM_LINUX)
+#include <AzCore/std/time.h>
+#endif
 // carbonated end
 
 [[maybe_unused]] static const char* s_azFrameworkWarningWindow = "AzFramework";
@@ -147,7 +151,11 @@ namespace AzFramework
         {
             m_archiveFileIO = AZStd::make_unique<AZ::IO::ArchiveFileIO>(m_archive.get());
             AZ::IO::FileIOBase::SetInstance(m_archiveFileIO.get());
+#if defined(CARBONATED)            
+            SetFileIOAliases(true);
+#else
             SetFileIOAliases();
+#endif            
             // The FileIOAvailable event needs to be registered here as this event is sent out
             // before the settings registry has merged the .setreg files from the <engine-root>
             // (That happens in MergeSettingsToRegistry
@@ -233,7 +241,11 @@ namespace AzFramework
 
         // Sets FileIOAliases again in case the App root was overridden by the
         // startupParameters in ComponentApplication::Create
+#if defined(CARBONATED)            
+        SetFileIOAliases(false);
+#else
         SetFileIOAliases();
+#endif        
 
         if (systemEntity)
         {
@@ -697,7 +709,11 @@ namespace AzFramework
         fileIoBase.SetAlias("@usercache@", userCachePath.c_str());
     }
 
+#if defined(CARBONATED)    
+    void Application::SetFileIOAliases(bool firstTime)
+#else    
     void Application::SetFileIOAliases()
+#endif    
     {
         if (auto fileIoBase = m_archiveFileIO.get(); fileIoBase)
         {
@@ -764,9 +780,11 @@ namespace AzFramework
             }
 
 #if defined(CARBONATED_OCGA) && defined(AZ_PLATFORM_LINUX)
-            if (!hasCliUserPathOverride) // command line has priority over the default
+            if (!hasCliUserPathOverride && !firstTime) // command line has priority over this, change on the second call to avoid an extra-folder creation
             {
-                userPathName = "/tmp";  // can be /tmp or /home/game
+                const unsigned long long r = AZStd::GetTimeNowMicroSecond();  // we can use % 1000 to get small human readbale values for testing
+                userPathName = AZStd::string::format("/tmp/red/%llu", r);  // the base can be in /tmp or /home/game
+                hasCliUserPathOverride = true;
             }
 #endif
 
