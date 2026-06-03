@@ -763,16 +763,16 @@ namespace AzFramework
             {
                 for (int i = 0; i < (argC - 1); i++)
                 {
-                    if (AZStd::string(argV[i]) == "+user_dir")  // this overrides User dir name relative to the project fodler
-                    {
-                        userDirName = argV[i + 1];
-                        hasCliUserDirOverride = true;
-                    }
-                    if (AZStd::string(argV[i]) == "+user_path")  // this sets a user fodler absolute path
+                    if (AZStd::string(argV[i]) == "+user_path")  // sets user folder absolute path
                     {
                         userPathName = argV[i + 1];
                         hasCliUserPathOverride = true;
-                        break;
+                        break;  // higher priority than user dir below
+                    }
+                    else if (AZStd::string(argV[i]) == "+user_dir")  // sets user folder relative to the project path
+                    {
+                        userDirName = argV[i + 1];
+                        hasCliUserDirOverride = true;
                     }
                 }
             }
