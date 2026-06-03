@@ -173,7 +173,11 @@ namespace AzFramework
          * FileIOBase environment variable is pointing to the instances owned by
          * the application
          */
+#if defined(CARBONATED)    
+        void SetFileIOAliases(bool firstTime);  // first time call from Application constructor right after FileIOBase::SetInstance 
+#else
         void SetFileIOAliases();
+#endif
 
         //////////////////////////////////////////////////////////////////////////
         //! AZ::ComponentApplication

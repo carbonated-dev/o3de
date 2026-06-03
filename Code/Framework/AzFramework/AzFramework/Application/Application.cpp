@@ -108,8 +108,6 @@ namespace AzFramework
         static constexpr const char* FilesystemAliasesRoot = "/O3DE/Filesystem/Aliases";
     }
 
-    AZ_CVAR(AZ::CVarFixedString, sys_user_path, "", nullptr, AZ::ConsoleFunctorFlags::DontReplicate, "Override user path");
-
     Application::Application()
         : Application(nullptr, nullptr, {})
     {
