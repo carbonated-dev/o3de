@@ -85,6 +85,10 @@
 #if defined(CARBONATED) && !defined(AUTOMATED_TESTING_ON)
 #include <AzFramework/Network/NetworkContext.h>
 #endif
+
+#if defined(CARBONATED) && defined(CARBONATED_OCGA) && defined(AZ_PLATFORM_LINUX)
+#include <AzCore/std/time.h>
+#endif
 // carbonated end
 
 [[maybe_unused]] static const char* s_azFrameworkWarningWindow = "AzFramework";
@@ -145,7 +149,11 @@ namespace AzFramework
         {
             m_archiveFileIO = AZStd::make_unique<AZ::IO::ArchiveFileIO>(m_archive.get());
             AZ::IO::FileIOBase::SetInstance(m_archiveFileIO.get());
+#if defined(CARBONATED)            
+            SetFileIOAliases(true);
+#else
             SetFileIOAliases();
+#endif            
             // The FileIOAvailable event needs to be registered here as this event is sent out
             // before the settings registry has merged the .setreg files from the <engine-root>
             // (That happens in MergeSettingsToRegistry
@@ -231,7 +239,11 @@ namespace AzFramework
 
         // Sets FileIOAliases again in case the App root was overridden by the
         // startupParameters in ComponentApplication::Create
+#if defined(CARBONATED)            
+        SetFileIOAliases(false);
+#else
         SetFileIOAliases();
+#endif        
 
         if (systemEntity)
         {
@@ -695,7 +707,11 @@ namespace AzFramework
         fileIoBase.SetAlias("@usercache@", userCachePath.c_str());
     }
 
+#if defined(CARBONATED)    
+    void Application::SetFileIOAliases(bool firstTime)
+#else    
     void Application::SetFileIOAliases()
+#endif    
     {
         if (auto fileIoBase = m_archiveFileIO.get(); fileIoBase)
         {
@@ -735,8 +751,10 @@ namespace AzFramework
 
 #if defined(CARBONATED)
             bool hasCliUserDirOverride = false;
+            bool hasCliUserPathOverride = false;
 
             AZStd::string userDirName("user");
+            AZStd::string userPathName;
             const int argC = GetArgC() ? *GetArgC() : 0;
             char** argV = GetArgV() ? *GetArgV() : nullptr;            
             // This isn't particularly elegant, but check for the user_dir override here.  Needs to be done early so that the aliases
@@ -745,16 +763,34 @@ namespace AzFramework
             {
                 for (int i = 0; i < (argC - 1); i++)
                 {
-                    if (AZStd::string(argV[i]) == "+user_dir")
+                    if (AZStd::string(argV[i]) == "+user_path")  // sets user folder absolute path
+                    {
+                        userPathName = argV[i + 1];
+                        hasCliUserPathOverride = true;
+                        break;  // higher priority than user dir below
+                    }
+                    else if (AZStd::string(argV[i]) == "+user_dir")  // sets user folder relative to the project path
                     {
                         userDirName = argV[i + 1];
                         hasCliUserDirOverride = true;
-                        break;
                     }
                 }
             }
 
-            if (hasCliUserDirOverride)
+#if defined(CARBONATED_OCGA) && defined(AZ_PLATFORM_LINUX)
+            if (!hasCliUserPathOverride && !firstTime) // command line has priority over this, change on the second call to avoid an extra-folder creation
+            {
+                const unsigned long long r = AZStd::GetTimeNowMicroSecond();  // we can use % 1000 to get small human readbale values for testing
+                userPathName = AZStd::string::format("/tmp/red/%llu", r);  // the base can be in /tmp or /home/game
+                hasCliUserPathOverride = true;
+            }
+#endif
+
+            if (hasCliUserPathOverride)
+            {
+                projectUserPath = userPathName;
+            }
+            else if (hasCliUserDirOverride)
             {
                 projectUserPath = projectRootPath.Append(userDirName);
             }
@@ -768,7 +804,8 @@ namespace AzFramework
             CreateUserCache(projectUserPath, *fileIoBase);
 
             AZ::IO::FixedMaxPath projectLogPath;
-            if (hasCliUserDirOverride || !m_settingsRegistry->Get(projectLogPath.Native(), AZ::SettingsRegistryMergeUtils::FilePathKey_ProjectLogPath))
+            if (hasCliUserPathOverride || hasCliUserDirOverride ||
+                !m_settingsRegistry->Get(projectLogPath.Native(), AZ::SettingsRegistryMergeUtils::FilePathKey_ProjectLogPath))
             {
                 projectLogPath = projectUserPath / "log";
             }
