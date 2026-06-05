@@ -398,7 +398,7 @@ namespace AZ::Data
                         if (m_timeoutMillis)
                         {
                             const unsigned int delta = (unsigned int)(curTime - startTime);
-                            if (delta > m_timeoutMillis)
+                            if (delta >= m_timeoutMillis)
                             {
                                 AZ_Info("AssetManager", "Main thread blocking loading wait timeout %d exceeded for %s, time %u",
                                         m_timeoutMillis, m_assetData.GetHint().c_str(), delta);
