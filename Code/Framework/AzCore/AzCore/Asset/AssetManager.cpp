@@ -389,9 +389,9 @@ namespace AZ::Data
 
                         const int64_t curTime = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
                         const unsigned int deltaEvent = (unsigned int)(curTime - eventTime);
-                        if (deltaEvent >= 200u)
+                        const unsigned int delayBetweenEventPump = 10;  // in seconds
+                        if (deltaEvent >= delayBetweenEventPump * 1000)  // pump system events to avoid ANR system detector
                         {
-                            AZ_Info("lll", "delat=%u, pump system events", deltaEvent);
                             eventTime = curTime;
                             AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::PumpSystemEventLoopUntilEmpty);
                         }
