@@ -354,7 +354,14 @@ namespace LegacyLevelSystem
             // when we call AssetBus::QueuedEventCount() immediately after Asset::QueueLoad(), it returns the number of level assets for loading
             m_queuedAssetsCountMax = static_cast<int>(AZ::Data::AssetBus::QueuedEventCount());
             m_queuedAssetsCount = -1;
+
+            const auto levelLoadBegin = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+            AZ_Info("lll", "level load begin at %llu", levelLoadBegin);
+
             rootSpawnable.BlockUntilLoadComplete();
+
+            const auto levelLoadEnd = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+            AZ_Info("lll", "level load end at %llu, elapsed %u", levelLoadEnd, (unsigned int)(levelLoadEnd - levelLoadBegin));
 #endif
 // Gruber patch end. // LVB
 
