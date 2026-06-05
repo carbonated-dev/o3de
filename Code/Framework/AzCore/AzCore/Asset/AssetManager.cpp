@@ -355,7 +355,6 @@ namespace AZ::Data
         {
             AZ_PROFILE_SCOPE(AzCore, "WaitForAsset - %s", m_assetData.GetHint().c_str());
 #if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
-            //const int64_t startTime = m_timeoutMillis ? static_cast<int64_t>(AZ::GetRealElapsedTimeMs()) : 0;
             const int64_t startTime = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
             int64_t eventTime = startTime;
             int jobCount = 0;
