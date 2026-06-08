@@ -36,6 +36,7 @@
 #include <AzCore/Memory/MemoryMarker.h>
 #if defined(CARBONATED_ASSET_WAIT_TIMEOUT)
 #include <AzCore/Time/ITime.h>
+#include <AzFramework/API/ApplicationAPI.h>
 #endif
 #endif
 
@@ -354,7 +355,8 @@ namespace AZ::Data
         {
             AZ_PROFILE_SCOPE(AzCore, "WaitForAsset - %s", m_assetData.GetHint().c_str());
 #if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
-            const int64_t startTime = m_timeoutMillis ? static_cast<int64_t>(AZ::GetRealElapsedTimeMs()) : 0;
+            const int64_t startTime = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+            int64_t eventTime = startTime;
             int jobCount = 0;
 #endif
 
@@ -383,13 +385,23 @@ namespace AZ::Data
 #endif
                         AssetManager::Instance().DispatchEvents();
 #if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+
+                        const int64_t curTime = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
+                        const unsigned int deltaEvent = (unsigned int)(curTime - eventTime);
+                        const unsigned int delayBetweenEventPump = 10;  // in seconds
+                        if (deltaEvent >= delayBetweenEventPump * 1000)  // pump system events to avoid ANR system detector
+                        {
+                            eventTime = curTime;
+                            AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::PumpSystemEventLoopUntilEmpty);
+                        }
+
                         if (m_timeoutMillis)
                         {
-                            const int64_t curTime = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
-                            if ((unsigned int)(curTime - startTime) > m_timeoutMillis)
+                            const unsigned int delta = (unsigned int)(curTime - startTime);
+                            if (delta >= m_timeoutMillis)
                             {
                                 AZ_Info("AssetManager", "Main thread blocking loading wait timeout %d exceeded for %s, time %u",
-                                        m_timeoutMillis, m_assetData.GetHint().c_str(), (unsigned int)(curTime - startTime));
+                                        m_timeoutMillis, m_assetData.GetHint().c_str(), delta);
                                 break;
                             }
                         }

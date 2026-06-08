@@ -87,6 +87,8 @@ ly_add_target(
             ${pal_dir}
             ${common_dir}
     BUILD_DEPENDENCIES
+        PRIVATE
+            AZ::AzFramework  # CARBONATED to pump system events (which is in AZFramework) while waiting for a level to load
         PUBLIC
             3rdParty::Lua
             3rdParty::RapidJSON

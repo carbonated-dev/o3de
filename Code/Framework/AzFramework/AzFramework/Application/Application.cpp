@@ -708,7 +708,7 @@ namespace AzFramework
     }
 
 #if defined(CARBONATED)    
-    void Application::SetFileIOAliases(bool firstTime)
+    void Application::SetFileIOAliases([[maybe_unused]] bool firstTime)
 #else    
     void Application::SetFileIOAliases()
 #endif    
