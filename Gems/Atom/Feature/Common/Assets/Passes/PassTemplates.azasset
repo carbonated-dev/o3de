@@ -357,6 +357,10 @@
                 "Path": "Passes/ReflectionCopyFrameBuffer.pass"
             },
             {
+                "Name": "ReflectionPreviousFramePassTemplate",
+                "Path": "Passes/ReflectionPreviousFrame.pass"
+            },
+            {
                 "Name": "ReflectionScreenSpacePassTemplate",
                 "Path": "Passes/ReflectionScreenSpace.pass"
             },

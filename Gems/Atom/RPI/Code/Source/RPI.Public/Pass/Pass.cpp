@@ -1061,6 +1061,19 @@ namespace AZ
             }
         }
 
+        bool Pass::UpdateConnectedBinding(PassAttachmentBinding* oldValue, PassAttachmentBinding* newValue)
+        {
+            for (PassAttachmentBinding& binding : m_attachmentBindings)
+            {
+                if (binding.m_connectedBinding == oldValue)
+                {
+                    binding.m_connectedBinding = newValue;
+                    return true;
+                }
+            }
+            return false;
+        }
+
         void Pass::RegisterPipelineGlobalConnections()
         {
             if (!m_pipeline)

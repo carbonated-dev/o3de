@@ -315,6 +315,11 @@ namespace AZ
             // Update output bindings on this pass that are connected to bindings on other passes
             void UpdateConnectedOutputBindings();
 
+            // Update a binding that is using an old value with a new PassAttachmentBinding.
+            // Useful when inserting a new pass and wants to update all subsequent passes to use a PassAttachmentBinding
+            // of the new inserted pass. 
+            virtual bool UpdateConnectedBinding(PassAttachmentBinding* oldValue, PassAttachmentBinding* newValue);
+
         protected:
             explicit Pass(const PassDescriptor& descriptor);
 

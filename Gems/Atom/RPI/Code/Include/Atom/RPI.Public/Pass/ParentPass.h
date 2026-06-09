@@ -56,6 +56,13 @@ namespace AZ
             //! Return owning attachment
             Ptr<PassAttachment> GetOwnedAttachment(const Name& attachmentName) const;
 
+            //! Updates a binding that is using an old value with a new PassAttachmentBinding starting from child with startChildIndex.
+            //! Useful for updating passes that are using an attachment and a new pass is inserted in between, so all subsequent passes using
+            //! that attachment must now point to the new inserted pass.
+            bool UpdateConnectedBinding(uint32_t startChildIndex, PassAttachmentBinding* oldValue, PassAttachmentBinding* newValue);
+            //! Updates the binding starting from the first child.
+            bool UpdateConnectedBinding(PassAttachmentBinding* oldValue, PassAttachmentBinding* newValue) override;
+
             // --- Children related functions ---
 
             //! Adds pass to list of children. NOTE: skipStateCheckWhenRunningTests is only used to support manual adding of passing in unit tests, do not use this variable otherwise

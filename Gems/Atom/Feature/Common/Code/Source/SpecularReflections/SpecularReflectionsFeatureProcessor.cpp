@@ -12,6 +12,7 @@
 #include <Atom/RPI.Public/Pass/PassFilter.h>
 #include <RayTracing/RayTracingPass.h>
 #include <ReflectionScreenSpace/ReflectionScreenSpacePass.h>
+#include <Atom/RPI.Public/Scene.h>
 
 namespace AZ
 {

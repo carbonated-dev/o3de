@@ -200,6 +200,11 @@ namespace AZ
             return m_shaderResourceGroup.get();
         }
 
+        const RHI::ShaderResourceGroup* ShaderResourceGroup::GetRHIShaderResourceGroup() const
+        {
+            return m_shaderResourceGroup.get();
+        }
+
         bool ShaderResourceGroup::SetShaderVariantKeyFallbackValue(const ShaderVariantKey& shaderKey)
         {
             uint32_t keySize = GetLayout()->GetShaderVariantKeyFallbackSize();

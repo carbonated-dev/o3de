@@ -10,6 +10,7 @@
 #include <Atom/RPI.Reflect/Pass/PassRequest.h>
 #include <Atom/RPI.Reflect/Pass/PassTemplate.h>
 
+#include <Atom/RHI.Reflect/BufferScopeAttachmentDescriptor.h>
 #include <Atom/RPI.Public/Pass/ComputePass.h>
 #include <Atom/RPI.Public/Pass/CopyPass.h>
 #include <Atom/RPI.Public/Pass/ParentPass.h>
@@ -29,6 +30,45 @@ namespace UnitTest
 {
     using namespace AZ;
     using namespace RPI;
+
+    struct FullBufferViewTestData
+    {
+        Ptr<PassAttachment> m_attachment;
+        PassAttachmentBinding m_binding;
+    };
+
+    // Builds a minimal buffer attachment and binding so full-buffer view resolution can be
+    // tested without constructing a whole pass graph.
+    FullBufferViewTestData CreateFullBufferViewTestData(
+        uint64_t byteCount,
+        uint32_t elementOffset,
+        uint32_t elementCount,
+        uint32_t elementSize)
+    {
+        PassBufferAttachmentDesc attachmentDesc;
+        attachmentDesc.m_name = "TestBuffer";
+        attachmentDesc.m_bufferDescriptor.m_bindFlags = RHI::BufferBindFlags::ShaderReadWrite;
+        attachmentDesc.m_bufferDescriptor.m_byteCount = byteCount;
+        attachmentDesc.m_bufferDescriptor.m_alignment = 0;
+
+        FullBufferViewTestData testData;
+        testData.m_attachment = aznew PassAttachment(attachmentDesc);
+        testData.m_attachment->ComputePathName(Name("TestPass"));
+
+        PassSlot slot;
+        slot.m_name = "TestBufferSlot";
+        slot.m_slotType = PassSlotType::Input;
+        slot.m_scopeAttachmentUsage = RHI::ScopeAttachmentUsage::Shader;
+        slot.m_bufferViewDesc = AZStd::make_shared<RHI::BufferViewDescriptor>();
+        slot.m_bufferViewDesc->m_elementOffset = elementOffset;
+        slot.m_bufferViewDesc->m_elementCount = elementCount;
+        slot.m_bufferViewDesc->m_elementSize = elementSize;
+        slot.m_bufferViewDesc->m_elementFormat = RHI::Format::Unknown;
+
+        testData.m_binding = PassAttachmentBinding(slot);
+        testData.m_binding.SetAttachment(testData.m_attachment);
+        return testData;
+    }
 
     // This class holds and sets up some data for the tests
     // This is it's own class so we can delete it before the teardown phase, otherwise
@@ -743,6 +783,75 @@ namespace UnitTest
     TEST_F(PassTests, CreationMethodsSuccess)
     {
         TestCreationMethodsSuccess();
+    }
+
+    TEST_F(PassTests, ResolveFullBufferView_UsesFullBuffer)
+    {
+        FullBufferViewTestData testData = CreateFullBufferViewTestData(
+            256,
+            0,
+            0,
+            16);
+
+        RHI::BufferScopeAttachmentDescriptor scopeDescriptor = testData.m_binding.GetResolvedBufferScopeAttachmentDescriptor("TestPass");
+
+        EXPECT_EQ(16, scopeDescriptor.m_bufferViewDescriptor.m_elementCount);
+    }
+
+    TEST_F(PassTests, ResolveFullBufferView_UsesRemainingBufferAfterOffset)
+    {
+        FullBufferViewTestData testData = CreateFullBufferViewTestData(
+            256,
+            4,
+            0,
+            16);
+
+        RHI::BufferScopeAttachmentDescriptor scopeDescriptor = testData.m_binding.GetResolvedBufferScopeAttachmentDescriptor("TestPass");
+
+        EXPECT_EQ(12, scopeDescriptor.m_bufferViewDescriptor.m_elementCount);
+    }
+
+    TEST_F(PassTests, ResolveFullBufferView_KeepsExplicitElementCount)
+    {
+        FullBufferViewTestData testData = CreateFullBufferViewTestData(
+            256,
+            4,
+            6,
+            16);
+
+        RHI::BufferScopeAttachmentDescriptor scopeDescriptor = testData.m_binding.GetResolvedBufferScopeAttachmentDescriptor("TestPass");
+
+        EXPECT_EQ(6, scopeDescriptor.m_bufferViewDescriptor.m_elementCount);
+    }
+
+    TEST_F(PassTests, ResolveFullBufferView_RejectsInvalidFullBufferViews)
+    {
+        {
+            AZ_TEST_START_TRACE_SUPPRESSION;
+            FullBufferViewTestData testData = CreateFullBufferViewTestData(256, 0, 0, 0);
+            RHI::BufferScopeAttachmentDescriptor scopeDescriptor =
+                testData.m_binding.GetResolvedBufferScopeAttachmentDescriptor("TestPass");
+            EXPECT_EQ(0, scopeDescriptor.m_bufferViewDescriptor.m_elementCount);
+            AZ_TEST_STOP_TRACE_SUPPRESSION(1);
+        }
+
+        {
+            AZ_TEST_START_TRACE_SUPPRESSION;
+            FullBufferViewTestData testData = CreateFullBufferViewTestData(258, 0, 0, 16);
+            RHI::BufferScopeAttachmentDescriptor scopeDescriptor =
+                testData.m_binding.GetResolvedBufferScopeAttachmentDescriptor("TestPass");
+            EXPECT_EQ(0, scopeDescriptor.m_bufferViewDescriptor.m_elementCount);
+            AZ_TEST_STOP_TRACE_SUPPRESSION(1);
+        }
+
+        {
+            AZ_TEST_START_TRACE_SUPPRESSION;
+            FullBufferViewTestData testData = CreateFullBufferViewTestData(256, 16, 0, 16);
+            RHI::BufferScopeAttachmentDescriptor scopeDescriptor =
+                testData.m_binding.GetResolvedBufferScopeAttachmentDescriptor("TestPass");
+            EXPECT_EQ(0, scopeDescriptor.m_bufferViewDescriptor.m_elementCount);
+            AZ_TEST_STOP_TRACE_SUPPRESSION(1);
+        }
     }
 
     TEST_F(PassTests, PassFilter_PassHierarchy)

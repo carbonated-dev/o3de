@@ -485,6 +485,22 @@ namespace AZ
             return nullptr;
         }
 
+        bool ParentPass::UpdateConnectedBinding(uint32_t startChildIndex, PassAttachmentBinding* oldValue, PassAttachmentBinding* newValue)
+        {
+            bool result = false;
+            for (uint32_t i = startChildIndex; i < m_children.size(); ++i)
+            {
+                result |= m_children[i]->UpdateConnectedBinding(oldValue, newValue);
+            }
+            return result;
+        }
+
+        bool ParentPass::UpdateConnectedBinding(PassAttachmentBinding* oldValue, PassAttachmentBinding* newValue)
+        {
+            bool result = Pass::UpdateConnectedBinding(oldValue, newValue);
+            return result || UpdateConnectedBinding(0, oldValue, newValue);
+        }
+
         // --- Debug functions ---
 
         AZStd::span<const Ptr<Pass>> ParentPass::GetChildren() const

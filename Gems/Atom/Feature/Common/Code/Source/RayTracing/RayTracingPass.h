@@ -36,6 +36,7 @@ namespace AZ
             static RPI::Ptr<RayTracingPass> Create(const RPI::PassDescriptor& descriptor);
 
             void SetMaxRayLength(float maxRayLength) { m_maxRayLength = maxRayLength; }
+            void SetTargetThreadCounts(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ);
 
         protected:
             RayTracingPass(const RPI::PassDescriptor& descriptor);
@@ -82,6 +83,9 @@ namespace AZ
             bool m_requiresRayTracingMaterialSrg = false;
             bool m_requiresRayTracingSceneSrg = false;
             float m_maxRayLength = 1e27f;
+            uint32_t m_threadCountX = 1;
+            uint32_t m_threadCountY = 1;
+            uint32_t m_threadCountZ = 1;
         };
     }   // namespace RPI
 }   // namespace AZ

@@ -703,6 +703,23 @@ namespace AZ
             m_lightBufferNeedsUpdate = true;
         }
 
+        bool DirectionalLightFeatureProcessor::GetActiveLightDirection(Vector3& direction) const
+        {
+            if (m_lightData.GetDataCount() == 0)
+            {
+                return false;
+            }
+
+            direction = Vector3::CreateFromFloat3(m_lightData.GetDataVector()[0].m_direction.data());
+            if (direction.GetLengthSq() <= Constants::Tolerance)
+            {
+                return false;
+            }
+
+            direction.Normalize();
+            return true;
+        }
+
         void DirectionalLightFeatureProcessor::OnRenderPipelineChanged([[maybe_unused]] RPI::RenderPipeline* pipeline,
             RPI::SceneNotification::RenderPipelineChangeType changeType)
         {

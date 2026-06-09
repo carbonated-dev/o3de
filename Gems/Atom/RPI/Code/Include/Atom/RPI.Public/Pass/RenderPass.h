@@ -99,6 +99,7 @@ namespace AZ
             // Set srgs for pass's execution
             void SetSrgsForDraw(RHI::CommandList* commandList);
             void SetSrgsForDispatch(RHI::CommandList* commandList);
+            void CollectSrgsToBind(AZStd::vector<const RHI::ShaderResourceGroup*>& srgs);
 
             // Set PipelineViewTag associated for this pass
             // If the View bound to the tag exists,the view's srg will be collected to pass' srg bind list

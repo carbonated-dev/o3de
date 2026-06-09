@@ -56,12 +56,22 @@ namespace AZ
                 return;
             }
 
+            m_threadCountX = m_passData->m_threadCountX;
+            m_threadCountY = m_passData->m_threadCountY;
+            m_threadCountZ = m_passData->m_threadCountZ;
             CreatePipelineState();
         }
 
         RayTracingPass::~RayTracingPass()
         {
             RPI::ShaderReloadNotificationBus::MultiHandler::BusDisconnect();
+        }
+
+        void RayTracingPass::SetTargetThreadCounts(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ)
+        {
+            m_threadCountX = threadCountX;
+            m_threadCountY = threadCountY;
+            m_threadCountZ = threadCountZ;
         }
 
         void RayTracingPass::CreatePipelineState()
@@ -139,7 +149,7 @@ namespace AZ
 
             // check to see if the shader requires the View, Scene, or RayTracingMaterial Srgs
             const auto& viewSrgLayout = m_rayGenerationShader->FindShaderResourceGroupLayout(RPI::SrgBindingSlot::View);
-            m_requiresViewSrg = (viewSrgLayout != nullptr);
+            m_flags.m_bindViewSrg = (viewSrgLayout != nullptr);
 
             const auto& sceneSrgLayout = m_rayGenerationShader->FindShaderResourceGroupLayout(RPI::SrgBindingSlot::Scene);
             m_requiresSceneSrg = (sceneSrgLayout != nullptr);
@@ -412,38 +422,26 @@ namespace AZ
             }
             else
             {
-                dispatchRaysItem.m_arguments.m_direct.m_width = m_passData->m_threadCountX;
-                dispatchRaysItem.m_arguments.m_direct.m_height = m_passData->m_threadCountY;
-                dispatchRaysItem.m_arguments.m_direct.m_depth = m_passData->m_threadCountZ;
+                dispatchRaysItem.m_arguments.m_direct.m_width = m_threadCountX;
+                dispatchRaysItem.m_arguments.m_direct.m_height = m_threadCountY;
+                dispatchRaysItem.m_arguments.m_direct.m_depth = m_threadCountZ;
             }
 
             // bind RayTracingGlobal, RayTracingScene, and View Srgs
             // [GFX TODO][ATOM-15610] Add RenderPass::SetSrgsForRayTracingDispatch
-            AZStd::vector<RHI::ShaderResourceGroup*> shaderResourceGroups = { m_shaderResourceGroup->GetRHIShaderResourceGroup() };
+            AZStd::vector<const RHI::ShaderResourceGroup*> shaderResourceGroups;
 
             if (m_requiresRayTracingSceneSrg)
             {
                 shaderResourceGroups.push_back(rayTracingFeatureProcessor->GetRayTracingSceneSrg()->GetRHIShaderResourceGroup());
             }
 
-            if (m_requiresViewSrg)
-            {
-                RPI::ViewPtr view = m_pipeline->GetFirstView(GetPipelineViewTag());
-                if (view)
-                {
-                    shaderResourceGroups.push_back(view->GetRHIShaderResourceGroup());
-                }
-            }
-
-            if (m_requiresSceneSrg)
-            {
-                shaderResourceGroups.push_back(scene->GetShaderResourceGroup()->GetRHIShaderResourceGroup());
-            }
-
             if (m_requiresRayTracingMaterialSrg)
             {
                 shaderResourceGroups.push_back(rayTracingFeatureProcessor->GetRayTracingMaterialSrg()->GetRHIShaderResourceGroup());
             }
+
+            CollectSrgsToBind(shaderResourceGroups);
 
             dispatchRaysItem.m_shaderResourceGroupCount = aznumeric_cast<uint32_t>(shaderResourceGroups.size());
             dispatchRaysItem.m_shaderResourceGroups = shaderResourceGroups.data();

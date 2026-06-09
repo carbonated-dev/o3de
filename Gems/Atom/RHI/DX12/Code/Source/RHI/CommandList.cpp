@@ -372,30 +372,36 @@ namespace AZ
 
                 // retrieve binding
                 const size_t srgBindingIndex = globalPipelineLayout->GetIndexBySlot(srgBindingSlot);
-                RootParameterBinding binding = globalPipelineLayout->GetRootParameterBindingByIndex(srgBindingIndex);
-                const ShaderResourceGroup* srg = static_cast<const ShaderResourceGroup*>(dispatchRaysItem.m_shaderResourceGroups[srgIndex]);
-                const ShaderResourceGroupCompiledData& compiledData = srg->GetCompiledData();
-
-                if (binding.m_resourceTable.IsValid()
-                    && compiledData.m_gpuViewsDescriptorHandle.ptr)
+                if (srgBindingIndex < RHI::Limits::Pipeline::ShaderResourceGroupCountMax)
                 {
-                    GetCommandList()->SetComputeRootDescriptorTable(binding.m_resourceTable.GetIndex(), compiledData.m_gpuViewsDescriptorHandle);
-                }
+                    RootParameterBinding binding = globalPipelineLayout->GetRootParameterBindingByIndex(srgBindingIndex);
+                    const ShaderResourceGroup* srg =
+                        static_cast<const ShaderResourceGroup*>(dispatchRaysItem.m_shaderResourceGroups[srgIndex]);
+                    const ShaderResourceGroupCompiledData& compiledData = srg->GetCompiledData();
 
-                for (uint32_t unboundedArrayIndex = 0; unboundedArrayIndex < ShaderResourceGroupCompiledData::MaxUnboundedArrays; ++unboundedArrayIndex)
-                {
-                    if (binding.m_bindlessTable.IsValid()
-                        && compiledData.m_gpuUnboundedArraysDescriptorHandles[unboundedArrayIndex].ptr)
+                    if (binding.m_resourceTable.IsValid() && compiledData.m_gpuViewsDescriptorHandle.ptr)
                     {
                         GetCommandList()->SetComputeRootDescriptorTable(
-                            binding.m_bindlessTable.GetIndex(),
-                            compiledData.m_gpuUnboundedArraysDescriptorHandles[unboundedArrayIndex]);
+                            binding.m_resourceTable.GetIndex(), compiledData.m_gpuViewsDescriptorHandle);
                     }
-                }
 
-                if (binding.m_constantBuffer.IsValid())
-                {
-                    GetCommandList()->SetComputeRootConstantBufferView(binding.m_constantBuffer.GetIndex(), compiledData.m_gpuConstantAddress);
+                    for (uint32_t unboundedArrayIndex = 0; unboundedArrayIndex < ShaderResourceGroupCompiledData::MaxUnboundedArrays;
+                         ++unboundedArrayIndex)
+                    {
+                        if (binding.m_bindlessTable.IsValid() &&
+                            compiledData.m_gpuUnboundedArraysDescriptorHandles[unboundedArrayIndex].ptr)
+                        {
+                            GetCommandList()->SetComputeRootDescriptorTable(
+                                binding.m_bindlessTable.GetIndex(),
+                                compiledData.m_gpuUnboundedArraysDescriptorHandles[unboundedArrayIndex]);
+                        }
+                    }
+
+                    if (binding.m_constantBuffer.IsValid())
+                    {
+                        GetCommandList()->SetComputeRootConstantBufferView(
+                            binding.m_constantBuffer.GetIndex(), compiledData.m_gpuConstantAddress);
+                    }
                 }
             }
 

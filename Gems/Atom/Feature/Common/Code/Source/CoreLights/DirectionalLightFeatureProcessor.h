@@ -251,6 +251,7 @@ namespace AZ
             void SetAffectsGI(LightHandle handle, bool affectsGI) override;
             void SetAffectsGIFactor(LightHandle handle, float affectsGIFactor) override;
             void SetLightingChannelMask(LightHandle handle, uint32_t lightingChannelMask) override;
+            bool GetActiveLightDirection(Vector3& direction) const override;
 
             const Data::Instance<RPI::Buffer> GetLightBuffer() const { return m_lightBufferHandler.GetBuffer(); }
             uint32_t GetLightCount() const { return m_lightBufferHandler.GetElementCount(); }
