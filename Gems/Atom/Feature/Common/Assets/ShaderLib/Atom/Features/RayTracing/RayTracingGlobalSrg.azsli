@@ -19,6 +19,9 @@ ShaderResourceGroup RayTracingGlobalSrg : SRG_RayTracingGlobal
     RWTexture2D<float4>   m_fallbackAlbedo;
     RWTexture2D<float4>   m_fallbackPosition;
     RWTexture2D<float4>   m_fallbackNormal;
+    // Begin Carbonated
+    Texture2DMS<uint2>    m_stencil;
+    // End Carbonated
 
     float m_invOutputScale;
     float m_maxRayLength;

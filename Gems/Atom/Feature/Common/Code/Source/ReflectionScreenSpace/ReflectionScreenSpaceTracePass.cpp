@@ -30,6 +30,7 @@ namespace AZ
         {
         }
 
+#if !defined(CARBONATED)
         void ReflectionScreenSpaceTracePass::BuildInternal()
         {
             Data::Instance<RPI::AttachmentImagePool> pool = RPI::ImageSystemInterface::Get()->GetSystemAttachmentPool();
@@ -37,17 +38,17 @@ namespace AZ
             // retrieve the previous frame image attachment from the pass
             AZ_Assert(m_ownedAttachments.size() == 3, "ReflectionScreenSpaceTracePass must have the following attachment images defined: ReflectionImage, TraceCoordsImage, and PreviousFrameImage");
             RPI::Ptr<RPI::PassAttachment> previousFrameImageAttachment = m_ownedAttachments[2];
-            
+
             // update the image attachment descriptor to sync up size and format
             previousFrameImageAttachment->Update();
-            
+
             // change the lifetime since we want it to live between frames
             previousFrameImageAttachment->m_lifetime = RHI::AttachmentLifetimeType::Imported;
-            
+
             // set the bind flags
             RHI::ImageDescriptor& imageDesc = previousFrameImageAttachment->m_descriptor.m_image;
             imageDesc.m_bindFlags |= RHI::ImageBindFlags::Color | RHI::ImageBindFlags::ShaderReadWrite;
-            
+
             // create the image attachment
             RHI::ClearValue clearValue = RHI::ClearValue::CreateVector4Float(0, 0, 0, 0);
             m_previousFrameImageAttachment = RPI::AttachmentImage::Create(*pool.get(), imageDesc, Name(previousFrameImageAttachment->m_path.GetCStr()), &clearValue, nullptr);
@@ -55,6 +56,7 @@ namespace AZ
             previousFrameImageAttachment->m_path = m_previousFrameImageAttachment->GetAttachmentId();
             previousFrameImageAttachment->m_importedResource = m_previousFrameImageAttachment;
         }
+#endif
 
         void ReflectionScreenSpaceTracePass::CompileResources([[maybe_unused]] const RHI::FrameGraphCompileContext& context)
         {
