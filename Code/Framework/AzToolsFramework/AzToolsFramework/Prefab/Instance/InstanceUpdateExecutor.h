@@ -40,6 +40,9 @@ namespace AzToolsFramework
 
             // Note, this function destroys and re-creates Entity* and Component*, do not assume your pointers are still good after this.
             bool UpdateTemplateInstancesInQueue() override;
+#if defined(CARBONATED) // Fixes for Undo/Redo stack stability in 2505 with https://github.com/o3de/o3de/pull/18788
+            bool IsUpdatingTemplateInstancesInQueue() const override;
+#endif
             void RemoveTemplateInstanceFromQueue(Instance* instance) override;
             void QueueRootPrefabLoadedNotificationForNextPropagation() override;
 
