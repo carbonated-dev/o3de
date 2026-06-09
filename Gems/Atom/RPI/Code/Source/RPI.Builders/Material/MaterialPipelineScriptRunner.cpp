@@ -28,6 +28,9 @@ namespace AZ
                     ->Method("ExcludeAllShaders", &ScriptExecutionContext::ExcludeAllShaders)
                     ->Method("IncludeShader", &ScriptExecutionContext::IncludeShader)
                     ->Method("ExcludeShader", &ScriptExecutionContext::ExcludeShader)
+#if defined(CARBONATED)
+                    ->Method("HasProperty", &ScriptExecutionContext::HasProperty)
+#endif
                     ;
             }
         }
@@ -107,6 +110,13 @@ namespace AZ
         {
             SetIncludeShader(shaderTemplateName, false);
         }
+
+#if defined(CARBONATED)
+        bool MaterialPipelineScriptRunner::ScriptExecutionContext::HasProperty(const char* propertyId)
+        {
+            return m_materialType.FindProperty(propertyId) != nullptr;
+        }
+#endif
 
         MaterialPipelineScriptRunner::ShaderTemplatesList MaterialPipelineScriptRunner::ScriptExecutionContext::GetIncludedShaderTemplates() const
         {

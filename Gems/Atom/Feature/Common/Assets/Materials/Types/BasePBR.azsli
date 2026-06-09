@@ -25,6 +25,7 @@
     COMMON_OPTIONS_SPECULAR_F0()
     COMMON_OPTIONS_NORMAL()
     COMMON_OPTIONS_WET()
+    COMMON_OPTIONS_SILHOUETTE() // CARBONATED Addition.
     
     bool NeedsTangentFrame()
     {

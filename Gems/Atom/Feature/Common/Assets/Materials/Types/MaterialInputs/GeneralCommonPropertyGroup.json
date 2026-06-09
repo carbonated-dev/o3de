@@ -102,6 +102,13 @@
                 "type": "ShaderOption",
                 "name": "o_materialUseForwardPassIBLSpecular"
             }
+        },
+        {
+            "name": "blockSilhouette",
+            "displayName": "Block Silhouette",
+            "description": "Whether to block rendering of silhouettes.",
+            "type": "Bool",
+            "defaultValue":  false
         }
     ]
 }

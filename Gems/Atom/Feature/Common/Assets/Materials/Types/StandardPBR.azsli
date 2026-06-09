@@ -30,6 +30,7 @@
     COMMON_OPTIONS_EMISSIVE()
     COMMON_OPTIONS_PARALLAX()
     COMMON_OPTIONS_WET()
+    COMMON_OPTIONS_SILHOUETTE() // CARBONATED Addition.
    
     bool ShouldHandleParallax()
     {
