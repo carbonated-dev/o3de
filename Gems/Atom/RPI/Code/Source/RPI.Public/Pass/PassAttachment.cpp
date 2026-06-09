@@ -8,13 +8,12 @@
 
 #include <math.h>
 
-#include <inttypes.h>
-#include <limits>
-
 #include <AzFramework/StringFunc/StringFunc.h>
 
 #include <Atom/RHI.Reflect/Bits.h>
+#if defined(CARBONATED)
 #include <Atom/RHI.Reflect/BufferScopeAttachmentDescriptor.h>
+#endif
 #include <Atom/RHI/RHIUtils.h>
 
 
@@ -402,6 +401,7 @@ namespace AZ
             SetAttachment(targetAttachment);
         }
 
+#if defined(CARBONATED)
         RHI::BufferScopeAttachmentDescriptor PassAttachmentBinding::GetResolvedBufferScopeAttachmentDescriptor(const char* passPath) const
         {
             RHI::BufferScopeAttachmentDescriptor bufferScopeDesc = m_unifiedScopeDesc.GetAsBuffer();
@@ -482,6 +482,7 @@ namespace AZ
             bufferViewDesc.m_elementCount = aznumeric_cast<uint32_t>(resolvedElementCount);
             return bufferScopeDesc;
         }
+#endif
 
     } // namespace RPI
 } // namespace AZ

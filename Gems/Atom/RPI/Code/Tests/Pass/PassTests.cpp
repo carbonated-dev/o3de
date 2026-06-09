@@ -10,7 +10,9 @@
 #include <Atom/RPI.Reflect/Pass/PassRequest.h>
 #include <Atom/RPI.Reflect/Pass/PassTemplate.h>
 
+#if defined(CARBONATED)
 #include <Atom/RHI.Reflect/BufferScopeAttachmentDescriptor.h>
+#endif
 #include <Atom/RPI.Public/Pass/ComputePass.h>
 #include <Atom/RPI.Public/Pass/CopyPass.h>
 #include <Atom/RPI.Public/Pass/ParentPass.h>
@@ -31,6 +33,7 @@ namespace UnitTest
     using namespace AZ;
     using namespace RPI;
 
+#if defined(CARBONATED)
     struct FullBufferViewTestData
     {
         Ptr<PassAttachment> m_attachment;
@@ -69,6 +72,7 @@ namespace UnitTest
         testData.m_binding.SetAttachment(testData.m_attachment);
         return testData;
     }
+#endif
 
     // This class holds and sets up some data for the tests
     // This is it's own class so we can delete it before the teardown phase, otherwise
@@ -785,6 +789,7 @@ namespace UnitTest
         TestCreationMethodsSuccess();
     }
 
+#if defined(CARBONATED)
     TEST_F(PassTests, ResolveFullBufferView_UsesFullBuffer)
     {
         FullBufferViewTestData testData = CreateFullBufferViewTestData(
@@ -853,6 +858,7 @@ namespace UnitTest
             AZ_TEST_STOP_TRACE_SUPPRESSION(1);
         }
     }
+#endif
 
     TEST_F(PassTests, PassFilter_PassHierarchy)
     {

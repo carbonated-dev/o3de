@@ -240,11 +240,15 @@ namespace AZ
                     }
                     case RHI::AttachmentType::Buffer:
                     {
+#if defined(CARBONATED)
                         // Resolve pass-asset full-buffer view shorthand before declaring
                         // the attachment. RHI descriptors must have a concrete element count.
                         RHI::BufferScopeAttachmentDescriptor bufferScopeDesc =
                             attachmentBinding.GetResolvedBufferScopeAttachmentDescriptor(GetPathName().GetCStr());
                         frameGraph.UseAttachment(bufferScopeDesc, attachmentBinding.GetAttachmentAccess(), attachmentBinding.m_scopeAttachmentUsage);
+#else
+                        frameGraph.UseAttachment(attachmentBinding.m_unifiedScopeDesc.GetAsBuffer(), attachmentBinding.GetAttachmentAccess(), attachmentBinding.m_scopeAttachmentUsage);
+#endif
                         break;
                     }
                     default:
@@ -430,6 +434,7 @@ namespace AZ
             }
         }
 
+#if defined(CARBONATED)
         void RenderPass::CollectSrgsToBind(AZStd::vector<const RHI::ShaderResourceGroup*>& srgs)
         {
             for (auto itr : m_shaderResourceGroupsToBind)
@@ -437,6 +442,7 @@ namespace AZ
                 srgs.push_back(itr.second);
             }
         }
+#endif
 
         void RenderPass::SetPipelineViewTag(const PipelineViewTag& viewTag)
         {

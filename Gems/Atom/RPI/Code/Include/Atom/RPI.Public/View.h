@@ -55,8 +55,12 @@ namespace AZ
                 UsageCamera = (1u << 0),
                 UsageShadow = (1u << 1),
                 UsageReflectiveCubeMap = (1u << 2),
+#if defined(CARBONATED)
                 UsageXR = (1u << 3),
                 UsageOther = (1u << 4)
+#else
+                UsageXR = (1u << 3)
+#endif
             };
             //! Only use this function to create a new view object. And force using smart pointer to manage view's life time
             static ViewPtr CreateView(const AZ::Name& name, UsageFlags usage);

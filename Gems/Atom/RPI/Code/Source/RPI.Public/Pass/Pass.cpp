@@ -1061,6 +1061,7 @@ namespace AZ
             }
         }
 
+#if defined(CARBONATED)
         bool Pass::UpdateConnectedBinding(PassAttachmentBinding* oldValue, PassAttachmentBinding* newValue)
         {
             for (PassAttachmentBinding& binding : m_attachmentBindings)
@@ -1073,6 +1074,7 @@ namespace AZ
             }
             return false;
         }
+#endif
 
         void Pass::RegisterPipelineGlobalConnections()
         {

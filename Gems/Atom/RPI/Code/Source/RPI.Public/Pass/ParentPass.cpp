@@ -485,6 +485,7 @@ namespace AZ
             return nullptr;
         }
 
+#if defined(CARBONATED)
         bool ParentPass::UpdateConnectedBinding(uint32_t startChildIndex, PassAttachmentBinding* oldValue, PassAttachmentBinding* newValue)
         {
             bool result = false;
@@ -500,6 +501,7 @@ namespace AZ
             bool result = Pass::UpdateConnectedBinding(oldValue, newValue);
             return result || UpdateConnectedBinding(0, oldValue, newValue);
         }
+#endif
 
         // --- Debug functions ---
 

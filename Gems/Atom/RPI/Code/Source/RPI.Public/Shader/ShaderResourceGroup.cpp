@@ -200,10 +200,12 @@ namespace AZ
             return m_shaderResourceGroup.get();
         }
 
+#if defined(CARBONATED)
         const RHI::ShaderResourceGroup* ShaderResourceGroup::GetRHIShaderResourceGroup() const
         {
             return m_shaderResourceGroup.get();
         }
+#endif
 
         bool ShaderResourceGroup::SetShaderVariantKeyFallbackValue(const ShaderVariantKey& shaderKey)
         {

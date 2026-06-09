@@ -703,6 +703,7 @@ namespace AZ
             m_lightBufferNeedsUpdate = true;
         }
 
+#if defined(CARBONATED)
         bool DirectionalLightFeatureProcessor::GetActiveLightDirection(Vector3& direction) const
         {
             if (m_lightData.GetDataCount() == 0)
@@ -719,6 +720,7 @@ namespace AZ
             direction.Normalize();
             return true;
         }
+#endif
 
         void DirectionalLightFeatureProcessor::OnRenderPipelineChanged([[maybe_unused]] RPI::RenderPipeline* pipeline,
             RPI::SceneNotification::RenderPipelineChangeType changeType)

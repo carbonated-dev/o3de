@@ -90,8 +90,10 @@ namespace AZ
             /// Returns the underlying RHI shader resource group.
             RHI::ShaderResourceGroup* GetRHIShaderResourceGroup();
 
+#if defined(CARBONATED)
             /// Returns the underlying RHI shader resource group.
             const RHI::ShaderResourceGroup* GetRHIShaderResourceGroup() const;
+#endif
 
             //////////////////////////////////////////////////////////////////////////
             // Methods for assignment / access of RPI Image types.

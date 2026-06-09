@@ -319,8 +319,12 @@ set(FILES
     Source/ReflectionScreenSpace/ReflectionScreenSpaceFilterPass.h
     Source/ReflectionScreenSpace/ReflectionScreenSpaceCompositePass.cpp
     Source/ReflectionScreenSpace/ReflectionScreenSpaceCompositePass.h
+# Begin Carbonated
     Source/ReflectionScreenSpace/ReflectionPreviousFramePass.cpp
     Source/ReflectionScreenSpace/ReflectionPreviousFramePass.h
+# End Carbonated
+    # Source/ReflectionScreenSpace/ReflectionCopyFrameBufferPass.cpp
+    # Source/ReflectionScreenSpace/ReflectionCopyFrameBufferPass.h
     Source/ScreenSpace/DeferredFogSettings.cpp
     Source/ScreenSpace/DeferredFogSettings.h
     Source/ScreenSpace/DeferredFogPass.cpp

@@ -6,6 +6,8 @@
  *
  */
 
+#if defined(CARBONATED)
+
 #include "ReflectionPreviousFramePass.h"
 #include <Atom/RPI.Public/Image/ImageSystemInterface.h>
 #include <Atom/RPI.Public/Image/AttachmentImagePool.h>
@@ -54,3 +56,5 @@ namespace AZ::Render
         RPI::Pass::BuildInternal();
     }
 }   // namespace AZ::Render
+
+#endif

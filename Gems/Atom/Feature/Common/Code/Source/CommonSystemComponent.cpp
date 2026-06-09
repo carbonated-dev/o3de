@@ -109,7 +109,11 @@
 #include <ReflectionScreenSpace/ReflectionScreenSpaceBlurChildPass.h>
 #include <ReflectionScreenSpace/ReflectionScreenSpaceFilterPass.h>
 #include <ReflectionScreenSpace/ReflectionScreenSpaceCompositePass.h>
+#if defined(CARBONATED)
 #include <ReflectionScreenSpace/ReflectionPreviousFramePass.h>
+#else
+#include <ReflectionScreenSpace/ReflectionCopyFrameBufferPass.h>
+#endif
 #include <OcclusionCullingPlane/OcclusionCullingPlaneFeatureProcessor.h>
 #include <Mesh/ModelReloaderSystem.h>
 
@@ -323,7 +327,11 @@ namespace AZ
             passSystem->AddPassCreator(Name("ReflectionScreenSpaceBlurChildPass"), &Render::ReflectionScreenSpaceBlurChildPass::Create);
             passSystem->AddPassCreator(Name("ReflectionScreenSpaceFilterPass"), &Render::ReflectionScreenSpaceFilterPass::Create);
             passSystem->AddPassCreator(Name("ReflectionScreenSpaceCompositePass"), &Render::ReflectionScreenSpaceCompositePass::Create);
+#if defined(CARBONATED)
             passSystem->AddPassCreator(Name("ReflectionPreviousFramePass"), &Render::ReflectionPreviousFramePass::Create);
+#else
+            passSystem->AddPassCreator(Name("ReflectionCopyFrameBufferPass"), &Render::ReflectionCopyFrameBufferPass::Create);
+#endif
 
             // Add RayTracing passes
             passSystem->AddPassCreator(Name("RayTracingAccelerationStructurePass"), &Render::RayTracingAccelerationStructurePass::Create);

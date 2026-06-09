@@ -7,6 +7,8 @@
  */
 #pragma once
 
+#if defined(CARBONATED)
+
 #include <Atom/RPI.Public/Pass/Pass.h>
 
 namespace AZ::Render
@@ -36,3 +38,5 @@ namespace AZ::Render
         Data::Instance<RPI::AttachmentImage> m_previousFrameImageAttachment;
     };
 }   // namespace AZ::Render
+
+#endif

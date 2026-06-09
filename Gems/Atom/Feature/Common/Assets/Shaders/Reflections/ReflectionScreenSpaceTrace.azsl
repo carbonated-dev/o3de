@@ -135,6 +135,8 @@ PSOutput MainPS(VSOutput IN)
     }
     else
     {
+        // Begin Carbonated
+        // foundHit = TraceRayScreenSpace(positionVS.xyz, reflectDirVS, fullScreenDimensions, hitCoords);
         foundHit = TraceRayScreenSpace(
             positionVS.xyz,
             reflectDirVS,
@@ -142,6 +144,7 @@ PSOutput MainPS(VSOutput IN)
             PassSrg::m_maxRayDistance,
             PassSrg::m_maxDepthThreshold,
             hitCoords);
+        // End Carbonated
     }
     
     float4 result = float4(0.0f, 0.0f, 0.0f, 0.0f);
