@@ -38,6 +38,7 @@
     COMMON_OPTIONS_PARALLAX()
     COMMON_OPTIONS_WET()  // CARBONATED Addition.
     COMMON_OPTIONS_SNOW() // CARBONATED Addition.
+    COMMON_OPTIONS_SILHOUETTE() // CARBONATED Addition.
     
     bool ShouldHandleParallax()
     {

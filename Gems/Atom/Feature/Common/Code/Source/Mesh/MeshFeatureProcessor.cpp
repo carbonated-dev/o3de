@@ -97,8 +97,11 @@ namespace AZ
         static AZ::Name s_o_meshInstancingIsEnabled_Name =
             AZ::Name::FromStringLiteral("o_meshInstancingIsEnabled", AZ::Interface<AZ::NameDictionary>::Get());
         static AZ::Name s_transparent_Name = AZ::Name::FromStringLiteral("transparent", AZ::Interface<AZ::NameDictionary>::Get());
+#if defined(CARBONATED)
+        static AZ::Name s_block_silhouette_Name = AZ::Name::FromStringLiteral("general.blockSilhouette", AZ::Interface<AZ::NameDictionary>::Get());
+#else
         static AZ::Name s_block_silhouette_Name = AZ::Name::FromStringLiteral("silhouette.blockSilhouette", AZ::Interface<AZ::NameDictionary>::Get());
-
+#endif
         static void CacheRootConstantInterval(MeshInstanceGroupData& meshInstanceGroupData)
         {
             meshInstanceGroupData.m_drawRootConstantOffset = 0;

@@ -17,6 +17,13 @@ function MaterialTypeSetup(context)
     
     context:IncludeShader("ShadowmapPass")
 
+-- CARBONATED Begin
+    hasSilhouette = context:HasProperty("silhouette.silhouetteType")
+    if(hasSilhouette) then
+        context:IncludeShader("SilhouetteGather")
+    end
+-- CARBONATED End
+
     if(lightingModel == "Base") then
         context:IncludeShader("ForwardPass_BaseLighting")
         return true

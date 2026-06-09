@@ -1,12 +1,18 @@
 {
     "description": "Material Type with properties used to define Base PBR, a metallic-roughness Physically-Based Rendering (PBR) material shading model.",
-    "version": 3,
+    "version": 4,
     "versionUpdates": [
         {
             "toVersion": 1,
             "actions": [
                 {"op": "rename", "from": "irradiance.color", "to": "irradiance.manualColor"},
                 {"op": "setValue", "name": "irradiance.irradianceColorSource", "value": "Manual"}
+            ]
+        },
+        {
+            "toVersion": 4,
+            "actions": [
+                {"op": "rename", "from": "silhouette.blockSilhouette", "to": "general.blockSilhouette"}
             ]
         }
     ],
@@ -40,13 +46,13 @@
                 "$import": "MaterialInputs/GeneralCommonPropertyGroup.json"
             },
             {
-                "$import": "MaterialInputs/SilhouetteBlockerPropertyGroup.json"
-            },
-            {
                 "$import": "MaterialInputs/WetPropertyGroup.json"
             },
             {
                 "$import": "MaterialInputs/SnowPropertyGroup.json"
+            },
+            {
+                "$import": "MaterialInputs/SilhouettePropertyGroup.json"
             }
         ]
     },
