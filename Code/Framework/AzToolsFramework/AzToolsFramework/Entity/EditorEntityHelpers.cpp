@@ -28,6 +28,10 @@
 #include <AzToolsFramework/ToolsComponents/GenericComponentWrapper.h>
 #include <AzToolsFramework/ToolsComponents/EditorInspectorComponentBus.h>
 
+#if defined(CARBONATED) // Re-enable saving VisibilityFlag into prefabs.
+#include <AzToolsFramework/Prefab/Instance/InstanceUpdateExecutorInterface.h> // Needed for Undo/Redo safety checks
+#endif
+
 namespace AzToolsFramework
 {
     namespace Internal
@@ -970,10 +974,26 @@ namespace AzToolsFramework
         {
             bool visible = IsEntitySetToBeVisible(entityId);
 
-#if !defined(CARBONATED)
-            // undo mechanism causes the affected entities to be deleted then created again, this brakes the entity visiility (white objects bug)
+#if defined(CARBONATED) // Re-enable saving VisibilityFlag into prefabs. 
+            // The hack applied on Nov 16, 2024, in https://github.com/carbonated-dev/o3de/pull/345. with the comment:
+            //  undo mechanism causes the affected entities to be deleted then created again, this brakes the entity visibility (white objects bug)
+            // was just commenting out creation of the ScopedUndoBatch undo("Toggle Entity Visibility");
+
+            // The Undo/Redo stack is broken if an Undo batch is started while an Undo/Redo operation is in progress or
+            // while an InstanceUpdateExecutor is currently Updating Template Instances In Queue, removing Entities in the clean-up of in-memory DOM template.
+            // So create Undo batch only when both conditions are false.
+            AZStd::unique_ptr<AzToolsFramework::ScopedUndoBatch> undoBatch;
+            const auto instanceUpdateExecutorInterface = AZ::Interface<AzToolsFramework::Prefab::InstanceUpdateExecutorInterface>::Get();
+            const bool isUpdatingTemplates = instanceUpdateExecutorInterface && instanceUpdateExecutorInterface->IsUpdatingTemplateInstancesInQueue();
+            if (!AzToolsFramework::UndoRedoOperationInProgress() && !isUpdatingTemplates)
+            {
+                undoBatch = AZStd::make_unique<AzToolsFramework::ScopedUndoBatch>("Toggle Entity Visibility");
+            }
+#else
             AzToolsFramework::ScopedUndoBatch undo("Toggle Entity Visibility");
-#endif
+#endif //defined(CARBONATED)
+
+            AZ_Info("EditorEntityHelpers", "ToggleEntityVisibility(): %s, was %d", GetEntity(entityId)->GetName().c_str(), visible);
 
             if (IsSelected(entityId))
             {
@@ -988,6 +1008,12 @@ namespace AzToolsFramework
                 for (AZ::EntityId selectedId : selectedEntityIds)
                 {
                     SetEntityVisibility(selectedId, !visible);
+#if defined(CARBONATED) // Re-enable saving VisibilityFlag into prefabs.
+                    if (undoBatch)
+                    {
+                        undoBatch->MarkEntityDirty(selectedId);
+                    }
+#endif
                 }
             }
             else
@@ -995,6 +1021,12 @@ namespace AzToolsFramework
                 // just change the single clicked entity in the outliner
                 // without affecting the current selection (should one exist)
                 SetEntityVisibility(entityId, !visible);
+#if defined(CARBONATED) // Re-enable saving VisibilityFlag into prefabs.
+                if (undoBatch)
+                {
+                    undoBatch->MarkEntityDirty(entityId);
+                }
+#endif
             }
         }
     }

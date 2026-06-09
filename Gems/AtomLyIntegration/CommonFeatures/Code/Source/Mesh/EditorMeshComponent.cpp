@@ -12,6 +12,10 @@
 #include <AzToolsFramework/Entity/EditorEntityInfoBus.h>
 #include <AzToolsFramework/API/EntityCompositionRequestBus.h>
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentConstants.h>
+#if defined(CARBONATED) // Re-enable saving VisibilityFlag into prefabs. 
+  // Fix in 2505 https://github.com/o3de/o3de/pull/18926 : Fixes mesh visibility flag not being restored on level load
+  #include <AzToolsFramework/ToolsComponents/EditorVisibilityBus.h>
+#endif
 
 namespace AZ
 {
@@ -140,6 +144,16 @@ namespace AZ
             AzToolsFramework::EditorComponentSelectionRequestsBus::Handler::BusConnect(GetEntityId());
             AzFramework::EntityDebugDisplayEventBus::Handler::BusConnect(GetEntityId());
             MeshComponentNotificationBus::Handler::BusConnect(GetEntityId());
+
+#if defined(CARBONATED) // Re-enable saving VisibilityFlag into prefabs.
+            // Fix in 2505 https://github.com/o3de/o3de/pull/18926 : Fixes mesh visibility flag not being restored on level load.
+            // Unlike the 2505 fix, this one is placed after BaseClass::Activate(); so that MeshFeatureProcessor has been created.
+            using EditorVisibilityRequestBus = AzToolsFramework::EditorVisibilityRequestBus;
+            bool isVisible = true;
+            AzToolsFramework::EditorVisibilityRequestBus::EventResult(
+                isVisible, GetEntityId(), &EditorVisibilityRequestBus::Events::GetVisibilityFlag);
+            m_controller.SetVisibility(isVisible);
+#endif
         }
 
         void EditorMeshComponent::Deactivate()
@@ -278,6 +292,7 @@ namespace AZ
 
         void EditorMeshComponent::OnEntityVisibilityChanged(bool visibility)
         {
+            AZ_Info("EditorMeshComponent", "OnEntityVisibilityChanged(): %d", visibility);
             m_controller.SetVisibility(visibility);
         }
 
