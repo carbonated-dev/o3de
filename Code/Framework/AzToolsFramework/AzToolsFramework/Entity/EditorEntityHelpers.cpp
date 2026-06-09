@@ -993,8 +993,6 @@ namespace AzToolsFramework
             AzToolsFramework::ScopedUndoBatch undo("Toggle Entity Visibility");
 #endif //defined(CARBONATED)
 
-            AZ_Info("EditorEntityHelpers", "ToggleEntityVisibility(): %s, was %d", GetEntity(entityId)->GetName().c_str(), visible);
-
             if (IsSelected(entityId))
             {
                 // handles the case where we have multiple entities selected but
