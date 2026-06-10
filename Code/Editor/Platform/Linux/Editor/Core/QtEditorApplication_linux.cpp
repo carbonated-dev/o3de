@@ -46,7 +46,7 @@ namespace Editor
 
     void EditorQtApplicationXcb::OnStartPlayInEditor()
     {
-#if defined(CARBONATED) && !defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)  // play in editor does not work with SDL
+#if !defined(CARBONATED) || !defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)  // play in editor does not work with SDL
         auto* interface = AzFramework::XcbConnectionManagerInterface::Get();
         interface->SetEnableXInput(GetXcbConnectionFromQt(), true);
 #endif
@@ -54,7 +54,7 @@ namespace Editor
 
     void EditorQtApplicationXcb::OnStopPlayInEditor()
     {
-#if defined(CARBONATED) && !defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)  // play in editor does not work with SDL
+#if !defined(CARBONATED) || !defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)  // play in editor does not work with SDL
         auto* interface = AzFramework::XcbConnectionManagerInterface::Get();
         interface->SetEnableXInput(GetXcbConnectionFromQt(), false);
 #endif   
