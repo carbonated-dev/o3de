@@ -204,8 +204,16 @@ namespace ImageProcessingAtom
             const uint32_t mipHeight = sourceImage->GetHeight(mip);
             const uint32_t mipDepth  = sourceImage->GetDepth(mip);
             const uint32_t srcSliceBytes = mipHeight * sourcePitch;
+            AZ_Assert(mipDepth > 0, "ISPCTextureCompressor: mip depth must be greater than zero");
+            AZ_Assert(
+                destinationImage->GetMipBufSize(mip) % mipDepth == 0,
+                "ISPCTextureCompressor: destination mip size is not evenly divisible by depth");
             const uint32_t dstSliceBytes = destinationImage->GetMipBufSize(mip) / mipDepth;
-
+            [[maybe_unused]] const uint32_t expectedBytes = ((mipWidth + 3) / 4) * ((mipHeight + 3) / 4) * 16;
+            AZ_Assert(
+                dstSliceBytes == expectedBytes,
+                "ISPCTextureCompressor: bytes per slice doesn't match the expected value: found %d, expected %d",
+                dstSliceBytes, expectedBytes);
             for (uint32_t d = 0; d < mipDepth; ++d)
             {
                 rgba_surface sourceSurface = {};

@@ -23,7 +23,7 @@ namespace Ui
 namespace ImageProcessingAtomEditor
 {
     //! Qt widget rendered inside the Texture Settings editor panel when the selected texture is detected as a flipbook (sprite sheet).
-    //! Exposes rows/columns and frame-rate fields.
+    //! Exposes rows/columns of the flipbook.
     class FlipbookSettingWidget
         : public QWidget
         , public AzToolsFramework::IPropertyEditorNotify
@@ -46,7 +46,7 @@ namespace ImageProcessingAtomEditor
     protected:
         ////////////////////////////////////////////////////////////////////////
         // EditorInternalNotificationBus
-        //! Refreshes the widget if the platform selection changes (flipbook columns/rows can differ per platform).
+        //! Refreshes the widget if the platform selection changes.
         void OnEditorSettingsChanged(bool needRefresh, const AZStd::string& platform) override;
         ////////////////////////////////////////////////////////////////////////
 

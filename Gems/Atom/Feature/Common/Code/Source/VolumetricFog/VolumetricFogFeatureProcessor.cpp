@@ -115,7 +115,7 @@ namespace AZ::Render
         }
     }
 
-    void VolumetricFogFeatureProcessor::OnAssetReloaded(AZ::Data::Asset<AZ::Data::AssetData> asset)
+    void VolumetricFogFeatureProcessor::OnAssetReloaded([[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData> asset)
     {
         Data::AssetBus::MultiHandler::BusDisconnect();
         if (LoadShaders())

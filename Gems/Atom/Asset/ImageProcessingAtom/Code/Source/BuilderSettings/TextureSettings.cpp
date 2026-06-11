@@ -374,7 +374,7 @@ namespace ImageProcessingAtom
             {
                 edit->Class<FlipbookSettings>("Flipbook Settings", "")
                     ->ClassElement(AZ::Edit::ClassElements::EditorData, "")
-                    ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
+                    ->Attribute(AZ::Edit::Attributes::AutoExpand, false)
                     ->Attribute(AZ::Edit::Attributes::Visibility, AZ::Edit::PropertyVisibility::ShowChildrenOnly)
 
                     ->ClassElement(AZ::Edit::ClassElements::Group, "Flipbook Settings")
@@ -385,8 +385,6 @@ namespace ImageProcessingAtom
                         &FlipbookSettings::m_numColumns,
                         "Number of columns",
                         "Number of columns in the flipbook")
-                    ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
-                    ->Attribute(AZ::Edit::Attributes::ContainerCanBeModified, false)
                     ->ElementAttribute(AZ::Edit::UIHandlers::Handler, AZ::Edit::UIHandlers::Slider)
                     ->ElementAttribute(AZ::Edit::Attributes::Min, 0)
                     ->ElementAttribute(AZ::Edit::Attributes::Max, 128)
@@ -394,8 +392,6 @@ namespace ImageProcessingAtom
 
                     ->DataElement(
                         AZ::Edit::UIHandlers::Default, &FlipbookSettings::m_numRows, "Number of rows", "Number of rows in the flipbook")
-                    ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
-                    ->Attribute(AZ::Edit::Attributes::ContainerCanBeModified, false)
                     ->ElementAttribute(AZ::Edit::UIHandlers::Handler, AZ::Edit::UIHandlers::Slider)
                     ->ElementAttribute(AZ::Edit::Attributes::Min, 0)
                     ->ElementAttribute(AZ::Edit::Attributes::Max, 128)

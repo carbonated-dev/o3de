@@ -236,16 +236,13 @@ namespace ImageProcessingAtom
                     {
                         completionJob = aznew AZ::JobCompletion();
                     }
+                    AZStd::vector<astcenc_error> jobResults(threadCount, ASTCENC_SUCCESS);
                     // Create jobs for each compression thread
                     for (AZ::u32 threadIdx = 0; threadIdx < threadCount; threadIdx++)
                     {
-                        const auto jobLambda = [&status, context, &image, &swizzle, sliceDst, dataSize, threadIdx]()
+                        const auto jobLambda = [&jobResults, context, &image, &swizzle, sliceDst, dataSize, threadIdx]()
                         {
-                            astcenc_error error = astcenc_compress_image(context, &image, &swizzle, sliceDst, dataSize, threadIdx);
-                            if (error != ASTCENC_SUCCESS)
-                            {
-                                status = error;
-                            }
+                            jobResults[threadIdx] = astcenc_compress_image(context, &image, &swizzle, sliceDst, dataSize, threadIdx);
                         };
 
                         AZ::Job* simulationJob = AZ::CreateJobFunction(AZStd::move(jobLambda), true, nullptr);  //auto-deletes
@@ -261,12 +258,6 @@ namespace ImageProcessingAtom
                             simulationJob->SetDependent(completionJob);
                             simulationJob->Start();
                         }
-
-                        astcenc_error error = astcenc_compress_image(context, &image, &swizzle, sliceDst, dataSize, threadIdx);
-                        if (error != ASTCENC_SUCCESS)
-                        {
-                            status = error;
-                        }
                     }
 
                     if (currentJob)
@@ -279,6 +270,16 @@ namespace ImageProcessingAtom
                         completionJob->StartAndWaitForCompletion();
                         delete completionJob;
                         completionJob = nullptr;
+                    }
+
+                    // Check the job results
+                    for(auto result : jobResults)
+                    {
+                        if (result != ASTCENC_SUCCESS)
+                        {
+                            status = result;
+                            break;
+                        }
                     }
                 }
 
