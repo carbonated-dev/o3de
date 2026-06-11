@@ -823,6 +823,36 @@ void EditorActionsHandler::OnActionRegistrationHook()
         m_hotKeyManagerInterface->SetActionHotKey(actionIdentifier, "F2");
     }
 
+#if defined(CARBONATED) // Add "Collapse outliner tree view" action
+    // Collapse Outliner tree view (in the Entity Outliner)
+    {
+        const AZStd::string_view actionIdentifier = "o3de.action.view.collapseTree";
+        AzToolsFramework::ActionProperties actionProperties;
+        actionProperties.m_name = "Collapse Level Tree";
+        actionProperties.m_description = "Collapse level tree view.";
+        actionProperties.m_category = "Level";
+
+        m_actionManagerInterface->RegisterAction(
+            EditorIdentifiers::MainWindowActionContextIdentifier,
+            actionIdentifier,
+            actionProperties,
+            []()
+            {
+                AzToolsFramework::EntityIdList selectedEntities;
+                AzToolsFramework::ToolsApplicationRequests::Bus::BroadcastResult(
+                    selectedEntities, &AzToolsFramework::ToolsApplicationRequests::Bus::Events::GetSelectedEntities);
+
+                // Keep expanded only the 1st selected entity and its ancestors.
+                AZ::EntityId firstSelectedEnity = selectedEntities.empty() ? AZ::EntityId() : selectedEntities.front();
+                AzToolsFramework::EntityOutlinerRequestBus::Broadcast(
+                    &AzToolsFramework::EntityOutlinerRequests::CollapseTreeView, firstSelectedEnity);
+            });
+
+        // Trigger update whenever entity selection changes.
+        m_actionManagerInterface->AddActionToUpdater(EditorIdentifiers::EntitySelectionChangedUpdaterIdentifier, actionIdentifier);
+    }
+#endif
+
     // Find Entity (in the Entity Outliner)
     {
         const AZStd::string_view actionIdentifier = "o3de.action.entityOutliner.findEntity";
@@ -2023,6 +2053,10 @@ void EditorActionsHandler::OnMenuBindingHook()
     m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::EntityOutlinerContextMenuIdentifier, "o3de.action.entity.rename", 70100);
     m_menuManagerInterface->AddSeparatorToMenu(EditorIdentifiers::EntityOutlinerContextMenuIdentifier, 80000);
     m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::EntityOutlinerContextMenuIdentifier, "o3de.action.view.centerOnSelection", 80100);
+#if defined(CARBONATED) // Add "Collapse outliner tree view" action
+    m_menuManagerInterface->AddSeparatorToMenu(EditorIdentifiers::EntityOutlinerContextMenuIdentifier, 90000);
+    m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::EntityOutlinerContextMenuIdentifier, "o3de.action.view.collapseTree", 90100);
+#endif
 
     // Viewport Context Menu
     m_menuManagerInterface->AddSubMenuToMenu(
