@@ -22,8 +22,11 @@
                     "SlotType": "Output",
                     "ScopeAttachmentUsage": "DepthStencil",
                     "LoadStoreAction": {
+                        "ClearValue": {
+                            "Type": "DepthStencil"
+                        },
                         "LoadAction": "DontCare",
-                        "LoadActionStencil": "DontCare"
+                        "LoadActionStencil": "Clear"
                     }
                 }
             ],

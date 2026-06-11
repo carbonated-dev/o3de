@@ -456,6 +456,9 @@ void CLayoutViewPane::OnMenuBindingHook()
         m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::ViewportHelpersMenuIdentifier, "o3de.action.view.showHelpers", 300);
         m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::ViewportHelpersMenuIdentifier, "o3de.action.view.showSelectedEntityHelpers", 400);
         m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::ViewportHelpersMenuIdentifier, "o3de.action.view.hideHelpers", 500);
+#if defined(CARBONATED)
+        m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::ViewportHelpersMenuIdentifier, "o3de.action.view.toggleSilhouettes", 100);
+#endif
     }
 
     // Size

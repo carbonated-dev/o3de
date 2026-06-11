@@ -1,0 +1,56 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "SilhouetteJFAStepParentTemplate",
+            "PassClass": "SilhouetteJFAStepParentPass",
+            "Slots": [
+                {
+                    "Name": "SilhouetteJFAPing",
+                    "SlotType": "InputOutput"
+                },
+                {
+                    "Name": "SilhouetteJFAPong",
+                    "SlotType": "InputOutput"
+                },
+                {
+                    "Name": "SilhouetteJFAOutput",
+                    "SlotType": "InputOutput"
+                },
+                {
+                    "Name": "DepthStencilInput",
+                    "SlotType": "Input"
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "SeedPongImageAttachment",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "SilhouetteJFAPing"
+                        }
+                    },
+                    "FormatSource": {
+                        "Pass": "This",
+                        "Attachment": "SilhouetteJFAPing"
+                    },
+                    "ImageDescriptor": {
+                        "SharedQueueMask": "Graphics"
+                    }
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "SilhouetteJFAPong",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "SeedPongImageAttachment"
+                    }
+                }
+            ]
+        }
+    }
+}

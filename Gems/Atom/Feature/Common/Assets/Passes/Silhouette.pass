@@ -13,11 +13,62 @@
                     "ScopeAttachmentUsage": "RenderTarget"
                 },
                 {
-                    "Name": "Silhouettes",
+                    "Name": "SilhouetteColor",
                     "ShaderInputName": "m_silhouettes",
                     "SlotType": "Input",
                     "ScopeAttachmentUsage": "Shader"
-                }
+                },
+                {
+                    "Name": "SilhouetteData",
+                    "ShaderInputName": "m_outlineData",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+                },                
+                {
+                    "Name": "SilhouetteJFA",
+                    "ShaderInputName": "m_jfaResult",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "StencilInput",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_stencilTex",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Stencil"
+                        ]
+                    }
+                },
+                {
+                    "Name": "OutlineStencilInput",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_outlineStencilTex",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Stencil"
+                        ]
+                    }
+                },
+                {
+                    "Name": "DepthInput",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_depthTex",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Depth"
+                        ]
+                    }
+                },
+                {
+                    "Name": "SilhouetteDepth",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_outlineDepth",
+                    "ScopeAttachmentUsage": "Shader"
+                }         
             ],
             "PassData": {
                 "$type": "FullscreenTrianglePassData",
@@ -25,16 +76,7 @@
                     "FilePath": "Shaders/Silhouette/Silhouette.shader"
                 },
                 "BindViewSrg": true
-            },
-            "Connections": [
-                {
-                    "LocalSlot": "Silhouettes",
-                    "AttachmentRef": {
-                        "Pass": "PipelineGlobal",
-                        "Attachment": "SilhouetteGatherBuffer"
-                    }
-                }
-            ]
+            }
         }
     }
 }

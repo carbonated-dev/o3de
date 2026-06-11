@@ -125,5 +125,10 @@ set(FILES
     Source/Scripting/EditorEntityReferenceComponent.h
     Source/SurfaceData/EditorSurfaceDataMeshComponent.cpp
     Source/SurfaceData/EditorSurfaceDataMeshComponent.h
+#if defined(CARBONATED)
+    Source/Silhouette/EditorSilhouetteSystemComponent.cpp
+    Source/Silhouette/EditorSilhouetteSystemComponent.h
+#endif
+
     Resources/AtomLyIntegrationResources.qrc
 )

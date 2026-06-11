@@ -234,6 +234,9 @@ void EditorActionsHandler::OnActionUpdaterRegistrationHook()
     m_actionManagerInterface->RegisterActionUpdater(EditorIdentifiers::RecentFilesChangedUpdaterIdentifier);
     m_actionManagerInterface->RegisterActionUpdater(EditorIdentifiers::UndoRedoUpdaterIdentifier);
     m_actionManagerInterface->RegisterActionUpdater(EditorIdentifiers::ViewportDisplayInfoStateChangedUpdaterIdentifier);
+#if defined(CARBONATED)
+    m_actionManagerInterface->RegisterActionUpdater(EditorIdentifiers::SilhouettesStateChangedUpdaterIdentifier);
+#endif
 }
 
 void EditorActionsHandler::OnActionRegistrationHook()
@@ -1272,6 +1275,39 @@ void EditorActionsHandler::OnActionRegistrationHook()
         m_hotKeyManagerInterface->SetActionHotKey(actionIdentifier, "Ctrl+Space");
     }
 
+#if defined(CARBONATED)
+    // Show Silhouettes
+    {
+        constexpr AZStd::string_view actionIdentifier = "o3de.action.view.toggleSilhouettes";
+        AzToolsFramework::ActionProperties actionProperties;
+        actionProperties.m_name = "Show Silhouettes";
+        actionProperties.m_description = "Show/Hide Silhouettes.";
+        actionProperties.m_category = "View";
+
+        m_actionManagerInterface->RegisterCheckableAction(
+            EditorIdentifiers::MainWindowActionContextIdentifier,
+            actionIdentifier,
+            actionProperties,
+            []
+            {
+                AzToolsFramework::SetSilhouettesVisible(!AzToolsFramework::SilhouettesVisible());
+                AzToolsFramework::EditorSettingsAPIBus::Broadcast(
+                    &AzToolsFramework::EditorSettingsAPIBus::Events::SaveSettingsRegistryFile);
+#if defined(CARBONATED)
+                AzToolsFramework::ViewportInteraction::ViewportSettingsNotificationBus::Broadcast(
+                    &AzToolsFramework::ViewportInteraction::ViewportSettingsNotificationBus::Events::OnSilhouettesVisibilityChanged,
+                    AzToolsFramework::SilhouettesVisible());
+#endif
+            },
+            []
+            {
+                return AzToolsFramework::SilhouettesVisible();
+            });
+
+        m_actionManagerInterface->AddActionToUpdater(EditorIdentifiers::SilhouettesStateChangedUpdaterIdentifier, actionIdentifier);
+    }
+#endif
+
     // Show Helpers
     {
         constexpr AZStd::string_view actionIdentifier = "o3de.action.view.showHelpers";
@@ -2215,6 +2251,13 @@ void EditorActionsHandler::OnIconsVisibilityChanged([[maybe_unused]] bool enable
 {
     m_actionManagerInterface->TriggerActionUpdater(EditorIdentifiers::IconsStateChangedUpdaterIdentifier);
 }
+
+#if defined(CARBONATED)
+void EditorActionsHandler::OnSilhouettesVisibilityChanged([[maybe_unused]] bool enabled)
+{
+    m_actionManagerInterface->TriggerActionUpdater(EditorIdentifiers::SilhouettesStateChangedUpdaterIdentifier);
+}
+#endif
 
 void EditorActionsHandler::OnEntityPickModeStarted()
 {
