@@ -33,7 +33,6 @@ DECLARE_EBUS_INSTANTIATION(AzToolsFramework::EditorEntityInfoRequests);
 
 #include <QtWidgets/QMessageBox>
 
-#pragma optimize("", off)
 namespace
 {
     template<typename T>
@@ -1879,4 +1878,3 @@ namespace AzToolsFramework
         }
     }
 }   // namespace AzToolsFramework
-#pragma optimize("", on)
