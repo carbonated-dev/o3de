@@ -1106,6 +1106,21 @@ namespace AzToolsFramework
         }
     }
 
+#if defined(CARBONATED) // Add "Collapse outliner tree view" action
+    void EntityOutlinerWidget::CollapseTreeView(const AZ::EntityId& entityId)
+    {
+        m_gui->m_objectTree->collapseAll();
+
+        const QModelIndex proxyIndex = GetIndexFromEntityId(entityId);
+        if (proxyIndex.isValid())
+        {
+            m_gui->m_objectTree->setCurrentIndex(proxyIndex);
+
+            FocusModeNotificationBus::Broadcast(&FocusModeNotifications::OnEditorFocusChanged, AZ::EntityId(), entityId);
+        }
+    }
+#endif
+
     void EntityOutlinerWidget::OnEditorModeActivated(
         [[maybe_unused]] const AzToolsFramework::ViewportEditorModesInterface& editorModeState, AzToolsFramework::ViewportEditorMode mode)
     {
