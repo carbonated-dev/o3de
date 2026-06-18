@@ -82,17 +82,6 @@
                 "type": "ShaderInput",
                 "name": "m_silhouetteOutlineOnly"
             }
-        },
-        {
-            "name": "outlineOnly",
-            "displayName": "Outline Only",
-            "description": "Whether to draw only the outline border.",
-            "type": "bool",
-            "defaultValue": false,
-            "connection": {
-                "type": "ShaderInput",
-                "name": "m_outlineOnly"
-            }
         }
     ],
     "functors": [
