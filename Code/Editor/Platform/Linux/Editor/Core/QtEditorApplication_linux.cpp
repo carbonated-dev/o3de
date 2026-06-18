@@ -30,6 +30,10 @@ namespace Editor
 
     xcb_connection_t* EditorQtApplicationXcb::GetXcbConnectionFromQt()
     {
+#if defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)  // tools UI is likely broken with SDL
+        AZ_Warning("EditorQtApplicationXcb", false, "Native platform interface is not supported with SDL");
+        return nullptr;
+#else        
         QPlatformNativeInterface* native = platformNativeInterface();
         AZ_Warning("EditorQtApplicationXcb", native, "Unable to retrieve the native platform interface");
         if (!native)
@@ -37,18 +41,23 @@ namespace Editor
             return nullptr;
         }
         return reinterpret_cast<xcb_connection_t*>(native->nativeResourceForIntegration(QByteArray("connection")));
+#endif        
     }
 
     void EditorQtApplicationXcb::OnStartPlayInEditor()
     {
+#if !defined(CARBONATED) || !defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)  // play in editor does not work with SDL
         auto* interface = AzFramework::XcbConnectionManagerInterface::Get();
         interface->SetEnableXInput(GetXcbConnectionFromQt(), true);
+#endif
     }
 
     void EditorQtApplicationXcb::OnStopPlayInEditor()
     {
+#if !defined(CARBONATED) || !defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)  // play in editor does not work with SDL
         auto* interface = AzFramework::XcbConnectionManagerInterface::Get();
         interface->SetEnableXInput(GetXcbConnectionFromQt(), false);
+#endif   
     }
 
     bool EditorQtApplicationXcb::nativeEventFilter([[maybe_unused]] const QByteArray& eventType, void* message, long*)
