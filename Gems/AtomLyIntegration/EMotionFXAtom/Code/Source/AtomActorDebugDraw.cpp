@@ -228,7 +228,11 @@ namespace AZ::Render
         }
 
         // Data required for debug drawing colliders and ragdolls
+#if defined(CARBONATED)
+        const AZStd::unordered_set<size_t>* cachedSelectedJointIndices = nullptr;
+#else
         const AZStd::unordered_set<size_t>* cachedSelectedJointIndices;
+#endif
         EMotionFX::JointSelectionRequestBus::BroadcastResult(
             cachedSelectedJointIndices, &EMotionFX::JointSelectionRequests::FindSelectedJointIndices, instance);
 
@@ -469,7 +473,11 @@ namespace AZ::Render
         const size_t lodLevel = instance->GetLODLevel();
         const size_t numJoints = skeleton->GetNumNodes();
 
+#if defined(CARBONATED)
+        const AZStd::unordered_set<size_t>* cachedSelectedJointIndices = nullptr;
+#else
         const AZStd::unordered_set<size_t>* cachedSelectedJointIndices;
+#endif
         EMotionFX::JointSelectionRequestBus::BroadcastResult(
             cachedSelectedJointIndices, &EMotionFX::JointSelectionRequests::FindSelectedJointIndices, instance);
 
@@ -514,7 +522,11 @@ namespace AZ::Render
         const EMotionFX::Pose* pose = transformData->GetCurrentPose();
         const size_t numEnabled = instance->GetNumEnabledNodes();
 
+#if defined(CARBONATED)
+        const AZStd::unordered_set<size_t>* cachedSelectedJointIndices = nullptr;
+#else
         const AZStd::unordered_set<size_t>* cachedSelectedJointIndices;
+#endif
         EMotionFX::JointSelectionRequestBus::BroadcastResult(
             cachedSelectedJointIndices, &EMotionFX::JointSelectionRequests::FindSelectedJointIndices, instance);
 
