@@ -1,0 +1,77 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassRequest",
+    "ClassData": {
+        "Name": "OitMboitParentPass",
+        "TemplateName": "OitMboitParentTemplate",
+        "Enabled": true,
+        "Connections": [
+            // Inputs...
+            {
+                "LocalSlot": "DirectionalShadowmap",
+                "AttachmentRef": {
+                    "Pass": "Parent",
+                    "Attachment": "DirectionalShadowmap"
+                }
+            },
+            {
+                "LocalSlot": "DirectionalESM",
+                "AttachmentRef": {
+                    "Pass": "Parent",
+                    "Attachment": "DirectionalESM"
+                }
+            },
+            {
+                "LocalSlot": "ProjectedShadowmap",
+                "AttachmentRef": {
+                    "Pass": "Parent",
+                    "Attachment": "ProjectedShadowmap"
+                }
+            },
+            {
+                "LocalSlot": "ProjectedESM",
+                "AttachmentRef": {
+                    "Pass": "Parent",
+                    "Attachment": "ProjectedESM"
+                }
+            },
+            {
+                "LocalSlot": "TileLightData",
+                "AttachmentRef": {
+                    "Pass": "Parent",
+                    "Attachment": "TileLightData"
+                }
+            },
+            {
+                "LocalSlot": "LightListRemapped",
+                "AttachmentRef": {
+                    "Pass": "Parent",
+                    "Attachment": "LightListRemapped"
+                }
+            },
+            {
+                "LocalSlot": "InputLinearDepth",
+                "AttachmentRef": {
+                    "Pass": "Parent",
+                    "Attachment": "InputLinearDepth"
+                }
+            },
+            // Input/Outputs...
+            {
+                "LocalSlot": "DepthStencil",
+                "AttachmentRef": {
+                    "Pass": "Parent",
+                    "Attachment": "DepthStencil"
+                }
+            },
+            {
+                "LocalSlot": "InputOutput",
+                "AttachmentRef": {
+                    "Pass": "Parent",
+                    "Attachment": "InputOutput"
+                }
+            }
+        ]
+    }
+}

@@ -156,6 +156,13 @@ namespace AZ
             return m_fragmentDensityMapFeatures;
         }
 
+#if defined(CARBONATED)
+        const VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT& PhysicalDevice::GetPhysicalDeviceFragmentShaderInterlockFeatures() const
+        {
+            return m_fragmentShaderInterlockFeatures;
+        }
+#endif
+
         const VkPhysicalDeviceFragmentDensityMapPropertiesEXT& PhysicalDevice::GetPhysicalDeviceFragmentDensityMapProperties() const
         {
             return m_fragmentDensityMapProperties;
@@ -299,6 +306,11 @@ namespace AZ
                 static_cast<size_t>(DeviceFeature::MemoryBudget),
                 VK_DEVICE_EXTENSION_SUPPORTED(context, EXT_memory_budget) && m_deviceProperties.vendorID != VendorID_Intel);
             m_features.set(static_cast<size_t>(DeviceFeature::SubgroupOperation), (majorVersion >= 1 && minorVersion >= 1));
+#if defined(CARBONATED)
+            m_features.set(
+                static_cast<size_t>(DeviceFeature::FragmentShaderInterlock),
+                VK_DEVICE_EXTENSION_SUPPORTED(context, EXT_fragment_shader_interlock) && m_fragmentShaderInterlockFeatures.fragmentShaderPixelInterlock);
+#endif
         }
 
         RawStringList PhysicalDevice::FilterSupportedOptionalExtensions()
@@ -332,6 +344,7 @@ namespace AZ
 
                 VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME,
                 VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME,
+                VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME,
                 VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
                 VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
             } };
@@ -388,6 +401,9 @@ namespace AZ
                 m_rayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
                 m_shadingRateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
                 m_fragmentDensityMapFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT;
+#if defined(CARBONATED)
+                m_fragmentShaderInterlockFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT;
+#endif
                 m_timelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
 
                 VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
@@ -408,6 +424,9 @@ namespace AZ
                       &m_rayTracingPipelineFeatures,
                       &m_shadingRateFeatures,
                       &m_fragmentDensityMapFeatures,
+#if defined(CARBONATED)
+                      &m_fragmentShaderInterlockFeatures,
+#endif
                       &m_timelineSemaphoreFeatures });
 
                 context.GetPhysicalDeviceFeatures2KHR(vkPhysicalDevice, &deviceFeatures2);

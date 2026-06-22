@@ -22,6 +22,11 @@
 #include <ReflectionProbe/ReflectionProbeFeatureProcessor.h>
 #include <SpecularReflections/SpecularReflectionsFeatureProcessor.h>
 #include <CubeMapCapture/CubeMapCaptureFeatureProcessor.h>
+#if defined(CARBONATED)
+#include <OrderIndependentTransparency/OitMboitParentPass.h>
+#include <OrderIndependentTransparency/OitMlabParentPass.h>
+#include <OrderIndependentTransparency/OrderIndependentTransparencyFeatureProcessor.h>
+#endif
 #include <RayTracing/RayTracingFeatureProcessor.h>
 
 #include <Atom/Feature/ImageBasedLights/ImageBasedLightFeatureProcessor.h>
@@ -140,6 +145,9 @@ namespace AZ
             LookupTableAsset::Reflect(context);
             ReflectionProbeFeatureProcessor::Reflect(context);
             SpecularReflectionsFeatureProcessor::Reflect(context);
+#if defined(CARBONATED)
+            OrderIndependentTransparencyFeatureProcessor::Reflect(context);
+#endif
             CubeMapCaptureFeatureProcessor::Reflect(context);
             DecalTextureArrayFeatureProcessor::Reflect(context);
             SMAAFeatureProcessor::Reflect(context);
@@ -213,6 +221,9 @@ namespace AZ
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessorWithInterface<RenderDebugFeatureProcessor, RenderDebugFeatureProcessorInterface>();
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessorWithInterface<ReflectionProbeFeatureProcessor, ReflectionProbeFeatureProcessorInterface>();
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessorWithInterface<SpecularReflectionsFeatureProcessor, SpecularReflectionsFeatureProcessorInterface>();
+#if defined(CARBONATED)
+                AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessor<OrderIndependentTransparencyFeatureProcessor>();
+#endif
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessorWithInterface<CubeMapCaptureFeatureProcessor, CubeMapCaptureFeatureProcessorInterface>();
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessor<SMAAFeatureProcessor>();
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessor<RayTracingFeatureProcessor>();
@@ -230,6 +241,10 @@ namespace AZ
 
             // Add Sky Atmosphere Parent pass
             passSystem->AddPassCreator(Name("SkyAtmosphereParentPass"), &SkyAtmosphereParentPass::Create);
+#if defined(CARBONATED)
+            passSystem->AddPassCreator(Name("OitMlabParentPass"), &OitMlabParentPass::Create);
+            passSystem->AddPassCreator(Name("OitMboitParentPass"), &OitMboitParentPass::Create);
+#endif
 
             // Add DisplayMapper pass
             passSystem->AddPassCreator(Name("AcesOutputTransformLutPass"), &AcesOutputTransformLutPass::Create);
@@ -356,6 +371,9 @@ namespace AZ
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<SMAAFeatureProcessor>();
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<ReflectionProbeFeatureProcessor>();
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<SpecularReflectionsFeatureProcessor>();
+#if defined(CARBONATED)
+                AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<OrderIndependentTransparencyFeatureProcessor>();
+#endif
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<CubeMapCaptureFeatureProcessor>();
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<ProjectedShadowFeatureProcessor>();
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<AcesDisplayMapperFeatureProcessor>();

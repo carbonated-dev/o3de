@@ -1,0 +1,62 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#pragma once
+
+#include <scenesrg.srgi>
+#include <Atom/Features/Oit/OitCommon.azsli>
+
+bool OitIsMboitEnabled()
+{
+    return o_oitMethod == OitMethod::Mboit;
+}
+
+float OitMboitLuminance(float3 color)
+{
+    return dot(color, float3(0.2126f, 0.7152f, 0.0722f));
+}
+
+float OitMboitFragmentOpticalDepth(float alpha, float3 transmission)
+{
+    // Moment resolve works in optical depth, so convert the fragment transmission into an additive density value.
+    const float scalarTransmission = saturate(OitMboitLuminance(transmission));
+    return max(-log(max(scalarTransmission, 0.0001f)), saturate(alpha));
+}
+
+void OitMboitAccumulateFragment(uint2 pixelCoord, float depth, float3 premultipliedColor, float alpha, float3 transmission)
+{
+    const float clampedAlpha = saturate(alpha);
+    const float3 fragmentTransmission = saturate(transmission);
+
+    uint width = 0;
+    uint height = 0;
+    PassSrg::m_oitFragmentData0.GetDimensions(width, height);
+
+    const float momentDepth = saturate(depth);
+    const float momentDepth2 = momentDepth * momentDepth;
+    const float momentDepth3 = momentDepth2 * momentDepth;
+    const float opticalDepth = OitMboitFragmentOpticalDepth(clampedAlpha, fragmentTransmission);
+
+    // m_oitFragmentData0 stores the first four optical-depth moments in the first full-resolution slice.
+    const float4 moments0 = PassSrg::m_oitFragmentData0[pixelCoord];
+    PassSrg::m_oitFragmentData0[pixelCoord] = moments0 + opticalDepth * float4(1.0f, momentDepth, momentDepth2, momentDepth3);
+
+    if (SceneSrg::m_oitMboitMomentCount > 4 && pixelCoord.y + height / 2 < height)
+    {
+        // Six-moment mode appends the fourth and fifth powers in the second half-height atlas slice.
+        const uint2 moments1Coord = uint2(pixelCoord.x, pixelCoord.y + height / 2);
+        const float momentDepth4 = momentDepth3 * momentDepth;
+        const float momentDepth5 = momentDepth4 * momentDepth;
+        const float4 moments1 = PassSrg::m_oitFragmentData0[moments1Coord];
+        PassSrg::m_oitFragmentData0[moments1Coord] = moments1 + opticalDepth * float4(momentDepth4, momentDepth5, 0.0f, 0.0f);
+    }
+
+    // m_oitFragmentData1 keeps color separate from the moments so the resolve can reconstruct transmittance first.
+    const float4 accum = PassSrg::m_oitFragmentData1[pixelCoord];
+    PassSrg::m_oitFragmentData1[pixelCoord] = accum + float4(premultipliedColor, clampedAlpha);
+}

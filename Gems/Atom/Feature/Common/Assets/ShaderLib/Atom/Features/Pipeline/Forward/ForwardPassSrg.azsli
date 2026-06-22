@@ -56,4 +56,11 @@ ShaderResourceGroup PassSrg : SRG_PerPass
     // We can use m_linearDepthTexture for original depth and set this flag to true. 
     // And the shaders can calculate linear depth themselves
     uint m_isOriginalDepth;
+
+    // Begin Carbonated
+    // Compact OIT storage shared by MLAB, WBOIT, and MBOIT. Only one OIT method owns these bindings at a time.
+    RasterizerOrderedTexture2D<uint> m_oitFragmentCount;
+    RasterizerOrderedTexture2D<float4> m_oitFragmentData0;
+    RasterizerOrderedTexture2D<float4> m_oitFragmentData1;
+    // End Carbonated
 }
