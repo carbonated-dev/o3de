@@ -16,23 +16,18 @@
                             "Value": [
                                 -1.0,
                                 -1.0,
-                                0.0,
-                                0.0
+                                -1.0,
+                                -1.0
                             ]
                         },
                         "LoadAction": "Clear"
                     }
                 },
                 {
-                    "Name": "StencilInput",
+                    "Name": "SilhouetteColor",
                     "SlotType": "Input",
-                    "ShaderInputName": "m_stencilTex",
-                    "ScopeAttachmentUsage": "Shader",
-                    "ImageViewDesc": {
-                        "AspectFlags": [
-                            "Stencil"
-                        ]
-                    }
+                    "ShaderInputName": "m_silhouettes",
+                    "ScopeAttachmentUsage": "Shader"
                 }
             ],
             "PassData": {
@@ -52,11 +47,11 @@
                         }
                     },
                     "ImageDescriptor": {
-                        "Format": "R16G16_SNORM",
+                        "Format": "R16G16B16A16_SNORM",
                         "SharedQueueMask": "Graphics"
                     },
                     "FormatFallbacks" : [
-                        "R16G16_FLOAT"
+                        "R16G16B16A16_FLOAT"
                     ]
                 }
             ],
