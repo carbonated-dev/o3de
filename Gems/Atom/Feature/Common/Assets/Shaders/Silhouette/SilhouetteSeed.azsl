@@ -9,24 +9,69 @@
 #include <viewsrg.srgi>
 
 #include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
-#include <Atom/Features/StencilUtility.azsli>
-#include <Atom/Feature/Common/Assets/Shaders/Silhouette/Silhouette.azsli>
 
-ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
+ShaderResourceGroup PassSrg : SRG_PerPass
 {
-    Texture2D<uint2> m_stencilTex;
+    Texture2D<float4> m_silhouettes;
 }
 
 struct PSOutput
 {
-    float2 m_color : SV_Target0;
+    float4 m_color : SV_Target0;
 };
 
 PSOutput MainPS(VSOutput IN)
 {
     PSOutput OUT;
 
-    uint stencilVal = ReadStencil(PassSrg::m_stencilTex.Load(int3(IN.m_position.xy, 0)));
-    OUT.m_color = (stencilVal & OutlineInsideMask) > 0 ? IN.m_texCoord : float2(-1.0, -1.0);
+    uint width;
+    uint height;
+    PassSrg::m_silhouettes.GetDimensions(width, height);
+
+    int2 textureMax = int2(width, height) - 1;
+    int2 pixelPosition = clamp(int2(IN.m_position.xy), int2(0, 0), textureMax);
+
+    real occupancy[3][3];
+    bool isBoundary = false;
+    [unroll]
+    for (int y = -1; y <= 1; ++y)
+    {
+        [unroll]
+        for (int x = -1; x <= 1; ++x)
+        {
+            int2 samplePosition = clamp(pixelPosition + int2(x, y), int2(0, 0), textureMax);
+            real sampleOccupancy =
+                PassSrg::m_silhouettes.Load(int3(samplePosition, 0)).a > 0.0 ? 1.0 : 0.0;
+            occupancy[y + 1][x + 1] = sampleOccupancy;
+            isBoundary = isBoundary || sampleOccupancy == 0.0;
+        }
+    }
+
+    const bool isInside = occupancy[1][1] > 0.0;
+
+    OUT.m_color = float4(-1.0, -1.0, -1.0, -1.0);
+    if (isInside && isBoundary)
+    {
+        // Estimate the outward silhouette normal from the binary coverage mask.
+        // Diagonal taps are required to keep sharp corners from becoming rounded.
+        real2 outwardGradient;
+        outwardGradient.x =
+            occupancy[0][0] + 2.0 * occupancy[1][0] + occupancy[2][0]
+            - occupancy[0][2] - 2.0 * occupancy[1][2] - occupancy[2][2];
+        outwardGradient.y =
+            occupancy[0][0] + 2.0 * occupancy[0][1] + occupancy[0][2]
+            - occupancy[2][0] - 2.0 * occupancy[2][1] - occupancy[2][2];
+
+        real gradientLengthSq = dot(outwardGradient, outwardGradient);
+        real2 outwardNormal = gradientLengthSq > 0.0001
+            ? outwardGradient * rsqrt(gradientLengthSq)
+            : real2(0.0, 0.0);
+
+        real2 textureSize = real2(width, height);
+        real2 sourceUV = (real2(pixelPosition) + 0.5) / textureSize;
+        real2 edgeUV = sourceUV + outwardNormal * (0.5 / textureSize);
+        OUT.m_color = float4(edgeUV, sourceUV);
+    }
+
     return OUT;
 }

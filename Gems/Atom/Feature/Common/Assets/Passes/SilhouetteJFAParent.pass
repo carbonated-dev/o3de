@@ -41,10 +41,10 @@
                     "Enabled": true,
                     "Connections": [
                         {
-                            "LocalSlot": "StencilInput",
+                            "LocalSlot": "SilhouetteColor",
                             "AttachmentRef": {
                                 "Pass": "Parent",
-                                "Attachment": "DepthStencilResolvedInputOutput"
+                                "Attachment": "SilhouetteColor"
                             }
                         }
                     ]
@@ -53,14 +53,7 @@
                     "Name": "SilhouetteJFAStepParentPass",
                     "TemplateName": "SilhouetteJFAStepParentTemplate",
                     "Enabled": true,
-                    "Connections": [                    
-                        {
-                            "LocalSlot": "DepthStencilInput",
-                            "AttachmentRef": {
-                                "Pass": "Parent",
-                                "Attachment": "DepthStencilResolvedInputOutput"
-                            }
-                        },
+                    "Connections": [
                         // Input/Outputs...
                         {
                             "LocalSlot": "SilhouetteJFAPing",
@@ -118,13 +111,6 @@
                                 "Attachment": "DepthStencilResolvedInputOutput"
                             }
                         },
-                        {
-                            "LocalSlot": "OutlineStencilInput",
-                            "AttachmentRef": {
-                                "Pass": "Parent",
-                                "Attachment": "DepthStencilResolvedInputOutput"
-                            }
-                        },                                              
                         {
                             "LocalSlot": "SilhouetteDepth",
                             "AttachmentRef": {

@@ -42,17 +42,6 @@
                     }
                 },
                 {
-                    "Name": "OutlineStencilInput",
-                    "SlotType": "Input",
-                    "ShaderInputName": "m_outlineStencilTex",
-                    "ScopeAttachmentUsage": "Shader",
-                    "ImageViewDesc": {
-                        "AspectFlags": [
-                            "Stencil"
-                        ]
-                    }
-                },
-                {
                     "Name": "DepthInput",
                     "SlotType": "Input",
                     "ShaderInputName": "m_depthTex",
