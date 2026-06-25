@@ -34,9 +34,8 @@ ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
     Texture2D<float4> m_silhouettes;
     Texture2D<uint> m_outlineData;
     Texture2D<float> m_outlineDepth;
-    Texture2D<float2> m_jfaResult;
+    Texture2D<float4> m_jfaResult;
     Texture2DMS<uint2> m_stencilTex;
-    Texture2D<uint2> m_outlineStencilTex;
     Texture2D<float> m_depthTex;
 }
 
@@ -98,23 +97,31 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
 
     PSOutput OUT = (PSOutput)0;
 
-    real2 closestUV = PassSrg::m_jfaResult.Load(int3(IN.m_position.xy, 0));
-    // Check if it has a valid UV value from the JFA texture
-    if (closestUV.x < 0 || closestUV.y < 0)
-    {
-        return OUT; 
-    }
-
-    uint outlineStencilVal = ReadStencil(PassSrg::m_outlineStencilTex.Load(int3(IN.m_position.xy, 0)));
-    const bool isInside = outlineStencilVal & OutlineInsideMask;
-    
     uint width, height;
     PassSrg::m_silhouettes.GetDimensions(width, height);
+    int2 textureMax = int2(width, height) - 1;
+    int2 currentPosition = clamp(int2(IN.m_position.xy), int2(0, 0), textureMax);
+    real2 textureSize = real2(width, height);
 
-    real2 closestPosition = isInside ? IN.m_position.xy : real2(closestUV.x * width, closestUV.y * height);
-    float outlineDepth = PassSrg::m_outlineDepth.Load(int3(closestPosition.xy, 0));
+    real4 localSample = PassSrg::m_silhouettes.Load(int3(currentPosition, 0));
+    const bool isInside = localSample.a > 0.0;
+
+    real4 closestSeed = PassSrg::m_jfaResult.Load(int3(currentPosition, 0));
+    const bool hasValidSeed = closestSeed.x >= 0.0 && closestSeed.y >= 0.0;
+    if (!isInside && !hasValidSeed)
+    {
+        return OUT;
+    }
+
+    int2 sourcePosition = currentPosition;
+    if (!isInside)
+    {
+        sourcePosition = clamp(int2(closestSeed.zw * textureSize), int2(0, 0), textureMax);
+    }
+
+    float outlineDepth = PassSrg::m_outlineDepth.Load(int3(sourcePosition, 0));
     float sceneDepth = PassSrg::m_depthTex.Load(int3(IN.m_position.xy, 0));
-    OutlineData outlineData = DecodeOutlineData(PassSrg::m_outlineData.Load(int3(closestPosition.xy, 0)));
+    OutlineData outlineData = DecodeOutlineData(PassSrg::m_outlineData.Load(int3(sourcePosition, 0)));
 
     const real bias = 0.001;
     uint sceneStencilVal = ReadStencil(PassSrg::m_stencilTex.Load(IN.m_position.xy, sampleIndex));
@@ -127,24 +134,39 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
         }
     }
 
-    real4 pixelSample = PassSrg::m_silhouettes.Load(int3(closestPosition.xy, 0));
-    if(isInside)
+    real4 pixelSample = localSample;
+    if (!isInside)
     {
-        // this is a silhouette pixel
+        pixelSample = PassSrg::m_silhouettes.Load(int3(sourcePosition, 0));
+    }
+
+    real edgeDistance = 0.0;
+    if (hasValidSeed)
+    {
+        edgeDistance = length(closestSeed.xy * textureSize - IN.m_position.xy);
+    }
+
+    if (isInside)
+    {
         if (outlineData.m_outlineOnly)
         {
-            pixelSample.a = 0;
+            // Fade the inside of outline-only silhouettes against the
+            // reconstructed subpixel contour. Deep interior pixels may have no JFA
+            // seed because propagation is limited to the maximum outline width.
+            if (hasValidSeed)
+            {
+                pixelSample.a *= saturate(0.5 - edgeDistance);
+            }
+            else
+            {
+                pixelSample.a = 0.0;
+            }
         }
     }
     else
     {
-        // this is a potential outline pixel 
-        const real lineThickness = outlineData.m_outlineSize;
-        real dist = length(closestPosition - IN.m_position.xy);
-        if (dist > lineThickness)
-        {
-            pixelSample.a = 0;
-        }
+        // Apply a one-pixel coverage ramp to the outside of the outline.
+        pixelSample.a *= saturate(outlineData.m_outlineSize + 0.5 - edgeDistance);
     }
 
     switch(outlineData.m_type)

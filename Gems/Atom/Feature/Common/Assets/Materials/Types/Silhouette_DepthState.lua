@@ -12,7 +12,8 @@
  
 function GetMaterialPropertyDependencies()
     return {
-        "silhouetteType"
+        "silhouetteType",
+        "alpha"
         }
 end
 
@@ -34,6 +35,7 @@ function Process(context)
     -- CARBONATED Begin
     if(context:HasShaderWithTag("silhouetteGather")) then
     -- CARBONATED End
+        local silhouetteAlpha = 0;
         local silhouetteType = SilhouetteType_NeverDraw;
         local shaderItem = context:GetShaderByTag("silhouetteGather")
         -- CARBONATED Begin
@@ -41,7 +43,11 @@ function Process(context)
             silhouetteType = context:GetMaterialPropertyValue_enum("silhouetteType")
         end
 
-        if(silhouetteType == SilhouetteType_NeverDraw) then
+        if(context:HasMaterialProperty("alpha")) then
+            silhouetteAlpha = context:GetMaterialPropertyValue_float("alpha")
+        end
+
+        if(silhouetteType == SilhouetteType_NeverDraw or silhouetteAlpha == 0) then
             shaderItem:SetEnabled(false)
         else
 

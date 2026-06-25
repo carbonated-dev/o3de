@@ -6,19 +6,6 @@
             "Enable": true, 
             "WriteMask" : "Zero",   // Avoid writing the depth
             "CompareFunc" : "Less"
-        },
-        "Stencil" :
-        {
-            "Enable" : true,
-            "ReadMask" : "0x0",
-            "WriteMask" : "0x20",
-            "FrontFace" :
-            {
-                "Func" : "Always",
-                "DepthFailOp" : "Keep",
-                "FailOp" : "Keep",
-                "PassOp" : "Replace"
-            }
         }
     },
     "DrawList": "silhouette",

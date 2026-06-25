@@ -647,10 +647,56 @@ namespace PhysX
                         event.m_body1 = pSelfBody;
                         event.m_bodyHandle1 = m_controllerBodyHandle;
                         event.m_shape2 = pShape;
+
+                        PhysX::ActorData* pActorData = PhysX::Utils::GetUserData(hit.actor);
+                        if (pActorData)
+                        {
+                            event.m_body2 = pActorData->GetSimulatedBody();
+                            event.m_bodyHandle2 = pActorData->GetBodyHandle();
+                        }
+
                         event.m_contacts.push_back(contact);
 
                         Physics::CharacterNotificationBus::Event(GetEntityId(), &Physics::CharacterNotificationBus::Events::OnShapeHit, event);
                     });
+
+                pCallbackManager->SetOnControllerHit([this](const physx::PxControllersHit& hit)
+    {
+                    auto* pSceneInterface = AZ::Interface<AzPhysics::SceneInterface>::Get();
+                    if (!pSceneInterface)
+                        return;
+
+                    AzPhysics::SimulatedBody* pSelfBody =
+                        pSceneInterface->GetSimulatedBodyFromHandle(m_attachedSceneHandle, m_controllerBodyHandle);
+                    if (!pSelfBody)
+                        return;
+
+                    if (!hit.other)
+                        return;
+
+                    physx::PxRigidDynamic* otherActor = hit.other->getActor();
+                    if (!otherActor)
+                        return;
+
+                    PhysX::ActorData* pActorData = PhysX::Utils::GetUserData(otherActor);
+                    if (!pActorData)
+                        return;
+
+                    AzPhysics::Contact contact;
+                    contact.m_position = PxMathConvertExtended(hit.worldPos);
+                    contact.m_normal = PxMathConvert(hit.worldNormal);
+                    contact.m_separation = 0.0f;
+                    contact.m_impulse = AZ::Vector3::CreateZero();
+
+                    AzPhysics::CollisionEvent event;
+                    event.m_body1 = pSelfBody;
+                    event.m_bodyHandle1 = m_controllerBodyHandle;
+                    event.m_body2 = pActorData->GetSimulatedBody();
+                    event.m_bodyHandle2 = pActorData->GetBodyHandle();
+                    event.m_contacts.push_back(contact);
+
+                    Physics::CharacterNotificationBus::Event(GetEntityId(), &Physics::CharacterNotificationBus::Events::OnControllerHit, event);
+                });
             }
         }
 #endif

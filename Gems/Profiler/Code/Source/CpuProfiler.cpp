@@ -101,7 +101,12 @@ namespace Profiler
                 va_list args;
                 va_start(args, eventNameArgCount);
                 // Push it to the stack
+#if defined(CARBONATED)
+                // there is at least a string of 559 characters
+                CachedTimeRegion timeRegion({ budget->Name(), AZStd::fixed_string<1024>::format_arg(eventName, args).c_str() });
+#else
                 CachedTimeRegion timeRegion({ budget->Name(), AZStd::fixed_string<512>::format_arg(eventName, args).c_str() });
+#endif
                 ms_threadLocalStorage->RegionStackPushBack(timeRegion);
             }
 

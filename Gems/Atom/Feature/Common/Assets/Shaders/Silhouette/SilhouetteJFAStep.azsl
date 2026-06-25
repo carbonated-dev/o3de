@@ -18,7 +18,7 @@ ShaderResourceGroup PassSrg : SRG_PerPass
 
 struct PSOutput
 {
-    float2 m_color : SV_Target0;
+    float4 m_color : SV_Target0;
 };
 
 PSOutput MainPS(VSOutput IN)
@@ -28,25 +28,30 @@ PSOutput MainPS(VSOutput IN)
     real2 position = IN.m_position.xy;
     real2 uv = IN.m_texCoord;
     real2 step  = PassSrg::m_stepSize;
-    real2 best  = float2(0, 0);
-    real bestDist = FLOAT_16_MAX;
+    real4 best  = float4(-1.0, -1.0, -1.0, -1.0);
+    uint width;
+    uint height;
+    PassSrg::m_prevJFA.GetDimensions(width, height);
+    real2 textureSize = real2(width, height);
+    real bestDistSq = dot(textureSize, textureSize) + 1.0;
+    int2 textureMax = int2(width, height) - 1;
 
     // 3x3 neighbourhood at current step size
-    [unroll]
-    for (int dy = -1; dy <= 1; ++dy)
+    int2 start = max(int2(position - step), int2(0, 0));
+    int2 end = min(int2(position + step), textureMax);
+    for (int y = start.y; y <= end.y; ++y)
     {
-        [unroll]
-        for (int dx = -1; dx <= 1; ++dx)
+        for (int x = start.x; x <= end.x; ++x)
         {
-            real2 samplePos  = position + real2(dx, dy) * step;
-            real2 seedUV    = PassSrg::m_prevJFA.Load(int3(samplePos, 0));
-            if (seedUV.x >= 0.0 && seedUV.y >= 0.0)
+            real4 seed = PassSrg::m_prevJFA.Load(int3(x, y, 0));
+            if (seed.x >= 0.0 && seed.y >= 0.0)
             {
-                real dist = length(uv - seedUV);
-                if (dist < bestDist)
+                real2 deltaPixels = (uv - seed.xy) * textureSize;
+                real distSq = dot(deltaPixels, deltaPixels);
+                if (distSq < bestDistSq)
                 {
-                    bestDist = dist;
-                    best  = seedUV;
+                    bestDistSq = distSq;
+                    best = seed;
                 }
             }
         }

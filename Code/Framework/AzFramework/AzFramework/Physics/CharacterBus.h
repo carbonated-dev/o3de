@@ -181,6 +181,10 @@ namespace Physics
         virtual void OnShapeHit([[maybe_unused]]const AzPhysics::CollisionEvent& event)
         {
         }
+
+        virtual void OnControllerHit([[maybe_unused]] const AzPhysics::CollisionEvent& event)
+        {
+        }
 #endif
     };
 
