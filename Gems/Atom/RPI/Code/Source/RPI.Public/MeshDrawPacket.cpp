@@ -108,6 +108,53 @@ namespace AZ
 
         bool MeshDrawPacket::SetShaderOption(const Name& shaderOptionName, ShaderOptionValue value)
         {
+#if defined(CARBONATED)
+            // Try to find an existing option entry in the list, this is most frequent path so start with it
+            // The original checks for material controlled option first, which almost never happens
+            for (ShaderOptionPair& shaderOptionPair : m_shaderOptions)
+            {
+                if (shaderOptionPair.first == shaderOptionName)
+                {
+                    if (shaderOptionPair.second != value) // avoid unnecessary m_needUpdate flag set
+                    {
+                        shaderOptionPair.second = value;
+                        m_needUpdate = true;
+                    }
+                    return true;
+                }
+            }
+
+            // We won't set any shader options if the shader option is owned by any of the other shaders in this material.
+            // If the material uses an option in any shader, then it owns that option for all its shaders.
+            // Combine two searches (for valid option and for material controlled option) from the original code piece into one
+            bool isValid = false;
+            m_material->ForAllShaderItems(
+                [&](const Name&, const ShaderCollection::Item& shaderItem)
+                {
+                    const ShaderOptionGroupLayout* layout = shaderItem.GetShaderOptions()->GetShaderOptionLayout();
+                    ShaderOptionIndex index = layout->FindShaderOptionIndex(shaderOptionName);
+                    if (index.IsValid())
+                    {
+                        if (!shaderItem.MaterialOwnsShaderOption(index))
+                        {
+                            isValid = true;
+                        }
+                        return false; // stop searching
+                    }
+
+                    return true; // continue searching
+                });
+
+            if (!isValid)
+            {
+                // unlike the original fucntion we do not set m_needUpdate if the option is invalid
+                return false;
+            }
+
+            m_shaderOptions.push_back({ shaderOptionName, value });
+            m_needUpdate = true;
+            return true;
+#else
             // check if the material owns this option in any of its shaders, if so it can't be set externally
             if (m_material->MaterialOwnsShaderOption(shaderOptionName))
             {
@@ -137,6 +184,7 @@ namespace AZ
 
             m_needUpdate = true;
             return true;
+#endif
         }
 
         bool MeshDrawPacket::UnsetShaderOption(const Name& shaderOptionName)

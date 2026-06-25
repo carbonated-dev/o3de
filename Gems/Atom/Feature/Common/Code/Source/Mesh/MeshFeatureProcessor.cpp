@@ -47,7 +47,10 @@
 #include <algorithm>
 
 #if defined(CARBONATED)
+#include <AzCore/Time/TimeSystem.h>
 #include <AzCore/Memory/MemoryMarker.h>
+//#define CARBONATED_MESH_SHADER_OPTIONS_TIMING  // uncomment to track micro-freezes from dynamic shader flag changes per mesh instance group
+#define MESH_SHADER_OPTIONS_THRESHOLD_MS 50  // threshold to report overall shader update time, milliseconds, typically 60-150 ms on Geforce 2060
 #endif
 
 namespace AZ
@@ -930,7 +933,7 @@ namespace AZ
             MEMORY_TAG(Mesh);
 #endif
             m_meshDataChecker.soft_lock();
-                        
+
             // The per-mesh shader option flags are set in feature processors' simulate function
             // So we want to process the flags here to update the draw packets if needed.
             // Update MeshDrawPacket's shader options if PerMeshShaderOption is enabled
@@ -997,6 +1000,10 @@ namespace AZ
                     }
                 }
 
+#if defined(CARBONATED) && defined(CARBONATED_MESH_SHADER_OPTIONS_TIMING)
+                int64_t updateDrawPacket = 0;
+#endif
+
                 if (r_meshInstancingEnabled)
                 {
                     for (auto& instanceGroupDataIter : instanceGroupsNeedUpdate)
@@ -1028,13 +1035,34 @@ namespace AZ
                                         instanceGroupDataIter->m_drawPacket.UnsetShaderOption(shaderOption); 
                                     }
                                 });
+#if defined(CARBONATED)
+
+#if defined(CARBONATED_MESH_SHADER_OPTIONS_TIMING)
+                            const AZ::TimeUs tBegin = AZ::GetRealElapsedTimeUs();
+#endif
+                            instanceGroupDataIter->UpdateDrawPacket(*GetParentScene(), false); // no force update, respect update flags
+#if defined(CARBONATED_MESH_SHADER_OPTIONS_TIMING)
+                            const AZ::TimeUs tEnd = AZ::GetRealElapsedTimeUs();
+                            updateDrawPacket += (int64_t)tEnd - (int64_t)tBegin;
+#endif
+
+#else  // CARBONATED
                             instanceGroupDataIter->UpdateDrawPacket(*GetParentScene(), true);
+#endif // CARBONATED
 
                             // Note, we don't need to call CacheRootConstantInterval() here because the root constant layout won't change
                             // when we switch shader variants.
                         }
                     }
                 }
+
+#if defined(CARBONATED) && defined(CARBONATED_MESH_SHADER_OPTIONS_TIMING)
+                updateDrawPacket = (updateDrawPacket + 500) / 1000; // convert nanoseconds to milliseconds
+                if (updateDrawPacket > MESH_SHADER_OPTIONS_THRESHOLD_MS)
+                {
+                    AZ_Info("microfreeze", "MeshFeatureProcessor::OnBeginPrepareRender UpdateDrawPacket took %d", updateDrawPacket);
+                }
+#endif
             }
 
             m_enablePerMeshShaderOptionFlags = r_enablePerMeshShaderOptionFlags;
