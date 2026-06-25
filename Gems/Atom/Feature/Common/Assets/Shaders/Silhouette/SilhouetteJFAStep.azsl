@@ -1,0 +1,61 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#include <viewsrg.srgi>
+#include <Atom/RPI/Math.azsli>
+#include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
+
+ShaderResourceGroup PassSrg : SRG_PerPass
+{
+    float m_stepSize;
+    Texture2D<float4> m_prevJFA;
+}
+
+struct PSOutput
+{
+    float4 m_color : SV_Target0;
+};
+
+PSOutput MainPS(VSOutput IN)
+{
+    PSOutput OUT;
+
+    real2 position = IN.m_position.xy;
+    real2 uv = IN.m_texCoord;
+    real2 step  = PassSrg::m_stepSize;
+    real4 best  = float4(-1.0, -1.0, -1.0, -1.0);
+    uint width;
+    uint height;
+    PassSrg::m_prevJFA.GetDimensions(width, height);
+    real2 textureSize = real2(width, height);
+    real bestDistSq = dot(textureSize, textureSize) + 1.0;
+    int2 textureMax = int2(width, height) - 1;
+
+    // 3x3 neighbourhood at current step size
+    int2 start = max(int2(position - step), int2(0, 0));
+    int2 end = min(int2(position + step), textureMax);
+    for (int y = start.y; y <= end.y; ++y)
+    {
+        for (int x = start.x; x <= end.x; ++x)
+        {
+            real4 seed = PassSrg::m_prevJFA.Load(int3(x, y, 0));
+            if (seed.x >= 0.0 && seed.y >= 0.0)
+            {
+                real2 deltaPixels = (uv - seed.xy) * textureSize;
+                real distSq = dot(deltaPixels, deltaPixels);
+                if (distSq < bestDistSq)
+                {
+                    bestDistSq = distSq;
+                    best = seed;
+                }
+            }
+        }
+    }
+    OUT.m_color = best;
+    return OUT;
+}

@@ -42,6 +42,9 @@
 #include <ColorGrading/LutGenerationPass.h>
 #include <Debug/RenderDebugFeatureProcessor.h> 
 #include <Silhouette/SilhouetteFeatureProcessor.h>
+#if defined(CARBONATED)
+#include <Silhouette/SilhouetteJFAStepParentPass.h>
+#endif
 #include <PostProcess/PostProcessFeatureProcessor.h>
 #include <PostProcessing/BlendColorGradingLutsPass.h>
 #include <PostProcessing/BloomParentPass.h>
@@ -329,6 +332,10 @@ namespace AZ
             // Add splash screen pass
             passSystem->AddPassCreator(Name("SplashScreenPass"), &Render::SplashScreenPass::Create);
 
+#if defined(CARBONATED)
+            // Add Silhouette JFA passes
+            passSystem->AddPassCreator(Name("SilhouetteJFAStepParentPass"), &SilhouetteJFAStepParentPass::Create);
+#endif
             // setup handler for load pass template mappings
             m_loadTemplatesHandler = RPI::PassSystemInterface::OnReadyLoadTemplatesEvent::Handler([this]() { this->LoadPassTemplateMappings(); });
             RPI::PassSystemInterface::Get()->ConnectEvent(m_loadTemplatesHandler);

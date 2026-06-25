@@ -28,4 +28,7 @@ namespace EditorIdentifiers
     inline constexpr AZStd::string_view VertexSelectionChangedUpdaterIdentifier = "o3de.updater.onVertexSelectionChanged";
     inline constexpr AZStd::string_view UndoRedoUpdaterIdentifier = "o3de.updater.onUndoRedo";
     inline constexpr AZStd::string_view ViewportDisplayInfoStateChangedUpdaterIdentifier = "o3de.updater.onViewportDisplayInfoStateChanged";
+#if defined(CARBONATED)
+    inline constexpr AZStd::string_view SilhouettesStateChangedUpdaterIdentifier = "o3de.updater.onViewportSilhouettesStateChanged";
+#endif
 }

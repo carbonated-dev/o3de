@@ -49,7 +49,9 @@ namespace AZ
                 void ExcludeAllShaders();
                 void IncludeShader(const char* shaderTemplateName);
                 void ExcludeShader(const char* shaderTemplateName);
-
+#if defined(CARBONATED)
+                bool HasProperty(const char* propertyId);
+#endif
                 ShaderTemplatesList GetIncludedShaderTemplates() const;
 
             private:

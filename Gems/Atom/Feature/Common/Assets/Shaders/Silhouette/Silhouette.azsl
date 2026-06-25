@@ -10,9 +10,15 @@
 
 #include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
 #include <Atom/Features/PostProcessing/FullscreenPixelInfo.azsli>
+//#if defined(CARBONATED)
+#include <Atom/Features/StencilUtility.azsli>
+#include <Atom/Feature/Common/Assets/Shaders/Silhouette/Silhouette.azsli>
+//#endif
 
-ShaderResourceGroup PassSrg : SRG_PerPass
+//ShaderResourceGroup PassSrg : SRG_PerPass
+ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
+/*  Begin CARBONATED
     Sampler LinearSampler
     {
         MinFilter = Linear;
@@ -23,12 +29,19 @@ ShaderResourceGroup PassSrg : SRG_PerPass
         AddressW = Clamp;
     };
     Texture2DMS<float4> m_silhouettes;
+*/
+
+    Texture2D<float4> m_silhouettes;
+    Texture2D<uint> m_outlineData;
+    Texture2D<float> m_outlineDepth;
+    Texture2D<float4> m_jfaResult;
+    Texture2DMS<uint2> m_stencilTex;
+    Texture2D<float> m_depthTex;
 }
 
 PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
 {
-    PSOutput OUT;
-
+/*  Begin CARBONATED
     real4 pixelSample = PassSrg::m_silhouettes.Load(IN.m_position.xy, sampleIndex);
 
     // CARBONATED
@@ -38,8 +51,6 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
         discard;
     }
 
-    // ELSE (this code piece makes outlines from silhouettes based on alpha-channel, we form outline a different way with variable alpha support
-    /*
     const int NUM_SAMPLES = 7;
     const real outline_opacity = 0.7;
     const real2 Silhouette_Width = 3.0;
@@ -82,7 +93,96 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
 
         pixelSample.a = outline_opacity * step(0.001, pixelSample.a);
     }
-    */
+*/
+
+    PSOutput OUT = (PSOutput)0;
+
+    uint width, height;
+    PassSrg::m_silhouettes.GetDimensions(width, height);
+    int2 textureMax = int2(width, height) - 1;
+    int2 currentPosition = clamp(int2(IN.m_position.xy), int2(0, 0), textureMax);
+    real2 textureSize = real2(width, height);
+
+    real4 localSample = PassSrg::m_silhouettes.Load(int3(currentPosition, 0));
+    const bool isInside = localSample.a > 0.0;
+
+    real4 closestSeed = PassSrg::m_jfaResult.Load(int3(currentPosition, 0));
+    const bool hasValidSeed = closestSeed.x >= 0.0 && closestSeed.y >= 0.0;
+    if (!isInside && !hasValidSeed)
+    {
+        return OUT;
+    }
+
+    int2 sourcePosition = currentPosition;
+    if (!isInside)
+    {
+        sourcePosition = clamp(int2(closestSeed.zw * textureSize), int2(0, 0), textureMax);
+    }
+
+    float outlineDepth = PassSrg::m_outlineDepth.Load(int3(sourcePosition, 0));
+    float sceneDepth = PassSrg::m_depthTex.Load(int3(IN.m_position.xy, 0));
+    OutlineData outlineData = DecodeOutlineData(PassSrg::m_outlineData.Load(int3(sourcePosition, 0)));
+
+    const real bias = 0.001;
+    uint sceneStencilVal = ReadStencil(PassSrg::m_stencilTex.Load(IN.m_position.xy, sampleIndex));
+    if (sceneStencilVal & OutlineBlockMask)
+    {
+        bool occluded = sceneDepth + bias > outlineDepth;
+        if (occluded)
+        {
+            return OUT;
+        }
+    }
+
+    real4 pixelSample = localSample;
+    if (!isInside)
+    {
+        pixelSample = PassSrg::m_silhouettes.Load(int3(sourcePosition, 0));
+    }
+
+    real edgeDistance = 0.0;
+    if (hasValidSeed)
+    {
+        edgeDistance = length(closestSeed.xy * textureSize - IN.m_position.xy);
+    }
+
+    if (isInside)
+    {
+        if (outlineData.m_outlineOnly)
+        {
+            // Fade the inside of outline-only silhouettes against the
+            // reconstructed subpixel contour. Deep interior pixels may have no JFA
+            // seed because propagation is limited to the maximum outline width.
+            if (hasValidSeed)
+            {
+                pixelSample.a *= saturate(0.5 - edgeDistance);
+            }
+            else
+            {
+                pixelSample.a = 0.0;
+            }
+        }
+    }
+    else
+    {
+        // Apply a one-pixel coverage ramp to the outside of the outline.
+        pixelSample.a *= saturate(outlineData.m_outlineSize + 0.5 - edgeDistance);
+    }
+
+    switch(outlineData.m_type)
+    {
+        case SilhouetteType::AlwaysDraw:
+            break;
+        case SilhouetteType::Visible:
+            pixelSample.a = sceneDepth + bias > outlineDepth ? 0 : pixelSample.a;
+            break;
+        case SilhouetteType::XRay:
+            pixelSample.a = sceneDepth + bias < outlineDepth ? 0 : pixelSample.a;
+            break;
+        case SilhouetteType::NeverDraw:
+            pixelSample.a = 0;
+            break;
+    }
     
     OUT.m_color = pixelSample;
 

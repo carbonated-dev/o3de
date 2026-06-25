@@ -6,20 +6,6 @@
             "Enable": true, 
             "WriteMask" : "Zero",   // Avoid writing the depth
             "CompareFunc" : "Less"
-        },
-        "Stencil" :
-        {
-            "Enable" : true,
-            "ReadMask" : "0x40", // Needs to match BlockSilhouettes in RenderCommon.h
-            "WriteMask" : "0x0",
-            "FrontFace" :
-            {
-                "Func" : "Equal"
-            },
-            "BackFace" :
-            {
-                "Func" : "Equal"
-            }
         }
     },
     "DrawList": "silhouette",
@@ -28,13 +14,7 @@
     },
 
     "GlobalTargetBlendState": {
-        "Enable": true,
-        "BlendSource" : "One",
-        "BlendDest" : "Zero",
-        "BlendOp" : "Maximum",
-        "BlendAlphaSource" : "Zero",
-        "BlendAlphaDest" : "One",
-        "BlendAlphaOp" : "Maximum"
+        "Enable": false
     },
     "ProgramSettings": {
         "EntryPoints": [

@@ -231,6 +231,9 @@ namespace AZ
                 template<typename Type>
                 void SetShaderOptionValue(const char* name, Type value);
 
+#if defined(CARBONATED)
+                void SetStencilRefOverride(uint32_t stencilValue);
+#endif
             private:
                 void SetShaderOptionValue(const Name& name, AZStd::function<bool(ShaderOptionGroup*, ShaderOptionIndex)> setValueCommand);
 

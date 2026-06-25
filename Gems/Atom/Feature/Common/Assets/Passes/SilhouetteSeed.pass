@@ -1,0 +1,69 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "SilhouetteSeedPassTemplate",
+            "PassClass": "FullScreenTriangle",
+            "Slots": [
+                {
+                    "Name": "SeedOutput",
+                    "SlotType": "Output",
+                    "ScopeAttachmentUsage": "RenderTarget",
+                    "LoadStoreAction": {
+                        "ClearValue": {
+                            "Value": [
+                                -1.0,
+                                -1.0,
+                                -1.0,
+                                -1.0
+                            ]
+                        },
+                        "LoadAction": "Clear"
+                    }
+                },
+                {
+                    "Name": "SilhouetteColor",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_silhouettes",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "PassData": {
+                "$type": "FullscreenTrianglePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/Silhouette/SilhouetteSeed.shader"
+                },
+                "BindViewSrg": true
+            },
+            "ImageAttachments": [
+                {
+                    "Name": "SeedPingImageAttachment",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "Parent",
+                            "Attachment": "InputOutput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R16G16B16A16_SNORM",
+                        "SharedQueueMask": "Graphics"
+                    },
+                    "FormatFallbacks" : [
+                        "R16G16B16A16_FLOAT"
+                    ]
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "SeedOutput",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "SeedPingImageAttachment"
+                    }
+                }
+            ]
+        }
+    }
+}

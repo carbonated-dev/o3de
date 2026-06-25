@@ -24,3 +24,8 @@ static const float4 s_AzslDebugColor = float4(16.0 / 255.0, 124.0 / 255.0, 16.0 
 #define real3x3 float3x3
 #define real3x4 float3x4
 #define real4x4 float4x4
+
+//Begin CARBONATED
+//In DX12 you read the stencil value from the green channel, not the red one.
+#define STENCIL_READ_GREEN_CHANNEL 1
+//End CARBONATED

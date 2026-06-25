@@ -758,6 +758,9 @@ namespace AZ
                 ->Method("GetRenderStatesOverride", &LuaMaterialFunctorAPI::ShaderItem::GetRenderStatesOverride)
                 ->Method("SetEnabled", &LuaMaterialFunctorAPI::ShaderItem::SetEnabled)
                 ->Method("SetDrawListTagOverride", &LuaMaterialFunctorAPI::ShaderItem::SetDrawListTagOverride)
+#if defined(CARBONATED)
+                ->Method("SetStencilRefOverride", &LuaMaterialFunctorAPI::ShaderItem::SetStencilRefOverride)
+#endif
                 ->Method("SetShaderOptionValue_bool", &LuaMaterialFunctorAPI::ShaderItem::SetShaderOptionValue<bool>)
                 ->Method("SetShaderOptionValue_uint", &LuaMaterialFunctorAPI::ShaderItem::SetShaderOptionValue<uint32_t>)
                 ->Method("SetShaderOptionValue_enum", &LuaMaterialFunctorAPI::ShaderItem::SetShaderOptionValue<const char*>)
@@ -792,6 +795,16 @@ namespace AZ
                 m_shaderItem->SetDrawListTagOverride(Name{drawListTag});
             }
         }
+
+#if defined(CARBONATED)
+        void LuaMaterialFunctorAPI::ShaderItem::SetStencilRefOverride(uint32_t stencilValue)
+        {
+            if (m_shaderItem)
+            {
+                m_shaderItem->SetStencilRefOverride(static_cast<uint8_t>(stencilValue));
+            }
+        }
+#endif
 
         void LuaMaterialFunctorAPI::ShaderItem::SetShaderOptionValue(
             const Name& name, AZStd::function<bool(ShaderOptionGroup*, ShaderOptionIndex)> setValueCommand)

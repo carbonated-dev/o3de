@@ -130,6 +130,9 @@
             },
             { 
                 "$import": "MaterialInputs/GeneralCommonPropertyGroup.json"
+            },
+            { 
+                "$import": "MaterialInputs/SilhouettePropertyGroup.json"
             }
         ]
     },
