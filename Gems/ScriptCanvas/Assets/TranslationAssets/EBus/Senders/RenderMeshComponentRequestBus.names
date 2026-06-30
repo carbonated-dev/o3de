@@ -491,7 +491,7 @@
                             }
                         }
                     ]
-                }
+                },
                 {
                     "base": "SetVisibility",
                     "entry": {

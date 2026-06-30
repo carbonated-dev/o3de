@@ -204,6 +204,11 @@ namespace AZ::Render
         return m_isVisible;
     }
 
+    AreaLightComponentConfig::LightType AreaLightComponentController::GetType() const
+    {
+        return m_configuration.m_lightType;
+    }
+
 #endif
     
     void AreaLightComponentController::VerifyLightTypeAndShapeComponent()
@@ -300,6 +305,19 @@ namespace AZ::Render
     {
         AreaLightNotificationBus::Event(m_entityId, &AreaLightNotifications::OnColorOrIntensityChanged, m_configuration.m_color, m_configuration.m_intensity);
 
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
+        if (m_lightShapeDelegate)
+        {
+            if (m_lightShapeDelegate->GetPhotometricUnit() != m_configuration.m_intensityMode)
+            {
+                m_lightShapeDelegate->SetPhotometricUnit(m_configuration.m_intensityMode);
+            }
+            if (AZStd::abs(m_lightShapeDelegate->GetIntensity() - m_configuration.m_intensity) > 0.001f)
+            {
+                m_lightShapeDelegate->SetIntensity(m_configuration.m_intensity);
+            }
+        }
+#else
         if (m_lightShapeDelegate)
         {
             m_lightShapeDelegate->SetPhotometricUnit(m_configuration.m_intensityMode);
@@ -310,6 +328,7 @@ namespace AZ::Render
         {
             AttenuationRadiusChanged();
         }
+#endif
     }
 
     void AreaLightComponentController::ChromaChanged()
@@ -322,6 +341,12 @@ namespace AZ::Render
 
     void AreaLightComponentController::AttenuationRadiusChanged()
     {
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
+        if (m_lightShapeDelegate && AZStd::abs(m_lightShapeDelegate->GetAttenuationRadius() - m_configuration.m_attenuationRadius) < 0.001f)
+        {
+            return;
+        }
+#endif
         if (m_configuration.m_attenuationRadiusMode == LightAttenuationRadiusMode::Automatic)
         {
             AutoCalculateAttenuationRadius();
@@ -350,6 +375,12 @@ namespace AZ::Render
     {
         if (m_lightShapeDelegate)
         {
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
+            if (m_lightShapeDelegate->GetEnableShadow() == m_configuration.m_enableShadow)
+            {
+                return;
+            }
+#endif
             m_lightShapeDelegate->SetEnableShadow(m_configuration.m_enableShadow);
             if (m_configuration.m_enableShadow)
             {
@@ -429,6 +460,13 @@ namespace AZ::Render
 
         AreaLightNotificationBus::Event(m_entityId, &AreaLightNotifications::OnIntensityChanged, intensity, intensityMode);
         IntensityChanged();
+
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
+        if (m_configuration.m_attenuationRadiusMode == LightAttenuationRadiusMode::Automatic)
+        {
+            AttenuationRadiusChanged();
+        }
+#endif
     }
 
     void AreaLightComponentController::SetIntensity(float intensity, PhotometricUnit intensityMode)
@@ -440,6 +478,13 @@ namespace AZ::Render
 
         AreaLightNotificationBus::Event(m_entityId, &AreaLightNotifications::OnIntensityChanged, intensity, intensityMode);
         IntensityChanged();
+
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
+        if (m_configuration.m_attenuationRadiusMode == LightAttenuationRadiusMode::Automatic)
+        {
+            AttenuationRadiusChanged();
+        }
+#endif
     }
 
     void AreaLightComponentController::SetIntensity(float intensity)
@@ -448,6 +493,13 @@ namespace AZ::Render
 
         AreaLightNotificationBus::Event(m_entityId, &AreaLightNotifications::OnIntensityChanged, intensity, m_configuration.m_intensityMode);
         IntensityChanged();
+
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
+        if (m_configuration.m_attenuationRadiusMode == LightAttenuationRadiusMode::Automatic)
+        {
+            AttenuationRadiusChanged();
+        }
+#endif
     }
 
     float AreaLightComponentController::GetAttenuationRadius() const

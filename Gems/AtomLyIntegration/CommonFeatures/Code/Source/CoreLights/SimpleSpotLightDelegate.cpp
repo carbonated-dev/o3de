@@ -40,6 +40,9 @@ namespace AZ::Render
 
     void SimpleSpotLightDelegate::SetShutterAngles(float innerAngleDegrees, float outerAngleDegrees)
     {
+#if defined(CARBONATED) && defined(CARBONATED_LIGHT_OPTIMIZATION)
+        Base::SetShutterAngles(innerAngleDegrees, outerAngleDegrees);
+#endif
         if (GetLightHandle().IsValid())
         {
             GetFeatureProcessor()->SetConeAngles(GetLightHandle(), DegToRad(innerAngleDegrees), DegToRad(outerAngleDegrees));

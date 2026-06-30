@@ -17,6 +17,10 @@
 #include <AzToolsFramework/Prefab/PrefabSystemComponentInterface.h>
 #include <Prefab/PrefabDomUtils.h>
 
+#if defined CARBONATED
+#include <AzToolsFramework/UI/DocumentPropertyEditor/DocumentPropertyEditor.h>
+#endif
+
 namespace AzToolsFramework
 {
     namespace Prefab

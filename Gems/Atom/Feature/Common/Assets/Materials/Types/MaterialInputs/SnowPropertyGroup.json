@@ -1,0 +1,303 @@
+{
+    "name": "snow",
+    "displayName": "Snow cover",
+    "description": "Snow cover overlay properties controlled by the Weather Gem",
+    "properties": [
+        {
+            "name": "enable",
+            "displayName": "Enable",
+            "description": "Option whether to enable snow cover overlay.",
+            "type": "Bool",
+            "defaultValue": false
+        },
+        {
+            "name": "amount",
+            "displayName": "Amount",
+            "description": "Snow cover amount, for example snowfall intensity, [0..1]: 0 is no snow cover, 1 is snow cover all-over.",
+            "type": "Float",
+            "defaultValue": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowAmount"
+            }
+        },
+        {
+            "name": "opacityMap",
+            "displayName": "Opacity Map",
+            "description": "Texture for snow cover overlay opacity depending on the Amount.",
+            "type": "Image",
+            "optional": true,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowOpacityMap"
+            }
+        },
+        {
+            "name": "useOpacityMap",
+            "displayName": "    Use Texture",
+            "description": "Option whether to use the opacity texture together with the Amount value, or just blend with the Amount value.",
+            "type": "Bool",
+            "defaultValue": true
+        },
+        {
+            "name": "opacityMapUv",
+            "displayName": "    UV",
+            "description": "Opacity map UV set",
+            "type": "Enum",
+            "enumIsUv": true,
+            "defaultValue": "Tiled",
+            "optional": true,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowOpacityMapUvIndex"
+            }
+        },
+        {
+            "name": "opacityMapUvScale",
+            "displayName": "    UV Scale",
+            "description": "Snow cover opacity map UV scale, [0.2 .. 20.0].",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.2,
+            "max": 20.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowOpacityMapUvScale"
+            }
+        },
+        {
+            "name": "factor",
+            "displayName": "Factor",
+            "description": "Snow Cover factor of a surface material (blending), [0..1]: 0 no snow cover, 1 full snow cover.",
+            "type": "Float",
+            "defaultValue": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowFactor"
+            }
+        },
+        {
+            "name": "factorMap",
+            "displayName": "Factor Map",
+            "description": "Texture defining a surface material snow cover factor (blending).",
+            "type": "Image",
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowFactorMap"
+            }
+        },
+        {
+            "name": "useFactorMap",
+            "displayName": "    Use Texture",
+            "description": "Option whether to use the texture, or just default to the snow Factor value.",
+            "type": "Bool",
+            "defaultValue": true
+        },
+        {
+            "name": "factorMapUv",
+            "displayName": "    UV",
+            "description": "Snow cover factor map UV set",
+            "type": "Enum",
+            "enumIsUv": true,
+            "defaultValue": "Unwrapped",
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowFactorMapUvIndex"
+            }
+        },
+        {
+            "name": "factorMapUvScale",
+            "displayName": "    UV Scale",
+            "description": "Snow cover factor map UV scale, [0.2 .. 20.0].",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.2,
+            "max": 20.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowFactorMapUvScale"
+            }
+        },
+        {
+            "name": "tintColor",
+            "displayName": "Tint Color",
+            "description": "Tint Color for albedo of snow cover.",
+            "type": "Color",
+            "defaultValue": [ 0.9, 0.95, 1.0 ],
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowTintColor"
+            }
+        },
+        {
+            "name": "albedoMap",
+            "displayName": "Albedo map",
+            "description": "Snow cover albedo map.",
+            "type": "Image",
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowAlbedoMap"
+            }
+        },
+        {
+            "name": "useAlbedoMap",
+            "displayName": "    Use Texture",
+            "description": "Option whether to use albedo texture, or just default to the tintColor value.",
+            "type": "Bool",
+            "defaultValue": true
+        },
+        {
+            "name": "albedoMapUv",
+            "displayName": "    UV",
+            "description": "Snow cover albedo map UV set,",
+            "type": "Enum",
+            "enumIsUv": true,
+            "defaultValue": "Tiled",
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowAlbedoMapUvIndex"
+            }
+        },
+        {
+            "name": "albedoMapUvScale",
+            "displayName": "    UV Scale",
+            "description": "Snow cover albedo map UV scale, [0.2 .. 20.0].",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.2,
+            "max": 20.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowAlbedoMapUvScale"
+            }
+        },
+        {
+            "name": "normalMap",
+            "displayName": "Normal Map",
+            "description": "Normal map for snow cover overlay, as top layer material snow cover isn't affected by base layer normal map",
+            "type": "Image",
+            "optional": true,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowNormalMap"
+            }
+        },
+        {
+            "name": "useNormalMap",
+            "displayName": "    Use Texture",
+            "description": "Option whether to use the normal map,",
+            "type": "Bool",
+            "defaultValue": true
+        },
+        {
+            "name": "normalMapUv",
+            "displayName": "    UV",
+            "description": "Snow cover normal map UV set",
+            "type": "Enum",
+            "enumIsUv": true,
+            "optional": true,
+            "defaultValue": "Tiled",
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowNormalMapUvIndex"
+            }
+        },
+        {
+            "name": "normalMapUvScale",
+            "displayName": "    UV Scale",
+            "description": "Snow cover normal map UV scale, [0.2 .. 20.0].",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.2,
+            "max": 20.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowNormalMapUvScale"
+            }
+        },
+        {
+            "name": "normalStrength",
+            "displayName": "    Normal Strength",
+            "description": "Scales the impact of the snow cover normal map,",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.0,
+            "max": 3.0,
+            "optional": true,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowNormalStrength"
+            }
+        },
+        {
+            "name": "roughness",
+            "displayName": "Roughness",
+            "description": "Snow cover overlay roughness.",
+            "type": "Float",
+            "defaultValue": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "optional": true,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowRoughness"
+            }
+        },
+        {
+            "name": "roughnessMap",
+            "displayName": "    Roughness Map",
+            "description": "Texture for defining surface roughness.",
+            "type": "Image",
+            "optional": true,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowRoughnessMap"
+            }
+        },
+        {
+            "name": "useRoughnessMap",
+            "displayName": "    Use Texture",
+            "description": "Option whether to use the texture, or just default to the roughness value.",
+            "type": "Bool",
+            "defaultValue": true
+        },
+        {
+            "name": "roughnessMapUv",
+            "displayName": "    UV",
+            "description": "Roughness map UV set",
+            "type": "Enum",
+            "enumIsUv": true,
+            "defaultValue": "Tiled",
+            "optional": true,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowRoughnessMapUvIndex"
+            }
+        },
+        {
+            "name": "roughnessMapUvScale",
+            "displayName": "    UV Scale",
+            "description": "Snow cover roughness map UV scale, [0.2 .. 20.0].",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.2,
+            "max": 20.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_snowRoughnessMapUvScale"
+            }
+        }
+    ],
+    "functors": [
+        {
+            "type": "Lua",
+            "args": {
+                "file": "Materials/Types/BasePBR_SnowCoverFeature.lua"
+            }
+        }
+    ]
+}

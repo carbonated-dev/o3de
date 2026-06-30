@@ -1,19 +1,32 @@
 {
     "name": "wet",
     "displayName": "Wet",
-    "description": "Properties for configuring whether the surface is wet or not.",
+    "description": "Rain wetness overlay properties controlled by the Weather Gem.",
     "properties": [
         {
             "name": "useWet",
             "displayName": "Apply Wet",
-            "description": "User Wet properties or not.",
+            "description": "Use Wet properties or not.",
             "type": "Bool",
             "defaultValue": false
         },
         {
+            "name": "wetAmount",
+            "displayName": "Wetness Amount",
+            "description": "Wetting factor, for example rain intensity, [0..1]: 0 is no wetting, 1 is maximal wetting.",
+            "type": "Float",
+            "defaultValue": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_wetAmount"
+            }
+        },
+        {
             "name": "wetFactor",
-            "displayName": "WetnessFactor",
-            "description": "WetnessFactor [0..1]. 0 is dry, 1 is completely wet.",
+            "displayName": "Wetness Factor",
+            "description": "Moistening factor of surface material, [0..1]: 0 surface remains waterless, 1 surface is completely soaked.",
             "type": "Float",
             "defaultValue": 0.0,
             "min": 0.0,
@@ -26,14 +39,14 @@
         {
             "name": "useTexture",
             "displayName": "Use Texture",
-            "description": "Whether to use the texture, or just default to the WetFactor value.",
+            "description": "Whether to use the texture, or just default to the wetFactor value.",
             "type": "Bool",
-            "defaultValue": false
+            "defaultValue": true
         },
         {
             "name": "textureMap",
             "displayName": "Texture",
-            "description": "Texture for defining surface wetness.",
+            "description": "Texture defining surface Moistening properties.",
             "type": "Image",
             "connection": {
                 "type": "ShaderInput",
@@ -42,14 +55,27 @@
         },
         {
             "name": "textureMapUv",
-            "displayName": "UV",
-            "description": "Specular reflection map UV set",
+            "displayName": "    UV",
+            "description": "Moistening properties map UV set",
             "type": "Enum",
             "enumIsUv": true,
-            "defaultValue": "Tiled",
+            "defaultValue": "Unwrapped",
             "connection": {
                 "type": "ShaderInput",
                 "name": "m_wetMapUvIndex"
+            }
+        },
+        {
+            "name": "textureMapUvScale",
+            "displayName": "    UV Scale",
+            "description": "Moistening properties map UV scale, [0.2 .. 20.0]",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.2,
+            "max": 20.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_wetMapUvScale"
             }
         }
     ],

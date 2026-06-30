@@ -106,7 +106,11 @@ namespace AZ
                 RPI::ViewPtr previousView) override;
 
         private:
-
+#if defined(CARBONATED)
+            // Shared mutex to prevent race conditions during culling
+            mutable AZStd::shared_mutex m_decalDataMutex;
+            DecalTextureArrayFeatureProcessor::DecalHandle AcquireDecalInternal();
+#endif
             // Number of size and format permutations
             // This number should match the number of texture arrays in Decals/ViewSrg.azsli
             static constexpr int NumTextureArrays = 4;
@@ -145,6 +149,12 @@ namespace AZ
             void UpdateBounds(const DecalHandle handle);
 #if defined(CARBONATED)
             void LogDecalDebugInfo(const AZStd::string& text, const DecalLocation& decalLocation) const;
+            // A helper function to check if the vector contains NaN or not. NaN can cause issues for GPU culling and sorting.
+            bool IsVectorValid(const AZ::Vector3& vec) const
+            {
+                // IEEE 754: NaN is the only value that does not equal itself.
+                return (vec.GetX() == vec.GetX()) && (vec.GetY() == vec.GetY()) && (vec.GetZ() == vec.GetZ());
+            }
 #endif
 
             MultiIndexedDataVector<DecalData, AZ::Aabb> m_decalData;

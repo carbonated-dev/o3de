@@ -30,6 +30,10 @@ if(CARBONATED)
     if(AUTOMATED_TESTING_ON)
         add_compile_definitions(AUTOMATED_TESTING_ON)
     endif(AUTOMATED_TESTING_ON)
+
+    # Turn on light optimization
+    add_compile_definitions(CARBONATED_LIGHT_OPTIMIZATION)
+
 endif(CARBONATED)
 
 # memory and performance tracking options
