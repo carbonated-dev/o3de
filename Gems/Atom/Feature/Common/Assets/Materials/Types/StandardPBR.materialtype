@@ -67,12 +67,7 @@
                 "$import": "MaterialInputs/GeneralCommonPropertyGroup.json"
             },
             {
-                "$import": "MaterialInputs/WetPropertyGroup.json"
-            },
-            {
-                "$import": "MaterialInputs/SnowPropertyGroup.json"
-            },
-            {
+
                 "$import": "MaterialInputs/SilhouettePropertyGroup.json"
             }
         ]

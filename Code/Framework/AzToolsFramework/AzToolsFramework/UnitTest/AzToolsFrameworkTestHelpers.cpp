@@ -142,6 +142,12 @@ namespace UnitTest
     {
         return m_onlyShowForSelectedEntities;
     }
+#if defined(CARBONATED)
+    bool ViewportSettingsTestImpl::SilhouettesVisible() const
+    {
+        return false;
+    }
+#endif
 
     AZ::Vector3 ViewportSettingsTestImpl::DefaultEditorCameraPosition() const
     {

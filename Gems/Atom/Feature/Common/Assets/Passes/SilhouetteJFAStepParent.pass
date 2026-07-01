@@ -18,10 +18,6 @@
                 {
                     "Name": "SilhouetteJFAOutput",
                     "SlotType": "InputOutput"
-                },
-                {
-                    "Name": "DepthStencilInput",
-                    "SlotType": "Input"
                 }
             ],
             "ImageAttachments": [

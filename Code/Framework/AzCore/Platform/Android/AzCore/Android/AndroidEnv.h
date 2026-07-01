@@ -212,7 +212,11 @@ namespace AZ
             bool m_ownsConfiguration; //!< For when no configuration is passed into the construction and needs to be cleaned up
             bool m_isReady; //!< Set only once the object has been successfully constructed
 
+#if defined(CARBONATED)
+            std::atomic<bool> m_isRunning;
+#else
             bool m_isRunning; //!< Internal flag indicating if the application is running, mainly used to determine if we shoudl be blocking on the event pump while paused
+#endif
         };
     } // namespace Android
 } // namespace AZ

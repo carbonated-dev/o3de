@@ -21,6 +21,11 @@
 #include "MotionInstancePool.h"
 #include "Motion.h"
 #include "EMotionFXManager.h"
+
+#if defined(CARBONATED)
+#include <MCore/Source/LogManager.h>
+#endif
+
 #include "MotionEventTable.h"
 #include "AnimGraph.h"
 #include <EMotionFX/Source/MotionData/MotionData.h>
@@ -422,6 +427,12 @@ namespace EMotionFX
         {
             motionInstance = CreateMotionInstance(actorInstance, uniqueData);
             uniqueData->m_reload = false;
+#if defined(CARBONATED)            
+            if (motionInstance)
+            {
+                uniqueData->m_loggedNullMotion = false; // reset so we log again if it becomes null later
+            }
+#endif
         }
         else
         {
@@ -437,6 +448,17 @@ namespace EMotionFX
             RequestPoses(animGraphInstance);
             AnimGraphPose* outputPose = GetOutputPose(animGraphInstance, OUTPUTPORT_POSE)->GetValue();
             outputPose->InitFromBindPose(actorInstance);
+
+#if defined(CARBONATED)            
+#if !defined(_RELEASE)
+            if (!uniqueData->m_loggedNullMotion)
+            {
+                uniqueData->m_loggedNullMotion = true;
+                MCore::LogWarning("[AnimGraphMotionNode] actor=%p node='%s' - motion instance is null (motion not loaded or not found in motion set)",
+                    animGraphInstance, GetName());
+            }
+#endif // !_RELEASED
+#endif // CARBONATED
 
             if (GetEMotionFX().GetIsInEditorMode())
             {

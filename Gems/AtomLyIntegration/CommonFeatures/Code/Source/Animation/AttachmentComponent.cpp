@@ -13,6 +13,11 @@
 #include <LmbrCentral/Animation/AttachmentComponentBus.h>
 #include <LmbrCentral/Animation/SkeletalHierarchyRequestBus.h>
 
+#if defined(CARBONATED)
+// for rate limited log counter in invalid transform gate warning
+#include <AzCore/std/parallel/atomic.h>
+#endif
+
 namespace AZ
 {
     namespace Render
@@ -278,6 +283,34 @@ namespace AZ
                 // apply offset in target-bone-space
                 finalTransform = m_targetEntityTransform * m_targetBoneTransform * m_targetOffset;
             }
+
+#if defined(CARBONATED)
+            if (!finalTransform.IsFinite())
+            {
+                static AZStd::atomic_int s_invalidBoneFollowerTransformLogCount{ 0 };
+                const int logCount = s_invalidBoneFollowerTransformLogCount.fetch_add(1);
+
+                if (logCount < 5)
+                {
+                    AZ_Warning(
+                        "BoneFollower",
+                        false,
+                        "Skipping invalid bone follower transform. ownerEntityId=%s targetEntityId=%s targetBoneName='%s'",
+                        m_ownerId.ToString().c_str(),
+                        m_targetId.ToString().c_str(),
+                        m_targetBoneName.c_str());
+                }
+                else if (logCount == 5)
+                {
+                    AZ_Warning(
+                        "BoneFollower",
+                        false,
+                        "Suppressing further invalid bone follower transform warnings.");
+                }
+
+                return;
+            }
+#endif       
 
             if (m_cachedOwnerTransform != finalTransform)
             {

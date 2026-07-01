@@ -13,6 +13,8 @@
 
 #if PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
 #include <AzFramework/XcbApplication.h>
+#elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+#include <AzFramework/SDLApplication.h>
 #endif
 
 constexpr rlim_t g_minimumOpenFileHandles = 65536L;
@@ -41,6 +43,8 @@ namespace AzFramework
         }
 #if PAL_TRAIT_LINUX_WINDOW_MANAGER_XCB
         return aznew XcbApplication();
+#elif defined(CARBONATED) && defined(PAL_TRAIT_LINUX_WINDOW_MANAGER_SDL)
+        return aznew SDLApplication();
 #elif PAL_TRAIT_LINUX_WINDOW_MANAGER_WAYLAND
         #error "Linux Window Manager Wayland not supported."
         return nullptr;

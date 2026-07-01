@@ -155,6 +155,7 @@ namespace EMotionFX
             {
                 return m_configuration.m_motionSetAsset;
             }
+            void RequestImmediateAnimGraphSync() override;
 #endif
             // carbonated end EMotionFX_port
 

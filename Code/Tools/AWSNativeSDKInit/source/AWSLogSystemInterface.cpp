@@ -83,6 +83,17 @@ namespace AWSNativeSDKInit
 #if (AWS_SDK_VERSION_MAJOR == 1) && (AWS_SDK_VERSION_MINOR >= 11) && (AWS_SDK_VERSION_PATCH >= 344)
     void AWSLogSystemInterface::vaLog(Aws::Utils::Logging::LogLevel logLevel, const char* tag, const char* formatStr, va_list args)
     {
+#if defined(AZ_PLATFORM_LINUX)
+        char message[MAX_MESSAGE_LENGTH];
+        azvsnprintf(message, MAX_MESSAGE_LENGTH, formatStr, args);
+
+        printf("AWSLOG %s %s", tag, message);
+
+        if (!ShouldLog(logLevel))
+        {
+            return;
+        }
+#else
         if (!ShouldLog(logLevel))
         {
             return;
@@ -90,7 +101,7 @@ namespace AWSNativeSDKInit
 
         char message[MAX_MESSAGE_LENGTH];
         azvsnprintf(message, MAX_MESSAGE_LENGTH, formatStr, args);
-
+#endif
         ForwardAwsApiLogMessage(logLevel, tag, message);
     }
 #endif
@@ -101,6 +112,9 @@ namespace AWSNativeSDKInit
     */
     void AWSLogSystemInterface::LogStream(Aws::Utils::Logging::LogLevel logLevel, const char* tag, const Aws::OStringStream &messageStream)
     {
+#if defined(AZ_PLATFORM_LINUX)
+        printf("AWSLOG %s %s", tag, messageStream.str().c_str());
+#endif
         if(!ShouldLog(logLevel)) 
         {
             return;

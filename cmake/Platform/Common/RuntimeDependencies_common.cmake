@@ -114,6 +114,14 @@ function(o3de_get_dependencies_for_target)
             continue()
         endif()
 
+        # CARBONATED skip recursive dependencies
+        set(target_dependency_stack_pos -1)
+        list(FIND target_dependency_stack ${link_dependency} target_dependency_stack_pos)
+        if(target_dependency_stack_pos GREATER_EQUAL 0)
+            message("Skip recursive dependency ${link_dependency}, which is at the position ${target_dependency_stack_pos} in the dependency stack ${target_dependency_stack}")
+            continue()
+        endif()
+
         if(TARGET ${link_dependency})
             get_target_property(is_imported ${link_dependency} IMPORTED)
             get_target_property(is_system_library ${link_dependency} LY_SYSTEM_LIBRARY)
@@ -133,6 +141,9 @@ function(o3de_get_dependencies_for_target)
         unset(dependent_target_dependencies)
         unset(dependent_link_dependencies)
         unset(dependent_imported_dependencies)
+        
+        list(APPEND target_dependency_stack ${link_dependency})  # CARBONATED maintain dependency stack to skip recursive dependencies
+        
         o3de_get_dependencies_for_target(
             TARGET "${link_dependency}"
             COPY_DEPENDENCIES_VAR dependent_copy_dependencies
@@ -140,6 +151,9 @@ function(o3de_get_dependencies_for_target)
             LINK_DEPENDENCIES_VAR dependent_link_dependencies
             IMPORTED_DEPENDENCIES_VAR dependent_imported_dependencies
         )
+        
+        list(POP_BACK target_dependency_stack)  # CARBONATED maintain dependency stack to skip recursive dependencies
+        
         list(APPEND all_copy_dependencies ${dependent_copy_dependencies})
         list(APPEND all_target_dependencies ${dependent_target_dependencies})
         list(APPEND all_link_dependencies ${dependent_link_dependencies})
@@ -437,6 +451,11 @@ function(ly_delayed_generate_runtime_dependencies)
         unset(target_target_dependencies)
         unset(target_link_dependencies)
         unset(target_imported_dependencies)
+        
+        # CARBONATED maintain dependency stack to skip recursive dependencies
+        set(target_dependency_stack)
+        list(APPEND target_dependency_stack ${target})
+        
         o3de_get_dependencies_for_target(
             TARGET "${target}"
             COPY_DEPENDENCIES_VAR target_copy_dependencies
@@ -444,6 +463,8 @@ function(ly_delayed_generate_runtime_dependencies)
             LINK_DEPENDENCIES_VAR target_link_dependencies
             IMPORTED_DEPENDENCIES_VAR target_imported_dependencies
         )
+
+        set(target_dependency_stack)  # CARBONATED maintain dependency stack to skip recursive dependencies
 
         # Convert dependencies to files or generator expressions that can transform to files
         o3de_transform_dependencies_to_files(FILES_VAR target_copy_files

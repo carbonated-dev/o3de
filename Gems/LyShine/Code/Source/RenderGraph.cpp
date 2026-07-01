@@ -806,10 +806,12 @@ namespace LyShine
             return;
         }
 
+        AZ_Info("RenderGraph", "Check GPU %s", gpuName.c_str());
+
         // Path to Vulkan1TexPerDrawCall section
         constexpr const char* kRootKey = "/O3DE/Vulkan1TexPerDrawCall";
 
-        bool matched = false;
+        bool match = false;
 
         // Iterate over all key/value pairs in the section
         auto callback = [&](const AZ::SettingsRegistryInterface::VisitArgs& visitArgs)
@@ -832,9 +834,13 @@ namespace LyShine
             // Try to match GPU name
             if (AZStd::regex_match(gpuName.c_str(), regexPattern))
             {
-                AZ_Info("RenderGraph", "GPU \"%s\" matched workaround rule \"%s\"", gpuName.c_str(), visitArgs.m_fieldName.cbegin());
-                matched = true;
+                AZ_Info("RenderGraph", "  matches \"%s\"", visitArgs.m_fieldName.cbegin());
+                match = true;
                 return AZ::SettingsRegistryInterface::VisitResponse::Done;
+            }
+            else
+            {
+                AZ_Info("RenderGraph", "  mismath \"%s\"", visitArgs.m_fieldName.cbegin());
             }
 
             return AZ::SettingsRegistryInterface::VisitResponse::Continue;
@@ -843,9 +849,9 @@ namespace LyShine
         // Visit all entries under /O3DE/Vulkan1TexPerDrawCall
         AZ::SettingsRegistryVisitorUtils::VisitObject(*registry, callback, kRootKey);
 
-        // Apply workaround if matched
-        r_vkTexUsageMode = matched ? 1 : 0;
-        AZ_Info("RenderGraph", "r_vkTexUsageMode = %d", matched);
+        // Apply workaround if there is a match
+        r_vkTexUsageMode = match ? 1 : 0;
+        AZ_Info("RenderGraph", "r_vkTexUsageMode = %d", match);
     }
 #endif
 

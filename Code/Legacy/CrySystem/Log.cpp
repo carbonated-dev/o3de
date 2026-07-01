@@ -941,6 +941,10 @@ void CLog::LogWithCallback(ELogType type, const LogWriteCallback& messageCallbac
                     // do not use FLUSH on log files.  Doing so will slow the engine down greatly when logging.
                     // (the log is flushed automatically when an unhandled exception occurs)
                 }
+#if defined(CARBONATED) && defined(AZ_PLATFORM_LINUX)
+                // add all the messages that go to log file to system console output even if the log file is not opened
+                fwrite(logString.data(), logString.size(), 1, stdout);
+#endif
             }
         };
         LogStringToFileWithCallback(type, messageCallback, logCategoryString);

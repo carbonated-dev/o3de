@@ -164,6 +164,9 @@ namespace UnitTest
         bool IconsVisible() const override;
         bool HelpersVisible() const override;
         bool OnlyShowHelpersForSelectedEntities() const override;
+#if defined(CARBONATED)
+        bool SilhouettesVisible() const override;
+#endif
 
         float m_gridSize = 1.0f;
         float m_angularStep = 0.0f;

@@ -16,6 +16,65 @@
 
 namespace AZ::RHI
 {
+
+#if defined(CARBONATED)
+    const char* VendorIdToString(VendorId vendorId)
+    {
+        switch (vendorId)
+        {
+        case VendorId::Intel:
+            return "Intel";
+        case VendorId::nVidia:
+            return "NVIDIA";
+        case VendorId::AMD:
+            return "AMD";
+        case VendorId::Qualcomm:
+            return "Qualcomm";
+        case VendorId::Samsung:
+            return "Samsung";
+        case VendorId::ARM:
+            return "ARM";
+        case VendorId::Warp:
+            return "Microsoft WARP";
+        case VendorId::Apple:
+            return "Apple";
+        case VendorId::Unknown:
+        default:
+            return "Unknown";
+        }
+    }
+
+    const char* PhysicalDeviceTypeToString(PhysicalDeviceType deviceType)
+    {
+        switch (deviceType)
+        {
+        case PhysicalDeviceType::GpuIntegrated:
+            return "Integrated GPU";
+        case PhysicalDeviceType::GpuDiscrete:
+            return "Discrete GPU";
+        case PhysicalDeviceType::GpuVirtual:
+            return "Virtual GPU";
+        case PhysicalDeviceType::Cpu:
+            return "CPU";
+        case PhysicalDeviceType::Fake:
+            return "Fake";
+        case PhysicalDeviceType::Unknown:
+        default:
+            return "Unknown";
+        }
+    }
+
+    AZStd::string PhysicalDeviceDriverVersionToString(const PhysicalDeviceDescriptor& descriptor)
+    {
+        if (descriptor.m_driverVersion == 0)
+        {
+            return "Unknown";
+        }
+
+        return AZStd::string::format("0x%08X (%u)", descriptor.m_driverVersion, descriptor.m_driverVersion);
+    }
+#endif
+
     bool Device::IsInitialized() const
     {
         return m_physicalDevice != nullptr;
