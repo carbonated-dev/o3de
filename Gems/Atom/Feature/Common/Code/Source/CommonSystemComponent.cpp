@@ -76,6 +76,9 @@
 #include <PostProcessing/PaniniProjectionPass.h>
 #include <PostProcessing/FilmGrainPass.h>
 #include <PostProcessing/WhiteBalancePass.h>
+#if defined(CARBONATED)
+#include <PostProcessing/RadialBlurPass.h>
+#endif
 #include <PostProcessing/VignettePass.h>
 #include <ScreenSpace/DeferredFogPass.h>
 #include <Shadows/ProjectedShadowFeatureProcessor.h>
@@ -304,6 +307,11 @@ namespace AZ
 
             // Add White Balance pass
             passSystem->AddPassCreator(Name("WhiteBalancePass"), &WhiteBalancePass::Create);
+
+#if defined(CARBONATED)
+            // Add Radial Blur
+            passSystem->AddPassCreator(Name("RadialBlurPass"), &RadialBlurPass::Create);
+#endif
 
             // Add Vignette
             passSystem->AddPassCreator(Name("VignettePass"), &VignettePass::Create);

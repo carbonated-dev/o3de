@@ -457,6 +457,10 @@
                 "Path": "Passes/Bloom.pass"
             },
             {
+                "Name": "RadialBlurTemplate",
+                "Path": "Passes/RadialBlur.pass"
+            },
+            {
                 "Name": "DiffuseGlobalFullscreenPassTemplate",
                 "Path": "Passes/DiffuseGlobalFullscreen.pass"
             },

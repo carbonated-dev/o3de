@@ -22,6 +22,9 @@
 #include <PostProcess/PaniniProjection/PaniniProjectionSettings.h>
 #include <PostProcess/FilmGrain/FilmGrainSettings.h>
 #include <PostProcess/WhiteBalance/WhiteBalanceSettings.h>
+#if defined(CARBONATED)
+#include <PostProcess/RadialBlur/RadialBlurSettings.h>
+#endif
 #include <PostProcess/Vignette/VignetteSettings.h>
 #include <ScreenSpace/DeferredFogSettings.h>
 

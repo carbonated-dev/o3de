@@ -70,6 +70,10 @@ set(FILES
     Source/PostProcess/FilmGrain/EditorFilmGrainComponent.h
     Source/PostProcess/WhiteBalance/EditorWhiteBalanceComponent.cpp
     Source/PostProcess/WhiteBalance/EditorWhiteBalanceComponent.h
+# Begin Carbonated
+    Source/PostProcess/RadialBlur/EditorRadialBlurComponent.cpp
+    Source/PostProcess/RadialBlur/EditorRadialBlurComponent.h
+#End Carbonated
     Source/PostProcess/Vignette/EditorVignetteComponent.cpp
     Source/PostProcess/Vignette/EditorVignetteComponent.h
     Source/PostProcess/ColorGrading/EditorHDRColorGradingComponent.cpp

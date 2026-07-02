@@ -211,6 +211,10 @@ set(FILES
     Source/PostProcess/Ssao/SsaoSettings.h
     Source/PostProcess/WhiteBalance/WhiteBalanceSettings.cpp
     Source/PostProcess/WhiteBalance/WhiteBalanceSettings.h
+# Begin Carbonated
+    Source/PostProcess/RadialBlur/RadialBlurSettings.cpp
+    Source/PostProcess/RadialBlur/RadialBlurSettings.h
+#End Carbonated
     Source/PostProcess/Vignette/VignetteSettings.cpp
     Source/PostProcess/Vignette/VignetteSettings.h
     Source/PostProcess/LookModification/LookModificationSettings.cpp
@@ -288,6 +292,10 @@ set(FILES
     Source/PostProcessing/TaaPass.cpp
     Source/PostProcessing/WhiteBalancePass.h
     Source/PostProcessing/WhiteBalancePass.cpp
+# Begin Carbonated
+    Source/PostProcessing/RadialBlurPass.h
+    Source/PostProcessing/RadialBlurPass.cpp
+#End Carbonated
     Source/RayTracing/RayTracingFeatureProcessor.h
     Source/RayTracing/RayTracingFeatureProcessor.cpp
     Source/RayTracing/RayTracingResourceList.h
