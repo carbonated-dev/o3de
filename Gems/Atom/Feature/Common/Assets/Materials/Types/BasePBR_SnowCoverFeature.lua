@@ -129,6 +129,7 @@ function ProcessEditor(context)
     context:SetMaterialPropertyVisibility("normalStrength", mainVisibility)
     
     context:SetMaterialPropertyVisibility("roughness", mainVisibility)
+    context:SetMaterialPropertyVisibility("roughnessAmount", mainVisibility)
     context:SetMaterialPropertyVisibility("roughnessMap", mainVisibility)
     context:SetMaterialPropertyVisibility("useRoughnessMap", mainVisibility)
     context:SetMaterialPropertyVisibility("roughnessMapUv", mainVisibility)

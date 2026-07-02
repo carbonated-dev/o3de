@@ -27,6 +27,7 @@
     COMMON_OPTIONS_NORMAL()
     COMMON_OPTIONS_WET()  // CARBONATED Addition.
     COMMON_OPTIONS_SNOW() // CARBONATED Addition.
+    COMMON_OPTIONS_SILHOUETTE() // CARBONATED Addition.
     
     bool NeedsTangentFrame()
     {
