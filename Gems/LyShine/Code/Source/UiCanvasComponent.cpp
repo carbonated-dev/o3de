@@ -3664,7 +3664,7 @@ void UiCanvasComponent::DeactivateElements()
     if (result)
     {
 #if defined(CARBONATED)
-        // Disconnect from the entity bus and clear hover interactable when deactivating elements
+        // Clear hovered element and disconnect from the entity bus, so it won't try to hover new elements(and trigger OnHoverStarted/Ended) in OnEntityDeactivated, when all the elements in canvas is being deactivated
         if (m_hoverInteractable.IsValid())
         {
             AZ::EntityBus::Handler::BusDisconnect(m_hoverInteractable);
