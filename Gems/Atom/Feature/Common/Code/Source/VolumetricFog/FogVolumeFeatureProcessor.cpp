@@ -882,7 +882,7 @@ namespace AZ::Render
 #include <Atom/Feature/ParamMacros/MapAllCommon.inl>
 #undef AZ_GFX_VEC3_PARAM
 #define AZ_GFX_VEC3_PARAM(Name, MemberName, DefaultValue)                                                          \
-        data.m_volumeData.MemberName = { state.MemberName.m_x, state.MemberName.m_y, state.MemberName.m_z };       \
+        data.m_volumeData.MemberName = { state.MemberName.GetX(), state.MemberName.GetY(), state.MemberName.GetZ() };       \
 
 #include <Atom/Feature/VolumetricFog/VolumetricFogVolumeSRGConstants.inl>
 #include <Atom/Feature/ParamMacros/EndParams.inl>

@@ -305,7 +305,7 @@ namespace AZ::Render
 #include <Atom/Feature/ParamMacros/MapAllCommon.inl>
 #undef AZ_GFX_VEC3_PARAM
 #define AZ_GFX_VEC3_PARAM(Name, MemberName, DefaultValue)                                                                           \
-        m_sceneSrgGlobalConstants.MemberName = { m_settings.MemberName.m_x, m_settings.MemberName.m_y, m_settings.MemberName.m_z };       \
+        m_sceneSrgGlobalConstants.MemberName = { m_settings.MemberName.GetX(), m_settings.MemberName.GetY(), m_settings.MemberName.GetZ() };       \
 
 #include <Atom/Feature/VolumetricFog/VolumetricFogSRGConstants.inl>
 #include <Atom/Feature/ParamMacros/EndParams.inl>
@@ -316,7 +316,7 @@ namespace AZ::Render
 #include <Atom/Feature/ParamMacros/MapAllCommon.inl>
 #undef AZ_GFX_VEC3_PARAM
 #define AZ_GFX_VEC3_PARAM(Name, MemberName, DefaultValue)                                                                           \
-        m_sceneSrgVolumeConstants.MemberName = { m_settings.MemberName.m_x, m_settings.MemberName.m_y, m_settings.MemberName.m_z };       \
+        m_sceneSrgVolumeConstants.MemberName = { m_settings.MemberName.GetX(), m_settings.MemberName.GetY(), m_settings.MemberName.GetZ() };       \
 
 #include <Atom/Feature/VolumetricFog/VolumetricFogVolumeSRGConstants.inl>
 #include <Atom/Feature/ParamMacros/EndParams.inl>
