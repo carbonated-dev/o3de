@@ -1,0 +1,75 @@
+{
+    "name": "rimLighting",
+    "displayName": "Rim Lighting",
+    "description": "Properties for configuring stylized additive rim lighting. Formula is: color * intensity * pow(1.0 - dot(normal, dirToCamera) + bias, power)",
+    "properties": [
+        {
+            "name": "enable",
+            "displayName": "Enable",
+            "description": "Enable the rim lighting feature for this material. When disabled, the shader skips the rim lighting calculation.",
+            "type": "Bool",
+            "defaultValue": false,
+            "connection": {
+                "type": "ShaderOption",
+                "name": "o_rimLighting_enabled"
+            }
+        },
+        {
+            "name": "color",
+            "displayName": "Color",
+            "description": "Tint of the rim highlight. Color is displayed as sRGB but the values are stored as linear color.",
+            "type": "Color",
+            "defaultValue": [ 1.0, 1.0, 1.0 ],
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_rimLightingColor"
+            }
+        },
+        {
+            "name": "intensity",
+            "displayName": "Intensity",
+            "description": "Brightness multiplier for the rim highlight. A value of 0 removes the visible rim even when the feature is enabled.",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_rimLightingIntensity"
+            }
+        },
+        {
+            "name": "power",
+            "displayName": "Power",
+            "description": "Controls the width of the rim highlight. Lower values create a wider, softer rim; higher values create a tighter edge highlight.",
+            "type": "Float",
+            "defaultValue": 3.0,
+            "min": 0.25,
+            "softMax": 8.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_rimLightingPower"
+            }
+        },
+        {
+            "name": "bias",
+            "displayName": "Bias",
+            "description": "Offsets where the rim starts. Positive values spread the rim farther across the surface; negative values keep it closer to the edge.",
+            "type": "Float",
+            "defaultValue": 0.0,
+            "min": -1.0,
+            "max": 1.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_rimLightingBias"
+            }
+        }
+    ],
+    "functors": [
+        {
+            "type": "Lua",
+            "args": {
+                "file": "Materials/Types/StandardPBR_RimLightingState.lua"
+            }
+        }
+    ]
+}

@@ -1,6 +1,6 @@
 {
     "description": "Material Type with properties used to define Enhanced PBR, a metallic-roughness Physically-Based Rendering (PBR) material shading model, with advanced features like subsurface scattering, transmission, and anisotropy.",
-    "version": 6,
+    "version": 7,
     "versionUpdates": [
         {
             "toVersion": 4,
@@ -109,6 +109,9 @@
             },
             { 
                 "$import": "MaterialInputs/EmissivePropertyGroup.json"
+            },
+            {
+                "$import": "MaterialInputs/RimLightingPropertyGroup.json"
             },
             { 
                 "$import": "MaterialInputs/SubsurfaceAndTransmissionPropertyGroup.json"

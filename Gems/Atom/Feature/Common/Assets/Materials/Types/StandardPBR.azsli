@@ -9,6 +9,9 @@
 #pragma once
 
 #define ENABLE_VERTEX_COLOR 1
+// Begin Carbonated
+#define ENABLE_RIM_LIGHTING 1
+// End Carbonated
 
 //TODO(MaterialPipeline): Inline the MaterialSrg files since they aren't reused.
 //TODO(MaterialPipeline): Try removing different parts of the SRG and see how hard/easy it is to customize the surface function.
@@ -28,6 +31,9 @@
     COMMON_OPTIONS_CLEAR_COAT()
     COMMON_OPTIONS_OCCLUSION()
     COMMON_OPTIONS_EMISSIVE()
+    // Begin Carbonated
+    COMMON_OPTIONS_RIM_LIGHTING()
+    // End Carbonated
     COMMON_OPTIONS_PARALLAX()
     COMMON_OPTIONS_WET()
     COMMON_OPTIONS_SILHOUETTE() // CARBONATED Addition.

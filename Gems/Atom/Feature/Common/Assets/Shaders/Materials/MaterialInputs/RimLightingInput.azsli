@@ -1,0 +1,29 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#pragma once
+
+// Begin Carbonated
+// This file provides utilities for common handling of rim lighting inputs for PBR materials.
+
+#define COMMON_SRG_INPUTS_RIM_LIGHTING(prefix) \
+float3 prefix##m_rimLightingColor;             \
+float  prefix##m_rimLightingIntensity;         \
+float  prefix##m_rimLightingPower;             \
+float  prefix##m_rimLightingBias;
+
+#define COMMON_OPTIONS_RIM_LIGHTING(prefix) \
+option bool prefix##o_rimLighting_enabled;
+
+real3 GetRimLightingInput(real3 normal, real3 dirToCamera, real3 color, real intensity, real power, real bias)
+{
+    real nDotV = saturate(dot(normalize(normal), normalize(dirToCamera)));
+    real rim = pow(saturate(1.0 - nDotV + bias), max(power, 1e-3));
+    return color * intensity * rim;
+}
+// End Carbonated
