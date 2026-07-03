@@ -4,7 +4,7 @@
     "ClassName": "PassAsset",
     "ClassData": {
         "PassTemplate": {
-            "Name": "FroxelCompositePassTemplate",
+            "Name": "FroxelCompositeTemplate",
             "PassClass": "FullScreenTriangle",
             "Slots": [
                 {

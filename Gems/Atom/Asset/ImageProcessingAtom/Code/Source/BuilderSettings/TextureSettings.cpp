@@ -384,14 +384,16 @@ namespace ImageProcessingAtom
                         AZ::Edit::UIHandlers::Default,
                         &FlipbookSettings::m_numColumns,
                         "Number of columns",
-                        "Number of columns in the flipbook")
+                        "Number of columns in the flipbook (0 means no flipbook)")
                     ->ElementAttribute(AZ::Edit::UIHandlers::Handler, AZ::Edit::UIHandlers::Slider)
                     ->ElementAttribute(AZ::Edit::Attributes::Min, 0)
                     ->ElementAttribute(AZ::Edit::Attributes::Max, 128)
                     ->ElementAttribute(AZ::Edit::Attributes::Step, 1)
 
                     ->DataElement(
-                        AZ::Edit::UIHandlers::Default, &FlipbookSettings::m_numRows, "Number of rows", "Number of rows in the flipbook")
+                        AZ::Edit::UIHandlers::Default, &FlipbookSettings::m_numRows,
+                        "Number of rows",
+                        "Number of rows in the flipbook (0 means no flipbook)")
                     ->ElementAttribute(AZ::Edit::UIHandlers::Handler, AZ::Edit::UIHandlers::Slider)
                     ->ElementAttribute(AZ::Edit::Attributes::Min, 0)
                     ->ElementAttribute(AZ::Edit::Attributes::Max, 128)

@@ -178,17 +178,17 @@ void MainCS(uint3 thread_id : SV_GroupThreadID, uint3 group_id : SV_GroupID, uin
     ComputeWorldNormalAndPosition(dispatch_id.xy, positionWS, normalWS);
    
     DirectionalShadowCalculator calc;
-    calc.SetBlendBetweenCascadesEnable(false);
+    calc.SetLightIndex(PassSrg::m_constantData.m_lightIndex);
+    calc.SetWorldNormal(normalWS);
+    calc.SetReceiverShadowPlaneBiasEnable(PassSrg::m_constantData.m_receiverShadowPlaneBiasEnable);
+    calc.SetFilterMode((ShadowFilterMethod)PassSrg::m_constantData.m_filterMode);
+    calc.SetFilteringSampleCount((ShadowFilterSampleCount)PassSrg::m_constantData.m_filteringSampleCountMode);
+    calc.SetBlendBetweenCascadesEnable(PassSrg::m_constantData.m_blendBetweenCascadesEnable);
 #if ENABLE_ESM_SHADOW
-    calc.SetShadowmaps(PassSrg::m_directionalLightShadowmap, PassSrg::m_directionalLightExponentialShadowmap);
+    calc.SetShadowmaps(PassSrg::m_directionalShadowmaps, PassSrg::m_directionalShadowmapsESM);
 #else
-    calc.SetShadowmaps(PassSrg::m_directionalLightShadowmap);
+    calc.SetShadowmaps(PassSrg::m_directionalShadowmaps);
 #endif
-    calc.SetReceiverShadowPlaneBiasEnable(true);
-    calc.SetWorldNormal(0);
-    calc.SetLightIndex(index);
-    calc.SetFilterMode(ShadowFilterMethod::None);
-    calc.SetFilteringSampleCount(ShadowFilterSampleCount::PcfTap16);
     calc.SetWorldPos(positionWS);
 
     PassSrg::m_fullscreenShadowOutput[dispatch_id.xy] = calc.GetVisibility();
@@ -203,19 +203,17 @@ PSOutput MainPS(VSOutput IN)
     ComputeWorldNormalAndPosition(IN, positionWS, normalWS);
 
     DirectionalShadowCalculator calc;
-            calc.SetBlendBetweenCascadesEnable(false);
+    calc.SetLightIndex(PassSrg::m_constantData.m_lightIndex);
+    calc.SetWorldNormal(normalWS);
+    calc.SetReceiverShadowPlaneBiasEnable(PassSrg::m_constantData.m_receiverShadowPlaneBiasEnable);
+    calc.SetFilterMode((ShadowFilterMethod)PassSrg::m_constantData.m_filterMode);
+    calc.SetFilteringSampleCount((ShadowFilterSampleCount)PassSrg::m_constantData.m_filteringSampleCountMode);
+    calc.SetBlendBetweenCascadesEnable(PassSrg::m_constantData.m_blendBetweenCascadesEnable);
 #if ENABLE_ESM_SHADOW
     calc.SetShadowmaps(PassSrg::m_directionalShadowmaps, PassSrg::m_directionalShadowmapsESM);
 #else
     calc.SetShadowmaps(PassSrg::m_directionalShadowmaps);
 #endif
-            calc.SetReceiverShadowPlaneBiasEnable(true);
-            calc.SetWorldNormal(0);
-            calc.SetLightIndex(PassSrg::m_constantData.m_lightIndex);
-            calc.SetFilterMode(ShadowFilterMethod::None);
-            calc.SetFilteringSampleCount(ShadowFilterSampleCount::PcfTap16);
-
-   
     calc.SetWorldPos(positionWS);
 
     PSOutput OUT;

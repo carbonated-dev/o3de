@@ -213,13 +213,14 @@ namespace ImageProcessingAtom
                 AZ::u8* sliceSrc = srcMem + d * srcSliceBytes;
                 AZ::u8* sliceDst = dstMem + d * dstSliceBytes;
                 AZ::u32 dataSize = dstSliceBytes;
+                void* imageData[1] = { sliceSrc };
 
                 astcenc_image image;
                 image.dim_x = mipWidth;
                 image.dim_y = mipHeight;
                 image.dim_z = 1;
                 image.data_type = dataType;
-                image.data = reinterpret_cast<void**>(&sliceSrc);
+                image.data = imageData;
 
                 if (threadCount == 1)
                 {

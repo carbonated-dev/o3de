@@ -44,7 +44,7 @@
                 {
                     "LocalSlot": "FroxelIntegrated",
                     "AttachmentRef": {
-                        "Pass": "FroxeIntegratePass",
+                        "Pass": "FroxelIntegratePass",
                         "Attachment": "FroxelIntegrated"
                     }
                 }
@@ -75,7 +75,7 @@
                     ]
                 },
                 {
-                    "Name": "FroxeScatterPass",
+                    "Name": "FroxelScatterPass",
                     "TemplateName": "FroxelScatterTemplate",
                     "Connections": [
                         {
@@ -123,13 +123,13 @@
                     ]
                 },
                 {
-                    "Name": "FroxeIntegratePass",
+                    "Name": "FroxelIntegratePass",
                     "TemplateName": "FroxelIntegrateTemplate",
                     "Connections": [
                         {
                             "LocalSlot": "FroxelScattered",
                             "AttachmentRef": {
-                                "Pass": "FroxeScatterPass",
+                                "Pass": "FroxelScatterPass",
                                 "Attachment": "FroxelScatterResult"
                             }
                         },

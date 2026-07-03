@@ -28,7 +28,13 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     float3 positionWS = GetFroxelWorldPosition(froxelId);
-    float4 medium = CalculateMediumContribution(positionWS, SceneSrg::m_volumetricFogVolumeData, SceneSrg::m_noiseTexture, o_enableNoiseTexture);
+    float noise = 1.0f;
+    if (o_enableNoiseTexture)
+    {
+        noise = SampleNoise(positionWS, SceneSrg::m_time, SceneSrg::m_volumetricFogVolumeData, SceneSrg::m_noiseTexture);
+    }
+
+    float4 medium = CalculateMediumContributionFromNoise(positionWS, SceneSrg::m_volumetricFogVolumeData, noise);
     PassSrg::m_froxelVolume[froxelId] = medium;
 
     // Global emissive: density-proportional (medium.a = extinction = local fog density)

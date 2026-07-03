@@ -110,11 +110,20 @@ bool IsInsideVolume(float3 localPos, uint shape)
     }
 }
 
+ShaderResourceGroup PassSrg : SRG_PerPass
+{
+    Buffer<float3>          m_proxyVertices[2];
+    Buffer<uint>            m_proxyIndices[2];
+    StructuredBuffer<LocalVolumeData> m_volumes;
+    Buffer<uint2>           m_instanceToVolumeSlice;
+    Texture3D<float>        m_noiseTextures[];
+};
+
 // --------------------------------------------------------------------------
 // Compute the volume's contribution at a froxel center.
 // Returns scattering (rgb) and extinction (a). Returns 0 if outside.
 // --------------------------------------------------------------------------
-bool EvaluateVolume(float3 froxelWS, float3 cameraWS, LocalVolumeData volume, Texture3D<float> noiseTexture, out float4 contribution)
+bool EvaluateVolume(float3 froxelWS, float3 cameraWS, LocalVolumeData volume, out float4 contribution)
 {
     float3 localPos = WorldToVolumeLocal(froxelWS, volume);
 
@@ -135,19 +144,21 @@ bool EvaluateVolume(float3 froxelWS, float3 cameraWS, LocalVolumeData volume, Te
         edgeFade = ComputeSphereEdgeFade(localPos, volume.m_rcpFadePos.x);
     }
 
-    contribution = CalculateMediumContribution(froxelWS, volume.m_volumeData, noiseTexture, volume.m_noiseTextureIndex >= 0);
+    if (volume.m_noiseTextureIndex >= 0)
+    {
+        contribution = CalculateMediumContribution(
+            froxelWS,
+            volume.m_volumeData,
+            PassSrg::m_noiseTextures[volume.m_noiseTextureIndex]);
+    }
+    else
+    {
+        contribution = CalculateMediumContributionNoNoise(froxelWS, volume.m_volumeData);
+    }
+
     contribution *= edgeFade;
     return true;
 }
-
-ShaderResourceGroup PassSrg : SRG_PerPass
-{
-    Buffer<float3>          m_proxyVertices[2];
-    Buffer<uint>            m_proxyIndices[2];
-    StructuredBuffer<LocalVolumeData> m_volumes;
-    Buffer<uint2>           m_instanceToVolumeSlice;
-    Texture3D<float>        m_noiseTextures[];
-};
 
 struct VSOutput
 {
@@ -217,7 +228,6 @@ PSOutput MainPS(VSOutput input)
     bool isValid = EvaluateVolume(  froxelWS,
                                      ViewSrg::m_worldPosition.xyz,
                                      volume,
-                                     PassSrg::m_noiseTextures[volume.m_noiseTextureIndex],
                                      contribution);
 
     if (!isValid)

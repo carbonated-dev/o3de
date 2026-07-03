@@ -141,16 +141,10 @@ float SampleNoise(float3 positionWS, float time, SceneSrg::VolumetricFogVolumeCo
     return saturate(noise);
 }
 
-float4 CalculateMediumContribution(float3 positionWS, SceneSrg::VolumetricFogVolumeConstants volumeData, Texture3D<float> noiseTexture, bool useNoiseTexture)
+float4 CalculateMediumContributionFromNoise(float3 positionWS, SceneSrg::VolumetricFogVolumeConstants volumeData, float noise)
 {
     // Sample fog density. Combine height fog + noise
     float heightFog = exp(-max(0, positionWS.z - volumeData.m_fogBaseHeight) * volumeData.m_fogHeightFalloff);
-
-    float noise = 1.0f;
-    if (useNoiseTexture)
-    {
-        noise = SampleNoise(positionWS, SceneSrg::m_time, volumeData, noiseTexture);
-    }
     float density = heightFog * noise * volumeData.m_fogDensity;
 
     // Single-scattering albedo model:
@@ -162,4 +156,15 @@ float4 CalculateMediumContribution(float3 positionWS, SceneSrg::VolumetricFogVol
     float3 scattering = density * volumeData.m_fogAlbedo;
     float  extinction = density;
     return float4(scattering, extinction);
+}
+
+float4 CalculateMediumContributionNoNoise(float3 positionWS, SceneSrg::VolumetricFogVolumeConstants volumeData)
+{
+    return CalculateMediumContributionFromNoise(positionWS, volumeData, 1.0f);
+}
+
+float4 CalculateMediumContribution(float3 positionWS, SceneSrg::VolumetricFogVolumeConstants volumeData, Texture3D<float> noiseTexture)
+{
+    float noise = SampleNoise(positionWS, SceneSrg::m_time, volumeData, noiseTexture);
+    return CalculateMediumContributionFromNoise(positionWS, volumeData, noise);
 }
