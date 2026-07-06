@@ -3663,6 +3663,14 @@ void UiCanvasComponent::DeactivateElements()
     bool result = rootSlice->GetEntityIds(entities);
     if (result)
     {
+#if defined(CARBONATED)
+        // Clear hovered element and disconnect from the entity bus, so it won't try to hover new elements(and trigger OnHoverStarted/Ended) in OnEntityDeactivated, when all the elements in canvas is being deactivated
+        if (m_hoverInteractable.IsValid())
+        {
+            AZ::EntityBus::Handler::BusDisconnect(m_hoverInteractable);
+            ClearHoverInteractable();
+        }
+#endif
         for (AZ::EntityId& entityId : entities)
         {
             // Look up the entity by ID, as sometimes one of the entities owns others
