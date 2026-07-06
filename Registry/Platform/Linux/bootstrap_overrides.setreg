@@ -4,7 +4,7 @@
             "Bootstrap": {
                 "assets": "linux",
                 "connect_to_remote": 1,
-                "wait_for_connect": 1
+                "wait_for_connect": 0
             }
         }
     }

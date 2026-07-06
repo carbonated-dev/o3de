@@ -5777,11 +5777,19 @@ LUA_API const Node* lua_getDummyNode()
                         break;
                     case ScriptContext::ErrorType::Log:
                         AZ_Printf("Script", "%s", message);
+#if defined(CARBONATED)
+                        // output log to stderr so it will still display in streaming logs that only log stderr
+                        std::fprintf(stderr, "Script: %s\n", message);
+                        std::fflush(stderr);
+#endif                        
                         break;
 #endif
 #if defined(CARBONATED)
                     case ScriptContext::ErrorType::LogAlways:
                         AZ_Printf(AZ::Debug::Trace::GetDefaultSystemWindow(), "(Script) - %s", message); //Very hacky, but I want this picked up by the AZCoreLogSink as a logalways event from the system
+                        // also output log to stderr so it will still display in streaming logs that only log stderr
+                        std::fprintf(stderr, "(Script) - %s\n", message);
+                        std::fflush(stderr);
                         break;
 #endif
                     }

@@ -20621,5 +20621,37 @@ void gladLoaderUnloadVulkanContext(GladVulkanContext *context) {
 }
 #endif
 
-#endif /* GLAD_VULKAN_IMPLEMENTATION */
+#endif
 
+// CARBONATED these definitions from xlib (x11)) cause to multiple compile errors
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+
+#if defined(None)
+#undef None
+#endif
+
+#if defined(Success)
+#undef Success
+#endif
+
+#if defined(CurrentTime)
+#undef CurrentTime
+#endif
+
+#if defined(Bool)
+#undef Bool
+#endif
+
+#if defined(Always)
+#undef Always
+#endif
+
+#if defined(VK_KHR_XCB_SURFACE_EXTENSION_NAME)
+#define VK_KHR_SELECTED_SURFACE_EXTENSION_NAME VK_KHR_XCB_SURFACE_EXTENSION_NAME
+#elif defined(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME)
+#define VK_KHR_SELECTED_SURFACE_EXTENSION_NAME VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME
+#elif defined(VK_KHR_XLIB_SURFACE_EXTENSION_NAME)
+#define VK_KHR_SELECTED_SURFACE_EXTENSION_NAME VK_KHR_XLIB_SURFACE_EXTENSION_NAME
+#endif
+
+#endif /* GLAD_VULKAN_IMPLEMENTATION */

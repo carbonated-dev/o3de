@@ -84,6 +84,9 @@ namespace Physics
         AZStd::shared_ptr<Physics::ShapeConfiguration> m_shapeConfig; //!< The shape to use when creating the character controller.
         AZStd::vector<AZStd::shared_ptr<Physics::Shape>> m_colliders; //!< The list of colliders to attach to the character controller.
         bool m_applyMoveOnPhysicsTick = true; //!< Should accumulated velocity be applied on the physics tick.
+#if defined(CARBONATED)
+        bool m_applyVisualInterpolation = false; //!< Should visual interpolation be applied to this character. This is typically used for player characters, where visual smoothness is more important.
+#endif
     };
 
     /// Basic implementation of common character-style needs as a WorldBody. Is not a full-functional ship-ready

@@ -80,6 +80,10 @@
 
 #include <AzCore/Outcome/Outcome.h> // for unexpect_t
 
+#if defined(CARBONATED)
+//#define CARBONATED_TICK_TIMING  // uncomment to track micro-freezes in OnTick and OnSystemTick, adjust the threshold if needed
+#endif
+
 DECLARE_EBUS_INSTANTIATION_WITH_TRAITS(ComponentApplicationRequests, ComponentApplicationRequestsEBusTraits);
 DECLARE_EBUS_INSTANTIATION(TickEvents);
 DECLARE_EBUS_INSTANTIATION(SystemTickEvents);
@@ -1648,7 +1652,24 @@ namespace AZ
             AZ_PROFILE_SCOPE(AzCore, "ComponentApplication::Tick:OnTick");
             const AZ::TimeUs deltaTimeUs = m_timeSystem->AdvanceTickDeltaTimes();
             const float deltaTimeSeconds = AZ::TimeUsToSeconds(deltaTimeUs);
+#if defined(CARBONATED) && defined(CARBONATED_TICK_TIMING)
+            auto t = GetTimeAtCurrentTick();
+            AZ::TickBus::EnumerateHandlers(
+                [deltaTimeSeconds, t](AZ::TickEvents* listener)
+                {
+                    const AZ::TimeMs begin = AZ::GetRealElapsedTimeMs();
+                    listener->OnTick(deltaTimeSeconds, t);
+                    const AZ::TimeMs end = AZ::GetRealElapsedTimeMs();
+                    const int64_t dt = (int64_t)end - (int64_t)begin;
+                    if (dt > 100)
+                    {
+                        AZ_Info("microfreeze", "Tick for %s took %d ms", listener->RTTI_GetTypeName(), dt);
+                    }
+                    return true;
+                });
+#else
             AZ::TickBus::Broadcast(&TickEvents::OnTick, deltaTimeSeconds, GetTimeAtCurrentTick());
+#endif
         }
 
         m_timeSystem->ApplyTickRateLimiterIfNeeded();
@@ -1659,7 +1680,23 @@ namespace AZ
         AZ_PROFILE_SCOPE(System, "Component application tick");
 
         SystemTickBus::ExecuteQueuedEvents();
+#if defined(CARBONATED) && defined(CARBONATED_TICK_TIMING)
+        AZ::SystemTickBus::EnumerateHandlers(
+            [](AZ::SystemTickEvents* listener)
+            {
+                const AZ::TimeMs begin = AZ::GetRealElapsedTimeMs();
+                listener->OnSystemTick();
+                const AZ::TimeMs end = AZ::GetRealElapsedTimeMs();
+                const int64_t dt = (int64_t)end - (int64_t)begin;
+                if (dt > 100)
+                {
+                    AZ_Info("microfreeze", "SystemTick for %s took %d ms", typeid(*listener).name(), dt);
+                }
+                return true;
+            });
+#else
         SystemTickBus::Broadcast(&SystemTickBus::Events::OnSystemTick);
+#endif
     }
 
     bool ComponentApplication::ShouldAddSystemComponent(AZ::ComponentDescriptor* descriptor)

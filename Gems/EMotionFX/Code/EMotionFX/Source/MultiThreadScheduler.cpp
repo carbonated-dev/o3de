@@ -11,6 +11,10 @@
 #include "ActorManager.h"
 #include "ActorInstance.h"
 #include "AnimGraphInstance.h"
+#if defined(CARBONATED)
+#include "AnimGraph.h"
+#include "Parameter/ValueParameter.h"
+#endif
 #include "Attachment.h"
 #include "EMotionFXManager.h"
 #include <EMotionFX/Source/Allocators.h>
@@ -20,10 +24,17 @@
 #include <AzCore/Jobs/JobCompletion.h>
 #include <AzCore/Jobs/JobManagerBus.h>
 #include <AzCore/Jobs/JobContext.h>
+#if defined(CARBONATED)
+#include <AzCore/std/chrono/chrono.h>
+#endif
 
 
 namespace EMotionFX
 {
+#if defined(CARBONATED)
+    bool MultiThreadScheduler::s_animGraphTickLogEnabled = false;
+    bool MultiThreadScheduler::s_animGraphParamLogEnabled = false;
+#endif    
     AZ_CLASS_ALLOCATOR_IMPL(MultiThreadScheduler, ActorUpdateAllocator)
 
     // constructor
@@ -191,6 +202,55 @@ namespace EMotionFX
                     }
 
                     // update the actor instance
+#if defined(CARBONATED)                    
+                    if (MultiThreadScheduler::s_animGraphTickLogEnabled)
+                    {
+                        const auto now = AZStd::chrono::steady_clock::now();
+                        const double nowSec = AZStd::chrono::duration_cast<AZStd::chrono::nanoseconds>(now.time_since_epoch()).count() / 1.0e9;
+                        MCore::LogInfo("[AnimGraphTick] actor=%p thread=%u time=%.3fs sampleMotions=%d",
+                            actorInstance, threadIndex, nowSec, (int)sampleMotions);
+                        // uncomment the block below to see warnings instead of LogInfo
+                        /*
+                        AZ_Warning(
+                            "EMotionFX",
+                            false,
+                            "[AnimGraphTick] actor=%p thread=%u time=%.3fs sampleMotions=%d",
+                            actorInstance,
+                            threadIndex,
+                            nowSec,
+                            static_cast<int>(sampleMotions));
+                        */
+                    }
+
+                    if (MultiThreadScheduler::s_animGraphParamLogEnabled)
+                    {
+                        AnimGraphInstance* animGraphInstance = actorInstance->GetAnimGraphInstance();
+                        if (animGraphInstance)
+                        {
+                            const AnimGraph* animGraph = animGraphInstance->GetAnimGraph();
+                            const size_t numParams = animGraph->GetNumValueParameters();
+                            AZStd::string paramLog;
+                            paramLog.reserve(256);
+                            for (size_t p = 0; p < numParams; ++p)
+                            {
+                                const ValueParameter* param = animGraph->FindValueParameter(p);
+                                MCore::Attribute* attr = animGraphInstance->GetParameterValue(p);
+                                AZStd::string valueStr;
+                                if (attr)
+                                    attr->ConvertToString(valueStr);
+                                if (p > 0)
+                                    paramLog += ", ";
+                                paramLog += param->GetName();
+                                paramLog += "=";
+                                paramLog += valueStr;
+                            }
+                            const auto now = AZStd::chrono::steady_clock::now();
+                            const double nowSec = AZStd::chrono::duration_cast<AZStd::chrono::nanoseconds>(now.time_since_epoch()).count() / 1.0e9;
+                            MCore::LogInfo("[AnimGraphParams] actor=%p time=%.3fs [%s]", actorInstance, nowSec, paramLog.c_str());
+                        }
+                    }
+#endif
+
                     actorInstance->UpdateTransformations(timePassedInSeconds, isVisible, sampleMotions);
                 }, true, jobContext);
 

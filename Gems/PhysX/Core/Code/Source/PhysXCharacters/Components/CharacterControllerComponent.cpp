@@ -121,6 +121,9 @@ namespace PhysX
         // to respond false to IsPhysicsEnabled or IsPresent.
         // These buses' implementation in this class are protected to handle
         // the body being invalid.
+#if defined(CARBONATED)
+        AZ::TickBus::Handler::BusDisconnect();
+#endif
         Physics::CollisionFilteringRequestBus::Handler::BusDisconnect();
         AzPhysics::SimulatedBodyComponentRequestsBus::Handler::BusDisconnect();
         AZ::TransformNotificationBus::Handler::BusDisconnect();
@@ -512,8 +515,16 @@ namespace PhysX
     {
         if (auto* controller = GetController())
         {
+#if defined(CARBONATED)
+            if (!m_characterConfig->m_applyVisualInterpolation)
+            {
+                const AZ::Vector3 newPosition = controller->GetBasePosition();
+                AZ::TransformBus::Event(GetEntityId(), &AZ::TransformBus::Events::SetWorldTranslation, newPosition);
+            }
+#else
             const AZ::Vector3 newPosition = controller->GetBasePosition();
             AZ::TransformBus::Event(GetEntityId(), &AZ::TransformBus::Events::SetWorldTranslation, newPosition);
+#endif
             controller->ResetRequestedVelocityForTick();
         }
     }
@@ -636,10 +647,56 @@ namespace PhysX
                         event.m_body1 = pSelfBody;
                         event.m_bodyHandle1 = m_controllerBodyHandle;
                         event.m_shape2 = pShape;
+
+                        PhysX::ActorData* pActorData = PhysX::Utils::GetUserData(hit.actor);
+                        if (pActorData)
+                        {
+                            event.m_body2 = pActorData->GetSimulatedBody();
+                            event.m_bodyHandle2 = pActorData->GetBodyHandle();
+                        }
+
                         event.m_contacts.push_back(contact);
 
                         Physics::CharacterNotificationBus::Event(GetEntityId(), &Physics::CharacterNotificationBus::Events::OnShapeHit, event);
                     });
+
+                pCallbackManager->SetOnControllerHit([this](const physx::PxControllersHit& hit)
+    {
+                    auto* pSceneInterface = AZ::Interface<AzPhysics::SceneInterface>::Get();
+                    if (!pSceneInterface)
+                        return;
+
+                    AzPhysics::SimulatedBody* pSelfBody =
+                        pSceneInterface->GetSimulatedBodyFromHandle(m_attachedSceneHandle, m_controllerBodyHandle);
+                    if (!pSelfBody)
+                        return;
+
+                    if (!hit.other)
+                        return;
+
+                    physx::PxRigidDynamic* otherActor = hit.other->getActor();
+                    if (!otherActor)
+                        return;
+
+                    PhysX::ActorData* pActorData = PhysX::Utils::GetUserData(otherActor);
+                    if (!pActorData)
+                        return;
+
+                    AzPhysics::Contact contact;
+                    contact.m_position = PxMathConvertExtended(hit.worldPos);
+                    contact.m_normal = PxMathConvert(hit.worldNormal);
+                    contact.m_separation = 0.0f;
+                    contact.m_impulse = AZ::Vector3::CreateZero();
+
+                    AzPhysics::CollisionEvent event;
+                    event.m_body1 = pSelfBody;
+                    event.m_bodyHandle1 = m_controllerBodyHandle;
+                    event.m_body2 = pActorData->GetSimulatedBody();
+                    event.m_bodyHandle2 = pActorData->GetBodyHandle();
+                    event.m_contacts.push_back(contact);
+
+                    Physics::CharacterNotificationBus::Event(GetEntityId(), &Physics::CharacterNotificationBus::Events::OnControllerHit, event);
+                });
             }
         }
 #endif
@@ -674,7 +731,19 @@ namespace PhysX
             }
         }
 
+#if defined(CARBONATED)
+        if (m_characterConfig->m_applyVisualInterpolation)
+        {
+            AZ::TickBus::Handler::BusConnect();
+        }
+        else
+        {
+            AZ::TransformNotificationBus::Handler::BusConnect(GetEntityId());
+        }
+#else
         AZ::TransformNotificationBus::Handler::BusConnect(GetEntityId());
+#endif
+
         Physics::CharacterRequestBus::Handler::BusConnect(GetEntityId());
         Physics::CollisionFilteringRequestBus::Handler::BusConnect(GetEntityId());
         AzPhysics::SimulatedBodyComponentRequestsBus::Handler::BusConnect(GetEntityId());
@@ -708,4 +777,20 @@ namespace PhysX
             CharacterControllerRequestBus::Handler::BusDisconnect();
         }
     }
+
+#if defined(CARBONATED)
+    void CharacterControllerComponent::OnTick(float deltaTime,[[maybe_unused]] AZ::ScriptTimePoint time)
+    {
+        //Wrapping this here rather than disconnected because there was a note about destroy not being appropriate for disconnecting from the tick bus?
+        if ([[maybe_unused]] auto* controller = GetControllerConst())
+        {
+            AZ::Vector3 physicsTranslation = GetBasePosition();
+
+            AZ::Vector3 visualTranslation;
+            AZ::TransformBus::EventResult(visualTranslation, GetEntityId(), &AZ::TransformBus::Events::GetWorldTranslation);
+            static float BLEND_FACTOR = 8.0f;
+            AZ::TransformBus::Event(GetEntityId(), &AZ::TransformBus::Events::SetWorldTranslation, visualTranslation.Lerp(physicsTranslation, fminf(deltaTime * BLEND_FACTOR, 1.0f)));
+        }
+    }
+#endif
 } // namespace PhysX

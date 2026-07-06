@@ -298,11 +298,11 @@ namespace AzFramework
                     AZ_Assert(spawnableEntitiesInterface != nullptr, "SpawnableEntitiesInterface is not found.");
                     spawnableEntitiesInterface->RetrieveTicket(
                         currentEntity->GetEntitySpawnTicketId(),
-                        [spawnableEntitiesInterface, currentEntity](EntitySpawnTicket&& entitySpawnTicket)
+                        [spawnableEntitiesInterface, entityId](EntitySpawnTicket&& entitySpawnTicket)
                         {
                             if (entitySpawnTicket.IsValid())
                             {
-                                spawnableEntitiesInterface->DespawnEntity(currentEntity->GetId(), entitySpawnTicket);
+                                spawnableEntitiesInterface->DespawnEntity(entityId, entitySpawnTicket);
                             }
                         });
                     continue;

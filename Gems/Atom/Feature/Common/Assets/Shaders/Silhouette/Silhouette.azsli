@@ -20,7 +20,6 @@ struct OutlineData
 static const uint MaxOutlineThickness = 0x1F;
 static const uint OutlineOnlyPos = 7;
 static const uint OutlineTypePos = 5;
-static const uint OutlineInsideMask = 0x20;
 static const uint OutlineBlockMask = 0x40;
 static const uint OutlineInvalidData = 0xFF;
 
