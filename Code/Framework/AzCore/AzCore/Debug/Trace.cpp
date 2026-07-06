@@ -18,6 +18,9 @@
 #include <cstdarg>
 
 #include <AzCore/NativeUI/NativeUIRequests.h>
+#if defined(CARBONATED)
+#include <AzCore/NativeUI/InGameAssertUIRequests.h>
+#endif
 #include <AzCore/Debug/TraceMessageBus.h>
 
 // Used to keep a set of ignored asserts for CRC checking
@@ -91,6 +94,8 @@ namespace AZ::Debug
     AZ_CVAR_SCOPED(bool, bg_alwaysShowCallstack, false, &AlwaysShowCallstackChanged, ConsoleFunctorFlags::Null, "Force stack trace output without allowing ebus interception.");
 #if defined(CARBONATED)
     AZ_CVAR(int, bg_assertDialogReady, 0, nullptr, ConsoleFunctorFlags::Null, "Show assertion popup dialog: 0=disabled, 1=enabled.");
+    AZ_CVAR(bool, bg_useInGameAssertDialog, false, nullptr, ConsoleFunctorFlags::Null,
+        "Show the in-game UI assert popup instead of the native OS dialog (for platforms with no window compositor, e.g. OCGA). 0=disabled, 1=enabled.");
 #endif
     // Allow redirection of trace raw output writes to stdout, stderr or to /dev/null
     static constexpr const char* fileStreamIdentifier = "raw_c_stream";
@@ -414,9 +419,20 @@ namespace AZ::Debug
 #endif
                 )
             {
-                AZ::NativeUI::AssertAction buttonResult;
-                AZ::NativeUI::NativeUIRequestBus::BroadcastResult(
-                    buttonResult, &AZ::NativeUI::NativeUIRequestBus::Events::DisplayAssertDialog, dialogBoxText);
+                AZ::NativeUI::AssertAction buttonResult = AZ::NativeUI::AssertAction::NONE;
+                bool handledByInGameAssertUI = false;
+#if defined(CARBONATED)
+                if (auto* inGameAssertUI = AZ::Interface<AZ::NativeUI::InGameAssertUIRequests>::Get())
+                {
+                    buttonResult = inGameAssertUI->DisplayAssertDialog(dialogBoxText);
+                    handledByInGameAssertUI = true;
+                }
+#endif
+                if (!handledByInGameAssertUI)
+                {
+                    AZ::NativeUI::NativeUIRequestBus::BroadcastResult(
+                        buttonResult, &AZ::NativeUI::NativeUIRequestBus::Events::DisplayAssertDialog, dialogBoxText);
+                }
                 switch (buttonResult)
                 {
                 case AZ::NativeUI::AssertAction::BREAK:
