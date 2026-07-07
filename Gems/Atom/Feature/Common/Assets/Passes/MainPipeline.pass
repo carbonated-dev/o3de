@@ -201,6 +201,19 @@
                     ]
                 },
                 {
+                    "Name": "ReflectionPreviousFramePass",
+                    "TemplateName": "ReflectionPreviousFramePassTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "PipelineOutput",
+                            "AttachmentRef": {
+                                "Pass": "PipelineGlobal",
+                                "Attachment": "PipelineOutput"
+                            }
+                        }
+                    ]
+                },
+                {
                     "Name": "OpaquePass",
                     "TemplateName": "OpaqueParentTemplate",
                     "Connections": [
@@ -293,19 +306,6 @@
                             "AttachmentRef": {
                                 "Pass": "OpaquePass",
                                 "Attachment": "Output"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "Name": "ReflectionPreviousFramePass",
-                    "TemplateName": "ReflectionPreviousFramePassTemplate",
-                    "Connections": [
-                        {
-                            "LocalSlot": "PipelineOutput",
-                            "AttachmentRef": {
-                                "Pass": "PipelineGlobal",
-                                "Attachment": "PipelineOutput"
                             }
                         }
                     ]
