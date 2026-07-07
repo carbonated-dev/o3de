@@ -49,7 +49,7 @@
 #if defined(CARBONATED)
 #include <AzCore/Time/TimeSystem.h>
 #include <AzCore/Memory/MemoryMarker.h>
-//#define CARBONATED_MESH_SHADER_OPTIONS_TIMING  // uncomment to track micro-freezes from dynamic shader flag changes per mesh instance group
+#define CARBONATED_MESH_SHADER_OPTIONS_TIMING  // uncomment to track micro-freezes from dynamic shader flag changes per mesh instance group
 #define MESH_SHADER_OPTIONS_THRESHOLD_MS 50  // threshold to report overall shader update time, milliseconds, typically 60-150 ms on Geforce 2060
 #endif
 
@@ -959,6 +959,8 @@ namespace AZ
                             continue; // model not loaded yet
                         }
                         ASSET_TAG(modelHandle.GetAssetHint().c_str());
+                        AZ_Info("mmm", "model %s flag changed %x => %x", modelHandle.GetAssetHint().c_str(),
+                            int(modelHandle.m_cullable.m_prevShaderOptionFlags), int(modelHandle.m_cullable.m_shaderOptionFlags));
 #endif
 
                         if (!r_meshInstancingEnabled)
@@ -994,6 +996,8 @@ namespace AZ
                                 for (const ModelDataInstance::PostCullingInstanceData& postCullingData : postCullingInstanceDataList)
                                 {
                                     instanceGroupsNeedUpdate.push_back(postCullingData.m_instanceGroupHandle);
+                                    AZ_Info("mmm", "push lod %d of %s", lodIndex,
+                                        (*(postCullingData.m_instanceGroupHandle->m_associatedInstances.begin()))->GetAssetHint().c_str());
                                 }
                             }
                         }
@@ -1001,7 +1005,8 @@ namespace AZ
                 }
 
 #if defined(CARBONATED) && defined(CARBONATED_MESH_SHADER_OPTIONS_TIMING)
-                int64_t updateDrawPacket = 0;
+                int64_t updateDrawPacketTime = 0;
+                int64_t updateDrawPacketCount = 0;
 #endif
 
                 if (r_meshInstancingEnabled)
@@ -1043,7 +1048,8 @@ namespace AZ
                             instanceGroupDataIter->UpdateDrawPacket(*GetParentScene(), false); // no force update, respect update flags
 #if defined(CARBONATED_MESH_SHADER_OPTIONS_TIMING)
                             const AZ::TimeUs tEnd = AZ::GetRealElapsedTimeUs();
-                            updateDrawPacket += (int64_t)tEnd - (int64_t)tBegin;
+                            updateDrawPacketTime += (int64_t)tEnd - (int64_t)tBegin;
+                            updateDrawPacketCount++;
 #endif
 
 #else  // CARBONATED
@@ -1057,10 +1063,27 @@ namespace AZ
                 }
 
 #if defined(CARBONATED) && defined(CARBONATED_MESH_SHADER_OPTIONS_TIMING)
-                updateDrawPacket = (updateDrawPacket + 500) / 1000; // convert nanoseconds to milliseconds
-                if (updateDrawPacket > MESH_SHADER_OPTIONS_THRESHOLD_MS)
+                updateDrawPacketTime = (updateDrawPacketTime + 500) / 1000; // convert micro to milliseconds
+                if (updateDrawPacketTime > MESH_SHADER_OPTIONS_THRESHOLD_MS)
                 {
-                    AZ_Info("microfreeze", "MeshFeatureProcessor::OnBeginPrepareRender UpdateDrawPacket took %d", updateDrawPacket);
+                    AZ_Info("microfreeze", "MeshFeatureProcessor::OnBeginPrepareRender UpdateDrawPacket took %d, %d times", updateDrawPacketTime, updateDrawPacketCount);
+                    const char* name = "-"; // dummy string not matching any asset name
+                    int iGroup = 0;
+                    for (auto iter : instanceGroupsNeedUpdate)
+                    {
+                        int iModel = 0;
+                        for (const auto model : iter->m_associatedInstances)
+                        {
+                            const char* newName = model->GetAssetHint().c_str();
+                            if (strcmp(newName, name) != 0)
+                            {
+                                name = newName;
+                                AZ_Info("microfreeze", "  %2d %2d '%s'", iGroup, iModel, name);
+                            }
+                            iModel++;
+                        }
+                        iGroup++;
+                    }
                 }
 #endif
             }
@@ -1695,6 +1718,13 @@ namespace AZ
             : m_modelAsset(modelAsset)
             , m_parent(parent)
         {
+            const char* name = modelAsset.GetHint().c_str();
+            AZ_Info("mmm", "MeshLoader for '%s' / '%s'", name, modelAsset->GetName().GetCStr());
+            if (name[0] == 0)
+            {
+                AZ_Info("mmm", "this is it");
+                m_modelAsset.SetHint(modelAsset->GetName().GetCStr());
+            }
             if (!m_modelAsset.GetId().IsValid())
             {
                 AZ_Error("ModelDataInstance::MeshLoader", false, "Invalid model asset Id.");

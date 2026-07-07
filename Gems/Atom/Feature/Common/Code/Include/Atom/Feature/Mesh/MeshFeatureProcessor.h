@@ -68,6 +68,10 @@ namespace AZ
             {
                 return m_originalModelAsset.GetHint();
             }
+            const AZ::Data::AssetId GetAssetId() const
+            {
+                return m_originalModelAsset.GetId();
+            }
 #endif
 
 

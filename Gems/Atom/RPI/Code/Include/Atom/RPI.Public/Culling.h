@@ -34,6 +34,7 @@
 #ifdef AZ_DEBUG_BUILD
 #define AZ_CULL_DEBUG_ENABLED
 #endif
+#define AZ_CULL_DEBUG_ENABLED
 
 namespace AZ
 {
