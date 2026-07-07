@@ -1,7 +1,7 @@
 {
     "name": "snow",
     "displayName": "Snow cover",
-    "description": "Snow cover overlay properties, parially controlled by the Weather Gem",
+    "description": "Snow cover overlay properties, partially controlled by the Weather Gem",
     "properties": [
         {
             "name": "enable",
