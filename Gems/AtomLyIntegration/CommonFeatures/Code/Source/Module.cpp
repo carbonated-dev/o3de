@@ -46,6 +46,10 @@
 #include <Scripting/EntityReferenceComponent.h>
 #include <SurfaceData/SurfaceDataMeshComponent.h>
 #include <Animation/AttachmentComponent.h>
+#if defined(CARBONATED)
+#include <VolumetricFog/VolumetricFogComponent.h>
+#include <VolumetricFog/FogVolumeComponent.h>
+#endif
 
 #ifdef ATOMLYINTEGRATION_FEATURE_COMMON_EDITOR
 #include <EditorCommonFeaturesSystemComponent.h>
@@ -89,6 +93,8 @@
 #include <Animation/EditorAttachmentComponent.h>
 #if defined(CARBONATED)
 #include <Silhouette/EditorSilhouetteSystemComponent.h>
+#include <VolumetricFog/EditorVolumetricFogComponent.h>
+#include <VolumetricFog/EditorFogVolumeComponent.h>
 #endif
 #endif
 
@@ -143,6 +149,10 @@ namespace AZ
                         WhiteBalanceComponent::CreateDescriptor(),
                         VignetteComponent::CreateDescriptor(),
                         CubeMapCaptureComponent::CreateDescriptor(),
+#if defined(CARBONATED)
+                        VolumetricFogComponent::CreateDescriptor(),
+                        FogVolumeComponent::CreateDescriptor(),
+#endif
 
 #ifdef ATOMLYINTEGRATION_FEATURE_COMMON_EDITOR
                         EditorAreaLightComponent::CreateDescriptor(),
@@ -186,6 +196,8 @@ namespace AZ
                         EditorCubeMapCaptureComponent::CreateDescriptor(),
 #if defined(CARBONATED)
                         EditorSilhouetteSystemComponent::CreateDescriptor(),
+                        EditorVolumetricFogComponent::CreateDescriptor(),
+                        EditorFogVolumeComponent::CreateDescriptor(),
 #endif
 #endif
                     });

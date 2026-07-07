@@ -193,22 +193,123 @@ namespace ImageProcessingAtom
         const AZ::u32 dstMips = dstImage->GetMipCount();
         for (AZ::u32 mip = 0; mip < dstMips; ++mip)
         {
+#if defined(CARBONATED)
+            AZ::u8* srcMem;
+            AZ::u32 srcPitch;
+            srcImage->GetImagePointer(mip, srcMem, srcPitch);
+
+            AZ::u8* dstMem;
+            AZ::u32 dstPitch;
+            dstImage->GetImagePointer(mip, dstMem, dstPitch);
+
+            const AZ::u32 mipWidth     = srcImage->GetWidth(mip);
+            const AZ::u32 mipHeight    = srcImage->GetHeight(mip);
+            const AZ::u32 mipDepth     = srcImage->GetDepth(mip);
+            const AZ::u32 srcSliceBytes = mipHeight * srcPitch;
+            const AZ::u32 dstSliceBytes = dstImage->GetMipBufSize(mip) / mipDepth;
+
+            for (AZ::u32 d = 0; d < mipDepth; ++d)
+            {
+                AZ::u8* sliceSrc = srcMem + d * srcSliceBytes;
+                AZ::u8* sliceDst = dstMem + d * dstSliceBytes;
+                AZ::u32 dataSize = dstSliceBytes;
+                void* imageData[1] = { sliceSrc };
+
+                astcenc_image image;
+                image.dim_x = mipWidth;
+                image.dim_y = mipHeight;
+                image.dim_z = 1;
+                image.data_type = dataType;
+                image.data = imageData;
+
+                if (threadCount == 1)
+                {
+                    astcenc_error error = astcenc_compress_image(context, &image, &swizzle, sliceDst, dataSize, 0);
+                    if (error != ASTCENC_SUCCESS)
+                    {
+                        status = error;
+                    }
+                }
+                else
+                {
+                    AZ::JobCompletion* completionJob = nullptr;
+                    if (!currentJob)
+                    {
+                        completionJob = aznew AZ::JobCompletion();
+                    }
+                    AZStd::vector<astcenc_error> jobResults(threadCount, ASTCENC_SUCCESS);
+                    // Create jobs for each compression thread
+                    for (AZ::u32 threadIdx = 0; threadIdx < threadCount; threadIdx++)
+                    {
+                        const auto jobLambda = [&jobResults, context, &image, &swizzle, sliceDst, dataSize, threadIdx]()
+                        {
+                            jobResults[threadIdx] = astcenc_compress_image(context, &image, &swizzle, sliceDst, dataSize, threadIdx);
+                        };
+
+                        AZ::Job* simulationJob = AZ::CreateJobFunction(AZStd::move(jobLambda), true, nullptr);  //auto-deletes
+
+                        // adds this job as child to current job if there is a current job
+                        // otherwise adds it as a dependent for the complete job
+                        if (currentJob)
+                        {
+                            currentJob->StartAsChild(simulationJob);
+                        }
+                        else
+                        {
+                            simulationJob->SetDependent(completionJob);
+                            simulationJob->Start();
+                        }
+                    }
+
+                    if (currentJob)
+                    {
+                        currentJob->WaitForChildren();
+                    }
+
+                    if (completionJob)
+                    {
+                        completionJob->StartAndWaitForCompletion();
+                        delete completionJob;
+                        completionJob = nullptr;
+                    }
+
+                    // Check the job results
+                    for(auto result : jobResults)
+                    {
+                        if (result != ASTCENC_SUCCESS)
+                        {
+                            status = result;
+                            break;
+                        }
+                    }
+                }
+
+                if (status != ASTCENC_SUCCESS)
+                {
+                    AZ_Error("Image Processing", false, "ASTCCompressor::CompressImage failed: %s\n", astcenc_get_error_string(status));
+                    astcenc_context_free(context);
+                    return nullptr;
+                }
+
+                // Reset context between depth slices (and between mips).
+                astcenc_compress_reset(context);
+            } // for: depth slices
+#else
             astcenc_image image;
             image.dim_x = srcImage->GetWidth(mip);
             image.dim_y = srcImage->GetHeight(mip);
             image.dim_z = 1;
             image.data_type = dataType;
-                        
+
             AZ::u8* srcMem;
             AZ::u32 srcPitch;
             srcImage->GetImagePointer(mip, srcMem, srcPitch);
             image.data = reinterpret_cast<void**>(&srcMem);
-                        
+
             AZ::u8* dstMem;
             AZ::u32 dstPitch;
             dstImage->GetImagePointer(mip, dstMem, dstPitch);
             AZ::u32 dataSize = dstImage->GetMipBufSize(mip);
-
             if (threadCount == 1)
             {
                 astcenc_error error = astcenc_compress_image(context, &image, &swizzle, dstMem, dataSize, 0);
@@ -236,7 +337,7 @@ namespace ImageProcessingAtom
                         }
                     };
 
-                    AZ::Job* simulationJob = AZ::CreateJobFunction(AZStd::move(jobLambda), true, nullptr);  //auto-deletes
+                    AZ::Job* simulationJob = AZ::CreateJobFunction(AZStd::move(jobLambda), true, nullptr); // auto-deletes
 
                     // adds this job as child to current job if there is a current job
                     // otherwise adds it as a dependent for the complete job
@@ -256,7 +357,7 @@ namespace ImageProcessingAtom
                         status = error;
                     }
                 }
-                
+
                 if (currentJob)
                 {
                     currentJob->WaitForChildren();
@@ -277,9 +378,9 @@ namespace ImageProcessingAtom
                 return nullptr;
             }
 
-            // Need to reset to compress next mip
             astcenc_compress_reset(context);
-        }
+#endif // defined(CARBONATED)
+        } // for: mips
         astcenc_context_free(context);
 
         return dstImage;

@@ -53,7 +53,16 @@ ShaderResourceGroup PassSrg : SRG_PerPass
 
     // Whether the m_linearDepthTexture is linear depth or original depth
     // This is useful for render pipeline which doesn't have a pass to convert original depth to linear depth
-    // We can use m_linearDepthTexture for original depth and set this flag to true. 
+    // We can use m_linearDepthTexture for original depth and set this flag to true.
     // And the shaders can calculate linear depth themselves
     uint m_isOriginalDepth;
+
+// Begin Carbonated
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_VOLUMETRIC_FOG
+    // Precomputed froxel volume (in-scatter RGB, transmittance A) for transparent surfaces.
+    // Only bound during the transparent pass; SRG_PerPass_WithFallback makes it optional
+    // for opaque passes that do not use it.
+    Texture3D<float4> m_froxelVolumetricFog;
+#endif
+// End Carbonated
 }

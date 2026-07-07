@@ -151,6 +151,11 @@ namespace AZ
             uint32_t maxLayers = 1;
             for (size_t index = 0; index < imageViews.size(); ++index)
             {
+#if defined(CARBONATED)
+                const auto& vkRange = m_attachments[index]->GetVkImageSubresourceRange();
+                imageViews[index] = m_attachments[index]->GetNativeImageView();
+                maxLayers = AZStd::max(maxLayers, vkRange.layerCount);
+#else
                 imageViews[index] = m_attachments[index]->GetNativeImageView();
                 if (m_attachments[index]->GetDescriptor().m_isArray)
                 {
@@ -160,6 +165,7 @@ namespace AZ
                             m_attachments[index]->GetImageSubresourceRange().m_arraySliceMax -
                             m_attachments[index]->GetImageSubresourceRange().m_arraySliceMin + 1));
                 }
+#endif
             }
 
             VkFramebufferCreateInfo createInfo{};

@@ -1,0 +1,77 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "FroxelInjectTemplate",
+            "PassClass": "FroxelPass",
+            "Slots": [
+                {
+                    "Name": "FroxelVolume",
+                    "SlotType": "Output",
+                    "ShaderInputName": "m_froxelVolume",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "FroxelEmissive",
+                    "SlotType": "Output",
+                    "ShaderInputName": "m_froxelEmissive",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "FroxelVolume",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "Parent",
+                            "Attachment": "PipelineOutput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R16G16B16A16_FLOAT",
+                        "Dimension" : 3
+                    }
+                },
+                {
+                    "Name": "FroxelEmissive",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "FroxelVolume"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R11G11B10_FLOAT",
+                        "Dimension" : 3
+                    }
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "FroxelVolume",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "FroxelVolume"
+                    }
+                },
+                {
+                    "LocalSlot": "FroxelEmissive",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "FroxelEmissive"
+                    }
+                }
+            ],             
+            "PassData": {
+                "$type": "ComputePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/VolumetricFog/FroxelInject.shader"
+                },
+                "Make Fullscreen Pass": true,
+                "BindViewSrg" : true
+            }
+        }
+    }
+}
