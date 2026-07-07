@@ -6,6 +6,15 @@
 #
 #
 
+# CARBONATED: use the real SDL-backed native dialog (see NativeUISystemComponent_Linux.cpp) when
+# the Linux window manager trait is "sdl" (this project's normal config); otherwise fall back to
+# the Unimplemented stub, matching upstream O3DE behavior for xcb/wayland.
+if(PAL_TRAIT_LINUX_WINDOW_MANAGER STREQUAL "sdl")
+    set(native_ui_linux_file AzCore/NativeUI/NativeUISystemComponent_Linux.cpp)
+else()
+    set(native_ui_linux_file ../Common/Unimplemented/AzCore/NativeUI/NativeUISystemComponent_Unimplemented.cpp)
+endif()
+
 set(FILES
     AzCore/AzCore_Traits_Platform.h
     AzCore/AzCore_Traits_Linux.h
@@ -54,7 +63,7 @@ set(FILES
     ../Common/UnixLike/AzCore/Math/Random_UnixLike.h
     ../Common/UnixLike/AzCore/Module/DynamicModuleHandle_UnixLike.cpp
     AzCore/Module/DynamicModuleHandle_Linux.cpp
-    ../Common/Unimplemented/AzCore/NativeUI/NativeUISystemComponent_Unimplemented.cpp
+    ${native_ui_linux_file}
     ../Common/UnixLike/AzCore/PlatformIncl_UnixLike.h
     ../Common/UnixLike/AzCore/Platform_UnixLike.cpp
     AzCore/PlatformIncl_Platform.h
