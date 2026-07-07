@@ -605,7 +605,7 @@ void CConsoleSCB::FlushText()
     // away from the bottom, then restore the previous cursor and keep the scroll
     // bar in the same location
 #if defined(CARBONATED)
-    // When auto-scroll is ON, always scroll to the bottom — the user signals intent
+    // When auto-scroll is ON, always scroll to the bottom - the user signals intent
     // to disable it by scrolling up or selecting text (handled via signal connections).
     if (!m_autoScroll && (oldCursor.hasSelection() || scrolledOffBottom))
 #else
