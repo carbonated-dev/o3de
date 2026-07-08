@@ -328,6 +328,20 @@
             },
             "platformFlags": 511,
             "pathHint": "passes/mobile/mobilerenderpipeline.azasset"
+        },
+        {
+            "assetId": {
+                "guid": "{3F676A52-0973-53A0-ABD6-64B41D57FAC6}"
+            },
+            "platformFlags": 511,
+            "pathHint": "shaders/volumetricfog/volumetricfogmaxtransparent.azshader"
+        },
+        {
+            "assetId": {
+                "guid": "{3CB9ABF3-50C1-57D5-B36B-9D975E01E4CC}"
+            },
+            "platformFlags": 511,
+            "pathHint": "shaders/volumetricfog/volumetricfogmintransparent.azshader"
         }
     ]
 }
