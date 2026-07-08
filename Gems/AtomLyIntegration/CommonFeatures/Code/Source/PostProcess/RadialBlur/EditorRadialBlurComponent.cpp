@@ -62,8 +62,9 @@ namespace AZ
                         ->Attribute(Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)
                         ->Attribute(Edit::Attributes::ReadOnly, &RadialBlurComponentConfig::ArePropertiesReadOnly)
 
-                        ->DataElement(Edit::UIHandlers::ComboBox, &RadialBlurComponentConfig::m_sampleCount, "Sample Count", "Number of radial blur samples.")
-                        ->Attribute("EnumValues", &RadialBlurComponentConfig::GetSampleCountOptions)
+                        ->DataElement(Edit::UIHandlers::Default, &RadialBlurComponentConfig::m_sampleCount, "Sample Count", "Number of radial blur samples.")
+                        ->Attribute(Edit::Attributes::Min, RadialBlur::MinSampleCount)
+                        ->Attribute(Edit::Attributes::Max, RadialBlur::MaxSampleCount )
                         ->Attribute(Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)
                         ->Attribute(Edit::Attributes::ReadOnly, &RadialBlurComponentConfig::ArePropertiesReadOnly)
 

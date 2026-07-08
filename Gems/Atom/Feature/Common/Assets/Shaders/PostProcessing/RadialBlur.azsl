@@ -37,16 +37,23 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     uint2 pixel = dispatchThreadID.xy;
     float2 textureSize = float2(PassSrg::m_constants.m_outputSize);
     float2 uv = (float2(pixel) + 0.5f) / textureSize;
-    float2 center = clamp(PassSrg::m_constants.m_center, float2(0.0f, 0.0f), float2(1.0f, 1.0f));
+    float2 center = PassSrg::m_constants.m_center;
     float2 direction = uv - center;
 
     float2 maxDistanceVector = max(center, float2(1.0f, 1.0f) - center);
     float maxDistance = max(length(maxDistanceVector), 0.0001f);
     float normalizedDistance = length(direction) / maxDistance;
+
+    float4 originalColor = PassSrg::m_inputColor[pixel];
+    if (normalizedDistance <= PassSrg::m_constants.m_innerRadius)
+    {
+        PassSrg::m_outputColor[pixel] = originalColor;
+        return;
+    }
+
     float mask = saturate((normalizedDistance - PassSrg::m_constants.m_innerRadius) / max(1.0f - PassSrg::m_constants.m_innerRadius, 0.0001f));
 
     uint sampleCount = clamp(PassSrg::m_constants.m_sampleCount, 1u, 64u);
-    float4 originalColor = PassSrg::m_inputColor[pixel];
     float3 color = originalColor.rgb;
 
     [loop]

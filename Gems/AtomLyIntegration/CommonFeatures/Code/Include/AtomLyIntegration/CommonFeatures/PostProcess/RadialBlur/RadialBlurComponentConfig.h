@@ -10,9 +10,6 @@
 
 #include <Atom/Feature/PostProcess/RadialBlur/RadialBlurSettingsInterface.h>
 #include <AzCore/Component/Component.h>
-#include <AzCore/std/containers/vector.h>
-#include <AzCore/std/string/string.h>
-#include <AzCore/std/utility/pair.h>
 
 namespace AZ
 {
@@ -41,10 +38,6 @@ namespace AZ
             void CopySettingsFrom(RadialBlurSettingsInterface* settings);
             //! Copy radial blur values from this component configuration into Atom settings.
             void CopySettingsTo(RadialBlurSettingsInterface* settings);
-
-            using SampleCountComboBoxVec = AZStd::vector<AZStd::pair<AZ::u32, AZStd::string>>;
-            //! Return the editor dropdown options for sample count.
-            SampleCountComboBoxVec GetSampleCountOptions() const;
 
             //! Return true when radial blur properties should be read-only in the editor.
             bool ArePropertiesReadOnly() const

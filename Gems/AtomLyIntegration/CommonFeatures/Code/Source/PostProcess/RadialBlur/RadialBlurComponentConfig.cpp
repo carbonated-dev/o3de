@@ -55,19 +55,5 @@ namespace AZ
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 #undef COPY_TARGET
         }
-
-        RadialBlurComponentConfig::SampleCountComboBoxVec RadialBlurComponentConfig::GetSampleCountOptions() const
-        {
-            return
-            {
-                { 1u, "1" },
-                { 2u, "2" },
-                { 4u, "4" },
-                { 8u, "8" },
-                { 16u, "16" },
-                { 32u, "32" },
-                { 64u, "64" },
-            };
-        }
     } // namespace Render
 } // namespace AZ
