@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#include <scenesrg.srgi>
+#include <viewsrg.srgi>
+#include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
+#include <Atom/Features/PostProcessing/FullscreenPixelInfo.azsli>
+#include "FroxelUtil.azsli"
+
+ShaderResourceGroup PassSrg : SRG_PerPass
+{
+    Sampler LinearSampler
+    {
+        MinFilter = Linear;
+        MagFilter = Linear;
+        MipFilter = Linear;
+        AddressU = Clamp;
+        AddressV = Clamp;
+        AddressW = Clamp;
+    };
+
+    Sampler PointSampler
+    {
+        MinFilter = Point;
+        MagFilter = Point;
+        MipFilter = Point;
+        AddressU = Clamp;
+        AddressV = Clamp;
+        AddressW = Clamp;
+    };
+
+    Texture3D<float4> m_froxelIntegrated;
+    Texture2D<float> m_linearDepthTexture;
+}
+
+PSOutput MainPS(VSOutput IN)
+{
+    PSOutput OUT;
+
+    float2 screenUV   = IN.m_texCoord.xy;
+
+    float viewZ = PassSrg::m_linearDepthTexture.Sample(PassSrg::PointSampler, IN.m_texCoord).r;
+    float3 uvw      = GetFroxelUVW(screenUV, viewZ);
+    uvw = saturate(uvw);
+    
+    float4 fog = PassSrg::m_froxelIntegrated.SampleLevel(PassSrg::LinearSampler, uvw, 0);
+
+    // Output in-scatter as RGB, transmittance as A.
+    // Hardware blending applies: result = fog.rgb + sceneColor * fog.a
+    OUT.m_color = float4(fog.xyz, fog.w);
+
+    return OUT;
+}

@@ -40,6 +40,9 @@
 #define ENABLE_SPECULARAA 0
 #define ENABLE_PARALLAX 0
 #define ENABLE_MOBILEBRDF 1
+// CARBONATED
+#define ENABLE_VOLUMETRIC_FOG 0
+//CARBONATED
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////

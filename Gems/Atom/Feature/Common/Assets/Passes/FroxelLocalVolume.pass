@@ -1,0 +1,51 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "FroxelLocalVolumeTemplate",
+            "PassClass": "RasterPass",
+            "Slots": [
+                {
+                    "Name": "FroxelMedium",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget",
+                    "LoadStoreAction": {
+                        "LoadAction": "Load",
+                        "StoreAction": "Store"
+                    },
+                    "ImageViewDesc": {
+                        "OverrideBindFlags": [
+                            "Color"
+                        ]
+                    }
+                },
+                {
+                    "Name": "FroxelEmissive",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget",
+                    "LoadStoreAction": {
+                        "LoadAction": "Load",
+                        "StoreAction": "Store"
+                    },
+                    "ImageViewDesc": {
+                        "OverrideBindFlags": [
+                            "Color"
+                        ]
+                    }
+                }
+            ],
+            "PassData": {
+                "$type": "RasterPassData",
+                "DrawListTag": "froxelLocalVolume",
+                "PipelineViewTag": "MainCamera",
+                "PassSrgShaderAsset": {
+                    "FilePath": "Shaders/VolumetricFog/FroxelLocalVolume.shader"
+                },
+                "BindViewSrg": true,
+                "ViewportScissorTargetOutputIndex" : 0
+            }
+        }
+    }
+}

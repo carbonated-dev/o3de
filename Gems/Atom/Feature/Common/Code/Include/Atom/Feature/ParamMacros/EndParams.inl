@@ -15,6 +15,9 @@
 #undef AZ_GFX_VEC3_PARAM
 #undef AZ_GFX_VEC4_PARAM
 #undef AZ_GFX_TEXTURE2D_PARAM
+#if defined(CARBONATED)
+#undef AZ_GFX_TEXTURE_ASSET_PARAM
+#endif
 
 // Un-define overrides...
 #undef AZ_GFX_ANY_PARAM_BOOL_OVERRIDE
