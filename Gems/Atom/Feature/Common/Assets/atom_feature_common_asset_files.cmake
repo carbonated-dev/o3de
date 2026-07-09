@@ -70,6 +70,9 @@ set(FILES
     Materials/Types/StandardPBR_HandleOpacityMode.lua
     Materials/Types/StandardPBR_Metallic.lua
     Materials/Types/StandardPBR_ParallaxState.lua
+# Begin Carbonated
+    Materials/Types/StandardPBR_RimLightingState.lua
+# End Carbonated
     Materials/Types/StandardPBR_Roughness.lua
     Materials/Types/MaterialInputs/DetailMapsCommonFunctor.lua
     Passes/AuxGeom.pass
@@ -416,6 +419,9 @@ set(FILES
     Shaders/Materials/MaterialInputs/NormalInput.azsli
     Shaders/Materials/MaterialInputs/OcclusionInput.azsli
     Shaders/Materials/MaterialInputs/ParallaxInput.azsli
+# Begin Carbonated
+    Shaders/Materials/MaterialInputs/RimLightingInput.azsli
+# End Carbonated
     Shaders/Materials/MaterialInputs/RoughnessInput.azsli
     Shaders/Materials/MaterialInputs/SpecularInput.azsli
     Shaders/Materials/MaterialInputs/SubsurfaceInput.azsli

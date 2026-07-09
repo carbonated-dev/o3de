@@ -17,12 +17,6 @@
 
 #include "../BasePBR/BasePBR_LightingEval.azsli"
 
-// Begin Carbonated
-#ifndef ENABLE_RIM_LIGHTING
-#define ENABLE_RIM_LIGHTING 0
-#endif
-// End Carbonated
-
 void InitializeLightingData_StandardPBR(inout Surface surface, float4 screenPosition, float3 viewPosition, inout LightingData lightingData)
 {
     // --- Base PBR ---
@@ -33,21 +27,6 @@ void InitializeLightingData_StandardPBR(inout Surface surface, float4 screenPosi
     lightingData.emissiveLighting = surface.emissiveLighting;
     lightingData.diffuseAmbientOcclusion = surface.diffuseAmbientOcclusion;
     lightingData.specularOcclusion = surface.specularOcclusion;
-
-// Begin Carbonated
-#if ENABLE_RIM_LIGHTING
-    if(o_rimLighting_enabled)
-    {
-        lightingData.emissiveLighting += GetRimLightingInput(
-            surface.GetDefaultNormal(),
-            lightingData.dirToCamera,
-            real3(MaterialSrg::m_rimLightingColor),
-            real(MaterialSrg::m_rimLightingIntensity),
-            real(MaterialSrg::m_rimLightingPower),
-            real(MaterialSrg::m_rimLightingBias));
-    }
-#endif
-// End Carbonated
 
 #if ENABLE_CLEAR_COAT
     if(o_clearCoat_feature_enabled)

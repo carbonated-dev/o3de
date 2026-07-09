@@ -8,24 +8,23 @@
 ----------------------------------------------------------------------------------------------------
 
 function GetMaterialPropertyDependencies()
-    return {"enable"}
+    return {"mode"}
 end
 
 function Process(context)
 end
 
 function ProcessEditor(context)
-    local enable = context:GetMaterialPropertyValue_bool("enable")
-
+    local mode = context:GetMaterialPropertyValue_enum("mode")
+    local modeOff = 0
     local visibility
-    if(enable) then
-        visibility = MaterialPropertyVisibility_Enabled
-    else
+    if(mode == modeOff) then
         visibility = MaterialPropertyVisibility_Hidden
+    else
+        visibility = MaterialPropertyVisibility_Enabled
     end
 
-    context:SetMaterialPropertyVisibility("color", visibility)
+    context:SetMaterialPropertyVisibility("tint", visibility)
     context:SetMaterialPropertyVisibility("intensity", visibility)
     context:SetMaterialPropertyVisibility("power", visibility)
-    context:SetMaterialPropertyVisibility("bias", visibility)
 end

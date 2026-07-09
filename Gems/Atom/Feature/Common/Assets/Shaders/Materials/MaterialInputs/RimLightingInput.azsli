@@ -12,18 +12,41 @@
 // This file provides utilities for common handling of rim lighting inputs for PBR materials.
 
 #define COMMON_SRG_INPUTS_RIM_LIGHTING(prefix) \
-float3 prefix##m_rimLightingColor;             \
+float3 prefix##m_rimLightingTint;              \
 float  prefix##m_rimLightingIntensity;         \
-float  prefix##m_rimLightingPower;             \
-float  prefix##m_rimLightingBias;
+float  prefix##m_rimLightingPower;
 
 #define COMMON_OPTIONS_RIM_LIGHTING(prefix) \
-option bool prefix##o_rimLighting_enabled;
+option enum class RimLightingMode { Off, Camera, LightDirection, InvertedLightDirection } prefix##o_rimLighting_mode;
 
-real3 GetRimLightingInput(real3 normal, real3 dirToCamera, real3 color, real intensity, real power, real bias)
+real GetRimLightingShape(real3 normal, real3 dirToCamera, real power)
 {
     real nDotV = saturate(dot(normalize(normal), normalize(dirToCamera)));
-    real rim = pow(saturate(1.0 - nDotV + bias), max(power, 1e-3));
-    return color * intensity * rim;
+    return pow(saturate(1.0 - nDotV), max(power, 1e-3));
+}
+
+real GetRimLightingDirectionTerm(real3 normal, real3 dirToLight)
+{
+    real nDotL = dot(normalize(normal), normalize(dirToLight));
+    return saturate(nDotL);
+}
+
+real GetInvertedRimLightingDirectionTerm(real3 normal, real3 dirToLight)
+{
+    real nDotL = dot(normalize(normal), normalize(dirToLight));
+    return saturate(-nDotL);
+}
+
+real3 GetRimLightingInput(
+    real3 normal,
+    real3 dirToCamera,
+    real3 tint,
+    real3 lightColor,
+    real intensity,
+    real power,
+    real directionTerm)
+{
+    real rimShape = GetRimLightingShape(normal, dirToCamera, power);
+    return tint * lightColor * intensity * rimShape * directionTerm;
 }
 // End Carbonated
