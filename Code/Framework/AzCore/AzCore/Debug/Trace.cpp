@@ -419,20 +419,24 @@ namespace AZ::Debug
 #endif
                 )
             {
+#if defined(CARBONATED)
                 AZ::NativeUI::AssertAction buttonResult = AZ::NativeUI::AssertAction::NONE;
                 bool handledByInGameAssertUI = false;
-#if defined(CARBONATED)
                 if (auto* inGameAssertUI = AZ::Interface<AZ::NativeUI::InGameAssertUIRequests>::Get())
                 {
                     buttonResult = inGameAssertUI->DisplayAssertDialog(dialogBoxText);
                     handledByInGameAssertUI = true;
                 }
-#endif
                 if (!handledByInGameAssertUI)
                 {
                     AZ::NativeUI::NativeUIRequestBus::BroadcastResult(
                         buttonResult, &AZ::NativeUI::NativeUIRequestBus::Events::DisplayAssertDialog, dialogBoxText);
                 }
+#elif
+                AZ::NativeUI::AssertAction buttonResult;
+                AZ::NativeUI::NativeUIRequestBus::BroadcastResult(
+                    buttonResult, &AZ::NativeUI::NativeUIRequestBus::Events::DisplayAssertDialog, dialogBoxText);
+#endif
                 switch (buttonResult)
                 {
                 case AZ::NativeUI::AssertAction::BREAK:
