@@ -32,6 +32,10 @@
 
 #include <Launcher_Traits_Platform.h>
 
+#if defined(CARBONATED) && defined(CARBONATED_OCGA) && defined(AZ_PLATFORM_LINUX)
+#include <cstdlib>
+#endif
+
 #if defined(AZ_MONOLITHIC_BUILD)
 extern "C" void CreateStaticModules(AZStd::vector<AZ::Module*>& modulesOut);
 #endif //  defined(AZ_MONOLITHIC_BUILD)
@@ -340,6 +344,14 @@ namespace O3DELauncher
 
     ReturnCode Run(const PlatformMainInfo& mainInfo)
     {
+#if defined(CARBONATED) && defined(CARBONATED_OCGA) && defined(AZ_PLATFORM_LINUX)
+        constexpr const char* shaderCacheRoot = "/tmp/redemption-mesa-shader-cache";
+
+        setenv("MESA_SHADER_CACHE_DIR", shaderCacheRoot, 1);
+        setenv("MESA_SHADER_CACHE_MAX_SIZE", "4G", 1);
+
+        AZ_TracePrintf("Launcher", "MESA_SHADER_CACHE_DIR set to %s\n", shaderCacheRoot);
+#endif
         if (mainInfo.m_updateResourceLimits
             && !mainInfo.m_updateResourceLimits())
         {
