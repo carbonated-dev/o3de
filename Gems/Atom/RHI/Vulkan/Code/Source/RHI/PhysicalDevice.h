@@ -67,7 +67,9 @@ namespace AZ
             ShaderFloatControls,
             FragmentShadingRate,
             FragmentDensityMap,
+#if defined(CARBONATED)
             FragmentShaderInterlock,
+#endif
             Renderpass2,
             TimelineSempahore,
             Count

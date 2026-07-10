@@ -59,8 +59,13 @@ ShaderResourceGroup PassSrg : SRG_PerPass
 
     // Begin Carbonated
     // Compact OIT storage shared by MLAB, WBOIT, and MBOIT. Only one OIT method owns these bindings at a time.
+    [[verbatim("globallycoherent")]]
     RasterizerOrderedTexture2D<uint> m_oitFragmentCount;
+    
+    [[verbatim("globallycoherent")]]
     RasterizerOrderedTexture2D<float4> m_oitFragmentData0;
+    
+    [[verbatim("globallycoherent")]]
     RasterizerOrderedTexture2D<float4> m_oitFragmentData1;
     // End Carbonated
 }
