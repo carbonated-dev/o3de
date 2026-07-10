@@ -372,6 +372,39 @@ namespace AZ
 
                 // retrieve binding
                 const size_t srgBindingIndex = globalPipelineLayout->GetIndexBySlot(srgBindingSlot);
+#if defined(CARBONATED)
+                if (srgBindingIndex < RHI::Limits::Pipeline::ShaderResourceGroupCountMax)
+                {
+                    RootParameterBinding binding = globalPipelineLayout->GetRootParameterBindingByIndex(srgBindingIndex);
+                    const ShaderResourceGroup* srg =
+                        static_cast<const ShaderResourceGroup*>(dispatchRaysItem.m_shaderResourceGroups[srgIndex]);
+                    const ShaderResourceGroupCompiledData& compiledData = srg->GetCompiledData();
+
+                    if (binding.m_resourceTable.IsValid() && compiledData.m_gpuViewsDescriptorHandle.ptr)
+                    {
+                        GetCommandList()->SetComputeRootDescriptorTable(
+                            binding.m_resourceTable.GetIndex(), compiledData.m_gpuViewsDescriptorHandle);
+                    }
+
+                    for (uint32_t unboundedArrayIndex = 0; unboundedArrayIndex < ShaderResourceGroupCompiledData::MaxUnboundedArrays;
+                         ++unboundedArrayIndex)
+                    {
+                        if (binding.m_bindlessTable.IsValid() &&
+                            compiledData.m_gpuUnboundedArraysDescriptorHandles[unboundedArrayIndex].ptr)
+                        {
+                            GetCommandList()->SetComputeRootDescriptorTable(
+                                binding.m_bindlessTable.GetIndex(),
+                                compiledData.m_gpuUnboundedArraysDescriptorHandles[unboundedArrayIndex]);
+                        }
+                    }
+
+                    if (binding.m_constantBuffer.IsValid())
+                    {
+                        GetCommandList()->SetComputeRootConstantBufferView(
+                            binding.m_constantBuffer.GetIndex(), compiledData.m_gpuConstantAddress);
+                    }
+                }
+#else
                 RootParameterBinding binding = globalPipelineLayout->GetRootParameterBindingByIndex(srgBindingIndex);
                 const ShaderResourceGroup* srg = static_cast<const ShaderResourceGroup*>(dispatchRaysItem.m_shaderResourceGroups[srgIndex]);
                 const ShaderResourceGroupCompiledData& compiledData = srg->GetCompiledData();
@@ -397,6 +430,7 @@ namespace AZ
                 {
                     GetCommandList()->SetComputeRootConstantBufferView(binding.m_constantBuffer.GetIndex(), compiledData.m_gpuConstantAddress);
                 }
+#endif
             }
 
             // set the bindless descriptor table if required by the shader

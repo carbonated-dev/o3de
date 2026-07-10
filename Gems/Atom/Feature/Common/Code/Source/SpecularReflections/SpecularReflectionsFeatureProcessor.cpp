@@ -12,6 +12,9 @@
 #include <Atom/RPI.Public/Pass/PassFilter.h>
 #include <RayTracing/RayTracingPass.h>
 #include <ReflectionScreenSpace/ReflectionScreenSpacePass.h>
+#if defined(CARBONATED)
+#include <Atom/RPI.Public/Scene.h>
+#endif
 
 namespace AZ
 {
