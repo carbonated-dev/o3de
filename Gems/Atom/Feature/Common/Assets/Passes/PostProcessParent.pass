@@ -257,13 +257,26 @@
 		            ]
                 },
                 {
+                    "Name": "RadialBlurPass",
+                    "TemplateName": "RadialBlurTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "Input",
+                            "AttachmentRef": {
+                                "Pass": "WhiteBalancePass",
+                                "Attachment": "Output"
+                            }
+                        }
+                    ]
+                },
+                {
                     "Name": "VignettePass",
                     "TemplateName": "VignetteTemplate",
                     "Connections": [
                         {
                             "LocalSlot": "Input",
                             "AttachmentRef": {
-                                "Pass": "WhiteBalancePass",
+                                "Pass": "RadialBlurPass",
                                 "Attachment": "Output"
                             }
                         }

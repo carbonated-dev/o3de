@@ -44,6 +44,10 @@ set(FILES
     Include/AtomLyIntegration/CommonFeatures/PostProcess/FilmGrain/FilmGrainComponentConfig.h
     Include/AtomLyIntegration/CommonFeatures/PostProcess/WhiteBalance/WhiteBalanceBus.h
     Include/AtomLyIntegration/CommonFeatures/PostProcess/WhiteBalance/WhiteBalanceComponentConfig.h
+# Begin Carbonated
+    Include/AtomLyIntegration/CommonFeatures/PostProcess/RadialBlur/RadialBlurBus.h
+    Include/AtomLyIntegration/CommonFeatures/PostProcess/RadialBlur/RadialBlurComponentConfig.h
+#End Carbonated
     Include/AtomLyIntegration/CommonFeatures/PostProcess/Vignette/VignetteBus.h
     Include/AtomLyIntegration/CommonFeatures/PostProcess/Vignette/VignetteComponentConfig.h
     Include/AtomLyIntegration/CommonFeatures/PostProcess/DepthOfField/DepthOfFieldBus.h

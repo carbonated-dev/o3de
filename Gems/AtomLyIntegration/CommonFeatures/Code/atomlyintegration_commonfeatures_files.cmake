@@ -104,6 +104,13 @@ set(FILES
     Source/PostProcess/WhiteBalance/WhiteBalanceComponentConfig.cpp
     Source/PostProcess/WhiteBalance/WhiteBalanceComponentController.cpp
     Source/PostProcess/WhiteBalance/WhiteBalanceComponentController.h
+# Begin Carbonated
+    Source/PostProcess/RadialBlur/RadialBlurComponent.cpp
+    Source/PostProcess/RadialBlur/RadialBlurComponent.h
+    Source/PostProcess/RadialBlur/RadialBlurComponentConfig.cpp
+    Source/PostProcess/RadialBlur/RadialBlurComponentController.cpp
+    Source/PostProcess/RadialBlur/RadialBlurComponentController.h
+#End Carbonated
     Source/PostProcess/Vignette/VignetteComponent.cpp
     Source/PostProcess/Vignette/VignetteComponent.h
     Source/PostProcess/Vignette/VignetteComponentConfig.cpp
