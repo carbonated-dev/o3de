@@ -70,3 +70,18 @@ float4 ApplyVolumetricFog(float3 litColor, float3 worldPosition)
     return float4(litColor, 1.0);
 #endif
 }
+
+float3 ApplyVolumetricFogToPremultipliedTransparent(float3 litColor, float alpha, float3 worldPosition)
+{
+#if ENABLE_VOLUMETRIC_FOG
+    float4 fog = ApplyVolumetricFog(litColor, worldPosition);
+
+    // Only add fog color where the transparent pixel is visible since is premultiplied alpha.
+    // At alpha 0, the pixel should not draw fog.
+    float3 foggedLitColor = litColor * fog.a;
+    float3 fogInScatter = fog.rgb - foggedLitColor;
+    return foggedLitColor + fogInScatter * saturate(alpha);
+#else
+    return litColor;
+#endif
+}
