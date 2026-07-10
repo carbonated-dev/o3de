@@ -20,15 +20,3 @@ set(LY_BUILD_DEPENDENCIES
     PUBLIC
         ${CMAKE_DL_LIBS}
 )
-
-# CARBONATED: NativeUISystemComponent_Linux.cpp uses SDL_ShowMessageBox for a native assert/OK/
-# yes-no dialog on Linux (dev/test parity with the Windows DialogBoxIndirectParam path - does not
-# apply to OCGA itself, which has no window compositor). Only add this when the project is
-# actually configured to use SDL as its Linux window manager (see platform_nativeui_linux.cmake in
-# AzFramework for the same trait check).
-if(PAL_TRAIT_LINUX_WINDOW_MANAGER STREQUAL "sdl")
-    list(APPEND LY_BUILD_DEPENDENCIES
-        PRIVATE
-            SDL2
-    )
-endif()
