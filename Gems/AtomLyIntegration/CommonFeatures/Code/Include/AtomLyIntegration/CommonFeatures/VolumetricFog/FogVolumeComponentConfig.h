@@ -13,6 +13,7 @@
 #include <AzCore/Math/Color.h>
 #include <AzCore/Math/Vector3.h>
 #include <Atom/RPI.Reflect/Image/StreamingImageAsset.h>
+#include <AzCore/Asset/AssetSerializer.h>
 
 namespace AZ::Render
 {

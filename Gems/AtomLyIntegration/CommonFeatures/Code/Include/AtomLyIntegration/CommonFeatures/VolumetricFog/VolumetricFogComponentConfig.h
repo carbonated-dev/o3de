@@ -15,6 +15,7 @@
 #include <Atom/Feature/VolumetricFog/VolumetricFogConstants.h>
 #include <Atom/Feature/LightingChannel/LightingChannelConfiguration.h>
 #include <Atom/RPI.Reflect/Image/StreamingImageAsset.h>
+#include <AzCore/Asset/AssetSerializer.h>
 
 namespace AZ::Render
 {
