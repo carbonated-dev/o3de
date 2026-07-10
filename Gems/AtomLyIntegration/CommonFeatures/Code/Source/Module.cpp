@@ -38,6 +38,9 @@
 #include <PostProcess/PaniniProjection/PaniniProjectionComponent.h>
 #include <PostProcess/FilmGrain/FilmGrainComponent.h>
 #include <PostProcess/WhiteBalance/WhiteBalanceComponent.h>
+#if defined(CARBONATED)
+#include <PostProcess/RadialBlur/RadialBlurComponent.h>
+#endif
 #include <PostProcess/Vignette/VignetteComponent.h>
 #include <ScreenSpace/DeferredFogComponent.h>
 #include <SkyAtmosphere/SkyAtmosphereComponent.h>
@@ -83,6 +86,9 @@
 #include <PostProcess/PaniniProjection/EditorPaniniProjectionComponent.h>
 #include <PostProcess/FilmGrain/EditorFilmGrainComponent.h>
 #include <PostProcess/WhiteBalance/EditorWhiteBalanceComponent.h>
+#if defined(CARBONATED)
+#include <PostProcess/RadialBlur/EditorRadialBlurComponent.h>
+#endif
 #include <PostProcess/Vignette/EditorVignetteComponent.h>
 #include <ScreenSpace/EditorDeferredFogComponent.h>
 #include <SkyAtmosphere/EditorSkyAtmosphereComponent.h>
@@ -147,6 +153,9 @@ namespace AZ
                         PaniniProjectionComponent::CreateDescriptor(),
                         FilmGrainComponent::CreateDescriptor(),
                         WhiteBalanceComponent::CreateDescriptor(),
+#if defined(CARBONATED)
+                        RadialBlurComponent::CreateDescriptor(),
+#endif
                         VignetteComponent::CreateDescriptor(),
                         CubeMapCaptureComponent::CreateDescriptor(),
 #if defined(CARBONATED)
@@ -192,6 +201,9 @@ namespace AZ
                         EditorPaniniProjectionComponent::CreateDescriptor(),
                         EditorFilmGrainComponent::CreateDescriptor(),
                         EditorWhiteBalanceComponent::CreateDescriptor(),
+#if defined(CARBONATED)
+                        EditorRadialBlurComponent::CreateDescriptor(),
+#endif
                         EditorVignetteComponent::CreateDescriptor(),
                         EditorCubeMapCaptureComponent::CreateDescriptor(),
 #if defined(CARBONATED)

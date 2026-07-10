@@ -67,6 +67,11 @@ set(FILES
     Include/Atom/Feature/PostProcess/Vignette/VignetteConstants.h
     Include/Atom/Feature/PostProcess/Vignette/VignetteParams.inl
     Include/Atom/Feature/PostProcess/Vignette/VignetteSettingsInterface.h
+# Begin Carbonated
+    Include/Atom/Feature/PostProcess/RadialBlur/RadialBlurConstants.h
+    Include/Atom/Feature/PostProcess/RadialBlur/RadialBlurParams.inl
+    Include/Atom/Feature/PostProcess/RadialBlur/RadialBlurSettingsInterface.h
+#End Carbonated
     Include/Atom/Feature/PostProcess/ColorGrading/HDRColorGradingParams.inl
     Include/Atom/Feature/PostProcess/ColorGrading/HDRColorGradingSettingsInterface.h
     Include/Atom/Feature/PostProcess/DepthOfField/DepthOfFieldConstants.h
