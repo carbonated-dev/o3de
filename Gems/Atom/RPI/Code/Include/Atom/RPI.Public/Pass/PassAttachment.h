@@ -10,6 +10,9 @@
 #include <AtomCore/Instance/Instance.h>
 #include <AtomCore/Instance/InstanceData.h>
 
+#if defined(CARBONATED)
+#include <Atom/RHI.Reflect/BufferScopeAttachmentDescriptor.h>
+#endif
 #include <Atom/RHI.Reflect/ShaderInputNameIndex.h>
 
 #include <Atom/RPI.Reflect/Pass/PassAttachmentReflect.h>
@@ -156,6 +159,14 @@ namespace AZ
 
             //! Updates the set attachment from the binding connection
             void UpdateConnection(bool useFallback);
+
+#if defined(CARBONATED)
+            //! Returns the buffer scope descriptor for this binding.
+            //! For pass assets, a buffer view element count of 0 means "use the rest of
+            //! the attached buffer from element offset". The returned descriptor resolves
+            //! that shorthand to a concrete nonzero element count before RHI submission.
+            RHI::BufferScopeAttachmentDescriptor GetResolvedBufferScopeAttachmentDescriptor(const char* passPath) const;
+#endif
 
             //! Name of the attachment binding so we can find it in a list of attachment binding
             Name m_name;
