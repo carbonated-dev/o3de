@@ -8,8 +8,17 @@
 
 #pragma once
 
-// Must match AZ::Render::OitMethod. This is a global option so custom transparent shaders compile the active OIT path.
+#ifndef ENABLE_OIT
+#define ENABLE_OIT 1
+#endif
+
+// Must match AZ::Render::OitMethod.
+#if ENABLE_OIT
+// This is a global option so custom transparent shaders compile the active OIT path.
 option enum class OitMethod {Off, Mlab, Wboit, Mboit} o_oitMethod = OitMethod::Off;
+#else
+enum class OitMethod {Off, Mlab, Wboit, Mboit};
+#endif
 
 bool OitIsEnabled()
 {

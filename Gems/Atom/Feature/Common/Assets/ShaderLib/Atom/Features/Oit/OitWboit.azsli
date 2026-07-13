@@ -13,7 +13,11 @@
 
 bool OitIsWboitEnabled()
 {
+#if ENABLE_OIT
     return o_oitMethod == OitMethod::Wboit;
+#else
+    return false;
+#endif
 }
 
 float OitWboitComputeWeight(float depth, float alpha)
