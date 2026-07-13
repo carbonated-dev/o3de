@@ -16,8 +16,9 @@ namespace AZ::Render
     enum class OitMethod : uint32_t
     {
         Off = 0,
-        Mlab = 1,
-        Wboit = 2,
-        Mboit = 3,
+        Mlab,
+        Wboit,
+        Mboit,
+        Max,
     };
 } // namespace AZ::Render

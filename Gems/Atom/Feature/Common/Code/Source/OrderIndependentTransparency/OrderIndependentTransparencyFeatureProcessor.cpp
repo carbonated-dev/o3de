@@ -62,7 +62,7 @@ namespace AZ
 
         AZ_CVAR(uint32_t, r_oitMethod, 0, OnOitUint32CVarChanged, AZ::ConsoleFunctorFlags::Null, "Order independent transparency method. 0=Off, 1=MLAB, 2=WBOIT, 3=MBOIT.");
         AZ_CVAR(uint32_t, r_oitMlabLayerCount, 4, OnOitUint32CVarChanged, AZ::ConsoleFunctorFlags::Null, "MLAB fragment count per pixel. Valid range is 1-8.");
-        AZ_CVAR(uint32_t, r_oitMlabDebugMode, 0, OnOitUint32CVarChanged, AZ::ConsoleFunctorFlags::Null, "MLAB debug output mode. 0=normal.");
+        AZ_CVAR(uint32_t, r_oitMlabDebugMode, 0, OnOitUint32CVarChanged, AZ::ConsoleFunctorFlags::Null, "MLAB debug output mode. 0=normal, 1=debug.");
         AZ_CVAR(float, r_oitWboitWeightScale, 1.0f, OnOitFloatCVarChanged, AZ::ConsoleFunctorFlags::Null, "WBOIT fragment weight scale.");
         AZ_CVAR(float, r_oitWboitWeightBias, 0.01f, OnOitFloatCVarChanged, AZ::ConsoleFunctorFlags::Null, "WBOIT minimum fragment weight bias.");
         AZ_CVAR(float, r_oitWboitWeightMax, 3000.0f, OnOitFloatCVarChanged, AZ::ConsoleFunctorFlags::Null, "WBOIT maximum fragment weight.");
