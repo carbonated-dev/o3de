@@ -1,0 +1,105 @@
+{
+    "entries": [
+        {
+            "base": "RadialBlurRequestBus",
+            "context": "EBusSender",
+            "variant": "",
+            "details": {
+                "name": "Radial Blur",
+                "category": "Rendering"
+            },
+            "methods": [
+                {
+                    "base": "GetEnabled",
+                    "entry": { "name": "In", "tooltip": "When signaled, this will invoke Get Enabled" },
+                    "exit": { "name": "Out", "tooltip": "Signaled after Get Enabled is invoked" },
+                    "details": { "name": "Get Enabled" },
+                    "results": [
+                        { "typeid": "{A0CA880C-AFE4-43CB-926C-59AC48496112}", "details": { "name": "Enabled" } }
+                    ]
+                },
+                {
+                    "base": "SetEnabled",
+                    "entry": { "name": "In", "tooltip": "When signaled, this will invoke Set Enabled" },
+                    "exit": { "name": "Out", "tooltip": "Signaled after Set Enabled is invoked" },
+                    "details": { "name": "Set Enabled" },
+                    "params": [
+                        { "typeid": "{A0CA880C-AFE4-43CB-926C-59AC48496112}", "details": { "name": "Enabled" } }
+                    ]
+                },
+                {
+                    "base": "GetCenter",
+                    "entry": { "name": "In", "tooltip": "When signaled, this will invoke Get Center" },
+                    "exit": { "name": "Out", "tooltip": "Signaled after Get Center is invoked" },
+                    "details": { "name": "Get Center" },
+                    "results": [
+                        { "typeid": "{7894072A-9050-4F0F-901B-34B1A0D29417}", "details": { "name": "Center" } }
+                    ]
+                },
+                {
+                    "base": "SetCenter",
+                    "entry": { "name": "In", "tooltip": "When signaled, this will invoke Set Center" },
+                    "exit": { "name": "Out", "tooltip": "Signaled after Set Center is invoked" },
+                    "details": { "name": "Set Center" },
+                    "params": [
+                        { "typeid": "{7894072A-9050-4F0F-901B-34B1A0D29417}", "details": { "name": "Center" } }
+                    ]
+                },
+                {
+                    "base": "GetAmount",
+                    "entry": { "name": "In", "tooltip": "When signaled, this will invoke Get Amount" },
+                    "exit": { "name": "Out", "tooltip": "Signaled after Get Amount is invoked" },
+                    "details": { "name": "Get Amount" },
+                    "results": [
+                        { "typeid": "{EA2C3E90-AFBE-44D4-A90D-FAAF79BAF93D}", "details": { "name": "Amount" } }
+                    ]
+                },
+                {
+                    "base": "SetAmount",
+                    "entry": { "name": "In", "tooltip": "When signaled, this will invoke Set Amount" },
+                    "exit": { "name": "Out", "tooltip": "Signaled after Set Amount is invoked" },
+                    "details": { "name": "Set Amount" },
+                    "params": [
+                        { "typeid": "{EA2C3E90-AFBE-44D4-A90D-FAAF79BAF93D}", "details": { "name": "Amount" } }
+                    ]
+                },
+                {
+                    "base": "GetInnerRadius",
+                    "entry": { "name": "In", "tooltip": "When signaled, this will invoke Get Inner Radius" },
+                    "exit": { "name": "Out", "tooltip": "Signaled after Get Inner Radius is invoked" },
+                    "details": { "name": "Get Inner Radius" },
+                    "results": [
+                        { "typeid": "{EA2C3E90-AFBE-44D4-A90D-FAAF79BAF93D}", "details": { "name": "Inner Radius" } }
+                    ]
+                },
+                {
+                    "base": "SetInnerRadius",
+                    "entry": { "name": "In", "tooltip": "When signaled, this will invoke Set Inner Radius" },
+                    "exit": { "name": "Out", "tooltip": "Signaled after Set Inner Radius is invoked" },
+                    "details": { "name": "Set Inner Radius" },
+                    "params": [
+                        { "typeid": "{EA2C3E90-AFBE-44D4-A90D-FAAF79BAF93D}", "details": { "name": "Inner Radius" } }
+                    ]
+                },
+                {
+                    "base": "GetSampleCount",
+                    "entry": { "name": "In", "tooltip": "When signaled, this will invoke Get Sample Count" },
+                    "exit": { "name": "Out", "tooltip": "Signaled after Get Sample Count is invoked" },
+                    "details": { "name": "Get Sample Count" },
+                    "results": [
+                        { "typeid": "{43DA906B-7DEF-4CA8-9790-854106D3F983}", "details": { "name": "Sample Count" } }
+                    ]
+                },
+                {
+                    "base": "SetSampleCount",
+                    "entry": { "name": "In", "tooltip": "When signaled, this will invoke Set Sample Count" },
+                    "exit": { "name": "Out", "tooltip": "Signaled after Set Sample Count is invoked" },
+                    "details": { "name": "Set Sample Count" },
+                    "params": [
+                        { "typeid": "{43DA906B-7DEF-4CA8-9790-854106D3F983}", "details": { "name": "Sample Count" } }
+                    ]
+                }
+            ]
+        }
+    ]
+}

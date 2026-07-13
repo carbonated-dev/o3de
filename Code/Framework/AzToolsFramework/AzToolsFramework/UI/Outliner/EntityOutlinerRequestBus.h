@@ -20,6 +20,11 @@ namespace AzToolsFramework
     public:
         //! Request to trigger the rename workflow on the Entity Outliner for the entity provided.
         virtual void TriggerRenameEntityUi(const AZ::EntityId& entityId) = 0;
+
+#if defined(CARBONATED) // Add "Collapse outliner tree view" action
+        //! Request to collapse the tree view on the Entity Outliner, except for the entity provided.
+        virtual void CollapseTreeView(const AZ::EntityId& entityId) = 0;
+#endif
     };
     using EntityOutlinerRequestBus = AZ::EBus<EntityOutlinerRequests>;
 

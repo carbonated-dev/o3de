@@ -70,6 +70,10 @@ set(FILES
     Source/PostProcess/FilmGrain/EditorFilmGrainComponent.h
     Source/PostProcess/WhiteBalance/EditorWhiteBalanceComponent.cpp
     Source/PostProcess/WhiteBalance/EditorWhiteBalanceComponent.h
+# Begin Carbonated
+    Source/PostProcess/RadialBlur/EditorRadialBlurComponent.cpp
+    Source/PostProcess/RadialBlur/EditorRadialBlurComponent.h
+#End Carbonated
     Source/PostProcess/Vignette/EditorVignetteComponent.cpp
     Source/PostProcess/Vignette/EditorVignetteComponent.h
     Source/PostProcess/ColorGrading/EditorHDRColorGradingComponent.cpp
@@ -125,10 +129,13 @@ set(FILES
     Source/Scripting/EditorEntityReferenceComponent.h
     Source/SurfaceData/EditorSurfaceDataMeshComponent.cpp
     Source/SurfaceData/EditorSurfaceDataMeshComponent.h
-#if defined(CARBONATED)
+# Begin CARBONATED
     Source/Silhouette/EditorSilhouetteSystemComponent.cpp
     Source/Silhouette/EditorSilhouetteSystemComponent.h
-#endif
-
+    Source/VolumetricFog/EditorVolumetricFogComponent.cpp
+    Source/VolumetricFog/EditorVolumetricFogComponent.h
+    Source/VolumetricFog/EditorFogVolumeComponent.cpp
+    Source/VolumetricFog/EditorFogVolumeComponent.h
+# End CARBONATED
     Resources/AtomLyIntegrationResources.qrc
 )

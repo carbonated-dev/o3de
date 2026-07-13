@@ -18,18 +18,21 @@
 // You can optionally provide a prefix for the set of inputs which corresponds to a prefix string supplied by the .materialtype file. This is common for multi-layered material types.
 
 #define COMMON_SRG_INPUTS_WET(prefix) \
-float prefix##m_wetCenterX; \
-float prefix##m_wetCenterY; \
-float prefix##m_wetRadius; \
-float prefix##m_wetAmount;  \
-float prefix##m_wetFactor;  \
-Texture2D prefix##m_wetMap; \
-uint prefix##m_wetMapUvIndex; \
-float prefix##m_wetMapUvScale; 
+float prefix##m_wetAmount; \
+float prefix##m_wetFactor; \
+Texture2D prefix##m_wetFactorMap; \
+uint prefix##m_wetFactorMapUvIndex; \
+float prefix##m_wetFactorMapUvScale; \
+float prefix##m_wetRoughness; \
+float prefix##m_wetRoughnessAmount; \
+Texture2D prefix##m_wetRoughnessMap; \
+uint prefix##m_wetRoughnessMapUvIndex; \
+float prefix##m_wetRoughnessMapUvScale;
 
 #define COMMON_OPTIONS_WET(prefix) \
-option bool prefix##o_useWet; \
-option bool prefix##o_wet_useTexture; 
+option bool prefix##o_wet_enabled; \
+option bool prefix##o_wet_factor_useTexture; \
+option bool prefix##o_wet_roughness_useTexture;
  
 real GetWetInput(Texture2D map, sampler mapSampler, float2 uv)
 {

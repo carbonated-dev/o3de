@@ -72,6 +72,9 @@ namespace AZ
 #endif
             Renderpass2,
             TimelineSempahore,
+#if defined(CARBONATED)
+            ShaderViewportIndexLayer,
+#endif
             Count
         };
 

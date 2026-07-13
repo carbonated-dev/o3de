@@ -69,6 +69,11 @@ set(FILES
     Source/Editor/ImagePopup.h
     Source/Editor/ImagePopup.ui
     Source/Editor/ImageProcessing.qrc
+# Begin Carbonated
+    Source/Editor/FlipbookSettingWidget.cpp
+    Source/Editor/FlipbookSettingWidget.h
+    Source/Editor/FlipbookSettingWidget.ui
+# End Carbonated
     Source/Editor/MipmapSettingWidget.cpp
     Source/Editor/MipmapSettingWidget.h
     Source/Editor/MipmapSettingWidget.ui

@@ -67,6 +67,11 @@ set(FILES
     Include/Atom/Feature/PostProcess/Vignette/VignetteConstants.h
     Include/Atom/Feature/PostProcess/Vignette/VignetteParams.inl
     Include/Atom/Feature/PostProcess/Vignette/VignetteSettingsInterface.h
+# Begin Carbonated
+    Include/Atom/Feature/PostProcess/RadialBlur/RadialBlurConstants.h
+    Include/Atom/Feature/PostProcess/RadialBlur/RadialBlurParams.inl
+    Include/Atom/Feature/PostProcess/RadialBlur/RadialBlurSettingsInterface.h
+#End Carbonated
     Include/Atom/Feature/PostProcess/ColorGrading/HDRColorGradingParams.inl
     Include/Atom/Feature/PostProcess/ColorGrading/HDRColorGradingSettingsInterface.h
     Include/Atom/Feature/PostProcess/DepthOfField/DepthOfFieldConstants.h
@@ -99,6 +104,14 @@ set(FILES
     Include/Atom/Feature/TransformService/TransformServiceFeatureProcessorInterface.h
     Include/Atom/Feature/SkyBox/SkyBoxFeatureProcessorInterface.h
     Include/Atom/Feature/SkyAtmosphere/SkyAtmosphereFeatureProcessorInterface.h
+# Begin CARBONATED
+    Include/Atom/Feature/VolumetricFog/VolumetricFogFeatureProcessorInterface.h
+    Include/Atom/Feature/VolumetricFog/FogVolumeFeatureProcessorInterface.h
+    Include/Atom/Feature/VolumetricFog/VolumetricFogParams.inl
+    Include/Atom/Feature/VolumetricFog/FogVolumeParams.inl
+    Include/Atom/Feature/VolumetricFog/VolumetricFogConstants.h
+    Include/Atom/Feature/VolumetricFog/VolumetricFogSettings.h
+# End CARBONATED
     Source/CoreLights/PhotometricValue.cpp
     Source/MorphTargets/MorphTargetInputBuffers.cpp
     Source/SkinnedMesh/SkinnedMeshInputBuffers.cpp

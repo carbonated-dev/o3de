@@ -44,6 +44,10 @@ set(FILES
     Include/AtomLyIntegration/CommonFeatures/PostProcess/FilmGrain/FilmGrainComponentConfig.h
     Include/AtomLyIntegration/CommonFeatures/PostProcess/WhiteBalance/WhiteBalanceBus.h
     Include/AtomLyIntegration/CommonFeatures/PostProcess/WhiteBalance/WhiteBalanceComponentConfig.h
+# Begin Carbonated
+    Include/AtomLyIntegration/CommonFeatures/PostProcess/RadialBlur/RadialBlurBus.h
+    Include/AtomLyIntegration/CommonFeatures/PostProcess/RadialBlur/RadialBlurComponentConfig.h
+#End Carbonated
     Include/AtomLyIntegration/CommonFeatures/PostProcess/Vignette/VignetteBus.h
     Include/AtomLyIntegration/CommonFeatures/PostProcess/Vignette/VignetteComponentConfig.h
     Include/AtomLyIntegration/CommonFeatures/PostProcess/DepthOfField/DepthOfFieldBus.h
@@ -82,4 +86,10 @@ set(FILES
     Include/AtomLyIntegration/CommonFeatures/Scripting/EntityReferenceRequestBus.h
     Include/AtomLyIntegration/CommonFeatures/Scripting/EntityReferenceConstants.h
     Include/AtomLyIntegration/CommonFeatures/Scripting/EntityReferenceComponentConfig.h
+# Begin CARBONATED
+    Include/AtomLyIntegration/CommonFeatures/VolumetricFog/VolumetricFogBus.h
+    Include/AtomLyIntegration/CommonFeatures/VolumetricFog/VolumetricFogComponentConfig.h
+    Include/AtomLyIntegration/CommonFeatures/VolumetricFog/FogVolumeBus.h
+    Include/AtomLyIntegration/CommonFeatures/VolumetricFog/FogVolumeComponentConfig.h
+# End CARBONATED
 )

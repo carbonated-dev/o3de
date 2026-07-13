@@ -81,6 +81,9 @@
 #include <PostProcessing/PaniniProjectionPass.h>
 #include <PostProcessing/FilmGrainPass.h>
 #include <PostProcessing/WhiteBalancePass.h>
+#if defined(CARBONATED)
+#include <PostProcessing/RadialBlurPass.h>
+#endif
 #include <PostProcessing/VignettePass.h>
 #include <ScreenSpace/DeferredFogPass.h>
 #include <Shadows/ProjectedShadowFeatureProcessor.h>
@@ -90,6 +93,12 @@
 #include <SkyBox/SkyBoxFeatureProcessor.h>
 #include <SplashScreen/SplashScreenFeatureProcessor.h>
 #include <SplashScreen/SplashScreenPass.h>
+#if defined(CARBONATED)
+#include <VolumetricFog/VolumetricFogFeatureProcessor.h>
+#include <VolumetricFog/FogVolumeFeatureProcessor.h>
+#include <VolumetricFog/FroxelPass.h>
+#include <VolumetricFog/FroxelIntegratePass.h>
+#endif
 
 #include <Atom/RPI.Public/Pass/PassSystemInterface.h>
 
@@ -114,7 +123,11 @@
 #include <ReflectionScreenSpace/ReflectionScreenSpaceBlurChildPass.h>
 #include <ReflectionScreenSpace/ReflectionScreenSpaceFilterPass.h>
 #include <ReflectionScreenSpace/ReflectionScreenSpaceCompositePass.h>
+#if defined(CARBONATED)
+#include <ReflectionScreenSpace/ReflectionPreviousFramePass.h>
+#else
 #include <ReflectionScreenSpace/ReflectionCopyFrameBufferPass.h>
+#endif
 #include <OcclusionCullingPlane/OcclusionCullingPlaneFeatureProcessor.h>
 #include <Mesh/ModelReloaderSystem.h>
 
@@ -159,13 +172,15 @@ namespace AZ
             RenderDebugFeatureProcessor::Reflect(context);
             SplashScreenFeatureProcessor::Reflect(context);
             SplashScreenSettings::Reflect(context);
-
             LightingPreset::Reflect(context);
             ModelPreset::Reflect(context);
             RayTracingFeatureProcessor::Reflect(context);
             OcclusionCullingPlaneFeatureProcessor::Reflect(context);
             LightingChannelConfiguration::Reflect(context);
-
+#if defined(CARBONATED)
+            VolumetricFogFeatureProcessor::Reflect(context);
+            FogVolumeFeatureProcessor::Reflect(context);
+#endif
             if (SerializeContext* serialize = azrtti_cast<SerializeContext*>(context))
             {
                 serialize->Class<CommonSystemComponent, Component>()
@@ -230,6 +245,12 @@ namespace AZ
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessorWithInterface<OcclusionCullingPlaneFeatureProcessor, OcclusionCullingPlaneFeatureProcessorInterface>();
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessor<SplashScreenFeatureProcessor>();
                 AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessor<SilhouetteFeatureProcessor>();
+#if defined(CARBONATED)
+                AZ::RPI::FeatureProcessorFactory::Get()
+                    ->RegisterFeatureProcessorWithInterface<VolumetricFogFeatureProcessor, VolumetricFogFeatureProcessorInterface>();
+                AZ::RPI::FeatureProcessorFactory::Get()
+                    ->RegisterFeatureProcessorWithInterface<FogVolumeFeatureProcessor, FogVolumeFeatureProcessorInterface>();
+#endif
             }
 
             AZ::RPI::FeatureProcessorFactory::Get()->RegisterFeatureProcessorWithInterface<AuxGeomFeatureProcessor, RPI::AuxGeomFeatureProcessorInterface>();
@@ -320,6 +341,11 @@ namespace AZ
             // Add White Balance pass
             passSystem->AddPassCreator(Name("WhiteBalancePass"), &WhiteBalancePass::Create);
 
+#if defined(CARBONATED)
+            // Add Radial Blur
+            passSystem->AddPassCreator(Name("RadialBlurPass"), &RadialBlurPass::Create);
+#endif
+
             // Add Vignette
             passSystem->AddPassCreator(Name("VignettePass"), &VignettePass::Create);
 
@@ -338,7 +364,11 @@ namespace AZ
             passSystem->AddPassCreator(Name("ReflectionScreenSpaceBlurChildPass"), &Render::ReflectionScreenSpaceBlurChildPass::Create);
             passSystem->AddPassCreator(Name("ReflectionScreenSpaceFilterPass"), &Render::ReflectionScreenSpaceFilterPass::Create);
             passSystem->AddPassCreator(Name("ReflectionScreenSpaceCompositePass"), &Render::ReflectionScreenSpaceCompositePass::Create);
+#if defined(CARBONATED)
+            passSystem->AddPassCreator(Name("ReflectionPreviousFramePass"), &Render::ReflectionPreviousFramePass::Create);
+#else
             passSystem->AddPassCreator(Name("ReflectionCopyFrameBufferPass"), &Render::ReflectionCopyFrameBufferPass::Create);
+#endif
 
             // Add RayTracing passes
             passSystem->AddPassCreator(Name("RayTracingAccelerationStructurePass"), &Render::RayTracingAccelerationStructurePass::Create);
@@ -350,7 +380,11 @@ namespace AZ
 #if defined(CARBONATED)
             // Add Silhouette JFA passes
             passSystem->AddPassCreator(Name("SilhouetteJFAStepParentPass"), &SilhouetteJFAStepParentPass::Create);
+            // Volumetric Fog
+            passSystem->AddPassCreator(Name("FroxelPass"), &FroxelPass::Create);
+            passSystem->AddPassCreator(Name("FroxelIntegratePass"), &FroxelIntegratePass::Create);
 #endif
+
             // setup handler for load pass template mappings
             m_loadTemplatesHandler = RPI::PassSystemInterface::OnReadyLoadTemplatesEvent::Handler([this]() { this->LoadPassTemplateMappings(); });
             RPI::PassSystemInterface::Get()->ConnectEvent(m_loadTemplatesHandler);
@@ -386,6 +420,10 @@ namespace AZ
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<RenderDebugFeatureProcessor>();
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<SplashScreenFeatureProcessor>();
                 AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<SilhouetteFeatureProcessor>();
+#if defined(CARBONATED)
+                AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<VolumetricFogFeatureProcessor>();
+                AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<FogVolumeFeatureProcessor>();
+#endif
             }
 
             AZ::RPI::FeatureProcessorFactory::Get()->UnregisterFeatureProcessor<MeshFeatureProcessor>();

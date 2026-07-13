@@ -21,6 +21,14 @@
 #define UvSetCount 2
 #endif
 
+#ifndef CARBONATED_ENABLE_WETNESS
+#define CARBONATED_ENABLE_WETNESS 1
+#endif
+
+#ifndef CARBONATED_ENABLE_SNOW_OVERLAY
+#define CARBONATED_ENABLE_SNOW_OVERLAY 1
+#endif
+
 #include <Atom/Features/ShaderQualityOptions.azsli>
 #include <Atom/Features/PBR/LightingOptions.azsli>
 #include <Atom/Features/PBR/AlphaUtils.azsli>

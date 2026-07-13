@@ -36,6 +36,10 @@
                     "Name": "InputLinearDepth",
                     "SlotType": "Input"
                 },
+                {
+                    "Name": "FroxelVolumetricFog",
+                    "SlotType": "Input"
+                },
                 // Input/Outputs...
                 {
                     "Name": "DepthStencil",
@@ -100,6 +104,13 @@
                             "AttachmentRef": {
                                 "Pass": "Parent",
                                 "Attachment": "InputLinearDepth"
+                            }
+                        },
+                        {
+                            "LocalSlot": "FroxelVolumetricFog",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "FroxelVolumetricFog"
                             }
                         },
                         // Input/Outputs...

@@ -29,16 +29,22 @@ namespace AZ
             //! Creates a new pass without a PassTemplate
             static RPI::Ptr<ReflectionScreenSpaceTracePass> Create(const RPI::PassDescriptor& descriptor);
 
+#if !defined(CARBONATED)
             Data::Instance<RPI::AttachmentImage>& GetPreviousFrameImageAttachment() { return m_previousFrameImageAttachment; }
+#endif
 
         private:
             explicit ReflectionScreenSpaceTracePass(const RPI::PassDescriptor& descriptor);
 
             // Pass behavior overrides...
+#if !defined(CARBONATED)
             void BuildInternal() override;
+#endif
             void CompileResources(const RHI::FrameGraphCompileContext& context) override;
 
+#if !defined(CARBONATED)
             Data::Instance<RPI::AttachmentImage> m_previousFrameImageAttachment;
+#endif
 
             RHI::ShaderInputNameIndex m_invOutputScaleNameIndex = "m_invOutputScale";
             RHI::ShaderInputNameIndex m_outputWidthNameIndex = "m_outputWidth";

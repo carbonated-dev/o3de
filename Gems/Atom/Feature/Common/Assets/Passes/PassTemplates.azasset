@@ -393,6 +393,10 @@
                 "Path": "Passes/ReflectionCopyFrameBuffer.pass"
             },
             {
+                "Name": "ReflectionPreviousFramePassTemplate",
+                "Path": "Passes/ReflectionPreviousFrame.pass"
+            },
+            {
                 "Name": "ReflectionScreenSpacePassTemplate",
                 "Path": "Passes/ReflectionScreenSpace.pass"
             },
@@ -491,6 +495,10 @@
             {
                 "Name": "BloomPassTemplate",
                 "Path": "Passes/Bloom.pass"
+            },
+            {
+                "Name": "RadialBlurTemplate",
+                "Path": "Passes/RadialBlur.pass"
             },
             {
                 "Name": "DiffuseGlobalFullscreenPassTemplate",
@@ -679,6 +687,30 @@
             {
                 "Name": "TaaParentTemplate",
                 "Path": "Passes/TaaParent.pass"
+            },
+            {
+                "Name": "FroxelParentTemplate",
+                "Path": "Passes/FroxelParent.pass"
+            },
+            {
+                "Name": "FroxelInjectTemplate",
+                "Path": "Passes/FroxelInject.pass"
+            },
+            {
+                "Name": "FroxelScatterTemplate",
+                "Path": "Passes/FroxelScatter.pass"
+            },
+            {
+                "Name": "FroxelIntegrateTemplate",
+                "Path": "Passes/FroxelIntegrate.pass"
+            },
+            {
+                "Name": "FroxelCompositeTemplate",
+                "Path": "Passes/FroxelComposite.pass"
+            },
+            {
+                "Name": "FroxelLocalVolumeTemplate",
+                "Path": "Passes/FroxelLocalVolume.pass"
             }
         ]
     }

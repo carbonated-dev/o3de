@@ -183,10 +183,10 @@ set(FILES
     Source/OcclusionCullingPlane/OcclusionCullingPlane.cpp
     Source/Silhouette/SilhouetteFeatureProcessor.cpp
     Source/Silhouette/SilhouetteFeatureProcessor.h
-#if defined(CARBONATED)
+# Begin CARBONATED
     Source/Silhouette/SilhouetteJFAStepParentPass.cpp
     Source/Silhouette/SilhouetteJFAStepParentPass.h
-#endif
+# End CARBONATED
     Source/PostProcess/PostProcessBase.cpp
     Source/PostProcess/PostProcessBase.h
     Source/PostProcess/PostProcessFeatureProcessor.cpp
@@ -211,6 +211,10 @@ set(FILES
     Source/PostProcess/Ssao/SsaoSettings.h
     Source/PostProcess/WhiteBalance/WhiteBalanceSettings.cpp
     Source/PostProcess/WhiteBalance/WhiteBalanceSettings.h
+# Begin Carbonated
+    Source/PostProcess/RadialBlur/RadialBlurSettings.cpp
+    Source/PostProcess/RadialBlur/RadialBlurSettings.h
+#End Carbonated
     Source/PostProcess/Vignette/VignetteSettings.cpp
     Source/PostProcess/Vignette/VignetteSettings.h
     Source/PostProcess/LookModification/LookModificationSettings.cpp
@@ -288,6 +292,10 @@ set(FILES
     Source/PostProcessing/TaaPass.cpp
     Source/PostProcessing/WhiteBalancePass.h
     Source/PostProcessing/WhiteBalancePass.cpp
+# Begin Carbonated
+    Source/PostProcessing/RadialBlurPass.h
+    Source/PostProcessing/RadialBlurPass.cpp
+#End Carbonated
     Source/RayTracing/RayTracingFeatureProcessor.h
     Source/RayTracing/RayTracingFeatureProcessor.cpp
     Source/RayTracing/RayTracingResourceList.h
@@ -319,8 +327,12 @@ set(FILES
     Source/ReflectionScreenSpace/ReflectionScreenSpaceFilterPass.h
     Source/ReflectionScreenSpace/ReflectionScreenSpaceCompositePass.cpp
     Source/ReflectionScreenSpace/ReflectionScreenSpaceCompositePass.h
-    Source/ReflectionScreenSpace/ReflectionCopyFrameBufferPass.cpp
-    Source/ReflectionScreenSpace/ReflectionCopyFrameBufferPass.h
+# Begin Carbonated
+    Source/ReflectionScreenSpace/ReflectionPreviousFramePass.cpp
+    Source/ReflectionScreenSpace/ReflectionPreviousFramePass.h
+# End Carbonated
+    # Source/ReflectionScreenSpace/ReflectionCopyFrameBufferPass.cpp
+    # Source/ReflectionScreenSpace/ReflectionCopyFrameBufferPass.h
     Source/ScreenSpace/DeferredFogSettings.cpp
     Source/ScreenSpace/DeferredFogSettings.h
     Source/ScreenSpace/DeferredFogPass.cpp
@@ -364,6 +376,15 @@ set(FILES
     Source/TransformService/TransformServiceFeatureProcessor.cpp
     Source/Utils/GpuBufferHandler.cpp
 # Begin Carbonated
+    Source/VolumetricFog/VolumetricFogFeatureProcessor.cpp
+    Source/VolumetricFog/VolumetricFogFeatureProcessor.h
+    Source/VolumetricFog/FogVolumeFeatureProcessor.cpp
+    Source/VolumetricFog/FogVolumeFeatureProcessor.h
+    Source/VolumetricFog/FroxelPass.cpp
+    Source/VolumetricFog/FroxelPass.h
+    Source/VolumetricFog/FroxelIntegratePass.cpp
+    Source/VolumetricFog/FroxelIntegratePass.h
+    Source/VolumetricFog/VolumetricFogUtils.cpp
     Include/Atom/Feature/OrderIndependentTransparency/OitMethod.h
     Source/OrderIndependentTransparency/OrderIndependentTransparencyFeatureProcessor.h
     Source/OrderIndependentTransparency/OrderIndependentTransparencyFeatureProcessor.cpp

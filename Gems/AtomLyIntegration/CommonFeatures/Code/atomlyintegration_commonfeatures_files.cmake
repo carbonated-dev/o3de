@@ -104,6 +104,13 @@ set(FILES
     Source/PostProcess/WhiteBalance/WhiteBalanceComponentConfig.cpp
     Source/PostProcess/WhiteBalance/WhiteBalanceComponentController.cpp
     Source/PostProcess/WhiteBalance/WhiteBalanceComponentController.h
+# Begin Carbonated
+    Source/PostProcess/RadialBlur/RadialBlurComponent.cpp
+    Source/PostProcess/RadialBlur/RadialBlurComponent.h
+    Source/PostProcess/RadialBlur/RadialBlurComponentConfig.cpp
+    Source/PostProcess/RadialBlur/RadialBlurComponentController.cpp
+    Source/PostProcess/RadialBlur/RadialBlurComponentController.h
+#End Carbonated
     Source/PostProcess/Vignette/VignetteComponent.cpp
     Source/PostProcess/Vignette/VignetteComponent.h
     Source/PostProcess/Vignette/VignetteComponentConfig.cpp
@@ -193,4 +200,16 @@ set(FILES
     Source/Scripting/EntityReferenceComponentController.h
     Source/SurfaceData/SurfaceDataMeshComponent.cpp
     Source/SurfaceData/SurfaceDataMeshComponent.h
+# Begin CARBONATED
+    Source/VolumetricFog/VolumetricFogComponentConfig.cpp
+    Source/VolumetricFog/VolumetricFogComponentController.cpp
+    Source/VolumetricFog/VolumetricFogComponentController.h
+    Source/VolumetricFog/VolumetricFogComponent.cpp
+    Source/VolumetricFog/VolumetricFogComponent.h
+    Source/VolumetricFog/FogVolumeComponentConfig.cpp
+    Source/VolumetricFog/FogVolumeComponentController.cpp
+    Source/VolumetricFog/FogVolumeComponentController.h
+    Source/VolumetricFog/FogVolumeComponent.cpp
+    Source/VolumetricFog/FogVolumeComponent.h
+# End CARBONATED
 )

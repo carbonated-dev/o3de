@@ -131,19 +131,6 @@
                         "Format": "R16G16B16A16_FLOAT",
                         "SharedQueueMask": "Graphics"
                     }
-                },
-                {
-                    "Name": "PreviousFrameImage",
-                    "SizeSource": {
-                        "Source": {
-                            "Pass": "Parent",
-                            "Attachment": "SpecularInput"
-                        }
-                    },
-                    "ImageDescriptor": {
-                        "Format": "R16G16B16A16_FLOAT",
-                        "SharedQueueMask": "Graphics"
-                    }
                 }
             ],
             "Connections": [
@@ -164,8 +151,8 @@
                 {
                     "LocalSlot": "PreviousFrameInputOutput",
                     "AttachmentRef": {
-                        "Pass": "This",
-                        "Attachment": "PreviousFrameImage"
+                        "Pass": "PipelineGlobal",
+                        "Attachment": "ReflectionPreviousFrame"
                     }
                 }
             ],
