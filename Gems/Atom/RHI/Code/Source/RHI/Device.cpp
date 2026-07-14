@@ -152,6 +152,14 @@ namespace AZ::RHI
 
             // Initialize limits and resources that are associated with them
             resultCode = InitializeLimits();
+
+#if defined(CARBONATED)
+            if (auto* console = AZ::Interface<AZ::IConsole>::Get(); console != nullptr)
+            {
+                console->GetCvarValue("r_enableRayTracing", m_features.m_rayTracing);
+                AZ_Info("RHISystem", "The m_rayTracing has been overridden to %s by the CVAR\n", m_features.m_rayTracing ? "true" : "false");
+            }
+#endif
         }
         else
         {

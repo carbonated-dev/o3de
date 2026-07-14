@@ -27,11 +27,16 @@
 #include <AzCore/std/containers/unordered_map.h>
 
 #if defined(CARBONATED)
+#include <AzCore/Console/IConsole.h>
 #include <Atom/RHI/DeviceAddon.h>
 #endif
 
 namespace AZ::RHI
 {
+#if defined(CARBONATED)
+    AZ_CVAR(bool, r_enableRayTracing, false, nullptr, AZ::ConsoleFunctorFlags::Null, "Enable/disable Ray Tracing. Disabled by default");
+#endif
+
     //! The Device is a context for managing GPU state and memory on a physical device. The user creates
     //! a device instance from a PhysicalDevice. Each device has its own capabilities and limits, and can
     //! be configured to buffer a specific number of frames.
