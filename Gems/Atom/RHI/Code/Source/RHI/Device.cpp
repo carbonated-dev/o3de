@@ -161,13 +161,8 @@ namespace AZ::RHI
             resultCode = InitializeLimits();
 
 #if defined(CARBONATED)
-            if (auto* console = AZ::Interface<AZ::IConsole>::Get(); console != nullptr)
-            {
-                if (console->GetCvarValue("r_enableRayTracing", m_features.m_rayTracing) == GetValueResult::Success)
-                {
-                    AZ_Info("RHISystem", "The m_rayTracing has been overridden to %s by the CVAR\n", m_features.m_rayTracing ? "true" : "false");
-                }
-            }
+            m_features.m_rayTracing = r_enableRayTracing;
+            AZ_Info("RHISystem", "The m_rayTracing has been overridden to %s by the CVAR\n", m_features.m_rayTracing ? "true" : "false");
 #endif
         }
         else
