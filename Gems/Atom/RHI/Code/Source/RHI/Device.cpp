@@ -14,10 +14,17 @@
 #include <AzCore/std/sort.h>
 #include <AzCore/Time/ITime.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Console/IConsole.h>
+#endif
+
 namespace AZ::RHI
 {
 
 #if defined(CARBONATED)
+
+    AZ_CVAR(bool, r_enableRayTracing, false, nullptr, AZ::ConsoleFunctorFlags::Null, "Enable/disable Ray Tracing. Disabled by default");
+
     const char* VendorIdToString(VendorId vendorId)
     {
         switch (vendorId)
@@ -156,8 +163,10 @@ namespace AZ::RHI
 #if defined(CARBONATED)
             if (auto* console = AZ::Interface<AZ::IConsole>::Get(); console != nullptr)
             {
-                console->GetCvarValue("r_enableRayTracing", m_features.m_rayTracing);
-                AZ_Info("RHISystem", "The m_rayTracing has been overridden to %s by the CVAR\n", m_features.m_rayTracing ? "true" : "false");
+                if (console->GetCvarValue("r_enableRayTracing", m_features.m_rayTracing) == GetValueResult::Success)
+                {
+                    AZ_Info("RHISystem", "The m_rayTracing has been overridden to %s by the CVAR\n", m_features.m_rayTracing ? "true" : "false");
+                }
             }
 #endif
         }
