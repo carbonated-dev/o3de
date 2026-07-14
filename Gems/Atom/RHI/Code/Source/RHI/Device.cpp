@@ -161,8 +161,11 @@ namespace AZ::RHI
             resultCode = InitializeLimits();
 
 #if defined(CARBONATED)
-            m_features.m_rayTracing = !r_disableRayTracing;
-            AZ_Info("RHISystem", "The m_rayTracing has been overridden to %s by the CVAR\n", m_features.m_rayTracing ? "true" : "false");
+            if (r_disableRayTracing)
+            {
+                m_features.m_rayTracing = false;
+                AZ_Info("RHISystem", "The m_rayTracing has been overridden to %s by the CVAR\n", m_features.m_rayTracing ? "true" : "false");
+            }
 #endif
         }
         else
