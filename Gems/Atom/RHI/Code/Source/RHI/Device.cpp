@@ -23,7 +23,7 @@ namespace AZ::RHI
 
 #if defined(CARBONATED)
 
-    AZ_CVAR(bool, r_disableRayTracing, true, nullptr, AZ::ConsoleFunctorFlags::Null, "Enable/disable Ray Tracing. Disabled by default");
+    AZ_CVAR(bool, r_disableRayTracing, true, nullptr, AZ::ConsoleFunctorFlags::Null, "Disable Ray Tracing. Disabled by default");
 
     const char* VendorIdToString(VendorId vendorId)
     {
@@ -161,10 +161,10 @@ namespace AZ::RHI
             resultCode = InitializeLimits();
 
 #if defined(CARBONATED)
-            if (r_disableRayTracing)
+            if (r_disableRayTracing && m_features.m_rayTracing)
             {
                 m_features.m_rayTracing = false;
-                AZ_Info("RHISystem", "The m_rayTracing has been overridden to %s by the CVAR\n", m_features.m_rayTracing ? "true" : "false");
+                AZ_Info("RHISystem", "The m_rayTracing has been overridden to false by the CVAR\n");
             }
 #endif
         }
