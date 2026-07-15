@@ -402,7 +402,8 @@ namespace AZ
         }
 
 #if defined(CARBONATED)
-        RHI::BufferScopeAttachmentDescriptor PassAttachmentBinding::GetResolvedBufferScopeAttachmentDescriptor(const char* passPath) const
+        RHI::BufferScopeAttachmentDescriptor PassAttachmentBinding::GetResolvedBufferScopeAttachmentDescriptor(
+            [[maybe_unused]] const char* passPath) const
         {
             RHI::BufferScopeAttachmentDescriptor bufferScopeDesc = m_unifiedScopeDesc.GetAsBuffer();
             RHI::BufferViewDescriptor& bufferViewDesc = bufferScopeDesc.m_bufferViewDescriptor;
