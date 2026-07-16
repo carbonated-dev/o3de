@@ -67,8 +67,11 @@ ForwardPassOutput PixelShader(VsOutput IN, bool isFrontFace : SV_IsFrontFace)
     float alpha = lerp(fresnelAlpha, surface.alpha, surface.opacityAffectsSpecularFactor);
 
 // Begin Carbonated
+#if ENABLE_VOLUMETRIC_FOG
     OUT.m_color1.rgb = ApplyVolumetricFogToPremultipliedTransparent(diffuse + specular, alpha, surface.position);
-// was: OUT.m_color1.rgb = diffuse + specular;
+#else
+    OUT.m_color1.rgb = diffuse + specular;
+#endif
 // End Carbonated
 
     if (o_opacity_mode == OpacityMode::Blended)
