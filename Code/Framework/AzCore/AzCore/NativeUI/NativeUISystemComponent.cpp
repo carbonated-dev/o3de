@@ -10,6 +10,10 @@
 #include <AzCore/Serialization/EditContext.h>
 
 #include <AzCore/NativeUI/NativeUISystemComponent.h>
+#if defined(CARBONATED)
+#include <AzCore/Interface/Interface.h>
+#include <AzCore/NativeUI/InGameAssertUIRequests.h>
+#endif
 
 namespace AZ::NativeUI
 {
@@ -25,6 +29,17 @@ namespace AZ::NativeUI
 
     AssertAction NativeUISystem::DisplayAssertDialog(const AZStd::string& message) const
     {
+#if defined(CARBONATED)
+        // Platforms with no window compositor (e.g. OCGA, which builds as Linux) can never show
+        // the dialog built below - defer to a Gem-provided in-game UI dialog if one is registered
+        // (see InGameAssertUIRequests.h). Unregistered everywhere else (default), so this is a
+        // no-op there and the native flow below runs exactly as before.
+        if (auto* inGameAssertUI = AZ::Interface<InGameAssertUIRequests>::Get())
+        {
+            return inGameAssertUI->DisplayAssertDialog(message);
+        }
+#endif
+
         if (m_mode == NativeUI::Mode::DISABLED)
         {
             return AssertAction::NONE;

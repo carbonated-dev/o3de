@@ -15,6 +15,9 @@
 #include <Atom/Feature/PostProcess/FilmGrain/FilmGrainSettingsInterface.h>
 #include <Atom/Feature/PostProcess/WhiteBalance/WhiteBalanceSettingsInterface.h>
 #include <Atom/Feature/PostProcess/Vignette/VignetteSettingsInterface.h>
+#if defined(CARBONATED)
+#include <Atom/Feature/PostProcess/RadialBlur/RadialBlurSettingsInterface.h>
+#endif
 #include <Atom/Feature/PostProcess/DepthOfField/DepthOfFieldSettingsInterface.h>
 #include <Atom/Feature/PostProcess/ExposureControl/ExposureControlSettingsInterface.h>
 #include <Atom/Feature/PostProcess/Ssao/SsaoSettingsInterface.h>

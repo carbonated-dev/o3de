@@ -9,6 +9,8 @@
 #pragma once
 
 #define ENABLE_VERTEX_COLOR 1
+#define CARBONATED_ENABLE_WETNESS 1
+#define CARBONATED_ENABLE_SNOW_OVERLAY 1
 // Begin Carbonated
 #define ENABLE_RIM_LIGHTING 1
 // End Carbonated
@@ -35,7 +37,8 @@
     COMMON_OPTIONS_RIM_LIGHTING()
     // End Carbonated
     COMMON_OPTIONS_PARALLAX()
-    COMMON_OPTIONS_WET()
+    COMMON_OPTIONS_WET()  // CARBONATED Addition.
+    COMMON_OPTIONS_SNOW() // CARBONATED Addition.
     COMMON_OPTIONS_SILHOUETTE() // CARBONATED Addition.
    
     bool ShouldHandleParallax()

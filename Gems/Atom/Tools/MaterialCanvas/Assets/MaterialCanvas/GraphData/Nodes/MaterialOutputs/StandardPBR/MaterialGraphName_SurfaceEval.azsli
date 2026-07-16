@@ -50,7 +50,7 @@ Surface EvaluateSurface_MaterialGraphName(
     // m_placeHolder keeps MaterialSrg from being compiled out when iterating on graphs
     const bool placeHolder = MaterialSrg::m_placeHolder;
 
-    // O3DE_GENERATED_INSTRUCTIONS_BEGIN: inNormal, inBaseColor, inMetallic, inRoughness, inSpecularF0Factor, inEmissive, inAlpha, inOpacityFactor, inDiffuseAmbientOcclusion, inSpecularOcclusion, inClearCoatFactor, inClearCoatRoughness, inClearCoatNormal, 
+    // O3DE_GENERATED_INSTRUCTIONS_BEGIN: inNormal, inBaseColor, inMetallic, inRoughness, inSpecularF0Factor, inEmissive, inAlpha, inOpacityFactor, inDiffuseAmbientOcclusion, inSpecularOcclusion, inClearCoatFactor, inClearCoatRoughness, inClearCoatNormal, inSnowEnable, inSnowAmount, inSnowFactor, inSnowColor, inWetEnable, inWetAmount, inWetFactor,
     real3 inNormal = normalWS;
     real3 inBaseColor = {1.0, 1.0, 1.0};
     real inMetallic = 0.0;
@@ -64,6 +64,13 @@ Surface EvaluateSurface_MaterialGraphName(
     real inClearCoatFactor = 0.0;
     real inClearCoatRoughness = 0.0;
     real3 inClearCoatNormal = normalWS;
+    bool inSnowEnable = false;
+    real inSnowAmount = 0.0;
+    real inSnowFactor = 1.0;
+    real3 inSnowColor = { 0.92, 0.98, 1.0 };
+    bool inWetEnable = false;
+    real inWetAmount = 0.0;
+    real inWetFactor = 0.61;
     // O3DE_GENERATED_INSTRUCTIONS_END
 
     #undef O3DE_MC_UV
@@ -76,6 +83,65 @@ Surface EvaluateSurface_MaterialGraphName(
     surface.normal = normalize(o_normal_override_enabled ? GetWorldSpaceNormal((real2)inNormal, normalWS, tangents[0], bitangents[0]) : normalWS);
     surface.normal *= real(mad(isFrontFace, 2.0, -1.0));
     surface.roughnessLinear = inRoughness;
+    
+#ifdef CARBONATED_ENABLE_WETNESS
+    if (inWetEnable)
+    {
+        float wetFactor = saturate(inWetFactor);
+        float wetAmount = saturate(inWetAmount);
+        
+        // The wetFactor is describing Moistening properties of a surface material.
+        // For Metals:              wetFactor < 0.3         -> porosity <= 0.1; maxDarken <= 0.2;
+        // For Smooth Dielectrics:  0.3 >= wetFactor < 0.6  -> porosity <= 0.5; maxDarken <= 0.5;
+        // For Porous Dielectrics:  0.6 >= wetFactor < 1.0  -> porosity <= 0.9; maxDarken <= 0.95;
+        // Approximation:
+        const float porosity = saturate(pow(1.15f, wetFactor) - 0.1f);
+        const float maxDarken = pow(1.25f, wetFactor) * 0.95f;
+
+        // Vanishing wetness with distance from weather provider center, - non-linear.
+        const float rainRadius =  clamp(SceneSrg::m_weatherRadius, 10.0f, 10000.0f);
+        const float relativeDistance = length(positionWS.xy - SceneSrg::m_weatherCenter) / rainRadius;
+        wetAmount *= clamp((1.0f - relativeDistance) * 4.0f, 0.0f, 1.0f);        
+        
+        // Overall amount depends on setup amount, surface properties and surface normal
+        const float effectiveWetness = saturate(wetFactor + 0.1f) * wetAmount * saturate(surface.normal.z + 0.25f);
+        const float darkening = 1.0f - effectiveWetness * porosity * maxDarken;
+        const float3 waterTint = float3(0.96f, 0.98f, 1.0f);
+        inBaseColor = inBaseColor * darkening * lerp(1.0, waterTint, effectiveWetness * 0.3f);
+        
+        const float smoothFactor = lerp(0.7f, 0.3f, saturate(surface.roughnessLinear * 2.0f));
+        surface.roughnessLinear = lerp(surface.roughnessLinear, 0.02f, effectiveWetness * smoothFactor);
+        
+        const float waterF0 = 0.02f;
+        if (inMetallic > 0.5f)
+        {
+            inSpecularF0Factor = lerp(inSpecularF0Factor, max(inSpecularF0Factor, waterF0), effectiveWetness * 0.5f);
+        }
+        else
+        {
+            inSpecularF0Factor = lerp(inSpecularF0Factor, waterF0, effectiveWetness * (1.0f - porosity * 0.5f));
+        }
+    }
+#endif
+    
+#ifdef CARBONATED_ENABLE_SNOW_OVERLAY
+    if (inSnowEnable)
+    {
+        float snowAmount = saturate(inSnowAmount);
+        // Vanishing snow cover with distance from weather provider center, - non-linear.
+        const float snowRadius = clamp(SceneSrg::m_weatherRadius, 10.0f, 10000.0f);
+        const float relativeDistance = length(positionWS.xy - SceneSrg::m_weatherCenter) / snowRadius;
+        snowAmount *= clamp((1.0f - relativeDistance) * 4.0f, 0.0f, 1.0f);        
+
+        // Overall amount depends on setup amount, surface properties and surface normal
+        snowAmount *= inSnowFactor * sqrt(saturate(surface.normal.z));
+               
+        inBaseColor = lerp(inBaseColor, inSnowColor, snowAmount);
+        inSpecularF0Factor = lerp(inSpecularF0Factor, 0.98f, snowAmount);
+        inMetallic = lerp(inMetallic, 0.01f, snowAmount);
+    }
+#endif
+    
     surface.SetAlbedoAndSpecularF0(inBaseColor, inSpecularF0Factor, inMetallic);
     surface.CalculateRoughnessA();
 

@@ -30,4 +30,7 @@ POST_PROCESS_MEMBER(ChromaticAberrationSettings, m_ChromaticAberrationSettings)
 POST_PROCESS_MEMBER(PaniniProjectionSettings, m_PaniniProjectionSettings)
 POST_PROCESS_MEMBER(FilmGrainSettings, m_FilmGrainSettings)
 POST_PROCESS_MEMBER(WhiteBalanceSettings, m_whiteBalanceSettings)
+#if defined(CARBONATED)
+POST_PROCESS_MEMBER(RadialBlurSettings, m_radialBlurSettings)
+#endif
 POST_PROCESS_MEMBER(VignetteSettings, m_VignetteSettings)

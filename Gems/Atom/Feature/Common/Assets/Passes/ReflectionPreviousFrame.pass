@@ -1,0 +1,56 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "ReflectionPreviousFramePassTemplate",
+            "PassClass": "ReflectionPreviousFramePass",
+            "Slots": [
+                {
+                    "Name": "PreviousFrameImage",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                // SwapChain here is only used to reference the frame height and format
+                {
+                    "Name": "PipelineOutput",
+                    "SlotType": "InputOutput"
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "PreviousFrameImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "PipelineOutput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R16G16B16A16_FLOAT",
+                        "SharedQueueMask": "Graphics"
+                    }
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "PreviousFrameImage",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "PreviousFrameImage"
+                    }
+                }
+            ],
+            "PassData": {
+                "$type": "PassData",
+                "PipelineGlobalConnections": [
+                    {
+                        "GlobalName": "ReflectionPreviousFrame",
+                        "Slot": "PreviousFrameImage"
+                    }
+                ]
+            }
+        }
+    }
+}

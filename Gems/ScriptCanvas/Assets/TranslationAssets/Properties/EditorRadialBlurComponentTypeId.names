@@ -1,0 +1,29 @@
+{
+    "entries": [
+        {
+            "base": "EditorRadialBlurComponentTypeId",
+            "context": "Constant",
+            "variant": "",
+            "details": {
+                "name": "Editor Radial Blur Component Type Id",
+                "category": "Constants/Editor/Component Type Id"
+            },
+            "methods": [
+                {
+                    "base": "GetEditorRadialBlurComponentTypeId",
+                    "details": {
+                        "name": "Get Editor Radial Blur Component Type Id"
+                    },
+                    "results": [
+                        {
+                            "typeid": "{E152C105-A133-4D03-BBF8-3D4B2FBA3E2A}",
+                            "details": {
+                                "name": "AZ:: Uuid"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

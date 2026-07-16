@@ -13,58 +13,83 @@
 -- This functor controls the flag that enables the overall feature for the shader.
 
 function GetMaterialPropertyDependencies()
-    return { "useWet", "textureMap", "useTexture" }
+    return {
+        "enable",
+        "factorMap",
+        "useFactorMap",
+        "roughnessMap",
+        "useRoughnessMap",
+        }
 end
 
 function GetShaderOptionDependencies()
-    return { "o_useWet", "o_wet_useTexture" }
+    return {
+        "o_wet_enabled",
+        "o_wet_factor_useTexture",
+        "o_wet_roughness_useTexture",
+        }
+end
+
+function UpdateUseTextureState(context, enable, textureMapPropertyName, useTexturePropertyName, shaderOptionName) 
+    local textureMap = context:GetMaterialPropertyValue_Image(textureMapPropertyName)
+    local useTextureMap = context:GetMaterialPropertyValue_bool(useTexturePropertyName)
+    context:SetShaderOptionValue_bool(shaderOptionName, enable and useTextureMap and textureMap ~= nil)
 end
 
 function Process(context)
-    local useWet = context:GetMaterialPropertyValue_bool("useWet")
-    context:SetShaderOptionValue_bool("o_useWet", useWet)
+    local enable = context:GetMaterialPropertyValue_bool("enable")
+    context:SetShaderOptionValue_bool("o_wet_enabled", enable)
 
-    local textureMap = context:GetMaterialPropertyValue_Image("textureMap")
-    local useTexture = context:GetMaterialPropertyValue_bool("useTexture")
-    context:SetShaderOptionValue_bool("o_wet_useTexture", useTexture and textureMap ~= nil)
+    UpdateUseTextureState(context, enable, "factorMap",    "useFactorMap",    "o_wet_factor_useTexture")
+    UpdateUseTextureState(context, enable, "roughnessMap", "useRoughnessMap", "o_wet_roughness_useTexture")
+end
+
+-- Note: property is excluded / hidden if a texture is used.
+function UpdateTextureDependentPropertyVisibility(context, propertyName, textureMapPropertyName, useTexturePropertyName, uvPropertyName, uvScalePropertyName)
+    local textureMap = context:GetMaterialPropertyValue_Image(textureMapPropertyName)
+    local useTexture = context:GetMaterialPropertyValue_bool(useTexturePropertyName)
+
+    if(textureMap == nil) then
+        context:SetMaterialPropertyVisibility(propertyName, MaterialPropertyVisibility_Enabled)
+        context:SetMaterialPropertyVisibility(useTexturePropertyName, MaterialPropertyVisibility_Hidden)
+        context:SetMaterialPropertyVisibility(uvPropertyName, MaterialPropertyVisibility_Hidden)
+        context:SetMaterialPropertyVisibility(uvScalePropertyName, MaterialPropertyVisibility_Hidden)
+    elseif(not useTexture) then
+        context:SetMaterialPropertyVisibility(propertyName, MaterialPropertyVisibility_Enabled)
+        context:SetMaterialPropertyVisibility(uvPropertyName, MaterialPropertyVisibility_Hidden)
+        context:SetMaterialPropertyVisibility(uvScalePropertyName, MaterialPropertyVisibility_Hidden)
+    else
+        context:SetMaterialPropertyVisibility(propertyName, MaterialPropertyVisibility_Hidden)
+    end
 end
 
 function ProcessEditor(context)
-    local useWet = context:GetMaterialPropertyValue_bool("useWet")
+    local enable = context:GetMaterialPropertyValue_bool("enable")
     
     local mainVisibility
-    if(useWet) then
+    if(enable) then
         mainVisibility = MaterialPropertyVisibility_Enabled
     else
         mainVisibility = MaterialPropertyVisibility_Hidden
     end
 
-    context:SetMaterialPropertyVisibility("wetAmount", mainVisibility)
-    context:SetMaterialPropertyVisibility("wetFactor", mainVisibility)
-    context:SetMaterialPropertyVisibility("useTexture", mainVisibility)
-    context:SetMaterialPropertyVisibility("textureMap", mainVisibility)
-    context:SetMaterialPropertyVisibility("textureMapUv", mainVisibility)
-    context:SetMaterialPropertyVisibility("textureMapUvScale", mainVisibility)
+    context:SetMaterialPropertyVisibility("amount", mainVisibility)
 
-    local textureMap = context:GetMaterialPropertyValue_Image("textureMap")
-    local useTexture = context:GetMaterialPropertyValue_bool("useTexture")
+    context:SetMaterialPropertyVisibility("factor", mainVisibility)
+    context:SetMaterialPropertyVisibility("factorMap", mainVisibility)
+    context:SetMaterialPropertyVisibility("factorMapUv", mainVisibility)
+    context:SetMaterialPropertyVisibility("factorMapUvScale", mainVisibility)
+    context:SetMaterialPropertyVisibility("useRoughnessMap", mainVisibility)
+    
+    context:SetMaterialPropertyVisibility("roughness", mainVisibility)
+    context:SetMaterialPropertyVisibility("roughnessAmount", mainVisibility)
+    context:SetMaterialPropertyVisibility("roughnessMap", mainVisibility)
+    context:SetMaterialPropertyVisibility("roughnessMapUv", mainVisibility)
+    context:SetMaterialPropertyVisibility("roughnessMapUvScale", mainVisibility)
+    context:SetMaterialPropertyVisibility("useRoughnessMap", mainVisibility)
 
-    if(useWet) then
-        if(nil == textureMap) then
-            context:SetMaterialPropertyVisibility("useTexture", MaterialPropertyVisibility_Hidden)
-            context:SetMaterialPropertyVisibility("textureMapUv", MaterialPropertyVisibility_Hidden)
-            context:SetMaterialPropertyVisibility("textureMapUvScale", MaterialPropertyVisibility_Hidden)
-            context:SetMaterialPropertyVisibility("wetFactor", MaterialPropertyVisibility_Enabled)
-        elseif(not useTexture) then
-            context:SetMaterialPropertyVisibility("useTexture", MaterialPropertyVisibility_Enabled)
-            context:SetMaterialPropertyVisibility("textureMapUv", MaterialPropertyVisibility_Disabled)
-            context:SetMaterialPropertyVisibility("textureMapUvScale", MaterialPropertyVisibility_Disabled)
-            context:SetMaterialPropertyVisibility("wetFactor", MaterialPropertyVisibility_Enabled)
-        else
-            context:SetMaterialPropertyVisibility("useTexture", MaterialPropertyVisibility_Enabled)
-            context:SetMaterialPropertyVisibility("textureMapUv", MaterialPropertyVisibility_Enabled)
-            context:SetMaterialPropertyVisibility("textureMapUvScale", MaterialPropertyVisibility_Enabled)
-            context:SetMaterialPropertyVisibility("wetFactor", MaterialPropertyVisibility_Hidden)
-        end
+    if(enable) then
+        UpdateTextureDependentPropertyVisibility(context, "factor",    "factorMap",     "useFactorMap",    "factorMapUv",    "factorMapUvScale")
+        UpdateTextureDependentPropertyVisibility(context, "roughness", "roughnessMap",  "useRoughnessMap", "roughnessMapUv", "roughnessMapUvScale")
     end
 end

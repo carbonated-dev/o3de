@@ -357,6 +357,10 @@
                 "Path": "Passes/ReflectionCopyFrameBuffer.pass"
             },
             {
+                "Name": "ReflectionPreviousFramePassTemplate",
+                "Path": "Passes/ReflectionPreviousFrame.pass"
+            },
+            {
                 "Name": "ReflectionScreenSpacePassTemplate",
                 "Path": "Passes/ReflectionScreenSpace.pass"
             },
@@ -455,6 +459,10 @@
             {
                 "Name": "BloomPassTemplate",
                 "Path": "Passes/Bloom.pass"
+            },
+            {
+                "Name": "RadialBlurTemplate",
+                "Path": "Passes/RadialBlur.pass"
             },
             {
                 "Name": "DiffuseGlobalFullscreenPassTemplate",

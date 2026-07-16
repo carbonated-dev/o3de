@@ -11,6 +11,9 @@
 #include <AzFramework/StringFunc/StringFunc.h>
 
 #include <Atom/RHI.Reflect/Bits.h>
+#if defined(CARBONATED)
+#include <Atom/RHI.Reflect/BufferScopeAttachmentDescriptor.h>
+#endif
 #include <Atom/RHI/RHIUtils.h>
 
 
@@ -397,6 +400,90 @@ namespace AZ
 
             SetAttachment(targetAttachment);
         }
+
+#if defined(CARBONATED)
+        RHI::BufferScopeAttachmentDescriptor PassAttachmentBinding::GetResolvedBufferScopeAttachmentDescriptor(
+            [[maybe_unused]] const char* passPath) const
+        {
+            RHI::BufferScopeAttachmentDescriptor bufferScopeDesc = m_unifiedScopeDesc.GetAsBuffer();
+            RHI::BufferViewDescriptor& bufferViewDesc = bufferScopeDesc.m_bufferViewDescriptor;
+            if (bufferViewDesc.m_elementCount != 0)
+            {
+                return bufferScopeDesc;
+            }
+
+            // Pass assets can request a full-buffer view by setting element count to 0.
+            // Resolve that data-driven shorthand here so the RHI still receives a strict
+            // descriptor with a valid concrete element count.
+            PassAttachment* attachment = GetAttachment().get();
+            if (!attachment)
+            {
+                return bufferScopeDesc;
+            }
+
+            const uint32_t elementSize = bufferViewDesc.m_elementSize;
+            AZ_Error(
+                "Pass System",
+                elementSize > 0,
+                "Pass [%s] buffer slot [%s] requested a full-buffer view with an invalid element size of 0.",
+                passPath,
+                m_name.GetCStr());
+            if (elementSize == 0)
+            {
+                return bufferScopeDesc;
+            }
+
+            const uint64_t byteCount = attachment->m_descriptor.m_buffer.m_byteCount;
+            AZ_Error(
+                "Pass System",
+                byteCount % elementSize == 0,
+                "Pass [%s] buffer slot [%s] requested a full-buffer view, but attachment [%s] byte count %" PRIu64
+                " is not divisible by element size %u.",
+                passPath,
+                m_name.GetCStr(),
+                attachment->m_name.GetCStr(),
+                byteCount,
+                elementSize);
+            if (byteCount % elementSize != 0)
+            {
+                return bufferScopeDesc;
+            }
+
+            const uint64_t totalElementCount = byteCount / elementSize;
+            const uint64_t elementOffset = bufferViewDesc.m_elementOffset;
+            // Full-buffer views start at elementOffset and cover the remainder. The offset
+            // must still identify an element inside the buffer.
+            AZ_Error(
+                "Pass System",
+                elementOffset < totalElementCount,
+                "Pass [%s] buffer slot [%s] requested a full-buffer view, but element offset %" PRIu64
+                " is outside attachment [%s] with %" PRIu64 " elements.",
+                passPath,
+                m_name.GetCStr(),
+                elementOffset,
+                attachment->m_name.GetCStr(),
+                totalElementCount);
+            if (elementOffset >= totalElementCount)
+            {
+                return bufferScopeDesc;
+            }
+
+            const uint64_t resolvedElementCount = totalElementCount - elementOffset;
+            AZ_Error(
+                "Pass System",
+                resolvedElementCount <= aznumeric_cast<uint64_t>(std::numeric_limits<uint32_t>::max()),
+                "Pass [%s] buffer slot [%s] resolved a full-buffer view element count that is too large.",
+                passPath,
+                m_name.GetCStr());
+            if (resolvedElementCount > aznumeric_cast<uint64_t>(std::numeric_limits<uint32_t>::max()))
+            {
+                return bufferScopeDesc;
+            }
+
+            bufferViewDesc.m_elementCount = aznumeric_cast<uint32_t>(resolvedElementCount);
+            return bufferScopeDesc;
+        }
+#endif
 
     } // namespace RPI
 } // namespace AZ

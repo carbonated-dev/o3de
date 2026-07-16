@@ -186,6 +186,11 @@ namespace AZ
 
             //! Sets the lighting channel mask
             virtual void SetLightingChannelMask(LightHandle handle, uint32_t lightingChannelMask) = 0;
+
+#if defined(CARBONATED)
+            //! Returns the direction of the first light.
+            virtual bool GetActiveLightDirection(Vector3& direction) const = 0;
+#endif
         };
     } // namespace Render
 } // namespace AZ
