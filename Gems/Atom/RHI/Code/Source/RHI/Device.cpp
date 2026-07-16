@@ -14,10 +14,17 @@
 #include <AzCore/std/sort.h>
 #include <AzCore/Time/ITime.h>
 
+#if defined(CARBONATED)
+#include <AzCore/Console/IConsole.h>
+#endif
+
 namespace AZ::RHI
 {
 
 #if defined(CARBONATED)
+
+    AZ_CVAR(bool, r_disableRayTracing, true, nullptr, AZ::ConsoleFunctorFlags::Null, "Disable Ray Tracing. Disabled by default");
+
     const char* VendorIdToString(VendorId vendorId)
     {
         switch (vendorId)
@@ -152,6 +159,14 @@ namespace AZ::RHI
 
             // Initialize limits and resources that are associated with them
             resultCode = InitializeLimits();
+
+#if defined(CARBONATED)
+            if (r_disableRayTracing && m_features.m_rayTracing)
+            {
+                m_features.m_rayTracing = false;
+                AZ_Info("RHISystem", "The m_rayTracing has been overridden to false by the CVAR\n");
+            }
+#endif
         }
         else
         {

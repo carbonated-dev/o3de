@@ -126,6 +126,9 @@ namespace AzToolsFramework
 
         // EntityOutlinerRequestBus overrides ...
         void TriggerRenameEntityUi(const AZ::EntityId& entityId) override;
+#if defined(CARBONATED) // Add "Collapse outliner tree view" action
+        void CollapseTreeView(const AZ::EntityId& entityId) override;
+#endif
 
         // Build a selection object from the given entities. Entities already in the Widget's selection buffers are ignored.
         template <class EntityIdCollection>

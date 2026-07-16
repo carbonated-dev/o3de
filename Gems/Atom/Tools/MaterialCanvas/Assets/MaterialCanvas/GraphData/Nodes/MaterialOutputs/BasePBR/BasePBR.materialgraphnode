@@ -335,6 +335,121 @@
                         "SLOTTYPE SLOTNAME = SLOTVALUE;"
                     ]
                 }
+            },
+            {
+                "name": "inSnowEnable",
+                "displayName": "Snow Enable",
+                "description": "Use Snow-cover values from material inputs.",
+                "supportedDataTypeRegex": "(color|bool|int|uint|float)([1-4])?",
+                "defaultDataType": "bool",
+                "defaultValue": {
+                    "$type": "bool",
+                    "Value": false
+                },
+                "allowNameSubstitution": false,
+                "settings": {
+                    "instructions": [
+                        "SLOTTYPE SLOTNAME = SLOTVALUE;"
+                    ]
+                }
+            },
+            {
+                "name": "inSnowAmount",
+                "displayName": "Snow Amount",
+                "description": "Snow Amount",
+                "supportedDataTypeRegex": "(color|bool|int|uint|float)([1-4])?",
+                "defaultDataType": "float",
+                "allowNameSubstitution": false,
+                "settings": {
+                    "instructions": [
+                        "SLOTTYPE SLOTNAME = SLOTVALUE;"
+                    ]
+                }
+            },
+            {
+                "name": "inSnowColor",
+                "displayName": "Snow Color",
+                "description": "Snow Color",
+                "supportedDataTypeRegex": "(color|bool|int|uint|float)([1-4])?",
+                "defaultDataType": "float3",
+                "defaultValue": {
+                    "$type": "Vector3",
+                    "Value": [
+                        0.92,
+                        0.98,
+                        1.0
+                    ]
+                },
+                "allowNameSubstitution": false,
+                "settings": {
+                    "instructions": [
+                        "SLOTTYPE SLOTNAME = SLOTVALUE;"
+                    ]
+                }
+            },
+            {
+                "name": "inSnowFactor",
+                "displayName": "Snow Factor",
+                "description": "Snow-covering properties",
+                "supportedDataTypeRegex": "(color|bool|int|uint|float)([1-4])?",
+                "defaultDataType": "float",
+                "allowNameSubstitution": false,
+                "defaultValue": {
+                    "$type": "float",
+                    "Value": 1.0
+                },
+                "settings": {
+                    "instructions": [
+                        "SLOTTYPE SLOTNAME = SLOTVALUE;"
+                    ]
+                }
+            },
+            {
+                "name": "inWetEnable",
+                "displayName": "Wet Enable",
+                "description": "Use rain wetness values from material inputs.",
+                "supportedDataTypeRegex": "(color|bool|int|uint|float)([1-4])?",
+                "defaultDataType": "bool",
+                "defaultValue": {
+                    "$type": "bool",
+                    "Value": false
+                },
+                "allowNameSubstitution": false,
+                "settings": {
+                    "instructions": [
+                        "SLOTTYPE SLOTNAME = SLOTVALUE;"
+                    ]
+                }
+            },
+            {
+                "name": "inWetAmount",
+                "displayName": "Wet Amount",
+                "description": "Wetness Amount",
+                "supportedDataTypeRegex": "(color|bool|int|uint|float)([1-4])?",
+                "defaultDataType": "float",
+                "allowNameSubstitution": false,
+                "settings": {
+                    "instructions": [
+                        "SLOTTYPE SLOTNAME = SLOTVALUE;"
+                    ]
+                }
+            },
+            {
+                "name": "inWetFactor",
+                "displayName": "Wet Factor",
+                "description": "Moistening properties",
+                "supportedDataTypeRegex": "(color|bool|int|uint|float)([1-4])?",
+                "defaultDataType": "float",
+                "defaultValue": {
+                    "$type": "float",
+                    "Value": 0.61
+                },
+                "allowNameSubstitution": false,
+                "settings": {
+                    "instructions": [
+                        "SLOTTYPE SLOTNAME = SLOTVALUE;"
+                    ]
+                }
             }
         ]
     }

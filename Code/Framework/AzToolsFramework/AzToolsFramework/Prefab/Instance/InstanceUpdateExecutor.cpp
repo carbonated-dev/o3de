@@ -305,6 +305,13 @@ namespace AzToolsFramework
             return isUpdateSuccessful;
         }
 
+#if defined(CARBONATED) // Fixes for Undo/Redo stack stability in 2505 with https://github.com/o3de/o3de/pull/18788
+        bool InstanceUpdateExecutor::IsUpdatingTemplateInstancesInQueue() const
+        {
+            return m_updatingTemplateInstancesInQueue;
+        }
+#endif
+
         void InstanceUpdateExecutor::QueueRootPrefabLoadedNotificationForNextPropagation()
         {
             m_isRootPrefabInstanceLoaded = false;
