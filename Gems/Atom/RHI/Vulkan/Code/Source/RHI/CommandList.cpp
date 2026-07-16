@@ -1386,7 +1386,18 @@ namespace AZ
             // submit the command to build the TLAS
             const VkAccelerationStructureBuildRangeInfoKHR& offsetInfo = tlasBuffers.m_offsetInfo;
             const VkAccelerationStructureBuildRangeInfoKHR* pOffsetInfo = &offsetInfo;
+#if defined(CARBONATED)
+            VkAccelerationStructureBuildGeometryInfoKHR buildInfo = tlasBuffers.m_buildInfo;
+            if (tlasBuffers.m_buildMode == RHI::RayTracingTlasBuildMode::Update)
+            {
+                buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
+                buildInfo.srcAccelerationStructure = tlasBuffers.m_accelerationStructure;
+            }
+            context.CmdBuildAccelerationStructuresKHR(GetNativeCommandBuffer(), 1, &buildInfo, &pOffsetInfo);
+            tlasBuffers.m_buildMode = RHI::RayTracingTlasBuildMode::Update;
+#else
             context.CmdBuildAccelerationStructuresKHR(GetNativeCommandBuffer(), 1, &tlasBuffers.m_buildInfo, &pOffsetInfo);
+#endif
 
             // we need a pipeline barrier on VK_ACCESS_ACCELERATION_STRUCTURE (both read and write) in case we are building
             // multiple TLAS objects in a command list

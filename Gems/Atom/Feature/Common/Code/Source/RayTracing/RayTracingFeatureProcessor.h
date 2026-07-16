@@ -78,6 +78,9 @@ namespace AZ
             // FeatureProcessor overrides ...
             void Activate() override;
             void Deactivate() override;
+#if defined(CARBONATED)
+            void Simulate(const SimulatePacket& packet) override;
+#endif
             void OnRenderPipelineChanged(RPI::RenderPipeline* renderPipeline, RPI::SceneNotification::RenderPipelineChangeType changeType) override;
 
             struct Mesh;
@@ -324,6 +327,12 @@ namespace AZ
             const RHI::Ptr<RHI::RayTracingTlas>& GetTlas() const { return m_tlas; }
             RHI::Ptr<RHI::RayTracingTlas>& GetTlas() { return m_tlas; }
 
+#if defined(CARBONATED)
+            //! Retrieves the persistent, RHI-neutral TLAS descriptor. Its instance vector is kept dense and
+            //! updated at mutation time so the acceleration structure pass does not rebuild it every frame.
+            const RHI::RayTracingTlasDescriptor& GetTlasDescriptor() const { return m_tlasDescriptor; }
+#endif
+
             //! Retrieves the revision number of the ray tracing data.
             //! This is used to determine if the RayTracingShaderTable needs to be rebuilt.
             uint32_t GetRevision() const { return m_revision; }
@@ -396,6 +405,11 @@ namespace AZ
             void UpdateRayTracingSceneSrg();
             void UpdateRayTracingMaterialSrg();
 
+#if defined(CARBONATED)
+            uint32_t GetProceduralHitGroupIndex(ProceduralGeometryTypeWeakHandle geometryTypeHandle) const;
+            void UpdateProceduralTlasInstanceIds();
+#endif
+
             static RHI::RayTracingAccelerationStructureBuildFlags CreateRayTracingAccelerationStructureBuildFlags(bool isSkinnedMesh);
 
             // flag indicating if RayTracing is enabled, currently based on device support
@@ -412,6 +426,12 @@ namespace AZ
 
             // ray tracing acceleration structure (TLAS)
             RHI::Ptr<RHI::RayTracingTlas> m_tlas;
+
+#if defined(CARBONATED)
+            // Persistent RHI-neutral TLAS instances. Mesh instances occupy [0, m_subMeshes.size()),
+            // followed by procedural instances. Per-instance versions let each RHI frame slot patch only stale entries.
+            RHI::RayTracingTlasDescriptor m_tlasDescriptor;
+#endif
 
             // RayTracingScene and RayTracingMaterial asset and Srgs
             Data::Asset<RPI::ShaderAsset> m_rayTracingSrgAsset;

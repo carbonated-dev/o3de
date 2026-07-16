@@ -67,9 +67,87 @@ namespace AZ::RHI
     {
         AZ_Assert(m_instancesBuffer == nullptr, "Instance cannot be combined with an instances buffer");
         m_instances.emplace_back();
+#if defined(CARBONATED)
+        AssignNewVersion(m_instances.back());
+#endif
         m_buildContext = &m_instances.back();
+#if defined(CARBONATED)
+        ++m_topologyRevision;
+#endif
         return this;
     }
+
+#if defined(CARBONATED)
+    RayTracingTlasDescriptor* RayTracingTlasDescriptor::Instance(uint32_t instanceIndex)
+    {
+        AZ_Assert(instanceIndex < m_instances.size(), "TLAS instance index is out of range");
+        m_buildContext = &m_instances[instanceIndex];
+        AssignNewVersion(*m_buildContext);
+        return this;
+    }
+
+    void RayTracingTlasDescriptor::AssignNewVersion(RayTracingTlasInstance& instance)
+    {
+        instance.m_version = m_nextInstanceVersion++;
+    }
+
+    RayTracingTlasDescriptor* RayTracingTlasDescriptor::InsertInstance(uint32_t instanceIndex)
+    {
+        AZ_Assert(m_instancesBuffer == nullptr, "Instance cannot be combined with an instances buffer");
+        AZ_Assert(instanceIndex <= m_instances.size(), "TLAS instance insertion index is out of range");
+        m_buildContext = &*m_instances.insert(m_instances.begin() + instanceIndex, RayTracingTlasInstance{});
+        AssignNewVersion(*m_buildContext);
+        ++m_topologyRevision;
+        return this;
+    }
+
+    void RayTracingTlasDescriptor::RemoveInstance(uint32_t instanceIndex)
+    {
+        AZ_Assert(!m_instances.empty(), "Cannot remove an instance from an empty TLAS descriptor");
+        RemoveInstance(instanceIndex, aznumeric_caster(m_instances.size() - 1));
+    }
+
+    void RayTracingTlasDescriptor::RemoveInstance(uint32_t instanceIndex, uint32_t replacementIndex)
+    {
+        AZ_Assert(instanceIndex < m_instances.size(), "TLAS instance index is out of range");
+        AZ_Assert(replacementIndex < m_instances.size(), "TLAS replacement index is out of range");
+        AZ_Assert(instanceIndex <= replacementIndex, "Replacement must not precede the removed instance");
+        if (instanceIndex != replacementIndex)
+        {
+            m_instances[instanceIndex] = AZStd::move(m_instances[replacementIndex]);
+            AssignNewVersion(m_instances[instanceIndex]);
+        }
+        m_instances.erase(m_instances.begin() + replacementIndex);
+        m_buildContext = nullptr;
+        ++m_topologyRevision;
+    }
+
+    bool RayTracingTlasDescriptor::CompactInstancesIfNeeded()
+    {
+        const uint32_t activeCount = aznumeric_caster(m_instances.size());
+        const uint32_t capacity = GetInstanceCapacity();
+        if (capacity == 0 || activeCount > capacity / 4)
+        {
+            m_underutilizedFrameCount = 0;
+            return false;
+        }
+
+        if (++m_underutilizedFrameCount < CompactionDelayFrames)
+        {
+            return false;
+        }
+
+        m_instances.shrink_to_fit();
+        m_buildContext = nullptr;
+        m_underutilizedFrameCount = 0;
+        if (GetInstanceCapacity() < capacity)
+        {
+            ++m_topologyRevision;
+            return true;
+        }
+        return false;
+    }
+#endif
 
     RayTracingTlasDescriptor* RayTracingTlasDescriptor::InstanceID(uint32_t instanceID)
     {

@@ -28,6 +28,244 @@ namespace AZ
 
         RHI::ResultCode RayTracingTlas::CreateBuffersInternal(RHI::Device& deviceBase, const RHI::RayTracingTlasDescriptor* descriptor, const RHI::RayTracingBufferPools& bufferPools)
         {
+#if defined(CARBONATED)
+            auto& device = static_cast<Device&>(deviceBase);
+            auto& physicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
+            const auto& accelerationStructureProperties = physicalDevice.GetPhysicalDeviceAccelerationStructureProperties();
+            TlasBuffers& buffers = m_buffers.AdvanceCurrentElement();
+
+            const auto& instances = descriptor->GetInstances();
+            const bool usesExternalInstances = descriptor->GetInstancesBuffer() != nullptr;
+            const uint32_t numInstances = usesExternalInstances
+                ? descriptor->GetNumInstancesInBuffer()
+                : aznumeric_caster(instances.size());
+
+            if (numInstances == 0)
+            {
+                if (buffers.m_accelerationStructure)
+                {
+                    device.GetContext().DestroyAccelerationStructureKHR(
+                        device.GetNativeDevice(), buffers.m_accelerationStructure, VkSystemAllocator::Get());
+                }
+                buffers = TlasBuffers{};
+                return RHI::ResultCode::Success;
+            }
+
+            const uint32_t requestedCapacity = AZStd::max(
+                numInstances,
+                usesExternalInstances ? numInstances : descriptor->GetInstanceCapacity());
+            const bool capacityChanged =
+                buffers.m_tlasBuffer == nullptr || buffers.m_instanceCapacity != requestedCapacity;
+
+            VkDeviceAddress instancesGpuAddress = 0;
+            if (!usesExternalInstances)
+            {
+                const uint64_t byteCount = sizeof(VkAccelerationStructureInstanceKHR) * requestedCapacity;
+                if (capacityChanged || buffers.m_tlasInstancesBuffer == nullptr)
+                {
+                    buffers.m_tlasInstancesBuffer = RHI::Factory::Get().CreateBuffer();
+                    RHI::BufferDescriptor bufferDescriptor;
+                    bufferDescriptor.m_bindFlags =
+                        RHI::BufferBindFlags::ShaderReadWrite | RHI::BufferBindFlags::RayTracingAccelerationStructure;
+                    bufferDescriptor.m_byteCount = byteCount;
+                    RHI::BufferInitRequest request;
+                    request.m_buffer = buffers.m_tlasInstancesBuffer.get();
+                    request.m_descriptor = bufferDescriptor;
+                    const RHI::ResultCode resultCode = bufferPools.GetTlasInstancesBufferPool()->InitBuffer(request);
+                    AZ_Assert(resultCode == RHI::ResultCode::Success, "failed to create TLAS instances buffer");
+                    buffers.m_uploadedInstanceVersions.assign(requestedCapacity, 0);
+                }
+
+                BufferMemoryView* memoryView = static_cast<Buffer*>(buffers.m_tlasInstancesBuffer.get())->GetBufferMemoryView();
+                memoryView->SetName("TLAS Instance");
+
+                AZStd::vector<uint32_t> staleInstances;
+                staleInstances.reserve(numInstances);
+                uint32_t staleRangeCount = 0;
+                for (uint32_t index = 0; index < numInstances; ++index)
+                {
+                    if (capacityChanged || buffers.m_uploadedInstanceVersions[index] != instances[index].m_version)
+                    {
+                        if (staleInstances.empty() || index != staleInstances.back() + 1)
+                        {
+                            ++staleRangeCount;
+                        }
+                        staleInstances.push_back(index);
+                    }
+                }
+
+                if (staleRangeCount > MaxTlasInstanceUploadRanges)
+                {
+                    // Too many small staging uploads are more expensive than regenerating the active descriptor buffer.
+                    staleInstances.resize(numInstances);
+                    for (uint32_t index = 0; index < numInstances; ++index)
+                    {
+                        staleInstances[index] = index;
+                    }
+                }
+
+                if (!staleInstances.empty())
+                {
+                    AZ_PROFILE_SCOPE(RHI, "RayTracingTlas: update %zu of %u instances", staleInstances.size(), numInstances);
+                    // Device-heap maps use a fresh staging allocation. Map only dirty ranges so bytes for
+                    // unchanged descriptors are not replaced by uninitialized staging memory.
+                    size_t staleOffset = 0;
+                    while (staleOffset < staleInstances.size())
+                    {
+                        const uint32_t firstInstance = staleInstances[staleOffset];
+                        size_t rangeEnd = staleOffset + 1;
+                        while (rangeEnd < staleInstances.size() && staleInstances[rangeEnd] == staleInstances[rangeEnd - 1] + 1)
+                        {
+                            ++rangeEnd;
+                        }
+
+                        const uint32_t instanceCount = aznumeric_caster(rangeEnd - staleOffset);
+                        const uint64_t rangeByteOffset = sizeof(VkAccelerationStructureInstanceKHR) * firstInstance;
+                        const uint64_t rangeByteCount = sizeof(VkAccelerationStructureInstanceKHR) * instanceCount;
+                        RHI::BufferMapResponse mapResponse;
+                        const RHI::ResultCode resultCode = bufferPools.GetTlasInstancesBufferPool()->MapBuffer(
+                            RHI::BufferMapRequest(*buffers.m_tlasInstancesBuffer, rangeByteOffset, rangeByteCount), mapResponse);
+                        AZ_Assert(resultCode == RHI::ResultCode::Success, "failed to map TLAS instances buffer");
+                        auto* mappedData = reinterpret_cast<VkAccelerationStructureInstanceKHR*>(mapResponse.m_data);
+
+                        for (size_t staleIndex = staleOffset; staleIndex < rangeEnd; ++staleIndex)
+                        {
+                            const uint32_t index = staleInstances[staleIndex];
+                            const RHI::RayTracingTlasInstance& instance = instances[index];
+                            VkAccelerationStructureInstanceKHR& nativeInstance = mappedData[index - firstInstance];
+                            nativeInstance.instanceCustomIndex = instance.m_instanceID;
+                            nativeInstance.instanceShaderBindingTableRecordOffset = instance.m_hitGroupIndex;
+
+                            AZ::Matrix3x4 matrix3x4 = AZ::Matrix3x4::CreateFromTransform(instance.m_transform);
+                            matrix3x4.MultiplyByScale(instance.m_nonUniformScale);
+                            matrix3x4.StoreToRowMajorFloat12(&nativeInstance.transform.matrix[0][0]);
+
+                            RayTracingBlas* blas = static_cast<RayTracingBlas*>(instance.m_blas.get());
+                            VkAccelerationStructureDeviceAddressInfoKHR addressInfo = {};
+                            addressInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+                            addressInfo.accelerationStructure = blas->GetBuffers().m_accelerationStructure;
+                            nativeInstance.accelerationStructureReference =
+                                device.GetContext().GetAccelerationStructureDeviceAddressKHR(device.GetNativeDevice(), &addressInfo);
+                            nativeInstance.mask = instance.m_instanceMask;
+                            nativeInstance.flags = instance.m_transparent ? VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR : 0;
+                            buffers.m_uploadedInstanceVersions[index] = instance.m_version;
+                        }
+                        bufferPools.GetTlasInstancesBufferPool()->UnmapBuffer(*buffers.m_tlasInstancesBuffer);
+                        staleOffset = rangeEnd;
+                    }
+                }
+
+                VkBufferDeviceAddressInfo addressInfo = {};
+                addressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+                addressInfo.buffer = memoryView->GetNativeBuffer();
+                instancesGpuAddress = device.GetContext().GetBufferDeviceAddress(device.GetNativeDevice(), &addressInfo);
+            }
+            else
+            {
+                buffers.m_tlasInstancesBuffer = descriptor->GetInstancesBuffer();
+                VkBufferDeviceAddressInfo addressInfo = {};
+                addressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+                addressInfo.buffer = static_cast<Buffer*>(descriptor->GetInstancesBuffer().get())->GetBufferMemoryView()->GetNativeBuffer();
+                instancesGpuAddress = device.GetContext().GetBufferDeviceAddress(device.GetNativeDevice(), &addressInfo);
+            }
+
+            buffers.m_geometry = {};
+            buffers.m_geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+            buffers.m_geometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+            buffers.m_geometry.geometry.instances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+            buffers.m_geometry.geometry.instances.arrayOfPointers = VK_FALSE;
+            buffers.m_geometry.geometry.instances.data.deviceAddress = instancesGpuAddress;
+
+            buffers.m_buildInfo = {};
+            buffers.m_buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+            buffers.m_buildInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR |
+                VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+            buffers.m_buildInfo.geometryCount = 1;
+            buffers.m_buildInfo.pGeometries = &buffers.m_geometry;
+            buffers.m_buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+            buffers.m_buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+
+            if (capacityChanged)
+            {
+                VkAccelerationStructureBuildSizesInfoKHR buildSizes = {};
+                buildSizes.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
+                device.GetContext().GetAccelerationStructureBuildSizesKHR(
+                    device.GetNativeDevice(),
+                    VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+                    &buffers.m_buildInfo,
+                    &requestedCapacity,
+                    &buildSizes);
+
+                buildSizes.accelerationStructureSize = RHI::AlignUp(buildSizes.accelerationStructureSize, 256);
+                const uint64_t scratchSize = RHI::AlignUp(
+                    AZStd::max(buildSizes.buildScratchSize, buildSizes.updateScratchSize),
+                    accelerationStructureProperties.minAccelerationStructureScratchOffsetAlignment);
+
+                buffers.m_scratchBuffer = RHI::Factory::Get().CreateBuffer();
+                RHI::BufferDescriptor scratchDescriptor;
+                scratchDescriptor.m_bindFlags = RHI::BufferBindFlags::ShaderReadWrite | RHI::BufferBindFlags::RayTracingScratchBuffer;
+                scratchDescriptor.m_byteCount = scratchSize;
+                scratchDescriptor.m_alignment = accelerationStructureProperties.minAccelerationStructureScratchOffsetAlignment;
+                RHI::BufferInitRequest scratchRequest;
+                scratchRequest.m_buffer = buffers.m_scratchBuffer.get();
+                scratchRequest.m_descriptor = scratchDescriptor;
+                RHI::ResultCode resultCode = bufferPools.GetScratchBufferPool()->InitBuffer(scratchRequest);
+                AZ_Assert(resultCode == RHI::ResultCode::Success, "failed to create TLAS scratch buffer");
+                auto* scratchMemoryView = static_cast<Buffer*>(buffers.m_scratchBuffer.get())->GetBufferMemoryView();
+                scratchMemoryView->SetName("TLAS Scratch");
+
+                if (buffers.m_accelerationStructure)
+                {
+                    device.GetContext().DestroyAccelerationStructureKHR(
+                        device.GetNativeDevice(), buffers.m_accelerationStructure, VkSystemAllocator::Get());
+                    buffers.m_accelerationStructure = VK_NULL_HANDLE;
+                }
+
+                buffers.m_tlasBuffer = RHI::Factory::Get().CreateBuffer();
+                RHI::BufferDescriptor tlasDescriptor;
+                tlasDescriptor.m_bindFlags = RHI::BufferBindFlags::RayTracingAccelerationStructure;
+                tlasDescriptor.m_byteCount = buildSizes.accelerationStructureSize;
+                RHI::BufferInitRequest tlasRequest;
+                tlasRequest.m_buffer = buffers.m_tlasBuffer.get();
+                tlasRequest.m_descriptor = tlasDescriptor;
+                resultCode = bufferPools.GetTlasBufferPool()->InitBuffer(tlasRequest);
+                AZ_Assert(resultCode == RHI::ResultCode::Success, "failed to create TLAS buffer");
+                auto* tlasMemoryView = static_cast<Buffer*>(buffers.m_tlasBuffer.get())->GetBufferMemoryView();
+                tlasMemoryView->SetName("TLAS");
+
+                VkAccelerationStructureCreateInfoKHR createInfo = {};
+                createInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+                createInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+                createInfo.size = buildSizes.accelerationStructureSize;
+                createInfo.buffer = tlasMemoryView->GetNativeBuffer();
+                const VkResult vkResult = device.GetContext().CreateAccelerationStructureKHR(
+                    device.GetNativeDevice(), &createInfo, VkSystemAllocator::Get(), &buffers.m_accelerationStructure);
+                AssertSuccess(vkResult);
+                buffers.m_hasBeenBuilt = false;
+            }
+
+            buffers.m_buildInfo.dstAccelerationStructure = buffers.m_accelerationStructure;
+            VkBufferDeviceAddressInfo scratchAddressInfo = {};
+            scratchAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+            scratchAddressInfo.buffer = static_cast<Buffer*>(buffers.m_scratchBuffer.get())->GetBufferMemoryView()->GetNativeBuffer();
+            buffers.m_buildInfo.scratchData.deviceAddress =
+                device.GetContext().GetBufferDeviceAddress(device.GetNativeDevice(), &scratchAddressInfo);
+
+            const bool topologyChanged = buffers.m_topologyRevision != descriptor->GetTopologyRevision() ||
+                buffers.m_instanceCount != numInstances;
+            buffers.m_buildMode = (!buffers.m_hasBeenBuilt || capacityChanged || topologyChanged)
+                ? RHI::RayTracingTlasBuildMode::Build
+                : RHI::RayTracingTlasBuildMode::Update;
+            buffers.m_instanceCapacity = requestedCapacity;
+            buffers.m_instanceCount = numInstances;
+            buffers.m_topologyRevision = descriptor->GetTopologyRevision();
+            buffers.m_hasBeenBuilt = true;
+
+            buffers.m_offsetInfo = {};
+            buffers.m_offsetInfo.primitiveCount = numInstances;
+            static_cast<Buffer*>(buffers.m_tlasBuffer.get())->SetNativeAccelerationStructure(buffers.m_accelerationStructure);
+            return RHI::ResultCode::Success;
+#else
             auto& device = static_cast<Device&>(deviceBase);
             auto& physicalDevice = static_cast<const PhysicalDevice&>(device.GetPhysicalDevice());
             const VkPhysicalDeviceAccelerationStructurePropertiesKHR& accelerationStructureProperties = physicalDevice.GetPhysicalDeviceAccelerationStructureProperties();
@@ -214,6 +452,7 @@ namespace AZ
             static_cast<Buffer*>(buffers.m_tlasBuffer.get())->SetNativeAccelerationStructure(buffers.m_accelerationStructure);
 
             return RHI::ResultCode::Success;
+#endif
         }
     }
 }

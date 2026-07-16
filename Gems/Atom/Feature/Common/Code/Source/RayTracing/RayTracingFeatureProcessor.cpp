@@ -86,6 +86,47 @@ namespace AZ
             DisableSceneNotification();
         }
 
+#if defined(CARBONATED)
+        void RayTracingFeatureProcessor::Simulate([[maybe_unused]] const SimulatePacket& packet)
+        {
+            AZStd::unique_lock<AZStd::mutex> lock(m_mutex);
+            if (m_tlasDescriptor.CompactInstancesIfNeeded())
+            {
+                ++m_revision;
+            }
+        }
+
+        uint32_t RayTracingFeatureProcessor::GetProceduralHitGroupIndex(ProceduralGeometryTypeWeakHandle geometryTypeHandle) const
+        {
+            uint32_t hitGroupIndex = 1; // Hit group 0 is reserved for triangle meshes.
+            for (auto it = m_proceduralGeometryTypes.cbegin(); it != m_proceduralGeometryTypes.cend(); ++it, ++hitGroupIndex)
+            {
+                if (it->m_name == geometryTypeHandle->m_name)
+                {
+                    return hitGroupIndex;
+                }
+            }
+            AZ_Assert(false, "Procedural geometry type is not registered");
+            return hitGroupIndex;
+        }
+
+        void RayTracingFeatureProcessor::UpdateProceduralTlasInstanceIds()
+        {
+            auto& instances = m_tlasDescriptor.GetInstances();
+            const uint32_t meshInstanceCount = aznumeric_caster(m_subMeshes.size());
+            for (uint32_t proceduralIndex = 0; proceduralIndex < m_proceduralGeometry.size(); ++proceduralIndex)
+            {
+                const uint32_t instanceIndex = meshInstanceCount + proceduralIndex;
+                AZ_Assert(instanceIndex < instances.size(), "Procedural TLAS instance index is out of range");
+                if (instances[instanceIndex].m_instanceID != instanceIndex)
+                {
+                    m_tlasDescriptor.Instance(instanceIndex)
+                        ->InstanceID(instanceIndex);
+                }
+            }
+        }
+#endif
+
         RayTracingFeatureProcessor::ProceduralGeometryTypeHandle RayTracingFeatureProcessor::RegisterProceduralGeometryType(
             const AZStd::string& name,
             const Data::Instance<RPI::Shader>& intersectionShader,
@@ -165,6 +206,18 @@ namespace AZ
             m_blasInstanceMap.emplace(Data::AssetId(uuid), meshBlasInstance);
             geometryTypeHandle->m_instanceCount++;
 
+#if defined(CARBONATED)
+            const ProceduralGeometry& addedGeometry = m_proceduralGeometry.back();
+            const uint32_t tlasInstanceIndex = aznumeric_caster(m_tlasDescriptor.GetInstances().size());
+            m_tlasDescriptor.Instance()
+                ->InstanceID(tlasInstanceIndex)
+                ->InstanceMask(addedGeometry.m_instanceMask)
+                ->HitGroupIndex(GetProceduralHitGroupIndex(addedGeometry.m_typeHandle))
+                ->Blas(addedGeometry.m_blas)
+                ->Transform(addedGeometry.m_transform)
+                ->NonUniformScale(addedGeometry.m_nonUniformScale);
+#endif
+
             m_revision++;
             m_proceduralGeometryInfoBufferNeedsUpdate = true;
             m_materialInfoBufferNeedsUpdate = true;
@@ -181,6 +234,25 @@ namespace AZ
 
             AZStd::unique_lock<AZStd::mutex> lock(m_mutex);
 
+#if defined(CARBONATED)
+            if (auto it = m_proceduralGeometryLookup.find(uuid); it != m_proceduralGeometryLookup.end())
+            {
+                ProceduralGeometry& geometry = m_proceduralGeometry[it->second];
+                if (geometry.m_transform.IsClose(transform) && geometry.m_nonUniformScale.IsClose(nonUniformScale))
+                {
+                    return;
+                }
+
+                geometry.m_transform = transform;
+                geometry.m_nonUniformScale = nonUniformScale;
+
+                const uint32_t instanceIndex = aznumeric_caster(m_subMeshes.size() + it->second);
+                m_tlasDescriptor.Instance(instanceIndex)
+                    ->Transform(transform)
+                    ->NonUniformScale(nonUniformScale);
+                ++m_revision;
+            }
+#else
             if (auto it = m_proceduralGeometryLookup.find(uuid); it != m_proceduralGeometryLookup.end())
             {
                 m_proceduralGeometry[it->second].m_transform = transform;
@@ -188,6 +260,7 @@ namespace AZ
             }
 
             m_revision++;
+#endif
         }
 
         void RayTracingFeatureProcessor::SetProceduralGeometryLocalInstanceIndex(const Uuid& uuid, uint32_t localInstanceIndex)
@@ -219,6 +292,12 @@ namespace AZ
             size_t materialInfoIndex = m_proceduralGeometryLookup[uuid];
             m_proceduralGeometry[materialInfoIndex].m_typeHandle->m_instanceCount--;
 
+#if defined(CARBONATED)
+            auto& tlasInstances = m_tlasDescriptor.GetInstances();
+            const uint32_t tlasInstanceIndex = aznumeric_caster(m_subMeshes.size() + materialInfoIndex);
+            const uint32_t lastTlasInstanceIndex = aznumeric_caster(tlasInstances.size() - 1);
+#endif
+
             if (materialInfoIndex < m_proceduralGeometryMaterialInfos.size() - 1)
             {
                 m_proceduralGeometryLookup[m_proceduralGeometry.back().m_uuid] = m_proceduralGeometryLookup[uuid];
@@ -227,6 +306,14 @@ namespace AZ
             }
             m_proceduralGeometry.pop_back();
             m_proceduralGeometryMaterialInfos.pop_back();
+#if defined(CARBONATED)
+            m_tlasDescriptor.RemoveInstance(tlasInstanceIndex);
+            if (tlasInstanceIndex != lastTlasInstanceIndex)
+            {
+                m_tlasDescriptor.Instance(tlasInstanceIndex)
+                    ->InstanceID(tlasInstanceIndex);
+            }
+#endif
 
             m_blasInstanceMap.erase(uuid);
             m_proceduralGeometryLookup.erase(uuid);
@@ -352,6 +439,40 @@ namespace AZ
                 }
             }
 
+#if defined(CARBONATED)
+            // Mesh TLAS instances occupy the dense prefix of the descriptor array. Insert new entries
+            // before procedural geometry so InstanceID continues to index the parallel mesh buffers.
+            auto& tlasInstances = m_tlasDescriptor.GetInstances();
+            const uint32_t firstNewInstance = aznumeric_caster(m_subMeshes.size() - subMeshes.size());
+            for (uint32_t instanceIndex = firstNewInstance; instanceIndex < m_subMeshes.size(); ++instanceIndex)
+            {
+                const SubMesh& subMesh = m_subMeshes[instanceIndex];
+                if (instanceIndex == tlasInstances.size())
+                {
+                    m_tlasDescriptor.Instance()
+                        ->InstanceID(subMesh.m_globalIndex)
+                        ->InstanceMask(subMesh.m_mesh->m_instanceMask)
+                        ->HitGroupIndex(0)
+                        ->Blas(subMesh.m_blas)
+                        ->Transform(subMesh.m_mesh->m_transform)
+                        ->NonUniformScale(subMesh.m_mesh->m_nonUniformScale)
+                        ->Transparent(subMesh.m_material.m_irradianceColor.GetA() < 1.0f);
+                }
+                else
+                {
+                    m_tlasDescriptor.InsertInstance(instanceIndex)
+                        ->InstanceID(subMesh.m_globalIndex)
+                        ->InstanceMask(subMesh.m_mesh->m_instanceMask)
+                        ->HitGroupIndex(0)
+                        ->Blas(subMesh.m_blas)
+                        ->Transform(subMesh.m_mesh->m_transform)
+                        ->NonUniformScale(subMesh.m_mesh->m_nonUniformScale)
+                        ->Transparent(subMesh.m_material.m_irradianceColor.GetA() < 1.0f);
+                }
+            }
+            UpdateProceduralTlasInstanceIds();
+#endif
+
             AZ::Transform noScaleTransform = mesh.m_transform;
             noScaleTransform.ExtractUniformScale();
             AZ::Matrix3x3 rotationMatrix = Matrix3x3::CreateFromTransform(noScaleTransform);
@@ -463,6 +584,9 @@ namespace AZ
                 {
                     SubMesh& subMesh = m_subMeshes[subMeshIndex];
                     uint32_t globalIndex = subMesh.m_globalIndex;
+#if defined(CARBONATED)
+                    const uint32_t lastMeshInstanceIndex = aznumeric_caster(m_subMeshes.size() - 1);
+#endif
 
                     MeshInfo& meshInfo = m_meshInfos[globalIndex];
                     MaterialInfo& materialInfo = m_materialInfos[globalIndex];
@@ -504,7 +628,22 @@ namespace AZ
                     m_subMeshes.pop_back();
                     m_meshInfos.pop_back();
                     m_materialInfos.pop_back();
+
+#if defined(CARBONATED)
+                    // Mirror the sub-mesh swap-removal. Procedural descriptors follow the mesh prefix
+                    // and shift left when the final mesh descriptor is erased.
+                    m_tlasDescriptor.RemoveInstance(globalIndex, lastMeshInstanceIndex);
+                    if (globalIndex != lastMeshInstanceIndex)
+                    {
+                        m_tlasDescriptor.Instance(globalIndex)
+                            ->InstanceID(globalIndex);
+                    }
+#endif
                 }
+
+#if defined(CARBONATED)
+                UpdateProceduralTlasInstanceIds();
+#endif
 
                 // remove from the Mesh list
                 m_subMeshCount -= aznumeric_cast<uint32_t>(mesh.m_subMeshIndices.size());
@@ -547,6 +686,13 @@ namespace AZ
             if (itMesh != m_meshes.end())
             {
                 Mesh& mesh = itMesh->second;
+#if defined(CARBONATED)
+                if (mesh.m_transform.IsClose(transform) && mesh.m_nonUniformScale.IsClose(nonUniformScale))
+                {
+                    return;
+                }
+#endif
+
                 mesh.m_transform = transform;
                 mesh.m_nonUniformScale = nonUniformScale;
                 m_revision++;
@@ -563,6 +709,12 @@ namespace AZ
                 {
                     MeshInfo& meshInfo = m_meshInfos[subMeshIndex];
                     worldInvTranspose3x4.StoreToRowMajorFloat12(meshInfo.m_worldInvTranspose.data());
+
+#if defined(CARBONATED)
+                    m_tlasDescriptor.Instance(subMeshIndex)
+                        ->Transform(transform)
+                        ->NonUniformScale(nonUniformScale);
+#endif
                 }
 
                 m_meshInfoBufferNeedsUpdate = true;
@@ -636,11 +788,35 @@ namespace AZ
                     subMeshMaterials.size() == mesh.m_subMeshIndices.size(),
                     "The size of subMeshes in SetMeshMaterial must be the same as in AddMesh");
 
+#if defined(CARBONATED)
+                bool tlasNeedsUpdate = false;
+                for (auto& subMeshIndex : mesh.m_subMeshIndices)
+                {
+                    SubMesh& subMesh = m_subMeshes[subMeshIndex];
+                    const SubMeshMaterial& material = subMeshMaterials[subMesh.m_subMeshIndex];
+                    const bool transparent = material.m_irradianceColor.GetA() < 1.0f;
+                    auto& tlasInstance = m_tlasDescriptor.GetInstances()[subMesh.m_globalIndex];
+                    if (tlasInstance.m_transparent != transparent)
+                    {
+                        m_tlasDescriptor.Instance(subMesh.m_globalIndex)
+                            ->Transparent(transparent);
+                        tlasNeedsUpdate = true;
+                    }
+                    subMesh.m_material = material;
+                    ConvertMaterial(m_materialInfos[subMesh.m_globalIndex], material);
+                }
+
+                if (tlasNeedsUpdate)
+                {
+                    ++m_revision;
+                }
+#else
                 for (auto& subMeshIndex : mesh.m_subMeshIndices)
                 {
                     const SubMesh& subMesh = m_subMeshes[subMeshIndex];
                     ConvertMaterial(m_materialInfos[subMesh.m_globalIndex], subMeshMaterials[subMesh.m_subMeshIndex]);
                 }
+#endif
 
                 m_materialInfoBufferNeedsUpdate = true;
                 m_indexListNeedsUpdate = true;

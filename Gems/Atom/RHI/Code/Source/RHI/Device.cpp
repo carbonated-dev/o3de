@@ -23,7 +23,7 @@ namespace AZ::RHI
 
 #if defined(CARBONATED)
 
-    AZ_CVAR(bool, r_disableRayTracing, true, nullptr, AZ::ConsoleFunctorFlags::Null, "Disable Ray Tracing. Disabled by default");
+    AZ_CVAR(bool, r_disableRayTracing, false, nullptr, AZ::ConsoleFunctorFlags::NeedsReload, "Disable Ray Tracing.");
 
     const char* VendorIdToString(VendorId vendorId)
     {
