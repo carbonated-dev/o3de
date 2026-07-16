@@ -279,9 +279,20 @@ namespace AZ::Render
             defaultAA = AZ::RPI::RenderPipeline::GetAAMethodNameByIndex(defaultAAMethod);
             hasAAMethod = (defaultAAMethod != AZ::RPI::AntiAliasingMode::MSAA && defaultAAMethod != AZ::RPI::AntiAliasingMode::Default);
         }
+#if defined(CARBONATED)
+        auto windowHandle = viewportContext->GetWindowContext()->GetWindowHandle();
+        AzFramework::WindowSize windowSize;
+        AzFramework::WindowRequestBus::EventResult(windowSize, windowHandle, &AzFramework::WindowRequests::GetClientAreaSize);
+
+        auto resolutionStr = AZStd::string::format(
+            "Resolution: r %dx%d, w %dx%d",
+            viewportContext->GetViewportSize().m_width, viewportContext->GetViewportSize().m_height,
+            windowSize.m_width, windowSize.m_height);
+#else
         auto resolutionStr =
             AZStd::string::format(
                 "Resolution: %dx%d", viewportContext->GetViewportSize().m_width, viewportContext->GetViewportSize().m_height);
+#endif
         auto msaaStr =
             multisampleState.m_samples > 1 ? AZStd::string::format("MSAA %dx", multisampleState.m_samples) : AZStd::string("NoMSAA");
  
