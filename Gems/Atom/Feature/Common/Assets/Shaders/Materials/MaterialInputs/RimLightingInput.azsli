@@ -19,24 +19,6 @@ float  prefix##m_rimLightingPower;
 #define COMMON_OPTIONS_RIM_LIGHTING(prefix) \
 option enum class RimLightingMode { Off, Camera, LightDirection, InvertedLightDirection } prefix##o_rimLighting_mode;
 
-real GetRimLightingShape(real3 normal, real3 dirToCamera, real power)
-{
-    real nDotV = saturate(dot(normalize(normal), normalize(dirToCamera)));
-    return pow(saturate(1.0 - nDotV), max(power, 1e-3));
-}
-
-real GetRimLightingDirectionTerm(real3 normal, real3 dirToLight)
-{
-    real nDotL = dot(normalize(normal), normalize(dirToLight));
-    return saturate(nDotL);
-}
-
-real GetInvertedRimLightingDirectionTerm(real3 normal, real3 dirToLight)
-{
-    real nDotL = dot(normalize(normal), normalize(dirToLight));
-    return saturate(-nDotL);
-}
-
 real3 GetRimLightingInput(
     real3 normal,
     real3 dirToCamera,
@@ -46,7 +28,8 @@ real3 GetRimLightingInput(
     real power,
     real directionTerm)
 {
-    real rimShape = GetRimLightingShape(normal, dirToCamera, power);
+    real nDotV = saturate(dot(normalize(normal), normalize(dirToCamera)));
+    real rimShape = pow(saturate(1.0 - nDotV), max(power, 1e-3));
     return tint * lightColor * intensity * rimShape * directionTerm;
 }
 // End Carbonated

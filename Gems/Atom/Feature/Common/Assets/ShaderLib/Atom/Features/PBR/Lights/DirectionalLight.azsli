@@ -99,15 +99,13 @@ void ApplyDirectionalLight(int lightIndex, Surface surface, inout LightingData l
 
         if (o_rimLighting_mode == RimLightingMode::LightDirection)
         {
-            directionTerm = GetRimLightingDirectionTerm(
-                surface.GetDefaultNormal(),
-                dirToLight);
+            real nDotL = dot(normalize(surface.GetDefaultNormal()), normalize(dirToLight));
+            directionTerm = saturate(nDotL);
         }
         else if (o_rimLighting_mode == RimLightingMode::InvertedLightDirection)
         {
-            directionTerm = GetInvertedRimLightingDirectionTerm(
-                surface.GetDefaultNormal(),
-                dirToLight);
+            real nDotL = dot(normalize(surface.GetDefaultNormal()), normalize(dirToLight));
+            directionTerm = saturate(-nDotL);
         }
 
         real maxLightChannel = max(max(lightIntensity.r, lightIntensity.g), lightIntensity.b);
