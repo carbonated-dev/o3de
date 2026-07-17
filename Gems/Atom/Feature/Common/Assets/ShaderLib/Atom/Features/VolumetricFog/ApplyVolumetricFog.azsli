@@ -39,14 +39,9 @@
 //                   output.a   = particleAlpha   (no transmittance correction needed)
 //                 When fog is disabled (m_enabled == 0) returns float4(litColor, 1.0).
 
-float4 ApplyVolumetricFog(float3 litColor, float3 worldPosition)
-{
 #if ENABLE_VOLUMETRIC_FOG
-    if (SceneSrg::m_volumetricFogData.m_enabled == 0)
-    {
-        return float4(litColor, 1.0);
-    }
-
+float4 ApplyVolumetricFogInternal(float3 litColor, float3 worldPosition)
+{
     // Project world position to clip space → NDC → screen UV
     float4 clipPos  = mul(ViewSrg::m_viewProjectionMatrix, float4(worldPosition, 1.0));
     float2 ndc      = clipPos.xy / clipPos.w;
@@ -66,7 +61,39 @@ float4 ApplyVolumetricFog(float3 litColor, float3 worldPosition)
     float4 fog = PassSrg::m_froxelVolumetricFog.SampleLevel(PassSrg::LinearSampler, uvw, 0);
 
     return float4(fog.rgb + litColor * fog.a, fog.a);
+}
+#endif
+
+float4 ApplyVolumetricFog(float3 litColor, float3 worldPosition)
+{
+#if ENABLE_VOLUMETRIC_FOG
+    if (SceneSrg::m_volumetricFogData.m_enabled == 0)
+    {
+        return float4(litColor, 1.0);
+    }
+
+    return ApplyVolumetricFogInternal(litColor, worldPosition);
 #else
     return float4(litColor, 1.0);
+#endif
+}
+
+float3 ApplyVolumetricFogToPremultipliedTransparent(float3 litColor, float alpha, float3 worldPosition)
+{
+#if ENABLE_VOLUMETRIC_FOG
+    if (SceneSrg::m_volumetricFogData.m_enabled == 0)
+    {
+        return litColor;
+    }
+
+    float4 fog = ApplyVolumetricFogInternal(litColor, worldPosition);
+
+    // Only add fog color where the transparent pixel is visible since is premultiplied alpha.
+    // At alpha 0, the pixel should not draw fog.
+    float3 foggedLitColor = litColor * fog.a;
+    float3 fogInScatter = fog.rgb - foggedLitColor;
+    return foggedLitColor + fogInScatter * saturate(alpha);
+#else
+    return litColor;
 #endif
 }
