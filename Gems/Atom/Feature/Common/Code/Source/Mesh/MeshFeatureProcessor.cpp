@@ -129,6 +129,390 @@ namespace AZ
             }
         }
 
+        size_t MeshFeatureProcessor::DrawPacketBuildTargetHasher::operator()(
+            const DrawPacketBuildTarget& target) const
+        {
+            size_t seed = AZStd::hash<uint64_t>{}(target.m_ownerId);
+            AZStd::hash_combine(seed, static_cast<uint8_t>(target.m_ownerType));
+            AZStd::hash_combine(seed, target.m_lodIndex);
+            AZStd::hash_combine(seed, target.m_packetIndex);
+            return seed;
+        }
+
+        uint64_t MeshFeatureProcessor::AcquireDrawPacketOwnerId()
+        {
+            const uint64_t ownerId =
+                m_nextDrawPacketOwnerId.fetch_add(1, AZStd::memory_order_relaxed);
+            AZ_Assert(ownerId != 0, "Mesh draw-packet owner IDs exhausted.");
+            return ownerId;
+        }
+
+        uint64_t MeshFeatureProcessor::BeginDrawPacketBuildGeneration(
+            const DrawPacketBuildTarget& target)
+        {
+            AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
+
+            uint64_t& generation = m_drawPacketBuildGenerations[target];
+            ++generation;
+            AZ_Assert(generation != 0, "Mesh draw-packet build generations exhausted.");
+
+            auto pendingBuild = m_pendingDrawPacketBuilds.begin();
+            while (pendingBuild != m_pendingDrawPacketBuilds.end())
+            {
+                if (pendingBuild->m_target == target)
+                {
+                    pendingBuild->m_request->GetPipelineStateBuildRequest()->Cancel();
+                    pendingBuild = m_pendingDrawPacketBuilds.erase(pendingBuild);
+                }
+                else
+                {
+                    ++pendingBuild;
+                }
+            }
+
+            return generation;
+        }
+
+        void MeshFeatureProcessor::AddPendingDrawPacketBuild(
+            const DrawPacketBuildTarget& target,
+            uint64_t generation,
+            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request)
+        {
+            if (!request)
+            {
+                return;
+            }
+
+            AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
+            const auto generationEntry = m_drawPacketBuildGenerations.find(target);
+            if (generationEntry == m_drawPacketBuildGenerations.end() ||
+                generationEntry->second != generation)
+            {
+                request->GetPipelineStateBuildRequest()->Cancel();
+                return;
+            }
+
+            m_pendingDrawPacketBuilds.push_back(
+                PendingDrawPacketBuild{ target, generation, AZStd::move(request) });
+        }
+
+        void MeshFeatureProcessor::QueuePendingDrawPacketBuild(
+            const DrawPacketBuildTarget& target,
+            uint64_t generation,
+            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request)
+        {
+            if (!request)
+            {
+                return;
+            }
+
+            const RPI::PipelineStateBuildRequestPtr pipelineStateBuildRequest =
+                request->GetPipelineStateBuildRequest();
+            AddPendingDrawPacketBuild(
+                target,
+                generation,
+                AZStd::move(request));
+            pipelineStateBuildRequest->Queue();
+        }
+
+        bool MeshFeatureProcessor::QueueDrawPacketUpdate(
+            RPI::MeshDrawPacket& drawPacket,
+            const DrawPacketBuildTarget& target,
+            const RPI::Scene& parentScene,
+            bool forceUpdate)
+        {
+            if (!drawPacket.BeginUpdate(forceUpdate))
+            {
+                return false;
+            }
+
+            const uint64_t generation = BeginDrawPacketBuildGeneration(target);
+            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr fallbackRequest =
+                drawPacket.CreateDrawPacketBuiltRequest(parentScene, true);
+            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr specializedRequest =
+                drawPacket.CreateDrawPacketBuiltRequest(parentScene, false);
+
+            // Always make a renderable non-specialized packet available before the specialized
+            // packet is queued. PipelineStateCache makes this blocking acquisition inexpensive
+            // after the fallback PSO has been compiled once.
+            if (fallbackRequest)
+            {
+                fallbackRequest->GetPipelineStateBuildRequest()->Build();
+            }
+
+            const bool fallbackApplied =
+                fallbackRequest &&
+                drawPacket.ApplyDrawPacketBuiltRequest(AZStd::move(fallbackRequest));
+            if (fallbackApplied)
+            {
+                drawPacket.DebugOutputShaderVariants();
+            }
+            else
+            {
+                AZ_Error(
+                    "MeshFeatureProcessor",
+                    false,
+                    "Failed to synchronously build the non-specialized mesh draw-packet fallback.");
+                drawPacket.ResetRHIDrawPacket();
+            }
+
+            // A successful fallback build with no draw packet means every shader item was
+            // filtered out or disabled. There is no specialized PSO or packet to build.
+            if (specializedRequest &&
+                (!fallbackApplied || drawPacket.GetRHIDrawPacket()))
+            {
+                QueuePendingDrawPacketBuild(
+                    target,
+                    generation,
+                    AZStd::move(specializedRequest));
+            }
+            else
+            {
+                AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
+                const auto generationEntry = m_drawPacketBuildGenerations.find(target);
+                if (generationEntry != m_drawPacketBuildGenerations.end() &&
+                    generationEntry->second == generation)
+                {
+                    m_drawPacketBuildGenerations.erase(generationEntry);
+                }
+            }
+            return true;
+        }
+
+        void MeshFeatureProcessor::PublishCompletedDrawPacketBuilds()
+        {
+            AZStd::vector<PendingDrawPacketBuild> completedBuilds;
+            {
+                AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
+                auto pendingBuild = m_pendingDrawPacketBuilds.begin();
+                while (pendingBuild != m_pendingDrawPacketBuilds.end())
+                {
+                    if (pendingBuild->m_request->GetPipelineStateBuildRequest()->IsComplete())
+                    {
+                        completedBuilds.emplace_back(AZStd::move(*pendingBuild));
+                        pendingBuild = m_pendingDrawPacketBuilds.erase(pendingBuild);
+                    }
+                    else
+                    {
+                        ++pendingBuild;
+                    }
+                }
+            }
+
+            if (completedBuilds.empty())
+            {
+                return;
+            }
+
+            // These lookup tables only live for this publication pass. They provide constant-time
+            // target resolution without retaining pointers beyond the MeshFeatureProcessor's
+            // serialized simulation phase.
+            AZStd::unordered_map<uint64_t, ModelDataInstance*> modelOwners;
+            modelOwners.reserve(m_modelData.size());
+            for (ModelDataInstance& modelData : m_modelData)
+            {
+                modelOwners.emplace(modelData.m_drawPacketOwnerId, &modelData);
+            }
+
+            AZStd::unordered_map<uint64_t, MeshInstanceGroupData*> instanceGroupOwners;
+            instanceGroupOwners.reserve(m_meshInstanceManager.GetInstanceGroupCount());
+            for (const auto& iteratorRange : m_meshInstanceManager.GetParallelRanges())
+            {
+                for (auto instanceGroup = iteratorRange.m_begin;
+                     instanceGroup != iteratorRange.m_end;
+                     ++instanceGroup)
+                {
+                    instanceGroupOwners.emplace(
+                        instanceGroup->m_drawPacketOwnerId,
+                        &*instanceGroup);
+                }
+            }
+
+            for (PendingDrawPacketBuild& completedBuild : completedBuilds)
+            {
+                {
+                    AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
+                    const auto generationEntry =
+                        m_drawPacketBuildGenerations.find(completedBuild.m_target);
+                    if (generationEntry == m_drawPacketBuildGenerations.end() ||
+                        generationEntry->second != completedBuild.m_generation)
+                    {
+                        continue;
+                    }
+                }
+
+                if (!completedBuild.m_request->GetPipelineStateBuildRequest()->IsSuccessful())
+                {
+                    continue;
+                }
+
+                RPI::MeshDrawPacket* drawPacket = nullptr;
+                ModelDataInstance* modelOwner = nullptr;
+                MeshInstanceGroupData* instanceGroupOwner = nullptr;
+
+                if (completedBuild.m_target.m_ownerType ==
+                    DrawPacketBuildTarget::OwnerType::Model)
+                {
+                    const auto ownerEntry =
+                        modelOwners.find(completedBuild.m_target.m_ownerId);
+                    if (ownerEntry == modelOwners.end())
+                    {
+                        continue;
+                    }
+
+                    modelOwner = ownerEntry->second;
+                    if (completedBuild.m_target.m_lodIndex >=
+                        modelOwner->m_drawPacketListsByLod.size())
+                    {
+                        continue;
+                    }
+
+                    RPI::MeshDrawPacketList& drawPacketList =
+                        modelOwner->m_drawPacketListsByLod[
+                            completedBuild.m_target.m_lodIndex];
+                    if (completedBuild.m_target.m_packetIndex >= drawPacketList.size())
+                    {
+                        continue;
+                    }
+
+                    drawPacket =
+                        &drawPacketList[completedBuild.m_target.m_packetIndex];
+                }
+                else
+                {
+                    const auto ownerEntry =
+                        instanceGroupOwners.find(completedBuild.m_target.m_ownerId);
+                    if (ownerEntry == instanceGroupOwners.end())
+                    {
+                        continue;
+                    }
+
+                    instanceGroupOwner = ownerEntry->second;
+                    drawPacket = &instanceGroupOwner->m_drawPacket;
+                }
+
+                if (!drawPacket->ApplyDrawPacketBuiltRequest(
+                        AZStd::move(completedBuild.m_request)))
+                {
+                    continue;
+                }
+
+                drawPacket->DebugOutputShaderVariants();
+                if (modelOwner)
+                {
+                    modelOwner->HandleDrawPacketUpdate();
+                }
+                else
+                {
+                    instanceGroupOwner->HandleDrawPacketUpdate();
+                    CacheRootConstantInterval(*instanceGroupOwner);
+                }
+
+                AZStd::lock_guard<AZStd::mutex> lock(
+                    m_pendingDrawPacketBuildMutex);
+                const auto generationEntry =
+                    m_drawPacketBuildGenerations.find(completedBuild.m_target);
+                if (generationEntry != m_drawPacketBuildGenerations.end() &&
+                    generationEntry->second == completedBuild.m_generation)
+                {
+                    auto pendingBuild = m_pendingDrawPacketBuilds.begin();
+                    while (pendingBuild != m_pendingDrawPacketBuilds.end())
+                    {
+                        if (pendingBuild->m_target == completedBuild.m_target &&
+                            pendingBuild->m_generation ==
+                                completedBuild.m_generation)
+                        {
+                            pendingBuild->m_request
+                                ->GetPipelineStateBuildRequest()
+                                ->Cancel();
+                            pendingBuild =
+                                m_pendingDrawPacketBuilds.erase(pendingBuild);
+                        }
+                        else
+                        {
+                            ++pendingBuild;
+                        }
+                    }
+                    m_drawPacketBuildGenerations.erase(generationEntry);
+                }
+            }
+
+            // Failed, cancelled, and missing-owner generations are retired once there is no
+            // remaining request that could produce another result for them.
+            AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
+            for (const PendingDrawPacketBuild& completedBuild : completedBuilds)
+            {
+                const auto generationEntry =
+                    m_drawPacketBuildGenerations.find(completedBuild.m_target);
+                if (generationEntry == m_drawPacketBuildGenerations.end() ||
+                    generationEntry->second != completedBuild.m_generation)
+                {
+                    continue;
+                }
+
+                const bool hasPendingBuild = AZStd::any_of(
+                    m_pendingDrawPacketBuilds.begin(),
+                    m_pendingDrawPacketBuilds.end(),
+                    [&completedBuild](const PendingDrawPacketBuild& pendingBuild)
+                    {
+                        return pendingBuild.m_target == completedBuild.m_target &&
+                            pendingBuild.m_generation ==
+                            completedBuild.m_generation;
+                    });
+                if (!hasPendingBuild)
+                {
+                    m_drawPacketBuildGenerations.erase(generationEntry);
+                }
+            }
+        }
+
+        void MeshFeatureProcessor::CancelPendingDrawPacketBuildsForOwner(uint64_t ownerId)
+        {
+            if (ownerId == 0)
+            {
+                return;
+            }
+
+            AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
+            auto pendingBuild = m_pendingDrawPacketBuilds.begin();
+            while (pendingBuild != m_pendingDrawPacketBuilds.end())
+            {
+                if (pendingBuild->m_target.m_ownerId == ownerId)
+                {
+                    pendingBuild->m_request->GetPipelineStateBuildRequest()->Cancel();
+                    pendingBuild = m_pendingDrawPacketBuilds.erase(pendingBuild);
+                }
+                else
+                {
+                    ++pendingBuild;
+                }
+            }
+
+            auto generation = m_drawPacketBuildGenerations.begin();
+            while (generation != m_drawPacketBuildGenerations.end())
+            {
+                if (generation->first.m_ownerId == ownerId)
+                {
+                    generation = m_drawPacketBuildGenerations.erase(generation);
+                }
+                else
+                {
+                    ++generation;
+                }
+            }
+        }
+
+        void MeshFeatureProcessor::CancelAllPendingDrawPacketBuilds()
+        {
+            AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
+            for (PendingDrawPacketBuild& pendingBuild : m_pendingDrawPacketBuilds)
+            {
+                pendingBuild.m_request->GetPipelineStateBuildRequest()->Cancel();
+            }
+            m_pendingDrawPacketBuilds.clear();
+            m_drawPacketBuildGenerations.clear();
+        }
+
         void MeshFeatureProcessor::Activate()
         {
             m_transformService = GetParentScene()->GetFeatureProcessor<TransformServiceFeatureProcessor>();
@@ -151,6 +535,10 @@ namespace AZ
 
                 // push the cvars value so anything in this dll can access it directly.
                 console->PerformCommand(AZStd::string::format("r_enablePerMeshShaderOptionFlags %s", enablePerMeshShaderOptionFlagsCvar ? "true" : "false").c_str());
+
+                console->GetCvarValue(
+                    "r_asyncMeshDrawPacketUpdates",
+                    m_enableAsyncMeshDrawPacketUpdates);
             }
 
             m_meshMovedFlag = GetParentScene()->GetViewTagBitRegistry().AcquireTag(MeshCommon::MeshMovedName);
@@ -187,6 +575,7 @@ namespace AZ
 
         void MeshFeatureProcessor::Deactivate()
         {
+            CancelAllPendingDrawPacketBuilds();
             m_flagRegistry.reset();
 
             m_handleGlobalShaderOptionUpdate.Disconnect();
@@ -224,6 +613,8 @@ namespace AZ
 
             // If the instancing cvar has changed, we need to re-initalize the ModelDataInstances
             CheckForInstancingCVarChange();
+
+            PublishCompletedDrawPacketBuilds();
 
             AZStd::vector<Job*> initJobQueue = CreateInitJobQueue();
             AZStd::vector<Job*> updateCullingJobQueue = CreateUpdateCullingJobQueue();
@@ -266,6 +657,41 @@ namespace AZ
             }
         }
 
+        bool MeshFeatureProcessor::UpdateMeshInstanceGroupDrawPacket(
+            MeshInstanceGroupData& instanceGroup,
+            const RPI::Scene& parentScene,
+            bool forceUpdate)
+        {
+            bool drawPacketChanged = false;
+            if (m_enableAsyncMeshDrawPacketUpdates)
+            {
+                DrawPacketBuildTarget target;
+                target.m_ownerType =
+                    DrawPacketBuildTarget::OwnerType::InstanceGroup;
+                target.m_ownerId = instanceGroup.m_drawPacketOwnerId;
+                drawPacketChanged = QueueDrawPacketUpdate(
+                    instanceGroup.m_drawPacket,
+                    target,
+                    parentScene,
+                    forceUpdate);
+                if (drawPacketChanged)
+                {
+                    instanceGroup.HandleDrawPacketUpdate();
+                }
+            }
+            else
+            {
+                drawPacketChanged =
+                    instanceGroup.UpdateDrawPacket(parentScene, forceUpdate);
+            }
+
+            if (drawPacketChanged)
+            {
+                CacheRootConstantInterval(instanceGroup);
+            }
+            return drawPacketChanged;
+        }
+
         AZStd::vector<Job*> MeshFeatureProcessor::CreatePerInstanceGroupJobQueue()
         {
 #if defined(CARBONATED)
@@ -286,12 +712,10 @@ namespace AZ
                     for (auto instanceGroupDataIter = iteratorRange.m_begin; instanceGroupDataIter != iteratorRange.m_end;
                          ++instanceGroupDataIter)
                     {
-                        if (instanceGroupDataIter->UpdateDrawPacket(*scene, m_forceRebuildDrawPackets))
-                        {
-                            // We're going to need an interval for the root constant data that we update every frame for each draw item, so
-                            // cache that here
-                            CacheRootConstantInterval(*instanceGroupDataIter);
-                        }
+                        UpdateMeshInstanceGroupDrawPacket(
+                            *instanceGroupDataIter,
+                            *scene,
+                            m_forceRebuildDrawPackets);
                     }
                 };
                 Job* executePerInstanceGroupJob =
@@ -372,7 +796,9 @@ namespace AZ
                             // material properties can impact which actual shader is used, which impacts the SRG in the draw packet.
                             // This is scheduled to be optimized so the work is only done on draw packets that need it instead of having
                             // to check every one.
-                            meshDataIter->UpdateDrawPackets(m_forceRebuildDrawPackets);
+                            meshDataIter->UpdateDrawPackets(
+                                this,
+                                m_forceRebuildDrawPackets);
                         }
                     }
                 };
@@ -788,6 +1214,14 @@ namespace AZ
             uint32_t instanceGroupEndNonInclusiveIndex)
         {
             MeshInstanceGroupData& instanceGroup = *instanceGroupHandle;
+            const RHI::DrawPacket* sourceDrawPacket =
+                instanceGroup.m_drawPacket.GetRHIDrawPacket();
+            if (!sourceDrawPacket)
+            {
+                // A synchronous fallback build can fail and leave the packet null. Skip this
+                // instance group instead of trying to clone an unavailable source packet.
+                return;
+            }
 #if defined(CARBONATED)
             MEMORY_TAG(Mesh);
             ASSET_TAG((*(instanceGroup.m_associatedInstances.begin()))->GetAssetHint().c_str());
@@ -809,7 +1243,8 @@ namespace AZ
                 // Since there is only one task that will operate both on this view index and on the bucket with this instance group,
                 // there is no need to lock here.
                 RHI::DrawPacketBuilder drawPacketBuilder;
-                instanceGroup.m_perViewDrawPackets[viewIndex] = drawPacketBuilder.Clone(instanceGroup.m_drawPacket.GetRHIDrawPacket());
+                instanceGroup.m_perViewDrawPackets[viewIndex] =
+                    drawPacketBuilder.Clone(sourceDrawPacket);
             }
 
             // Now that we have a valid cloned draw packet, update it with the latest offset + count
@@ -1028,10 +1463,10 @@ namespace AZ
                                         instanceGroupDataIter->m_drawPacket.UnsetShaderOption(shaderOption); 
                                     }
                                 });
-                            instanceGroupDataIter->UpdateDrawPacket(*GetParentScene(), true);
-
-                            // Note, we don't need to call CacheRootConstantInterval() here because the root constant layout won't change
-                            // when we switch shader variants.
+                            UpdateMeshInstanceGroupDrawPacket(
+                                *instanceGroupDataIter,
+                                *GetParentScene(),
+                                true);
                         }
                     }
                 }
@@ -1084,6 +1519,7 @@ namespace AZ
             meshDataHandle->m_scene = GetParentScene();
             meshDataHandle->m_objectId = m_transformService->ReserveObjectId();
             meshDataHandle->m_rayTracingUuid = AZ::Uuid::CreateRandom();
+            meshDataHandle->m_drawPacketOwnerId = AcquireDrawPacketOwnerId();
             meshDataHandle->m_originalModelAsset = descriptor.m_modelAsset;
             meshDataHandle->m_flags.m_keepBufferAssetsInMemory = descriptor.m_supportRayIntersection; // Note: the MeshLoader may need to read this flag. so it needs to be assigned because meshloader is created
             meshDataHandle->m_meshLoader = AZStd::make_shared<ModelDataInstance::MeshLoader>(descriptor.m_modelAsset, &*meshDataHandle);
@@ -1862,6 +2298,8 @@ namespace AZ
 
         void ModelDataInstance::DeInit(MeshFeatureProcessor* meshFeatureProcessor)
         {
+            meshFeatureProcessor->CancelPendingDrawPacketBuildsForOwner(m_drawPacketOwnerId);
+
             RayTracingFeatureProcessor* rayTracingFeatureProcessor = meshFeatureProcessor->GetRayTracingFeatureProcessor();
             m_scene->GetCullingScene()->UnregisterCullable(m_cullable);
 
@@ -1886,6 +2324,12 @@ namespace AZ
                     for (PostCullingInstanceData& postCullingData : postCullingInstanceDataList)
                     {
                         postCullingData.m_instanceGroupHandle->RemoveAssociatedInstance(this);
+
+                        if (postCullingData.m_instanceGroupHandle->m_count == 1)
+                        {
+                            meshFeatureProcessor->CancelPendingDrawPacketBuildsForOwner(
+                                postCullingData.m_instanceGroupHandle->m_drawPacketOwnerId);
+                        }
                         
                         // Remove instance will decrement the use-count of the instance group, and only release the instance group
                         // if nothing else is referring to it.
@@ -2043,6 +2487,7 @@ namespace AZ
 
             if (!r_meshInstancingEnabled)
             {
+                meshFeatureProcessor->CancelPendingDrawPacketBuildsForOwner(m_drawPacketOwnerId);
                 RPI::MeshDrawPacketList& drawPacketListOut = m_drawPacketListsByLod[modelLodIndex];
                 drawPacketListOut.clear();
                 drawPacketListOut.reserve(meshCount);
@@ -2203,6 +2648,8 @@ namespace AZ
                     else
                     {
                         MeshInstanceGroupData& instanceGroupData = meshInstanceManager[instanceGroupInsertResult.m_handle];
+                        instanceGroupData.m_drawPacketOwnerId =
+                            meshFeatureProcessor->AcquireDrawPacketOwnerId();
                         instanceGroupData.m_drawPacket = AZStd::move(drawPacket);
                         instanceGroupData.m_isDrawMotion = m_flags.m_isDrawMotion;
 
@@ -2803,7 +3250,9 @@ namespace AZ
             return m_cullable.m_lodData.m_lodConfiguration;
         }
 
-        void ModelDataInstance::UpdateDrawPackets(bool forceUpdate /*= false*/)
+        void ModelDataInstance::UpdateDrawPackets(
+            MeshFeatureProcessor* meshFeatureProcessor,
+            bool forceUpdate /*= false*/)
         {
             AZ_Assert(!r_meshInstancingEnabled, "If mesh instancing is enabled, the draw packet update should be going through the MeshInstanceManager.");
 
@@ -2815,15 +3264,45 @@ namespace AZ
                 meshMotionDrawListTag = AZ::RHI::RHISystemInterface::Get()->GetDrawListTagRegistry()->FindTag(MeshCommon::MotionDrawListTagName);
             }
 
-            for (auto& drawPacketList : m_drawPacketListsByLod)
+            for (size_t lodIndex = 0;
+                 lodIndex < m_drawPacketListsByLod.size();
+                 ++lodIndex)
             {
-                for (auto& drawPacket : drawPacketList)
+                RPI::MeshDrawPacketList& drawPacketList =
+                    m_drawPacketListsByLod[lodIndex];
+                for (size_t packetIndex = 0;
+                     packetIndex < drawPacketList.size();
+                     ++packetIndex)
                 {
+                    RPI::MeshDrawPacket& drawPacket = drawPacketList[packetIndex];
                     if (enableDrawMotion)
                     {
                         drawPacket.SetEnableDraw(meshMotionDrawListTag, true);
                     }
-                    if (drawPacket.Update(*m_scene, forceUpdate))
+
+                    bool drawPacketChanged = false;
+                    if (meshFeatureProcessor->m_enableAsyncMeshDrawPacketUpdates)
+                    {
+                        MeshFeatureProcessor::DrawPacketBuildTarget target;
+                        target.m_ownerType =
+                            MeshFeatureProcessor::DrawPacketBuildTarget::OwnerType::Model;
+                        target.m_ownerId = m_drawPacketOwnerId;
+                        target.m_lodIndex = aznumeric_cast<uint32_t>(lodIndex);
+                        target.m_packetIndex = aznumeric_cast<uint32_t>(packetIndex);
+                        drawPacketChanged =
+                            meshFeatureProcessor->QueueDrawPacketUpdate(
+                                drawPacket,
+                                target,
+                                *m_scene,
+                                forceUpdate);
+                    }
+                    else
+                    {
+                        drawPacketChanged =
+                            drawPacket.Update(*m_scene, forceUpdate);
+                    }
+
+                    if (drawPacketChanged)
                     {
                         m_flags.m_cullableNeedsRebuild = true;
                     }

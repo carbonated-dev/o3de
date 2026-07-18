@@ -25,15 +25,20 @@ namespace AZ::Render
 #endif
         if (m_drawPacket.Update(parentScene, forceUpdate))
         {
-            // Clear any cached draw packets, since they need to be re-created
-            m_perViewDrawPackets.clear();
-            for (auto modelDataInstance : m_associatedInstances)
-            {
-                modelDataInstance->HandleDrawPacketUpdate();
-            }
+            HandleDrawPacketUpdate();
             return true;
         }
         return false;
+    }
+
+    void MeshInstanceGroupData::HandleDrawPacketUpdate()
+    {
+        // Clear any cached draw packets, since they need to be re-created.
+        m_perViewDrawPackets.clear();
+        for (ModelDataInstance* modelDataInstance : m_associatedInstances)
+        {
+            modelDataInstance->HandleDrawPacketUpdate();
+        }
     }
 
     bool MeshInstanceGroupData::UpdateShaderOptionFlags()

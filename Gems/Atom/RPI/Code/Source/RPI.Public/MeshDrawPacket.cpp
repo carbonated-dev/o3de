@@ -15,6 +15,7 @@
 #include <Atom/RHI/DrawPacketBuilder.h>
 #include <Atom/RHI/RHISystemInterface.h>
 #include <AzCore/Console/Console.h>
+#include <AzCore/Debug/Profiler.h>
 #include <Atom/RPI.Public/Shader/ShaderReloadDebugTracker.h>
 
 #if defined(CARBONATED) && defined(CARBONATED_SHADER_LOADING_TIME)
@@ -189,6 +190,19 @@ namespace AZ
 
         bool MeshDrawPacket::Update(const Scene& parentScene, bool forceUpdate /*= false*/)
         {
+            if (BeginUpdate(forceUpdate))
+            {
+                DoUpdate(parentScene);
+
+                DebugOutputShaderVariants();
+                return true;
+            }
+
+            return false;
+        }
+
+        bool MeshDrawPacket::BeginUpdate(bool forceUpdate /*= false*/)
+        {
             // Setup the Shader variant handler when update this MeshDrawPacket the first time .
             // This is because the MeshDrawPacket data can be copied or moved right after it's created.
             // The m_shaderVariantHandler won't be copied correctly due to the capture of 'this' pointer.
@@ -220,15 +234,17 @@ namespace AZ
             if (forceUpdate || (!m_material->NeedsCompile() && m_materialChangeId != m_material->GetCurrentChangeId())
                 || m_needUpdate)
             {
-                DoUpdate(parentScene);
                 m_materialChangeId = m_material->GetCurrentChangeId();
                 m_needUpdate = false;
-
-                DebugOutputShaderVariants();
                 return true;
             }
 
             return false;
+        }
+
+        void MeshDrawPacket::ResetRHIDrawPacket()
+        {
+            m_drawPacket = nullptr;
         }
 
         static bool HasRootConstants(const RHI::ConstantsLayout* rootConstantsLayout)
@@ -254,8 +270,86 @@ namespace AZ
 
         bool MeshDrawPacket::DoUpdate(const Scene& parentScene)
         {
-            const auto meshes = m_modelLod->GetMeshes();
-            const ModelLod::Mesh& mesh = meshes[m_modelLodMeshIndex];
+            AZ_PROFILE_SCOPE(RPI, "MeshDrawPacket::DoUpdate Packet=%p", this);
+            ShaderReloadDebugTracker::ScopedSection reloadSection("MeshDrawPacket::DoUpdate");
+
+            DrawPacketBuiltRequestPtr drawPacketBuiltRequest =
+                CreateDrawPacketBuiltRequest(parentScene, false);
+            if (!drawPacketBuiltRequest)
+            {
+                return false;
+            }
+
+            drawPacketBuiltRequest->GetPipelineStateBuildRequest()->Build();
+            return ApplyDrawPacketBuiltRequest(AZStd::move(drawPacketBuiltRequest));
+        }
+
+        MeshDrawPacket::DrawPacketBuiltRequestPtr MeshDrawPacket::CreateDrawPacketBuiltRequest(
+            const Scene& parentScene,
+            bool useFallbackShaders)
+        {
+            DrawPacketBuiltRequestPtr drawPacketBuiltRequest(new DrawPacketBuiltRequest);
+            PipelineStateBuildItemList pipelineStateBuildItems;
+            if (!PreparePipelineStateBuildItems(
+                    parentScene,
+                    useFallbackShaders,
+                    pipelineStateBuildItems,
+                    drawPacketBuiltRequest->m_drawPacketBuildData))
+            {
+                return nullptr;
+            }
+
+            drawPacketBuiltRequest->m_pipelineStateBuildRequest =
+                PipelineStateBuildRequestPtr(
+                    new PipelineStateBuildRequest(AZStd::move(pipelineStateBuildItems)));
+            return drawPacketBuiltRequest;
+        }
+
+        bool MeshDrawPacket::ApplyDrawPacketBuiltRequest(
+            DrawPacketBuiltRequestPtr drawPacketBuiltRequest)
+        {
+            if (!drawPacketBuiltRequest ||
+                !drawPacketBuiltRequest->m_pipelineStateBuildRequest ||
+                !drawPacketBuiltRequest->m_pipelineStateBuildRequest->IsSuccessful())
+            {
+                return false;
+            }
+
+            PipelineStateBuildItemList pipelineStateBuildItems =
+                drawPacketBuiltRequest->m_pipelineStateBuildRequest->TakeBuildItems();
+            return BuildDrawPacket(
+                AZStd::move(drawPacketBuiltRequest->m_drawPacketBuildData),
+                AZStd::move(pipelineStateBuildItems),
+                drawPacketBuiltRequest->m_pipelineStateBuildRequest->GetPipelineStates());
+        }
+
+        MeshDrawPacket::DrawPacketBuiltRequest::~DrawPacketBuiltRequest()
+        {
+            if (m_pipelineStateBuildRequest)
+            {
+                m_pipelineStateBuildRequest->Cancel();
+            }
+        }
+
+        const PipelineStateBuildRequestPtr&
+        MeshDrawPacket::DrawPacketBuiltRequest::GetPipelineStateBuildRequest() const
+        {
+            return m_pipelineStateBuildRequest;
+        }
+
+        bool MeshDrawPacket::PreparePipelineStateBuildItems(
+            const Scene& parentScene,
+            bool useFallbackShaders,
+            PipelineStateBuildItemList& pipelineStateBuildItems,
+            DrawPacketBuildData& drawPacketBuildData)
+        {
+            AZ_PROFILE_SCOPE(
+                RPI,
+                "MeshDrawPacket::PreparePipelineStateBuildItems Packet=%p Fallback=%d",
+                this,
+                static_cast<int>(useFallbackShaders));
+
+            const ModelLod::Mesh& mesh = GetMesh();
 
             if (!m_material)
             {
@@ -263,39 +357,15 @@ namespace AZ
                 return false;
             }
 
-            ShaderReloadDebugTracker::ScopedSection reloadSection("MeshDrawPacket::DoUpdate");
+            pipelineStateBuildItems.clear();
+            pipelineStateBuildItems.reserve(m_activeShaders.size());
+            drawPacketBuildData = {};
+            drawPacketBuildData.m_drawArguments = mesh.m_drawArguments;
+            drawPacketBuildData.m_indexBufferView = mesh.m_indexBufferView;
+            drawPacketBuildData.m_objectSrg = m_objectSrg->GetRHIShaderResourceGroup();
+            drawPacketBuildData.m_materialSrg = m_material->GetRHIShaderResourceGroup();
 
-            RHI::DrawPacketBuilder drawPacketBuilder;
-            drawPacketBuilder.Begin(nullptr);
-
-            drawPacketBuilder.SetDrawArguments(mesh.m_drawArguments);
-            drawPacketBuilder.SetIndexBufferView(mesh.m_indexBufferView);
-            drawPacketBuilder.AddShaderResourceGroup(m_objectSrg->GetRHIShaderResourceGroup());
-            drawPacketBuilder.AddShaderResourceGroup(m_material->GetRHIShaderResourceGroup());
-
-            // We build the list of used shaders in a local list rather than m_activeShaders so that
-            // if DoUpdate() fails it won't modify any member data.
-            MeshDrawPacket::ShaderList shaderList;
-            shaderList.reserve(m_activeShaders.size());
-
-            // We have to keep a list of these outside the loops that collect all the shaders because the DrawPacketBuilder
-            // keeps pointers to StreamBufferViews until DrawPacketBuilder::End() is called. And we use a fixed_vector to guarantee
-            // that the memory won't be relocated when new entries are added.
-            AZStd::fixed_vector<ModelLod::StreamBufferViewList, RHI::DrawPacketBuilder::DrawItemCountMax> streamBufferViewsPerShader;
-
-            // The root constants are shared by all draw items in the draw packet. We must populate them with default values.
-            // The draw packet builder needs to know where the data is coming from during appendShader, but it's not actually read
-            // until drawPacketBuilder.End(), so store the default data out here.
-            AZStd::vector<uint8_t> rootConstants;
-            bool isFirstShaderItem = true;
-
-            m_perDrawSrgs.clear();
-
-#ifdef DEBUG_MESH_SHADERVARIANTS
-            m_shaderVariantNames.clear();
-#endif
-
-            auto appendShader = [&](const ShaderCollection::Item& shaderItem, const Name& materialPipelineName)
+            auto appendShader = [&](const ShaderCollection::Item& shaderItem, const Name& materialPipelineName) -> bool
             {
 #if defined(CARBONATED)
                 ASSET_TAG(shaderItem.GetShaderAsset().GetHint().c_str());
@@ -330,13 +400,13 @@ namespace AZ
                 // draw list tag is filtered out. skip this item
                 if (drawListTag.IsNull() || !m_drawListFilter[drawListTag.GetIndex()])
                 {
-                    return false;
+                    return true;
                 }
 
                 if (!parentScene.HasOutputForPipelineState(drawListTag))
                 {
                     // drawListTag not found in this scene, so don't render this item
-                    return false;
+                    return true;
                 }
 
                 Data::Instance<Shader> shader = RPI::Shader::FindOrCreate(shaderItem.GetShaderAsset());
@@ -344,6 +414,22 @@ namespace AZ
                 {
                     AZ_Error("MeshDrawPacket", false, "Shader '%s'. Failed to find or create instance", shaderItem.GetShaderAsset()->GetName().GetCStr());
                     return false;
+                }
+
+                if (useFallbackShaders && shader->GetAsset()->UseSpecializationConstants(shader->GetSupervariantIndex()))
+                {
+                    const SupervariantIndex specializedSupervariantIndex = shader->GetSupervariantIndex();
+                    shader = shader->FindOrCreateShaderOptionFallback();
+                    if (!shader)
+                    {
+                        AZ_Error(
+                            "MeshDrawPacket",
+                            false,
+                            "Shader '%s' has no non-specialized fallback for supervariant '%s'",
+                            shaderItem.GetShaderAsset()->GetName().GetCStr(),
+                            shaderItem.GetShaderAsset()->GetSupervariantName(specializedSupervariantIndex).GetCStr());
+                        return false;
+                    }
                 }
 
                 RPI::ShaderOptionGroup shaderOptions = *shaderItem.GetShaderOptions();
@@ -379,10 +465,13 @@ namespace AZ
                 }
 
                 const ShaderVariantId requestedVariantId = shaderOptions.GetShaderVariantId();
-                const ShaderVariant& variant = r_forceRootShaderVariantUsage ? shader->GetRootVariant() : shader->GetVariant(requestedVariantId);
+                const ShaderVariant& variant =
+                    (useFallbackShaders || r_forceRootShaderVariantUsage)
+                    ? shader->GetRootVariant()
+                    : shader->GetVariant(requestedVariantId);
 
 #ifdef DEBUG_MESH_SHADERVARIANTS
-                m_shaderVariantNames.push_back(variant.GetShaderVariantAsset().GetHint());
+                drawPacketBuildData.m_shaderVariantNames.push_back(variant.GetShaderVariantAsset().GetHint());
 #endif
 
                 RHI::PipelineStateDescriptorForDraw pipelineStateDescriptor;
@@ -393,13 +482,12 @@ namespace AZ
                 const RHI::RenderStates& renderStatesOverlay = *shaderItem.GetRenderStatesOverlay();
                 RHI::MergeStateInto(renderStatesOverlay, pipelineStateDescriptor.m_renderStates);
 
-                auto& streamBufferViews = streamBufferViewsPerShader.emplace_back();
-
+                DrawItemBuildData drawItemBuildData;
                 UvStreamTangentBitmask uvStreamTangentBitmask;
 
                 if (!m_modelLod->GetStreamsForMesh(
                     pipelineStateDescriptor.m_inputStreamLayout,
-                    streamBufferViews,
+                    drawItemBuildData.m_streamBufferViews,
                     &uvStreamTangentBitmask,
                     shader->GetInputContract(),
                     m_modelLodMeshIndex,
@@ -409,7 +497,19 @@ namespace AZ
                     return false;
                 }
 
-                Data::Instance<ShaderResourceGroup> drawSrg = shader->CreateDrawSrgForShaderVariant(shaderOptions, false);
+                const Name& shaderName = shader->GetAsset()->GetName();
+                const Name& supervariantName =
+                    shader->GetAsset()->GetSupervariantName(shader->GetSupervariantIndex());
+
+                Data::Instance<ShaderResourceGroup> drawSrg;
+                {
+                    AZ_PROFILE_SCOPE(
+                        RPI,
+                        "MeshDrawPacket::CreateDrawSrg Shader=%s Supervariant=%s",
+                        shaderName.GetCStr(),
+                        supervariantName.GetCStr());
+                    drawSrg = shader->CreateDrawSrgForShaderVariant(shaderOptions, false);
+                }
                 if (drawSrg)
                 {
                     // Pass UvStreamTangentBitmask to the shader if the draw SRG has it.
@@ -422,37 +522,34 @@ namespace AZ
                         drawSrg->SetConstant(index, uvStreamTangentBitmask.GetFullTangentBitmask());
                     }
 
-                    drawSrg->Compile();
+                    {
+                        AZ_PROFILE_SCOPE(
+                            RPI,
+                            "MeshDrawPacket::CompileDrawSrg Shader=%s Supervariant=%s",
+                            shaderName.GetCStr(),
+                            supervariantName.GetCStr());
+                        drawSrg->Compile();
+                    }
                 }
 
                 parentScene.ConfigurePipelineState(drawListTag, pipelineStateDescriptor);
 
-                const RHI::PipelineState* pipelineState = shader->AcquirePipelineState(pipelineStateDescriptor);
-                if (!pipelineState)
-                {
-                    AZ_Error("MeshDrawPacket", false, "Shader '%s'. Failed to acquire default pipeline state", shaderItem.GetShaderAsset()->GetName().GetCStr());
-                    return false;
-                }
-
                 const RHI::ConstantsLayout* rootConstantsLayout =
                     pipelineStateDescriptor.m_pipelineLayoutDescriptor->GetRootConstantsLayout();
-                if(isFirstShaderItem)
+                if (pipelineStateBuildItems.empty())
                 {
                     if (HasRootConstants(rootConstantsLayout))
                     {
-                        m_rootConstantsLayout = rootConstantsLayout;
-                        rootConstants.resize(m_rootConstantsLayout->GetDataSize());
-                        drawPacketBuilder.SetRootConstants(rootConstants);
+                        drawPacketBuildData.m_rootConstantsLayout = rootConstantsLayout;
                     }
-
-                    isFirstShaderItem = false;
                 }
                 else
                 {
                     AZ_Error(
                         "MeshDrawPacket",
-                        (!m_rootConstantsLayout && !HasRootConstants(rootConstantsLayout)) ||
-                        (m_rootConstantsLayout && rootConstantsLayout && m_rootConstantsLayout->GetHash() == rootConstantsLayout->GetHash()),
+                        (!drawPacketBuildData.m_rootConstantsLayout && !HasRootConstants(rootConstantsLayout)) ||
+                        (drawPacketBuildData.m_rootConstantsLayout && rootConstantsLayout &&
+                         drawPacketBuildData.m_rootConstantsLayout->GetHash() == rootConstantsLayout->GetHash()),
                         "Shader %s has mis-matched root constant layout in material %s. "
                         "All draw items in a draw packet need to share the same root constants layout. This means that each pass "
                         "(e.g. Depth, Shadows, Forward, MotionVectors) for a given materialtype should use the same layout.",
@@ -460,59 +557,53 @@ namespace AZ
                         m_material->GetAsset().ToString<AZStd::string>().c_str());
                 }
 
-                RHI::DrawPacketBuilder::DrawRequest drawRequest;
-                drawRequest.m_listTag = drawListTag;
-                drawRequest.m_pipelineState = pipelineState;
-                drawRequest.m_streamBufferViews = streamBufferViews;
-                drawRequest.m_stencilRef = m_stencilRef;
-                drawRequest.m_sortKey = m_sortKey;
+                drawItemBuildData.m_materialPipelineName = materialPipelineName;
+                drawItemBuildData.m_requestedShaderVariantId = requestedVariantId;
+                drawItemBuildData.m_activeShaderVariantId = variant.GetShaderVariantId();
+                drawItemBuildData.m_activeShaderVariantStableId = variant.GetStableId();
+                drawItemBuildData.m_shaderTag = shaderItem.GetShaderTag();
+                drawItemBuildData.m_drawListTag = drawListTag;
+                drawItemBuildData.m_drawSrg = AZStd::move(drawSrg);
+                drawItemBuildData.m_stencilRef = m_stencilRef;
+                drawItemBuildData.m_sortKey = m_sortKey;
 #if defined(CARBONATED) 
-                drawRequest.m_stencilRef |= shaderItem.GetStencilRefOverride();
+                drawItemBuildData.m_stencilRef |= shaderItem.GetStencilRefOverride();
 #endif
-                if (drawSrg)
-                {
-                    drawRequest.m_uniqueShaderResourceGroup = drawSrg->GetRHIShaderResourceGroup();
-                    // Hold on to a reference to the drawSrg so the refcount doesn't drop to zero
-                    m_perDrawSrgs.push_back(drawSrg);
-                }
 
                 if (materialPipelineName != MaterialPipelineNone)
                 {
                     RHI::DrawFilterTag pipelineTag = parentScene.GetDrawFilterTagRegistry()->AcquireTag(materialPipelineName);
                     AZ_Assert(pipelineTag.IsValid(), "Could not acquire pipeline filter tag '%s'.", materialPipelineName.GetCStr());
-                    drawRequest.m_drawFilterMask = 1 << pipelineTag.GetIndex();
+                    drawItemBuildData.m_drawFilterMask = 1 << pipelineTag.GetIndex();
                 }
 
-                drawPacketBuilder.AddDrawItem(drawRequest);
+                PipelineStateBuildItem pipelineStateBuildItem;
+                pipelineStateBuildItem.m_shader = AZStd::move(shader);
+                pipelineStateBuildItem.m_descriptor = AZStd::move(pipelineStateDescriptor);
 
-                ShaderData shaderData;
-                shaderData.m_shader = AZStd::move(shader);
-                shaderData.m_materialPipelineName = materialPipelineName;
-                shaderData.m_shaderTag = shaderItem.GetShaderTag();
-                shaderData.m_requestedShaderVariantId = requestedVariantId;
-                shaderData.m_activeShaderVariantId = variant.GetShaderVariantId();
-                shaderData.m_activeShaderVariantStableId = variant.GetStableId();
-                shaderList.emplace_back(AZStd::move(shaderData));
-
+                drawPacketBuildData.m_drawItems.emplace_back(AZStd::move(drawItemBuildData));
+                pipelineStateBuildItems.emplace_back(AZStd::move(pipelineStateBuildItem));
                 return true;
             };
 
             m_material->ApplyGlobalShaderOptions();
 
+            bool preparationSucceeded = true;
             // TODO(MaterialPipeline): We might want to detect duplicate ShaderItem objects here, and merge them to avoid redundant RHI DrawItems.
             m_material->ForAllShaderItems(
                 [&](const Name& materialPipelineName, const ShaderCollection::Item& shaderItem)
                 {
                     if (shaderItem.IsEnabled())
                     {
-                        if (shaderList.size() == RHI::DrawPacketBuilder::DrawItemCountMax)
+                        if (pipelineStateBuildItems.size() == RHI::DrawPacketBuilder::DrawItemCountMax)
                         {
                             AZ_Error("MeshDrawPacket", false, "Material has more than the limit of %d active shader items.", RHI::DrawPacketBuilder::DrawItemCountMax);
+                            preparationSucceeded = false;
                             return false;
                         }
 #if defined(CARBONATED) && defined(CARBONATED_SHADER_LOADING_TIME)
                         const int64_t startTime = static_cast<int64_t>(AZ::GetRealElapsedTimeMs());
-                        appendShader(shaderItem, materialPipelineName);
+                        preparationSucceeded = appendShader(shaderItem, materialPipelineName);
                         const int64_t dt = static_cast<int64_t>(AZ::GetRealElapsedTimeMs()) - startTime;
                         const int64_t threshold =
 #if defined(AZ_PLATFORM_LINUX)
@@ -525,26 +616,126 @@ namespace AZ
                             AZ_Info("PrimitiveLoadTime", "appended shader '%s' for pipeline '%s' in  %d ms", shaderItem.GetShaderAsset().GetHint().c_str(), materialPipelineName.GetCStr(), dt);
                         }
 #else
-                        appendShader(shaderItem, materialPipelineName);
+                        preparationSucceeded = appendShader(shaderItem, materialPipelineName);
 #endif
-
+                        if (!preparationSucceeded)
+                        {
+                            return false;
+                        }
                     }
 
                     return true;
                 });
 
-            m_drawPacket = drawPacketBuilder.End();
+            return preparationSucceeded;
+        }
 
-            if (m_drawPacket)
+        bool MeshDrawPacket::BuildDrawPacket(
+            DrawPacketBuildData&& drawPacketBuildData,
+            PipelineStateBuildItemList&& pipelineStateBuildItems,
+            AZStd::span<const RHI::ConstPtr<RHI::PipelineState>> pipelineStates)
+        {
+            AZ_PROFILE_SCOPE(
+                RPI,
+                "MeshDrawPacket::BuildDrawPacket Packet=%p DrawItems=%zu",
+                this,
+                drawPacketBuildData.m_drawItems.size());
+
+            if (drawPacketBuildData.m_drawItems.size() != pipelineStateBuildItems.size() ||
+                pipelineStateBuildItems.size() != pipelineStates.size())
             {
-                m_activeShaders = shaderList;
-                m_materialSrg = m_material->GetRHIShaderResourceGroup();
+                AZ_Error("MeshDrawPacket", false, "Draw packet build data and pipeline state counts do not match.");
+                return false;
+            }
+
+            if (pipelineStateBuildItems.empty())
+            {
+                // An empty item list is a valid result when every material shader item is
+                // disabled or filtered out. Publish an empty packet state and release resources
+                // retained by the previously renderable packet.
+                m_drawPacket = nullptr;
+                m_activeShaders.clear();
+                m_perDrawSrgs.clear();
+                m_materialSrg = nullptr;
+                m_rootConstantsLayout = nullptr;
+#ifdef DEBUG_MESH_SHADERVARIANTS
+                m_shaderVariantNames.clear();
+#endif
                 return true;
             }
-            else
+
+            RHI::DrawPacketBuilder drawPacketBuilder;
+            drawPacketBuilder.Begin(nullptr);
+            drawPacketBuilder.SetDrawArguments(drawPacketBuildData.m_drawArguments);
+            drawPacketBuilder.SetIndexBufferView(drawPacketBuildData.m_indexBufferView);
+            drawPacketBuilder.AddShaderResourceGroup(drawPacketBuildData.m_objectSrg.get());
+            drawPacketBuilder.AddShaderResourceGroup(drawPacketBuildData.m_materialSrg.get());
+
+            AZStd::vector<uint8_t> rootConstants;
+            if (HasRootConstants(drawPacketBuildData.m_rootConstantsLayout.get()))
+            {
+                rootConstants.resize(drawPacketBuildData.m_rootConstantsLayout->GetDataSize());
+                drawPacketBuilder.SetRootConstants(rootConstants);
+            }
+
+            for (size_t index = 0; index < pipelineStates.size(); ++index)
+            {
+                const DrawItemBuildData& drawItemBuildData = drawPacketBuildData.m_drawItems[index];
+                RHI::DrawPacketBuilder::DrawRequest drawRequest;
+                drawRequest.m_listTag = drawItemBuildData.m_drawListTag;
+                drawRequest.m_pipelineState = pipelineStates[index].get();
+                drawRequest.m_streamBufferViews = drawItemBuildData.m_streamBufferViews;
+                drawRequest.m_stencilRef = drawItemBuildData.m_stencilRef;
+                drawRequest.m_sortKey = drawItemBuildData.m_sortKey;
+                drawRequest.m_drawFilterMask = drawItemBuildData.m_drawFilterMask;
+                if (drawItemBuildData.m_drawSrg)
+                {
+                    drawRequest.m_uniqueShaderResourceGroup =
+                        drawItemBuildData.m_drawSrg->GetRHIShaderResourceGroup();
+                }
+                drawPacketBuilder.AddDrawItem(drawRequest);
+            }
+
+            Ptr<RHI::DrawPacket> drawPacket = drawPacketBuilder.End();
+            if (!drawPacket)
             {
                 return false;
             }
+
+            ShaderList shaderList;
+            shaderList.reserve(pipelineStateBuildItems.size());
+            for (size_t index = 0; index < pipelineStateBuildItems.size(); ++index)
+            {
+                PipelineStateBuildItem& pipelineStateBuildItem = pipelineStateBuildItems[index];
+                const DrawItemBuildData& drawItemBuildData = drawPacketBuildData.m_drawItems[index];
+
+                ShaderData shaderData;
+                shaderData.m_shader = AZStd::move(pipelineStateBuildItem.m_shader);
+                shaderData.m_materialPipelineName = drawItemBuildData.m_materialPipelineName;
+                shaderData.m_shaderTag = drawItemBuildData.m_shaderTag;
+                shaderData.m_requestedShaderVariantId = drawItemBuildData.m_requestedShaderVariantId;
+                shaderData.m_activeShaderVariantId = drawItemBuildData.m_activeShaderVariantId;
+                shaderData.m_activeShaderVariantStableId = drawItemBuildData.m_activeShaderVariantStableId;
+                shaderList.emplace_back(AZStd::move(shaderData));
+            }
+
+            m_perDrawSrgs.clear();
+            for (DrawItemBuildData& drawItemBuildData : drawPacketBuildData.m_drawItems)
+            {
+                if (drawItemBuildData.m_drawSrg)
+                {
+                    m_perDrawSrgs.emplace_back(AZStd::move(drawItemBuildData.m_drawSrg));
+                }
+            }
+
+            m_drawPacket = AZStd::move(drawPacket);
+            m_activeShaders = AZStd::move(shaderList);
+            m_materialSrg = AZStd::move(drawPacketBuildData.m_materialSrg);
+            m_rootConstantsLayout = AZStd::move(drawPacketBuildData.m_rootConstantsLayout);
+#ifdef DEBUG_MESH_SHADERVARIANTS
+            m_shaderVariantNames = AZStd::move(drawPacketBuildData.m_shaderVariantNames);
+#endif
+            return true;
         }
 
         const RHI::ConstPtr<RHI::ConstantsLayout> MeshDrawPacket::GetRootConstantsLayout() const

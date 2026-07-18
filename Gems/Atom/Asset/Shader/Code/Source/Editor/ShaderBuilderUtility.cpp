@@ -358,7 +358,8 @@ namespace AZ
             }
 
             AZStd::vector<RPI::ShaderSourceData::SupervariantInfo> GetSupervariantListFromShaderSourceData(
-                const RPI::ShaderSourceData& shaderSourceData)
+                const RPI::ShaderSourceData& shaderSourceData,
+                const RHI::ShaderBuildArguments* baseBuildArguments)
             {
                 AZStd::vector<RPI::ShaderSourceData::SupervariantInfo> supervariants;
                 supervariants.reserve(shaderSourceData.m_supervariants.size() + 1);
@@ -399,6 +400,71 @@ namespace AZ
                     supervariants.push_back({});
                     // Always move the default, nameless, variant to the begining of the list.
                     AZStd::swap(supervariants.front(), supervariants.back());
+                }
+
+                if (!baseBuildArguments)
+                {
+                    return supervariants;
+                }
+
+                static constexpr const char* SpecializationConstantsArgument = "--sc-options";
+
+                AZStd::vector<RPI::ShaderSourceData::SupervariantInfo> fallbackSupervariants;
+                fallbackSupervariants.reserve(supervariants.size());
+                const size_t authoredSupervariantCount = supervariants.size();
+
+                for (size_t authoredIndex = 0; authoredIndex < authoredSupervariantCount; ++authoredIndex)
+                {
+                    const auto& authoredSupervariant = supervariants[authoredIndex];
+                    const RHI::ShaderBuildArguments effectiveBuildArguments =
+                        (*baseBuildArguments - authoredSupervariant.m_removeBuildArguments) + authoredSupervariant.m_addBuildArguments;
+
+                    if (!RHI::ShaderBuildArguments::HasArgument(
+                            effectiveBuildArguments.m_azslcArguments, SpecializationConstantsArgument))
+                    {
+                        continue;
+                    }
+
+                    RPI::ShaderSourceData::SupervariantInfo fallbackSupervariant = authoredSupervariant;
+                    fallbackSupervariant.m_name =
+                        RPI::ShaderAsset::MakeShaderOptionFallbackSupervariantName(
+                            authoredSupervariant.m_name);
+
+                    // PushArgumentScope applies removals before additions. Remove --sc-options from both sides so an
+                    // authored supervariant that explicitly adds it cannot re-enable it in the generated companion.
+                    RHI::ShaderBuildArguments::RemoveArguments(
+                        fallbackSupervariant.m_addBuildArguments.m_azslcArguments, { SpecializationConstantsArgument });
+                    RHI::ShaderBuildArguments::AppendArguments(
+                        fallbackSupervariant.m_removeBuildArguments.m_azslcArguments, { SpecializationConstantsArgument });
+
+                    if (uniqueSuperVariants.contains(fallbackSupervariant.m_name))
+                    {
+                        AZ_Error(
+                            ShaderBuilderUtilityName,
+                            false,
+                            "The generated shader-option fallback supervariant name [%s] conflicts with an authored supervariant.",
+                            fallbackSupervariant.m_name.GetCStr());
+                        return {};
+                    }
+
+                    uniqueSuperVariants.emplace(fallbackSupervariant.m_name);
+                    fallbackSupervariants.emplace_back(AZStd::move(fallbackSupervariant));
+                }
+
+                if (supervariants.size() + fallbackSupervariants.size() > RPI::SupervariantIndexMaxValue + 1)
+                {
+                    AZ_Error(
+                        ShaderBuilderUtilityName,
+                        false,
+                        "Generating shader-option fallback supervariants would exceed the maximum of %u supervariants.",
+                        RPI::SupervariantIndexMaxValue + 1);
+                    return {};
+                }
+
+                supervariants.reserve(supervariants.size() + fallbackSupervariants.size());
+                for (auto& fallbackSupervariant : fallbackSupervariants)
+                {
+                    supervariants.emplace_back(AZStd::move(fallbackSupervariant));
                 }
 
                 return supervariants;

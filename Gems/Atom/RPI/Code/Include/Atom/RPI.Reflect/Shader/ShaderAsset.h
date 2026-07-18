@@ -109,6 +109,9 @@ namespace AZ
             //! If a Supervariant with such index doesn't exist, returns the default supervariant name "".
             const AZ::Name& GetSupervariantName(SupervariantIndex supervariantIndex) const;
 
+            //! Builds the name of the generated non-specialized companion for a supervariant.
+            static AZ::Name MakeShaderOptionFallbackSupervariantName(const AZ::Name& supervariantName);
+
             //! This function should be your one stop shop to get a ShaderVariantAsset.
             //! Finds and returns the best matching ShaderVariantAsset given a ShaderVariantId.
             //! If the ShaderVariantAsset is not fully loaded and ready at the moment, this function
@@ -247,6 +250,8 @@ namespace AZ
             {
                 AZ_TYPE_INFO(Supervariant, "{850826EF-B267-4752-92F6-A85E4175CAB8}");
                 static void Reflect(AZ::ReflectContext* context);
+
+                bool IsShaderOptionFallback() const;
 
                 AZ::Name m_name;
                 ShaderResourceGroupLayoutList m_srgLayoutList;

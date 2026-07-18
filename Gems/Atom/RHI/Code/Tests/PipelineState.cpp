@@ -12,6 +12,8 @@ namespace UnitTest
 {
     using namespace AZ;
 
+    AZStd::function<void()> PipelineState::s_compileCallback;
+
     namespace
     {
         uint64_t Fibonacci(uint64_t n)
@@ -36,6 +38,10 @@ namespace UnitTest
     RHI::ResultCode PipelineState::InitInternal(RHI::Device&, [[maybe_unused]] const RHI::PipelineStateDescriptorForDraw& descriptor, [[maybe_unused]] RHI::PipelineLibrary* pipelineLibrary)
     {
         // Performs 'work' to simulate compiling a pso.
+        if (s_compileCallback)
+        {
+            s_compileCallback();
+        }
 
         uint64_t value = Fibonacci(22);
 
@@ -58,6 +64,11 @@ namespace UnitTest
         uint64_t value = Fibonacci(22);
 
         return value > 0 ? RHI::ResultCode::Success : RHI::ResultCode::Fail;
+    }
+
+    void PipelineState::SetCompileCallback(AZStd::function<void()> compileCallback)
+    {
+        s_compileCallback = AZStd::move(compileCallback);
     }
 
 }

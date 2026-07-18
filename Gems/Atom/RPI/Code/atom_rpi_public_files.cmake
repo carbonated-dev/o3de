@@ -18,6 +18,7 @@ set(FILES
     Include/Atom/RPI.Public/MeshDrawPacket.h
     Include/Atom/RPI.Public/PipelinePassChanges.h
     Include/Atom/RPI.Public/PipelineState.h
+    Include/Atom/RPI.Public/PipelineStateBuildQueue.h
     Include/Atom/RPI.Public/RenderPipeline.h
     Include/Atom/RPI.Public/RPISystem.h
     Include/Atom/RPI.Public/RPISystemInterface.h
@@ -115,6 +116,7 @@ set(FILES
     Source/RPI.Public/MeshDrawPacket.cpp
     Source/RPI.Public/PipelinePassChanges.cpp
     Source/RPI.Public/PipelineState.cpp
+    Source/RPI.Public/PipelineStateBuildQueue.cpp
     Source/RPI.Public/RenderPipeline.cpp
     Source/RPI.Public/RPISystem.cpp
     Source/RPI.Public/RPIUtils.cpp

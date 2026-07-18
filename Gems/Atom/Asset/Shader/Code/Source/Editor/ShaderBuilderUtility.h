@@ -136,9 +136,12 @@ namespace AZ
             // The idea is that the "Supervariants" json property is optional in .shader files,
             // For cases when it is not specified, this function will return a vector with one item, the default, nameless, supervariant.
             // If "Supervariants" is not empty, then this function will make sure the first supervariant in the list
-            // is the default, nameless, supervariant.
+            // is the default, nameless, supervariant. When baseBuildArguments is provided, each authored supervariant
+            // whose effective AZSLc arguments contain --sc-options gets a generated root-only companion with
+            // --sc-options removed.
             AZStd::vector<RPI::ShaderSourceData::SupervariantInfo> GetSupervariantListFromShaderSourceData(
-                const RPI::ShaderSourceData& shaderSourceData);
+                const RPI::ShaderSourceData& shaderSourceData,
+                const RHI::ShaderBuildArguments* baseBuildArguments = nullptr);
 
             void LogProfilingData(const char* builderName, AZStd::string_view shaderPath);
 

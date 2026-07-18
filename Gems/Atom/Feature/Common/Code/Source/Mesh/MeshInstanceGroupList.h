@@ -40,6 +40,9 @@ namespace AZ::Render
         // The page that this instance group belongs to
         uint32_t m_pageIndex = 0;
 
+        // Stable identity used by MeshFeatureProcessor pending draw-packet builds.
+        uint64_t m_drawPacketOwnerId = 0;
+
         // We store a key with the data to make it faster to remove the instance without needing to recreate the key
         // or store it with the data for each individual instance
         MeshInstanceGroupKey m_key;
@@ -68,6 +71,9 @@ namespace AZ::Render
         // Update mesh draw packet
         // Return true if DrawPacket was rebuilt
         bool UpdateDrawPacket(const RPI::Scene& parentScene, bool forceUpdate);
+
+        // Invalidates cached per-view packets and notifies all associated model instances.
+        void HandleDrawPacketUpdate();
 
         // Update shader option flags for the instance group
         // It goes through the cullable's m_shaderOptionFlags of each associated ModelDataInstance and get combined m_shaderOptionFlags and m_shaderOptionFlagMask

@@ -11,11 +11,14 @@
 #include <Atom/RPI.Public/Shader/Shader.h>
 #include <Atom/RPI.Public/Material/Material.h>
 #include <Atom/RPI.Public/Model/ModelLod.h>
+#include <Atom/RPI.Public/PipelineStateBuildQueue.h>
 #include <Atom/RHI/DrawPacket.h>
 #include <Atom/RHI/DrawPacketBuilder.h>
 
 #include <AzCore/Math/Obb.h>
 #include <AzCore/std/containers/fixed_vector.h>
+#include <AzCore/std/containers/span.h>
+#include <AzCore/std/smart_ptr/shared_ptr.h>
 
 // Enable this define to print the shader variants used by MeshDrawPacket every time the draw packet get rebuilt.
 // Note: the log can be extremely long if there are too many mesh instances (for example, >5K).  
@@ -48,6 +51,9 @@ namespace AZ
 
             using ShaderList = AZStd::vector<ShaderData>;
 
+            class DrawPacketBuiltRequest;
+            using DrawPacketBuiltRequestPtr = AZStd::shared_ptr<DrawPacketBuiltRequest>;
+
             MeshDrawPacket() = default;
             MeshDrawPacket(
                 ModelLod& modelLod,
@@ -61,9 +67,16 @@ namespace AZ
 
             bool Update(const Scene& parentScene, bool forceUpdate = false);
 
+            //! Consumes the current update state without rebuilding the draw packet.
+            //! The caller must capture and build a replacement from the current state when this returns true.
+            bool BeginUpdate(bool forceUpdate = false);
+
             RHI::DrawPacket* GetRHIDrawPacket() { return m_drawPacket.get(); }
             const RHI::DrawPacket* GetRHIDrawPacket() const { return m_drawPacket.get(); }
             const RHI::ConstPtr<RHI::ConstantsLayout> GetRootConstantsLayout() const;
+
+            //! Stops rendering this mesh draw packet until a replacement is applied.
+            void ResetRHIDrawPacket();
 
             void SetStencilRef(uint8_t stencilRef);
             void SetSortKey(RHI::DrawItemSortKey sortKey);
@@ -82,10 +95,56 @@ namespace AZ
             const ModelLod::Mesh& GetMesh() const;
             const ShaderList& GetActiveShaderList() const { return m_activeShaders; }
 
+            //! Captures the mesh-specific packet data and a renderer-wide pipeline-state build request.
+            //! The returned build does not retain a pointer to this MeshDrawPacket.
+            DrawPacketBuiltRequestPtr CreateDrawPacketBuiltRequest(
+                const Scene& parentScene,
+                bool useFallbackShaders);
+
+            //! Applies a successfully completed build to this MeshDrawPacket.
+            bool ApplyDrawPacketBuiltRequest(DrawPacketBuiltRequestPtr drawPacketBuiltRequest);
+
             void DebugOutputShaderVariants();
 
         private:
+            struct DrawItemBuildData
+            {
+                Name m_materialPipelineName;
+                ShaderVariantId m_requestedShaderVariantId;
+                ShaderVariantId m_activeShaderVariantId;
+                ShaderVariantStableId m_activeShaderVariantStableId;
+                Name m_shaderTag;
+                RHI::DrawListTag m_drawListTag;
+                ModelLod::StreamBufferViewList m_streamBufferViews;
+                Data::Instance<ShaderResourceGroup> m_drawSrg;
+                RHI::DrawFilterMask m_drawFilterMask = RHI::DrawFilterMaskDefaultValue;
+                RHI::DrawItemSortKey m_sortKey = 0;
+                uint8_t m_stencilRef = 0;
+            };
+
+            struct DrawPacketBuildData
+            {
+                RHI::DrawArguments m_drawArguments;
+                RHI::IndexBufferView m_indexBufferView;
+                ConstPtr<RHI::ShaderResourceGroup> m_objectSrg;
+                ConstPtr<RHI::ShaderResourceGroup> m_materialSrg;
+                RHI::ConstPtr<RHI::ConstantsLayout> m_rootConstantsLayout;
+                AZStd::fixed_vector<DrawItemBuildData, RHI::DrawPacketBuilder::DrawItemCountMax> m_drawItems;
+#ifdef DEBUG_MESH_SHADERVARIANTS
+                AZStd::vector<AZStd::string_view> m_shaderVariantNames;
+#endif
+            };
+
             bool DoUpdate(const Scene& parentScene);
+            bool PreparePipelineStateBuildItems(
+                const Scene& parentScene,
+                bool useFallbackShaders,
+                PipelineStateBuildItemList& pipelineStateBuildItems,
+                DrawPacketBuildData& drawPacketBuildData);
+            bool BuildDrawPacket(
+                DrawPacketBuildData&& drawPacketBuildData,
+                PipelineStateBuildItemList&& pipelineStateBuildItems,
+                AZStd::span<const RHI::ConstPtr<RHI::PipelineState>> pipelineStates);
             void ForValidShaderOptionName(const Name& shaderOptionName, const AZStd::function<bool(const ShaderCollection::Item&, ShaderOptionIndex)>& callback);
 
             Ptr<RHI::DrawPacket> m_drawPacket;
@@ -147,6 +206,24 @@ namespace AZ
             // The list of shader variant asset names used by the DrawPackets
             AZStd::vector<AZStd::string_view> m_shaderVariantNames;
 #endif
+        };
+
+        //! Pairs a generic pipeline-state build request with the mesh-specific data needed for publication.
+        //! It deliberately has no pointer back to the MeshDrawPacket.
+        class MeshDrawPacket::DrawPacketBuiltRequest
+        {
+        public:
+            ~DrawPacketBuiltRequest();
+
+            const PipelineStateBuildRequestPtr& GetPipelineStateBuildRequest() const;
+
+        private:
+            friend class MeshDrawPacket;
+
+            DrawPacketBuiltRequest() = default;
+
+            PipelineStateBuildRequestPtr m_pipelineStateBuildRequest;
+            DrawPacketBuildData m_drawPacketBuildData;
         };
         
         using MeshDrawPacketList = AZStd::vector<RPI::MeshDrawPacket>;

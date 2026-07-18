@@ -31,6 +31,16 @@ namespace AZ
             "Enable allowing systems to set shader options on a per-mesh basis."
         );
 
+        AZ_CVAR(
+            bool,
+            r_asyncMeshDrawPacketUpdates,
+            true,
+            nullptr,
+            AZ::ConsoleFunctorFlags::NeedsReload,
+            "Build mesh pipeline states on the renderer pipeline-state build thread. "
+            "Non-specialized fallback packets are used until specialized packets are ready. "
+            "Changing this value requires an application restart.");
+
         
         AZ_CVAR(
             bool,

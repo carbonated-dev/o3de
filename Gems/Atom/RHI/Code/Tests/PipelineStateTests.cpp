@@ -16,6 +16,9 @@
 #include <Atom/RHI.Reflect/PipelineLayoutDescriptor.h>
 
 #include <AzCore/Math/Random.h>
+#include <AzCore/std/chrono/chrono.h>
+#include <AzCore/std/parallel/condition_variable.h>
+#include <AzCore/std/parallel/thread.h>
 
 namespace UnitTest
 {
@@ -253,6 +256,7 @@ namespace UnitTest
         pipelineStateCache->ReleaseLibrary({});
         EXPECT_EQ(pipelineStateCache->GetMergedLibrary({}), nullptr);
         EXPECT_EQ(pipelineStateCache->AcquirePipelineState({}, CreatePipelineStateDescriptor(0)), nullptr);
+        EXPECT_EQ(pipelineStateCache->AcquirePipelineStateAsync({}, CreatePipelineStateDescriptor(0)), nullptr);
         pipelineStateCache->Compact();
         ValidateCacheIntegrity(pipelineStateCache);
     }
@@ -293,6 +297,140 @@ namespace UnitTest
         ValidateCacheIntegrity(pipelineStateCache);
 
         EXPECT_EQ(pipelineStatesMerged.size(), 1);
+    }
+
+    TEST_F(
+        PipelineStateTests,
+        PipelineStateCache_AsyncAcquire_DoesNotBlockCompactAndDoesNotPublishEarly)
+    {
+        RHI::Ptr<RHI::Device> device = MakeTestDevice();
+        RHI::Ptr<RHI::PipelineStateCache> pipelineStateCache =
+            RHI::PipelineStateCache::Create(*device);
+        const RHI::PipelineLibraryHandle pipelineLibraryHandle =
+            pipelineStateCache->CreateLibrary(nullptr);
+        const RHI::PipelineStateDescriptorForDraw descriptor =
+            CreatePipelineStateDescriptor(0);
+
+        AZStd::mutex mutex;
+        AZStd::condition_variable condition;
+        bool compileEntered = false;
+        bool releaseCompile = false;
+        bool normalAcquireStarted = false;
+        bool normalAcquireCompleted = false;
+        bool compactCompleted = false;
+
+        PipelineState::SetCompileCallback(
+            [&]()
+            {
+                AZStd::unique_lock<AZStd::mutex> lock(mutex);
+                compileEntered = true;
+                condition.notify_all();
+                condition.wait(
+                    lock,
+                    [&]()
+                    {
+                        return releaseCompile;
+                    });
+            });
+
+        const RHI::PipelineState* asyncPipelineState = nullptr;
+        AZStd::thread asyncAcquireThread(
+            [&]()
+            {
+                asyncPipelineState =
+                    pipelineStateCache->AcquirePipelineStateAsync(
+                        pipelineLibraryHandle,
+                        descriptor);
+            });
+
+        {
+            AZStd::unique_lock<AZStd::mutex> lock(mutex);
+            condition.wait(
+                lock,
+                [&]()
+                {
+                    return compileEntered;
+                });
+        }
+
+        const RHI::PipelineState* normalPipelineState = nullptr;
+        AZStd::thread normalAcquireThread(
+            [&]()
+            {
+                {
+                    AZStd::lock_guard<AZStd::mutex> lock(mutex);
+                    normalAcquireStarted = true;
+                }
+                condition.notify_all();
+
+                normalPipelineState =
+                    pipelineStateCache->AcquirePipelineState(
+                        pipelineLibraryHandle,
+                        descriptor);
+
+                {
+                    AZStd::lock_guard<AZStd::mutex> lock(mutex);
+                    normalAcquireCompleted = true;
+                }
+                condition.notify_all();
+            });
+
+        {
+            AZStd::unique_lock<AZStd::mutex> lock(mutex);
+            condition.wait(
+                lock,
+                [&]()
+                {
+                    return normalAcquireStarted;
+                });
+        }
+
+        AZStd::thread compactThread(
+            [&]()
+            {
+                pipelineStateCache->Compact();
+                {
+                    AZStd::lock_guard<AZStd::mutex> lock(mutex);
+                    compactCompleted = true;
+                }
+                condition.notify_all();
+            });
+
+        bool compactCompletedBeforeRelease = false;
+        bool normalAcquireCompletedBeforeRelease = false;
+        {
+            AZStd::unique_lock<AZStd::mutex> lock(mutex);
+            compactCompletedBeforeRelease = condition.wait_for(
+                lock,
+                AZStd::chrono::seconds(1),
+                [&]()
+                {
+                    return compactCompleted;
+                });
+            normalAcquireCompletedBeforeRelease = condition.wait_for(
+                lock,
+                AZStd::chrono::milliseconds(50),
+                [&]()
+                {
+                    return normalAcquireCompleted;
+                });
+            releaseCompile = true;
+        }
+        condition.notify_all();
+
+        compactThread.join();
+        normalAcquireThread.join();
+        asyncAcquireThread.join();
+        PipelineState::SetCompileCallback({});
+
+        EXPECT_TRUE(compactCompletedBeforeRelease);
+        EXPECT_FALSE(normalAcquireCompletedBeforeRelease);
+        EXPECT_NE(asyncPipelineState, nullptr);
+        EXPECT_EQ(normalPipelineState, asyncPipelineState);
+        EXPECT_TRUE(asyncPipelineState->IsInitialized());
+
+        pipelineStateCache->Compact();
+        ValidateCacheIntegrity(pipelineStateCache);
     }
 
     TEST_F(PipelineStateTests, PipelineStateCache_PipelineStateThreading_Fuzz_Test)

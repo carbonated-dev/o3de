@@ -19,6 +19,9 @@
 #include <AzCore/Asset/AssetCommon.h>
 #include <AzCore/Component/TickBus.h>
 #include <AzCore/Console/Console.h>
+#include <AzCore/std/containers/unordered_map.h>
+#include <AzCore/std/parallel/atomic.h>
+#include <AzCore/std/parallel/mutex.h>
 #include <AzFramework/Asset/AssetCatalogBus.h>
 #include <Mesh/MeshInstanceManager.h>
 #include <RayTracing/RayTracingFeatureProcessor.h>
@@ -128,7 +131,9 @@ namespace AZ
             void SetLightingChannelMask(uint32_t lightingChannelMask);
             void SetMeshLodConfiguration(RPI::Cullable::LodConfiguration meshLodConfig);
             RPI::Cullable::LodConfiguration GetMeshLodConfiguration() const;
-            void UpdateDrawPackets(bool forceUpdate = false);
+            void UpdateDrawPackets(
+                MeshFeatureProcessor* meshFeatureProcessor,
+                bool forceUpdate = false);
             void BuildCullable();
             void UpdateCullBounds(const MeshFeatureProcessor* meshFeatureProcessor);
             void UpdateObjectSrg(MeshFeatureProcessor* meshFeatureProcessor);
@@ -170,6 +175,7 @@ namespace AZ
 
             TransformServiceFeatureProcessorInterface::ObjectId m_objectId;
             AZ::Uuid m_rayTracingUuid;
+            uint64_t m_drawPacketOwnerId = 0;
 
             Aabb m_aabb = Aabb::CreateNull();
 
@@ -285,6 +291,61 @@ namespace AZ
             bool IsMeshInstancingEnabled() const;
         private:
             MeshFeatureProcessor(const MeshFeatureProcessor&) = delete;
+            friend class ModelDataInstance;
+
+            struct DrawPacketBuildTarget
+            {
+                enum class OwnerType : uint8_t
+                {
+                    Model,
+                    InstanceGroup
+                };
+
+                OwnerType m_ownerType = OwnerType::Model;
+                uint64_t m_ownerId = 0;
+                uint32_t m_lodIndex = 0;
+                uint32_t m_packetIndex = 0;
+
+                bool operator==(const DrawPacketBuildTarget& rhs) const
+                {
+                    return m_ownerType == rhs.m_ownerType &&
+                        m_ownerId == rhs.m_ownerId &&
+                        m_lodIndex == rhs.m_lodIndex &&
+                        m_packetIndex == rhs.m_packetIndex;
+                }
+            };
+
+            struct DrawPacketBuildTargetHasher
+            {
+                size_t operator()(const DrawPacketBuildTarget& target) const;
+            };
+
+            struct PendingDrawPacketBuild
+            {
+                DrawPacketBuildTarget m_target;
+                uint64_t m_generation = 0;
+                RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr m_request;
+            };
+
+            uint64_t AcquireDrawPacketOwnerId();
+            uint64_t BeginDrawPacketBuildGeneration(const DrawPacketBuildTarget& target);
+            void AddPendingDrawPacketBuild(
+                const DrawPacketBuildTarget& target,
+                uint64_t generation,
+                RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request);
+            void QueuePendingDrawPacketBuild(
+                const DrawPacketBuildTarget& target,
+                uint64_t generation,
+                RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request);
+            //! Returns true when the current RHI draw packet was synchronously replaced or reset.
+            bool QueueDrawPacketUpdate(
+                RPI::MeshDrawPacket& drawPacket,
+                const DrawPacketBuildTarget& target,
+                const RPI::Scene& parentScene,
+                bool forceUpdate);
+            void PublishCompletedDrawPacketBuilds();
+            void CancelPendingDrawPacketBuildsForOwner(uint64_t ownerId);
+            void CancelAllPendingDrawPacketBuilds();
 
             void ForceRebuildDrawPackets(const AZ::ConsoleCommandContainer& arguments);
             AZ_CONSOLEFUNC(MeshFeatureProcessor,
@@ -299,6 +360,10 @@ namespace AZ
             void OnRenderPipelineChanged(AZ::RPI::RenderPipeline* pipeline, RPI::SceneNotification::RenderPipelineChangeType changeType) override;
 
             void CheckForInstancingCVarChange();
+            bool UpdateMeshInstanceGroupDrawPacket(
+                MeshInstanceGroupData& instanceGroup,
+                const RPI::Scene& parentScene,
+                bool forceUpdate);
             AZStd::vector<AZ::Job*> CreateInitJobQueue();
             AZStd::vector<AZ::Job*> CreatePerInstanceGroupJobQueue();
             AZStd::vector<AZ::Job*> CreateUpdateCullingJobQueue();
@@ -314,6 +379,12 @@ namespace AZ
 
             AZStd::concurrency_checker m_meshDataChecker;
             StableDynamicArray<ModelDataInstance> m_modelData;
+
+            AZStd::atomic_uint64_t m_nextDrawPacketOwnerId{ 1 };
+            AZStd::mutex m_pendingDrawPacketBuildMutex;
+            AZStd::vector<PendingDrawPacketBuild> m_pendingDrawPacketBuilds;
+            AZStd::unordered_map<DrawPacketBuildTarget, uint64_t, DrawPacketBuildTargetHasher>
+                m_drawPacketBuildGenerations;
 
             MeshInstanceManager m_meshInstanceManager;
 
@@ -373,6 +444,7 @@ namespace AZ
             bool m_enablePerMeshShaderOptionFlags = false;
             bool m_enableMeshInstancing = false;
             bool m_enableMeshInstancingForTransparentObjects = false;
+            bool m_enableAsyncMeshDrawPacketUpdates = false;
         };
     } // namespace Render
 } // namespace AZ

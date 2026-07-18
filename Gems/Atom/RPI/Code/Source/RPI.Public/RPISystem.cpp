@@ -97,6 +97,7 @@ namespace AZ
             m_materialSystem.Init();
             m_modelSystem.Init();
             m_shaderSystem.Init();
+            m_pipelineStateBuildQueue.Init();
             m_passSystem.Init();
             m_featureProcessorFactory.Init();
             m_querySystem.Init(m_descriptor.m_gpuQuerySystemDescriptor);
@@ -126,6 +127,7 @@ namespace AZ
             Interface<RPISystemInterface>::Unregister(this);
 
             m_featureProcessorFactory.Shutdown();
+            m_pipelineStateBuildQueue.Shutdown();
             m_passSystem.Shutdown();
             m_dynamicDraw.Shutdown();
             m_bufferSystem.Shutdown();
@@ -254,6 +256,11 @@ namespace AZ
         {
             AZ_Assert(m_systemAssetsInitialized, "InitializeSystemAssets() should be called once when asset catalog loaded'");
             return m_viewSrgLayout;
+        }
+
+        PipelineStateBuildQueue* RPISystem::GetPipelineStateBuildQueue()
+        {
+            return &m_pipelineStateBuildQueue;
         }
 
         void RPISystem::OnSystemTick()

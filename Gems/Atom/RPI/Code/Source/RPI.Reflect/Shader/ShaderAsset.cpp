@@ -12,6 +12,7 @@
 #include <AzCore/Casting/numeric_cast.h>
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/std/algorithm.h>
+#include <AzCore/std/string/string_view.h>
 
 #include <Atom/RHI/Factory.h>
 
@@ -28,6 +29,7 @@ namespace AZ
     namespace RPI
     {
         const ShaderVariantStableId ShaderAsset::RootShaderVariantStableId{0};
+        static constexpr AZStd::string_view ShaderOptionFallbackSupervariantSuffix = "NoSpecialization";
 
         static constexpr uint32_t SubProductTypeBitPosition = 0;
         static constexpr uint32_t SubProductTypeNumBits = SupervariantIndexBitPosition - SubProductTypeBitPosition;
@@ -75,6 +77,11 @@ namespace AZ
                     ->Field("UseSpecializationConstants", &Supervariant::m_useSpecializationConstants)
                     ;
             }
+        }
+
+        bool ShaderAsset::Supervariant::IsShaderOptionFallback() const
+        {
+            return AZStd::string_view(m_name.GetCStr()).ends_with(ShaderOptionFallbackSupervariantSuffix);
         }
 
         void ShaderAsset::ShaderApiDataContainer::Reflect(AZ::ReflectContext* context)
@@ -184,6 +191,15 @@ namespace AZ
                 return supervariants[0].m_name;
             }
             return supervariants[supervariantIndex.GetIndex()].m_name;
+        }
+
+        AZ::Name ShaderAsset::MakeShaderOptionFallbackSupervariantName(const AZ::Name& supervariantName)
+        {
+            AZStd::string fallbackName = supervariantName.GetCStr();
+            fallbackName.append(
+                ShaderOptionFallbackSupervariantSuffix.data(),
+                ShaderOptionFallbackSupervariantSuffix.size());
+            return AZ::Name(fallbackName);
         }
 
         Data::Asset<ShaderVariantAsset> ShaderAsset::GetVariantAsset(
@@ -582,6 +598,11 @@ namespace AZ
                 const auto& supervariants = shaderApiData.m_supervariants;
                 for (const auto& supervariant : supervariants)
                 {
+                    if (supervariant.IsShaderOptionFallback())
+                    {
+                        continue;
+                    }
+
                     m_isFullySpecialized &= supervariant.m_useSpecializationConstants;
                     bool beTrue = supervariant.m_attributeMaps.size() == RHI::ShaderStageCount;
                     if (!beTrue)

@@ -11,6 +11,8 @@
 #include <Atom/RHI/PipelineLibrary.h>
 #include <Atom/RHI/ThreadLocalContext.h>
 #include <AzCore/std/containers/bitset.h>
+#include <AzCore/std/parallel/condition_variable.h>
+#include <AzCore/std/smart_ptr/shared_ptr.h>
 #include <AzCore/Utils/TypeHash.h>
 
 namespace UnitTest
@@ -137,6 +139,11 @@ namespace AZ::RHI
         const PipelineState* AcquirePipelineState(
             PipelineLibraryHandle library, const PipelineStateDescriptor& descriptor, const AZ::Name& name = AZ::Name());
 
+        //! Acquires a fully compiled pipeline state for persistent asynchronous work. If another thread owns
+        //! compilation, this call waits for it to complete. Returns null if compilation fails.
+        const PipelineState* AcquirePipelineStateAsync(
+            PipelineLibraryHandle library, const PipelineStateDescriptor& descriptor, const AZ::Name& name = AZ::Name());
+
         //! This method merges the global pending cache into the global read-only cache and clears all thread-local caches.
         //! This reduces the total memory footprint of the caches and optimizes subsequent fetches. This method should be called
         //! once per frame.
@@ -149,9 +156,30 @@ namespace AZ::RHI
 
         using PipelineStateHash = HashValue64;
 
+        struct PipelineStateCompileState
+        {
+            explicit PipelineStateCompileState(bool isAsyncCompile);
+
+            void SetCompleted(bool succeeded);
+            bool WaitForCompletion();
+            bool IsSuccessful();
+
+            const bool m_isAsyncCompile = false;
+            AZStd::mutex m_mutex;
+            AZStd::condition_variable m_condition;
+            bool m_isComplete = false;
+            bool m_succeeded = false;
+        };
+
+        using PipelineStateCompileStatePtr = AZStd::shared_ptr<PipelineStateCompileState>;
+
         struct PipelineStateEntry
         {
-            PipelineStateEntry(PipelineStateHash hash, ConstPtr<PipelineState> pipelineState, const PipelineStateDescriptor& descriptor);
+            PipelineStateEntry(
+                PipelineStateHash hash,
+                ConstPtr<PipelineState> pipelineState,
+                const PipelineStateDescriptor& descriptor,
+                PipelineStateCompileStatePtr compileState = nullptr);
 
             bool operator < (const PipelineStateEntry& rhs) const
             {
@@ -162,6 +190,7 @@ namespace AZ::RHI
 
             PipelineStateHash m_hash;
             ConstPtr<PipelineState> m_pipelineState;
+            PipelineStateCompileStatePtr m_compileState;
 
             // pipeline state descriptor variant for dispatch, draw, and ray tracing
             using PipelineStateDescriptorVariant = AZStd::variant<AZ::RHI::PipelineStateDescriptorForDraw, AZ::RHI::PipelineStateDescriptorForDispatch, AZ::RHI::PipelineStateDescriptorForRayTracing>;
@@ -215,19 +244,36 @@ namespace AZ::RHI
         //! The size of the global set should be used when traversing the thread library entries.
         using ThreadLibrarySet = AZStd::array<ThreadLibraryEntry, LibraryCountMax>;
 
+        struct PipelineStateAcquireResult
+        {
+            ConstPtr<PipelineState> m_pipelineState;
+            PipelineStateCompileStatePtr m_compileState;
+        };
+
         //! Helper function which binary searches a pipeline state set looking for an entry which matches the requested descriptor.
-        static const PipelineState* FindPipelineState(const PipelineStateSet& pipelineStateSet, const PipelineStateDescriptor& descriptor);
+        static const PipelineStateEntry* FindPipelineStateEntry(
+            const PipelineStateSet& pipelineStateSet, const PipelineStateDescriptor& descriptor);
 
         //! Helper function which inserts an entry into the set. Returns true if the entry was inserted, or false is a duplicate entry existed.
         static bool InsertPipelineState(PipelineStateSet& pipelineStateSet, PipelineStateEntry pipelineStateEntry);
 
         //! Performs a pipeline state compilation on the global cache using the thread-local pipeline library.
-        ConstPtr<PipelineState> CompilePipelineState(
+        const PipelineState* AcquirePipelineStateInternal(
+            PipelineLibraryHandle library,
+            const PipelineStateDescriptor& descriptor,
+            const AZ::Name& name,
+            bool isAsyncAcquire);
+
+        static const PipelineState* ResolvePipelineStateEntry(
+            const PipelineStateEntry& pipelineStateEntry, bool isAsyncAcquire);
+
+        PipelineStateAcquireResult CompilePipelineState(
             GlobalLibraryEntry& globalLibraryEntry,
             ThreadLibraryEntry& threadLibraryEntry,
             const PipelineStateDescriptor& pipelineStateDescriptor,
             PipelineStateHash pipelineStateHash,
-            const AZ::Name& name);
+            const AZ::Name& name,
+            bool isAsyncAcquire);
 
         //! Resets the library without validating the handle or taking a lock.
         void ResetLibraryImpl(PipelineLibraryHandle handle);

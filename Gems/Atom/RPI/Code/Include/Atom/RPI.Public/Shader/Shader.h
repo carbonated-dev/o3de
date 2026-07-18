@@ -66,6 +66,10 @@ namespace AZ
             //! Same as above, but uses the default supervariant 
             static Data::Instance<Shader> FindOrCreate(const Data::Asset<ShaderAsset>& shaderAsset);
 
+            //! Finds or creates the generated non-specialized companion for this shader's supervariant.
+            //! Returns null when this supervariant has no generated companion.
+            Data::Instance<Shader> FindOrCreateShaderOptionFallback() const;
+
             ~Shader();
             AZ_DISABLE_COPY_MOVE(Shader);
 
@@ -123,6 +127,10 @@ namespace AZ
             
             //! Acquires a pipeline state directly from a descriptor.
             const RHI::PipelineState* AcquirePipelineState(const RHI::PipelineStateDescriptor& descriptor) const;
+
+            //! Acquires a fully compiled pipeline state for a persistent asynchronous build.
+            //! Returns null if compilation fails.
+            const RHI::PipelineState* AcquirePipelineStateAsync(const RHI::PipelineStateDescriptor& descriptor) const;
 
             //! Finds and returns the shader resource group asset with the requested name. Returns an empty handle if no matching group was found.
             const RHI::Ptr<RHI::ShaderResourceGroupLayout>& FindShaderResourceGroupLayout(const Name& shaderResourceGroupName) const;

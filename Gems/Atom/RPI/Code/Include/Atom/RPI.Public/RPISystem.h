@@ -15,6 +15,7 @@
 #include <Atom/RPI.Public/Material/MaterialSystem.h>
 #include <Atom/RPI.Public/Model/ModelSystem.h>
 #include <Atom/RPI.Public/Pass/PassSystem.h>
+#include <Atom/RPI.Public/PipelineStateBuildQueue.h>
 #include <Atom/RPI.Public/XR/XRRenderingInterface.h>
 #include <Atom/RHI/RHISystem.h>
 #include <Atom/RPI.Public/RPISystemInterface.h>
@@ -79,6 +80,7 @@ namespace AZ
             Data::Asset<ShaderAsset> GetCommonShaderAssetForSrgs() const override;
             RHI::Ptr<RHI::ShaderResourceGroupLayout> GetSceneSrgLayout() const override;
             RHI::Ptr<RHI::ShaderResourceGroupLayout> GetViewSrgLayout() const override;
+            PipelineStateBuildQueue* GetPipelineStateBuildQueue() override;
             void SimulationTick() override;
             void RenderTick() override;
             void SetSimulationJobPolicy(RHI::JobPolicy jobPolicy) override;
@@ -119,6 +121,7 @@ namespace AZ
             MaterialSystem m_materialSystem;
             ModelSystem m_modelSystem;
             ShaderSystem m_shaderSystem;
+            PipelineStateBuildQueue m_pipelineStateBuildQueue;
             BufferSystem m_bufferSystem;
             ImageSystem m_imageSystem;
             PassSystem m_passSystem;

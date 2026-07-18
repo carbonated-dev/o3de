@@ -21,6 +21,8 @@ namespace AZ
 {
     namespace RPI
     {
+        class PipelineStateBuildQueue;
+
         //! Interface of RPISystem, which is the main entry point for the Atom renderer.
         class RPISystemInterface
         {
@@ -72,6 +74,9 @@ namespace AZ
             virtual RHI::Ptr<RHI::ShaderResourceGroupLayout> GetSceneSrgLayout() const = 0;
 
             virtual RHI::Ptr<RHI::ShaderResourceGroupLayout> GetViewSrgLayout() const = 0;
+
+            //! Returns the single worker queue used for asynchronous pipeline-state creation.
+            virtual PipelineStateBuildQueue* GetPipelineStateBuildQueue() = 0;
             
             //! Tick for graphics simulation that runs on the CPU. 
             //! This will drive FeatureProcessor simulation activity. It should be called once per game-tick.

@@ -11,6 +11,7 @@
 #include <Atom/RHI/PipelineLibrary.h>
 #include <Atom/RHI/PipelineState.h>
 #include <AzCore/Memory/SystemAllocator.h>
+#include <AzCore/std/functional.h>
 
 namespace UnitTest
 {
@@ -36,10 +37,14 @@ namespace UnitTest
     public:
         AZ_CLASS_ALLOCATOR(PipelineState, AZ::SystemAllocator);
 
+        static void SetCompileCallback(AZStd::function<void()> compileCallback);
+
     private:
         AZ::RHI::ResultCode InitInternal(AZ::RHI::Device&, const AZ::RHI::PipelineStateDescriptorForDraw&, AZ::RHI::PipelineLibrary*) override;
         AZ::RHI::ResultCode InitInternal(AZ::RHI::Device&, const AZ::RHI::PipelineStateDescriptorForDispatch&, AZ::RHI::PipelineLibrary*) override;
         AZ::RHI::ResultCode InitInternal(AZ::RHI::Device&, const AZ::RHI::PipelineStateDescriptorForRayTracing&, AZ::RHI::PipelineLibrary*) override;
         void ShutdownInternal() override {}
+
+        static AZStd::function<void()> s_compileCallback;
     };
 }
