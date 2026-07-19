@@ -62,6 +62,7 @@ namespace AZ
         {
             pageIterator m_begin;
             pageIterator m_end;
+            size_t m_size = 0;
         };
         using ParallelRanges = AZStd::vector<IteratorRange>;
         using Handle = StableDynamicArrayHandle<T>;
@@ -94,6 +95,12 @@ namespace AZ
          * expensive to create external to this class.
          */
         ParallelRanges GetParallelRanges();
+
+        /*
+         * Returns parallel ranges containing at most maxRangeSize occupied elements.
+         * A physical page may be divided into multiple logical ranges.
+         */
+        ParallelRanges GetParallelRanges(size_t maxRangeSize);
 
         /* 
         * If the memory associated with this handle can be moved to a more compact spot, it will be.

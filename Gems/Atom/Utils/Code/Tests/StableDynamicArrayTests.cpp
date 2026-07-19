@@ -9,6 +9,7 @@
 #include <AzCore/UnitTest/TestTypes.h>
 #include <AzCore/Memory/PoolAllocator.h>
 #include <AzCore/Component/ComponentApplication.h>
+#include <AzCore/std/algorithm.h>
 #include <Atom/Utils/StableDynamicArray.h>
 
 namespace UnitTest
@@ -493,7 +494,77 @@ namespace UnitTest
         handles.clear(); // cleanup remaining handles.
     }
 
+    TEST_F(StableDynamicArrayTests, BoundedParallelRangesVisitEveryOccupiedElementExactlyOnce)
+    {
+        using TestArray = AZ::StableDynamicArray<TestItem, 64>;
+        constexpr size_t ItemCount = 150;
+        constexpr size_t MaxRangeSize = 7;
 
+        TestArray testArray;
+        AZStd::vector<TestArray::Handle> testHandles;
+        testHandles.reserve(ItemCount);
+        for (uint32_t index = 0; index < ItemCount; ++index)
+        {
+            testHandles.push_back(testArray.emplace(index));
+        }
+
+        constexpr AZStd::array<size_t, 4> RemovedIndices = { 1, 2, 65, 130 };
+        for (size_t index : RemovedIndices)
+        {
+            testHandles[index].Free();
+        }
+
+        AZStd::array<uint32_t, ItemCount> visitCounts{};
+        size_t visitedItemCount = 0;
+        const auto ranges = testArray.GetParallelRanges(MaxRangeSize);
+        for (const TestArray::IteratorRange& range : ranges)
+        {
+            EXPECT_GT(range.m_size, 0);
+            EXPECT_LE(range.m_size, MaxRangeSize);
+
+            size_t rangeItemCount = 0;
+            for (auto iterator = range.m_begin;
+                 iterator != range.m_end;
+                 ++iterator)
+            {
+                ++visitCounts[iterator->index];
+                ++rangeItemCount;
+                ++visitedItemCount;
+            }
+            EXPECT_EQ(rangeItemCount, range.m_size);
+        }
+
+        EXPECT_EQ(visitedItemCount, ItemCount - RemovedIndices.size());
+        for (size_t index = 0; index < ItemCount; ++index)
+        {
+            const bool wasRemoved =
+                AZStd::find(
+                    RemovedIndices.begin(),
+                    RemovedIndices.end(),
+                    index) != RemovedIndices.end();
+            EXPECT_EQ(visitCounts[index], wasRemoved ? 0 : 1);
+        }
+    }
+
+    TEST_F(StableDynamicArrayTests, BoundedParallelRangesRespectPhysicalPageBoundaries)
+    {
+        using TestArray = AZ::StableDynamicArray<TestItem, 64>;
+        constexpr size_t ItemCount = 150;
+
+        TestArray testArray;
+        AZStd::vector<TestArray::Handle> testHandles;
+        testHandles.reserve(ItemCount);
+        for (uint32_t index = 0; index < ItemCount; ++index)
+        {
+            testHandles.push_back(testArray.emplace(index));
+        }
+
+        const auto ranges = testArray.GetParallelRanges(ItemCount);
+        ASSERT_EQ(ranges.size(), 3);
+        EXPECT_EQ(ranges[0].m_size, 64);
+        EXPECT_EQ(ranges[1].m_size, 64);
+        EXPECT_EQ(ranges[2].m_size, 22);
+    }
 
     // Fixture for testing handles and ensuring the correct number of objects are created, modified, and/or destroyed
     class StableDynamicArrayHandleTests

@@ -8,13 +8,18 @@
 
 #include <Atom/RPI.Public/PipelineStateBuildQueue.h>
 #include <Atom/RPI.Public/RPISystemInterface.h>
-#include <AzCore/Debug/Profiler.h>
 
 namespace AZ::RPI
 {
     PipelineStateBuildRequest::PipelineStateBuildRequest(
         PipelineStateBuildItemList pipelineStateBuildItems)
         : m_pipelineStateBuildItems(AZStd::move(pipelineStateBuildItems))
+    {
+    }
+
+    PipelineStateBuildRequest::PipelineStateBuildRequest(
+        PrepareFunction prepareFunction)
+        : m_prepareFunction(AZStd::move(prepareFunction))
     {
     }
 
@@ -112,11 +117,27 @@ namespace AZ::RPI
 
     void PipelineStateBuildRequest::BuildInternal(bool useAsyncCacheAcquire)
     {
-        AZ_PROFILE_SCOPE(
-            RPI,
-            "PipelineStateBuildRequest::Build Count=%zu Async=%d",
-            m_pipelineStateBuildItems.size(),
-            static_cast<int>(useAsyncCacheAcquire));
+        if (m_cancelRequested.load(AZStd::memory_order_acquire))
+        {
+            m_prepareFunction = {};
+            SetTerminalState(State::Cancelled);
+            return;
+        }
+
+        if (m_prepareFunction)
+        {
+            const bool preparationSucceeded =
+                m_prepareFunction(m_pipelineStateBuildItems);
+            m_prepareFunction = {};
+            if (!preparationSucceeded)
+            {
+                SetTerminalState(
+                    m_cancelRequested.load(AZStd::memory_order_acquire)
+                    ? State::Cancelled
+                    : State::Failed);
+                return;
+            }
+        }
 
         m_pipelineStates.clear();
         m_pipelineStates.reserve(m_pipelineStateBuildItems.size());
@@ -130,22 +151,12 @@ namespace AZ::RPI
                 return;
             }
 
-            const RHI::PipelineState* pipelineState = nullptr;
-            {
-                AZ_PROFILE_SCOPE(
-                    RPI,
-                    "PipelineStateBuildRequest::AcquirePipelineState Shader=%s PSOHash=0x%llx Async=%d",
-                    buildItem.m_shader->GetAsset()->GetName().GetCStr(),
-                    static_cast<unsigned long long>(
-                        static_cast<uint64_t>(buildItem.m_descriptor.GetHash())),
-                    static_cast<int>(useAsyncCacheAcquire));
-                pipelineState =
-                    useAsyncCacheAcquire
-                    ? buildItem.m_shader->AcquirePipelineStateAsync(
-                        buildItem.m_descriptor)
-                    : buildItem.m_shader->AcquirePipelineState(
-                        buildItem.m_descriptor);
-            }
+            const RHI::PipelineState* pipelineState =
+                useAsyncCacheAcquire
+                ? buildItem.m_shader->AcquirePipelineStateAsync(
+                    buildItem.m_descriptor)
+                : buildItem.m_shader->AcquirePipelineState(
+                    buildItem.m_descriptor);
             if (!pipelineState)
             {
                 AZ_Error(

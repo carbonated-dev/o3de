@@ -15,7 +15,7 @@
 #include <Atom/RHI/DrawPacketBuilder.h>
 #include <Atom/RHI/RHISystemInterface.h>
 #include <AzCore/Console/Console.h>
-#include <AzCore/Debug/Profiler.h>
+#include <AzCore/std/containers/array.h>
 #include <Atom/RPI.Public/Shader/ShaderReloadDebugTracker.h>
 
 #if defined(CARBONATED) && defined(CARBONATED_SHADER_LOADING_TIME)
@@ -270,7 +270,6 @@ namespace AZ
 
         bool MeshDrawPacket::DoUpdate(const Scene& parentScene)
         {
-            AZ_PROFILE_SCOPE(RPI, "MeshDrawPacket::DoUpdate Packet=%p", this);
             ShaderReloadDebugTracker::ScopedSection reloadSection("MeshDrawPacket::DoUpdate");
 
             DrawPacketBuiltRequestPtr drawPacketBuiltRequest =
@@ -288,13 +287,77 @@ namespace AZ
             const Scene& parentScene,
             bool useFallbackShaders)
         {
+            return CreateDrawPacketBuiltRequestInternal(
+                parentScene,
+                useFallbackShaders,
+                &m_drawSrgReuseData,
+                true);
+        }
+
+        MeshDrawPacket::DrawPacketBuiltRequestPtr
+        MeshDrawPacket::CreateDeferredDrawPacketBuiltRequest(
+            const Scene& parentScene)
+        {
+            AZStd::shared_ptr<MeshDrawPacket> packetSnapshot(
+                new MeshDrawPacket);
+            packetSnapshot->m_modelLod = m_modelLod;
+            packetSnapshot->m_modelLodMeshIndex = m_modelLodMeshIndex;
+            packetSnapshot->m_objectSrg = m_objectSrg;
+            packetSnapshot->m_material = m_material;
+            packetSnapshot->m_sortKey = m_sortKey;
+            packetSnapshot->m_stencilRef = m_stencilRef;
+            packetSnapshot->m_materialModelUvMap = m_materialModelUvMap;
+            packetSnapshot->m_shaderOptions = m_shaderOptions;
+            packetSnapshot->m_drawListFilter = m_drawListFilter;
+            packetSnapshot->m_drawSrgReuseData = m_drawSrgReuseData;
+
+            DrawPacketBuiltRequestPtr drawPacketBuiltRequest(
+                new DrawPacketBuiltRequest);
+            AZStd::weak_ptr<DrawPacketBuiltRequest> weakRequest =
+                drawPacketBuiltRequest;
+            const Scene* parentScenePtr = &parentScene;
+            drawPacketBuiltRequest->m_pipelineStateBuildRequest =
+                PipelineStateBuildRequestPtr(
+                    new PipelineStateBuildRequest(
+                        [packetSnapshot, weakRequest, parentScenePtr](
+                            PipelineStateBuildItemList&
+                                pipelineStateBuildItems)
+                        {
+                            DrawPacketBuiltRequestPtr request =
+                                weakRequest.lock();
+                            if (!request)
+                            {
+                                return false;
+                            }
+
+                            return packetSnapshot
+                                ->PreparePipelineStateBuildItems(
+                                    *parentScenePtr,
+                                    false,
+                                    pipelineStateBuildItems,
+                                    request->m_drawPacketBuildData,
+                                    &packetSnapshot->m_drawSrgReuseData,
+                                    false);
+                        }));
+            return drawPacketBuiltRequest;
+        }
+
+        MeshDrawPacket::DrawPacketBuiltRequestPtr MeshDrawPacket::CreateDrawPacketBuiltRequestInternal(
+            const Scene& parentScene,
+            bool useFallbackShaders,
+            const DrawSrgReuseDataList* drawSrgSourceData,
+            bool updateReusedDrawSrgs)
+        {
             DrawPacketBuiltRequestPtr drawPacketBuiltRequest(new DrawPacketBuiltRequest);
+            drawPacketBuiltRequest->m_useFallbackShaders = useFallbackShaders;
             PipelineStateBuildItemList pipelineStateBuildItems;
             if (!PreparePipelineStateBuildItems(
                     parentScene,
                     useFallbackShaders,
                     pipelineStateBuildItems,
-                    drawPacketBuiltRequest->m_drawPacketBuildData))
+                    drawPacketBuiltRequest->m_drawPacketBuildData,
+                    drawSrgSourceData,
+                    updateReusedDrawSrgs))
             {
                 return nullptr;
             }
@@ -320,7 +383,8 @@ namespace AZ
             return BuildDrawPacket(
                 AZStd::move(drawPacketBuiltRequest->m_drawPacketBuildData),
                 AZStd::move(pipelineStateBuildItems),
-                drawPacketBuiltRequest->m_pipelineStateBuildRequest->GetPipelineStates());
+                drawPacketBuiltRequest->m_pipelineStateBuildRequest->GetPipelineStates(),
+                drawPacketBuiltRequest->m_useFallbackShaders);
         }
 
         MeshDrawPacket::DrawPacketBuiltRequest::~DrawPacketBuiltRequest()
@@ -341,14 +405,10 @@ namespace AZ
             const Scene& parentScene,
             bool useFallbackShaders,
             PipelineStateBuildItemList& pipelineStateBuildItems,
-            DrawPacketBuildData& drawPacketBuildData)
+            DrawPacketBuildData& drawPacketBuildData,
+            const DrawSrgReuseDataList* drawSrgSourceData,
+            bool updateReusedDrawSrgs)
         {
-            AZ_PROFILE_SCOPE(
-                RPI,
-                "MeshDrawPacket::PreparePipelineStateBuildItems Packet=%p Fallback=%d",
-                this,
-                static_cast<int>(useFallbackShaders));
-
             const ModelLod::Mesh& mesh = GetMesh();
 
             if (!m_material)
@@ -365,6 +425,7 @@ namespace AZ
             drawPacketBuildData.m_objectSrg = m_objectSrg->GetRHIShaderResourceGroup();
             drawPacketBuildData.m_materialSrg = m_material->GetRHIShaderResourceGroup();
 
+            AZStd::array<bool, RHI::DrawPacketBuilder::DrawItemCountMax> drawSrgSourceDataUsed{};
             auto appendShader = [&](const ShaderCollection::Item& shaderItem, const Name& materialPipelineName) -> bool
             {
 #if defined(CARBONATED)
@@ -497,21 +558,68 @@ namespace AZ
                     return false;
                 }
 
-                const Name& shaderName = shader->GetAsset()->GetName();
-                const Name& supervariantName =
-                    shader->GetAsset()->GetSupervariantName(shader->GetSupervariantIndex());
-
                 Data::Instance<ShaderResourceGroup> drawSrg;
+                bool drawSrgReused = false;
+                if (drawSrgSourceData)
                 {
-                    AZ_PROFILE_SCOPE(
-                        RPI,
-                        "MeshDrawPacket::CreateDrawSrg Shader=%s Supervariant=%s",
-                        shaderName.GetCStr(),
-                        supervariantName.GetCStr());
+                    const RHI::Ptr<RHI::ShaderResourceGroupLayout>&
+                        targetDrawSrgLayout =
+                            shader->GetAsset()->GetDrawSrgLayout(
+                                shader->GetSupervariantIndex());
+
+                    for (size_t sourceIndex = 0;
+                         sourceIndex < drawSrgSourceData->size();
+                         ++sourceIndex)
+                    {
+                        if (drawSrgSourceDataUsed[sourceIndex])
+                        {
+                            continue;
+                        }
+
+                        const DrawSrgReuseData& sourceDrawSrgData =
+                            (*drawSrgSourceData)[sourceIndex];
+                        const RHI::ShaderResourceGroupLayout* sourceDrawSrgLayout =
+                            sourceDrawSrgData.m_drawSrg
+                            ? sourceDrawSrgData.m_drawSrg->GetLayout()
+                            : nullptr;
+
+                        const bool drawItemsMatch =
+                            sourceDrawSrgData.m_shaderAssetId ==
+                                shaderItem.GetShaderAsset().GetId() &&
+                            sourceDrawSrgData.m_materialPipelineName ==
+                                materialPipelineName &&
+                            sourceDrawSrgData.m_shaderTag ==
+                                shaderItem.GetShaderTag() &&
+                            sourceDrawSrgData.m_drawListTag == drawListTag;
+                        const bool drawSrgLayoutsMatch =
+                            (!sourceDrawSrgLayout && !targetDrawSrgLayout) ||
+                            (sourceDrawSrgLayout && targetDrawSrgLayout &&
+                             sourceDrawSrgLayout->GetHash() ==
+                                 targetDrawSrgLayout->GetHash());
+
+                        if (drawItemsMatch && drawSrgLayoutsMatch)
+                        {
+                            drawSrg = sourceDrawSrgData.m_drawSrg;
+                            drawSrgSourceDataUsed[sourceIndex] = true;
+                            drawSrgReused = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!drawSrgReused)
+                {
                     drawSrg = shader->CreateDrawSrgForShaderVariant(shaderOptions, false);
                 }
-                if (drawSrg)
+                if (drawSrg && (!drawSrgReused || updateReusedDrawSrgs))
                 {
+                    if (drawSrgReused &&
+                        drawSrg->HasShaderVariantKeyFallbackEntry())
+                    {
+                        drawSrg->SetShaderVariantKeyFallbackValue(
+                            shaderOptions.GetShaderVariantKeyFallbackValue());
+                    }
+
                     // Pass UvStreamTangentBitmask to the shader if the draw SRG has it.
 
                     AZ::Name shaderUvStreamTangentBitmask = AZ::Name(UvStreamTangentBitmask::SrgName);
@@ -522,12 +630,8 @@ namespace AZ
                         drawSrg->SetConstant(index, uvStreamTangentBitmask.GetFullTangentBitmask());
                     }
 
+                    if (!drawSrg->IsQueuedForCompile())
                     {
-                        AZ_PROFILE_SCOPE(
-                            RPI,
-                            "MeshDrawPacket::CompileDrawSrg Shader=%s Supervariant=%s",
-                            shaderName.GetCStr(),
-                            supervariantName.GetCStr());
                         drawSrg->Compile();
                     }
                 }
@@ -570,6 +674,14 @@ namespace AZ
                 drawItemBuildData.m_stencilRef |= shaderItem.GetStencilRefOverride();
 #endif
 
+                DrawSrgReuseData drawSrgReuseData;
+                drawSrgReuseData.m_shaderAssetId =
+                    shaderItem.GetShaderAsset().GetId();
+                drawSrgReuseData.m_materialPipelineName = materialPipelineName;
+                drawSrgReuseData.m_shaderTag = shaderItem.GetShaderTag();
+                drawSrgReuseData.m_drawListTag = drawListTag;
+                drawSrgReuseData.m_drawSrg = drawItemBuildData.m_drawSrg;
+
                 if (materialPipelineName != MaterialPipelineNone)
                 {
                     RHI::DrawFilterTag pipelineTag = parentScene.GetDrawFilterTagRegistry()->AcquireTag(materialPipelineName);
@@ -582,6 +694,7 @@ namespace AZ
                 pipelineStateBuildItem.m_descriptor = AZStd::move(pipelineStateDescriptor);
 
                 drawPacketBuildData.m_drawItems.emplace_back(AZStd::move(drawItemBuildData));
+                drawPacketBuildData.m_drawSrgReuseData.emplace_back(AZStd::move(drawSrgReuseData));
                 pipelineStateBuildItems.emplace_back(AZStd::move(pipelineStateBuildItem));
                 return true;
             };
@@ -633,14 +746,9 @@ namespace AZ
         bool MeshDrawPacket::BuildDrawPacket(
             DrawPacketBuildData&& drawPacketBuildData,
             PipelineStateBuildItemList&& pipelineStateBuildItems,
-            AZStd::span<const RHI::ConstPtr<RHI::PipelineState>> pipelineStates)
+            AZStd::span<const RHI::ConstPtr<RHI::PipelineState>> pipelineStates,
+            bool useFallbackShaders)
         {
-            AZ_PROFILE_SCOPE(
-                RPI,
-                "MeshDrawPacket::BuildDrawPacket Packet=%p DrawItems=%zu",
-                this,
-                drawPacketBuildData.m_drawItems.size());
-
             if (drawPacketBuildData.m_drawItems.size() != pipelineStateBuildItems.size() ||
                 pipelineStateBuildItems.size() != pipelineStates.size())
             {
@@ -653,9 +761,13 @@ namespace AZ
                 // An empty item list is a valid result when every material shader item is
                 // disabled or filtered out. Publish an empty packet state and release resources
                 // retained by the previously renderable packet.
+                if (useFallbackShaders)
+                {
+                    m_retainedFallbackShaders.clear();
+                }
                 m_drawPacket = nullptr;
                 m_activeShaders.clear();
-                m_perDrawSrgs.clear();
+                m_drawSrgReuseData.clear();
                 m_materialSrg = nullptr;
                 m_rootConstantsLayout = nullptr;
 #ifdef DEBUG_MESH_SHADERVARIANTS
@@ -702,6 +814,17 @@ namespace AZ
                 return false;
             }
 
+            if (useFallbackShaders)
+            {
+                AZStd::fixed_vector<Data::Instance<Shader>, RHI::DrawPacketBuilder::DrawItemCountMax>
+                    retainedFallbackShaders;
+                for (const PipelineStateBuildItem& pipelineStateBuildItem : pipelineStateBuildItems)
+                {
+                    retainedFallbackShaders.emplace_back(pipelineStateBuildItem.m_shader);
+                }
+                m_retainedFallbackShaders = AZStd::move(retainedFallbackShaders);
+            }
+
             ShaderList shaderList;
             shaderList.reserve(pipelineStateBuildItems.size());
             for (size_t index = 0; index < pipelineStateBuildItems.size(); ++index)
@@ -719,17 +842,9 @@ namespace AZ
                 shaderList.emplace_back(AZStd::move(shaderData));
             }
 
-            m_perDrawSrgs.clear();
-            for (DrawItemBuildData& drawItemBuildData : drawPacketBuildData.m_drawItems)
-            {
-                if (drawItemBuildData.m_drawSrg)
-                {
-                    m_perDrawSrgs.emplace_back(AZStd::move(drawItemBuildData.m_drawSrg));
-                }
-            }
-
             m_drawPacket = AZStd::move(drawPacket);
             m_activeShaders = AZStd::move(shaderList);
+            m_drawSrgReuseData = AZStd::move(drawPacketBuildData.m_drawSrgReuseData);
             m_materialSrg = AZStd::move(drawPacketBuildData.m_materialSrg);
             m_rootConstantsLayout = AZStd::move(drawPacketBuildData.m_rootConstantsLayout);
 #ifdef DEBUG_MESH_SHADERVARIANTS

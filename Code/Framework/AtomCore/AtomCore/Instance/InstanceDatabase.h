@@ -27,6 +27,12 @@ namespace AZ
 {
     namespace Data
     {
+        enum class InstanceCreationPolicy
+        {
+            Serialized,
+            Concurrent
+        };
+
         /**
          * Provides create and delete functions for a specific InstanceData type, for use by @ref InstanceDatabase
          */
@@ -44,7 +50,8 @@ namespace AZ
              *  - The concrete instance type may have a non-standard initialization path.
              *  - The user may wish to encode global context into the functor (an RHI device, for example).
              *
-             *  PERFORMANCE NOTE: Creation is currently done under a lock. Initialization should be quick.
+             * PERFORMANCE NOTE: Creation is serialized by default. Initialization should be quick. Types whose
+             * creation callbacks and dependencies are thread-safe may opt in to concurrent creation.
              */
             using CreateFunction = AZStd::function<Instance<Type>(AssetData*)>;
 
@@ -67,6 +74,10 @@ namespace AZ
 
             /// [Optional] The function to use when deleting an instance.
             DeleteFunction m_deleteFunction = [](Type* t) { delete t; };
+
+            //! Controls whether creation callbacks for this instance type may run concurrently.
+            //! Concurrent creation should only be enabled when the callback and all resources it uses are thread-safe.
+            InstanceCreationPolicy m_creationPolicy = InstanceCreationPolicy::Serialized;
         };
 
         //! This class exists to allow InstanceData to access parts of InstanceDatabase without having
@@ -247,10 +258,8 @@ namespace AZ
             mutable AZStd::recursive_mutex m_databaseMutex;
             AZStd::unordered_map<InstanceId, Type*> m_database;
 
-            // There are several classes in Atom, like ShaderResourceGroup, that are not threadsafe
-            // because they share the same ShaderResourceGroupPool, so it is important that for each
-            // InstanceType there's a mutex that prevents several of those classes from being instantiated
-            // simultaneously.
+            // Instance creation is serialized by default because some instance types use shared resources
+            // that are not thread-safe. Instance handlers with thread-safe creation dependencies may opt out.
             AZStd::recursive_mutex m_instanceCreationMutex;
 
             // All instances created by this InstanceDatabase will be for assets derived from this type.
@@ -396,16 +405,23 @@ namespace AZ
             // the contents of m_database may change within this call.
             Data::Instance<Type> instance = nullptr;
 
+            const auto createInstance = [this, &asset, param]()
             {
-                AZStd::scoped_lock<decltype(m_instanceCreationMutex)> lock(m_instanceCreationMutex);
                 if (!param)
                 {
-                    instance = m_instanceHandler.m_createFunction(asset.Get());
+                    return m_instanceHandler.m_createFunction(asset.Get());
                 }
-                else
-                {
-                    instance = m_instanceHandler.m_createFunctionWithParam(asset.Get(), param);
-                }
+                return m_instanceHandler.m_createFunctionWithParam(asset.Get(), param);
+            };
+
+            if (m_instanceHandler.m_creationPolicy == InstanceCreationPolicy::Concurrent)
+            {
+                instance = createInstance();
+            }
+            else
+            {
+                AZStd::scoped_lock<decltype(m_instanceCreationMutex)> lock(m_instanceCreationMutex);
+                instance = createInstance();
             }
 
             // Lock the database. There's still a chance that the same instance was created in parallel.
@@ -438,37 +454,40 @@ namespace AZ
         template<typename Type>
         void InstanceDatabase<Type>::ReleaseInstance(InstanceData* instance)
         {
-            AZStd::scoped_lock<AZStd::recursive_mutex> lock(m_databaseMutex);
-            
-            const int prevUseCount = instance->m_useCount.fetch_sub(1);
-            AZ_Assert(prevUseCount >= 1, "m_useCount is negative");
-            if (prevUseCount > 1)
             {
-                // This instance is still being used.
-                return;
+                AZStd::scoped_lock<AZStd::recursive_mutex> lock(m_databaseMutex);
+
+                const int prevUseCount = instance->m_useCount.fetch_sub(1);
+                AZ_Assert(prevUseCount >= 1, "m_useCount is negative");
+                if (prevUseCount > 1)
+                {
+                    // This instance is still being used.
+                    return;
+                }
+
+                // If instanceId doesn't exist in m_database that means the instance was already deleted on another thread.
+                // We check and make sure the pointers match before erasing, just in case some other InstanceData was created with the same ID.
+                // We re-check the m_useCount in case some other thread requested an instance from the database after we decremented m_useCount.
+                // We change m_useCount to -1 to be sure another thread doesn't try to clean up the instance (though the other checks
+                // probably cover that).
+                auto instanceId = instance->GetId();
+                auto instanceItr = m_database.find(instanceId);
+                int32_t expectedRefCount = 0;
+                if (instanceItr != m_database.end() &&
+                    instanceItr->second == instance &&
+                    instance->m_useCount.compare_exchange_strong(expectedRefCount, -1))
+                {
+                    m_database.erase(instanceId);
+                }
+                else if (!(instance->m_isOrphaned && instance->m_useCount.compare_exchange_strong(expectedRefCount, -1)))
+                {
+                    return;
+                }
             }
-        
-            // If instanceId doesn't exist in m_database that means the instance was already deleted on another thread.
-            // We check and make sure the pointers match before erasing, just in case some other InstanceData was created with the same ID.
-            // We re-check the m_useCount in case some other thread requested an instance from the database after we decremented m_useCount.
-            // We change m_useCount to -1 to be sure another thread doesn't try to clean up the instance (though the other checks
-            // probably cover that).
-            auto instanceId = instance->GetId();
-            auto instanceItr = m_database.find(instanceId);
-            int32_t expectedRefCount = 0;
-            if (instanceItr != m_database.end() &&
-                instanceItr->second == instance &&
-                instance->m_useCount.compare_exchange_strong(expectedRefCount, -1))
-            {
-                m_database.erase(instanceId);
-                m_instanceHandler.m_deleteFunction(static_cast<Type*>(instance));
-            }
-            else if (instance->m_isOrphaned && instance->m_useCount.compare_exchange_strong(expectedRefCount, -1))
-            {
-                // If the instance was orphaned, it has already been removed from the database,
-                // but still needs to be deleted when the refcount drops to 0
-                m_instanceHandler.m_deleteFunction(static_cast<Type*>(instance));
-            }
+
+            // Destruction may release other instances or perform expensive platform resource cleanup.
+            // Keep it outside m_databaseMutex so unrelated database operations are not serialized behind it.
+            m_instanceHandler.m_deleteFunction(static_cast<Type*>(instance));
         }
 
         template<typename Type>

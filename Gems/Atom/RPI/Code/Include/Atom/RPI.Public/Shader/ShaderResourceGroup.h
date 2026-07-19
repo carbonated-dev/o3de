@@ -50,6 +50,7 @@ namespace AZ
             : public AZ::Data::InstanceData
         {
             friend class ShaderSystem;
+            friend class Shader;
             friend class ShaderResourceGroupPool;
 
         public:
@@ -340,8 +341,16 @@ namespace AZ
             static Data::InstanceId MakeSrgPoolInstanceId(const Data::Asset<ShaderAsset>& shaderAsset, const SupervariantIndex& supervariantIndex, const AZ::Name& srgName);
 
             RHI::ResultCode Init(ShaderAsset& shaderAsset, const SupervariantIndex& supervariantIndex, const AZ::Name& srgName);
+            RHI::ResultCode Init(
+                ShaderAsset& shaderAsset,
+                const RHI::Ptr<RHI::ShaderResourceGroupLayout>& layout,
+                const Data::Instance<ShaderResourceGroupPool>& pool);
 
             static AZ::Data::Instance<ShaderResourceGroup> CreateInternal(ShaderAsset& shaderAsset, const AZStd::any* srgInitParams);
+            static AZ::Data::Instance<ShaderResourceGroup> CreateTransient(
+                ShaderAsset& shaderAsset,
+                const RHI::Ptr<RHI::ShaderResourceGroupLayout>& layout,
+                const Data::Instance<ShaderResourceGroupPool>& pool);
 
             /// A name to be used in error messages
             static const char* s_traceCategoryName;

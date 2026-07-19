@@ -53,5 +53,11 @@ namespace AZ
         {
             return m_instanceData.GetParallelRanges();
         }
+
+        auto MeshInstanceManager::GetParallelRanges(
+            size_t maxRangeSize) -> ParallelRanges
+        {
+            return m_instanceData.GetParallelRanges(maxRangeSize);
+        }
     } // namespace Render
 } // namespace AZ

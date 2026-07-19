@@ -121,6 +121,9 @@ namespace AZ::Render
         // Returns parallel ranges for the underlying instance group data. Each range corresponds to a page of data.
         ParallelRanges GetParallelRanges();
 
+        // Returns parallel ranges containing at most maxRangeSize instance groups.
+        ParallelRanges GetParallelRanges(size_t maxRangeSize);
+
         // Direct access via handle is thread safe while adding and removing other instance groups
         MeshInstanceGroupData& operator[](WeakHandle handle);
         const MeshInstanceGroupData& operator[](WeakHandle handle) const;

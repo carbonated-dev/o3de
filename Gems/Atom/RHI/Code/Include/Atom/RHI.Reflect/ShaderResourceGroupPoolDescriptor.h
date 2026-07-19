@@ -36,6 +36,10 @@ namespace AZ::RHI
         /// [Not Serialized] The resource group layout shared by all resource groups in the pool.
         RHI::ConstPtr<ShaderResourceGroupLayout> m_layout;
 
+        /// [Not Serialized] Allows an RHI backend to use independent allocation lanes when
+        /// resource groups from this pool are created concurrently.
+        bool m_enableConcurrentAllocation = false;
+
         /// The usage type used to update resource groups.
         ShaderResourceGroupUsage m_usage = ShaderResourceGroupUsage::Persistent;
     };

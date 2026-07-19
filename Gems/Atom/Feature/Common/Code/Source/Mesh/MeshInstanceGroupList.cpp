@@ -171,6 +171,12 @@ namespace AZ::Render
         return m_instanceGroupData.GetParallelRanges();
     }
 
+    auto MeshInstanceGroupList::GetParallelRanges(
+        size_t maxRangeSize) -> ParallelRanges
+    {
+        return m_instanceGroupData.GetParallelRanges(maxRangeSize);
+    }
+
     MeshInstanceGroupData& MeshInstanceGroupList::operator[](WeakHandle handle)
     {
         return *handle;

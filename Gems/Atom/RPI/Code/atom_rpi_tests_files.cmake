@@ -39,6 +39,7 @@ set(FILES
     Tests/Material/MaterialTests.cpp
     Tests/Model/ModelTests.cpp
     Tests/Model/SkinJointIdPaddingTests.cpp
+    Tests/PipelineStateBuildQueueTests.cpp
     Tests/Pass/PassTests.cpp
     Tests/Shader/ShaderTests.cpp
     Tests/ShaderResourceGroup/ShaderResourceGroupBufferTests.cpp

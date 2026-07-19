@@ -97,6 +97,13 @@ namespace AZ
             return m_memoryView.GetAllocation()->Unmap(m_memoryView.GetOffset() + offset, hostAccess);
         }
 
+        void BufferMemory::Flush(size_t offset, size_t size)
+        {
+            m_memoryView.GetAllocation()->Flush(
+                m_memoryView.GetOffset() + offset,
+                size);
+        }
+
         const VkBuffer BufferMemory::GetNativeBuffer()
         {
             return m_vkBuffer;

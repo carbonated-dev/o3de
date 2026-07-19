@@ -9,10 +9,13 @@
 
 #include <Atom/RHI/DeviceObject.h>
 #include <Atom/RHI/ObjectCollector.h>
+#include <Atom/RHI.Reflect/Limits.h>
 #include <AzCore/Memory/PoolAllocator.h>
+#include <AzCore/std/containers/fixed_vector.h>
 #include <AzCore/std/containers/vector.h>
 #include <AzCore/std/containers/unordered_map.h>
 #include <AzCore/std/parallel/mutex.h>
+#include <AzCore/std/smart_ptr/shared_ptr.h>
 #include <RHI/DescriptorSet.h>
 #include <RHI/ReleaseQueue.h>
 
@@ -28,6 +31,7 @@ namespace AZ
         class Device;
         class DescriptorSetLayout;
         class BufferPool;
+        class ConstantDataAllocator;
         namespace Internal
         {
             class DescriptorPoolFactory;
@@ -51,15 +55,25 @@ namespace AZ
                 AZStd::vector<VkDescriptorPoolSize> m_descriptorPoolSizes;
                 uint32_t m_maxSets = 0;
                 uint32_t m_collectLatency = 0;
-                BufferPool* m_constantDataPool = nullptr;
+                uint32_t m_allocatorLaneIndex = 0;
+                AZStd::shared_ptr<ConstantDataAllocator> m_constantDataAllocator;
                 bool m_updateAfterBind = false;
             };
 
             ~DescriptorPool();
 
             using AllocResult = AZStd::pair<VkResult, RHI::Ptr<ObjectType>>;
+            using DescriptorSetList =
+                AZStd::fixed_vector<
+                    RHI::Ptr<ObjectType>,
+                    RHI::Limits::Device::FrameCountMax>;
+            using BatchAllocResult =
+                AZStd::pair<VkResult, DescriptorSetList>;
 
             AllocResult Allocate(const DescriptorSetLayout& descriptorSetLayout);
+            BatchAllocResult AllocateBatch(
+                const DescriptorSetLayout& descriptorSetLayout,
+                uint32_t count);
             void DeAllocate(RHI::Ptr<ObjectType> object);
             const Descriptor& GetDescriptor() const;
             VkDescriptorPool GetNativeDescriptorPool() const;
@@ -67,6 +81,8 @@ namespace AZ
             // Return the total number of objects in the pool. This include the pool objects +
             // the ones queued for deletion.
             size_t GetTotalObjectCount() const;
+            size_t GetActiveObjectCount() const;
+            size_t GetPendingObjectCount() const;
             void Collect();
 
         private:

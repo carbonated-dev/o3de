@@ -16,6 +16,7 @@
 #include <AzCore/std/containers/span.h>
 #include <AzCore/Memory/PoolAllocator.h>
 #include <RHI/Buffer.h>
+#include <RHI/ConstantDataAllocator.h>
 
 namespace AZ
 {
@@ -54,7 +55,10 @@ namespace AZ
             ~DescriptorSet() = default;
 
             static RHI::Ptr<DescriptorSet> Create();
-            VkResult Init(const Descriptor& descriptor);
+            VkResult Init(
+                const Descriptor& descriptor,
+                VkDescriptorSet nativeDescriptorSet = VK_NULL_HANDLE);
+            bool InitConstantData(ConstantDataAllocator::Allocation allocation);
             const Descriptor& GetDescriptor() const;
             VkDescriptorSet GetNativeDescriptorSet() const;
 
@@ -103,7 +107,7 @@ namespace AZ
 
             VkDescriptorSet m_nativeDescriptorSet = VK_NULL_HANDLE;
             AZStd::vector<WriteDescriptorData> m_updateData;
-            RHI::Ptr<Buffer> m_constantDataBuffer;
+            ConstantDataAllocator::Allocation m_constantDataAllocation;
             RHI::Ptr<BufferView> m_constantDataBufferView;
             bool m_nullDescriptorSupported = false;
             uint32_t m_currentUnboundedArrayAllocation = 0;

@@ -6,7 +6,6 @@
  *
  */
 #include <AzCore/std/algorithm.h>
-#include <AzCore/Debug/Profiler.h>
 #include <Atom/RHI.Reflect/RenderStates.h>
 #include <Atom/RHI.Reflect/InputStreamLayout.h>
 #include <Atom/RHI.Reflect/Vulkan/Conversion.h>
@@ -107,14 +106,6 @@ namespace AZ
 
             const VkPipelineCache pipelineCache = descriptor.m_pipelineLibrary ? descriptor.m_pipelineLibrary->GetNativePipelineCache() : VK_NULL_HANDLE;
 
-            AZ_PROFILE_SCOPE(
-                RHI,
-                "Vulkan::vkCreateGraphicsPipelines PSOHash=0x%llx PipelineLibrary=%p PipelineCache=0x%llx",
-                static_cast<unsigned long long>(
-                    static_cast<uint64_t>(drawDescriptor.GetHash())),
-                descriptor.m_pipelineLibrary,
-                static_cast<unsigned long long>(
-                    reinterpret_cast<uintptr_t>(pipelineCache)));
             const VkResult vkResult = descriptor.m_device->GetContext().CreateGraphicsPipelines(
                 descriptor.m_device->GetNativeDevice(), pipelineCache, 1, &createInfo, VkSystemAllocator::Get(), &GetNativePipelineRef());
 

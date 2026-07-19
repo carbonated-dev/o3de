@@ -7,7 +7,6 @@
  */
 #include <Atom/RHI.Reflect/ShaderResourceGroupLayoutDescriptor.h>
 #include <Atom/RHI.Reflect/ShaderResourceGroupLayout.h>
-#include <AzCore/Debug/Profiler.h>
 #include <AzCore/Utils/TypeHash.h>
 #include <AzCore/std/parallel/lock.h>
 #include <Atom/RHI.Reflect/Vulkan/Conversion.h>
@@ -84,12 +83,6 @@ namespace AZ
 
         RHI::ResultCode DescriptorPool::BuildNativeDescriptorPool()
         {
-            AZ_PROFILE_SCOPE(
-                RHI,
-                "Vulkan::DescriptorPool::BuildNativeDescriptorPool Pool=%p MaxSets=%u",
-                this,
-                m_descriptor.m_maxSets);
-
             AZ_Assert(m_descriptor.m_maxSets > 0, "Maximum number of descriptor sets is zero.");
             VkDescriptorPoolCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -105,16 +98,8 @@ namespace AZ
             }
 
             auto& device = static_cast<Device&>(GetDevice());
-            VkResult result;
-            {
-                AZ_PROFILE_SCOPE(
-                    RHI,
-                    "Vulkan::vkCreateDescriptorPool MaxSets=%u PoolSizes=%u",
-                    createInfo.maxSets,
-                    createInfo.poolSizeCount);
-                result = device.GetContext().CreateDescriptorPool(
-                    device.GetNativeDevice(), &createInfo, VkSystemAllocator::Get(), &m_nativeDescriptorPool);
-            }
+            VkResult result = device.GetContext().CreateDescriptorPool(
+                device.GetNativeDevice(), &createInfo, VkSystemAllocator::Get(), &m_nativeDescriptorPool);
             AssertSuccess(result);
 
             return ConvertResult(result);
@@ -127,7 +112,17 @@ namespace AZ
 
         size_t DescriptorPool::GetTotalObjectCount() const
         {
-            return m_objects.size() + m_collector.GetObjectCount();
+            return GetActiveObjectCount() + GetPendingObjectCount();
+        }
+
+        size_t DescriptorPool::GetActiveObjectCount() const
+        {
+            return m_objects.size();
+        }
+
+        size_t DescriptorPool::GetPendingObjectCount() const
+        {
+            return m_collector.GetObjectCount();
         }
 
         VkDescriptorPool DescriptorPool::GetNativeDescriptorPool() const
@@ -137,36 +132,141 @@ namespace AZ
 
         DescriptorPool::AllocResult DescriptorPool::Allocate(const DescriptorSetLayout& descriptorSetLayout)
         {
-            AZ_PROFILE_SCOPE(
-                RHI,
-                "Vulkan::DescriptorPool::Allocate Pool=%p Layout=%p",
-                this,
-                &descriptorSetLayout);
-
-            RHI::Ptr<DescriptorSet> descriptorSets;
+            BatchAllocResult result =
+                AllocateBatch(descriptorSetLayout, 1);
+            RHI::Ptr<ObjectType> descriptorSet;
+            if (!result.second.empty())
             {
-                AZ_PROFILE_SCOPE(RHI, "Vulkan::DescriptorPool::Allocate::CreateObject");
-                descriptorSets = DescriptorSet::Create();
+                descriptorSet =
+                    AZStd::move(result.second.front());
             }
+            return AZStd::make_pair(
+                result.first,
+                AZStd::move(descriptorSet));
+        }
+
+        DescriptorPool::BatchAllocResult DescriptorPool::AllocateBatch(
+            const DescriptorSetLayout& descriptorSetLayout,
+            uint32_t count)
+        {
+            AZ_Assert(
+                count > 0 &&
+                    count <= RHI::Limits::Device::FrameCountMax,
+                "Invalid descriptor-set batch size.");
+            DescriptorSetList descriptorSets;
+            for (uint32_t descriptorSetIndex = 0;
+                 descriptorSetIndex < count;
+                 ++descriptorSetIndex)
+            {
+                descriptorSets.emplace_back(
+                    DescriptorSet::Create());
+            }
+
+            const bool hasUnboundedArray =
+                descriptorSetLayout.GetHasUnboundedArray();
+            AZStd::fixed_vector<
+                VkDescriptorSet,
+                RHI::Limits::Device::FrameCountMax>
+                nativeDescriptorSets;
+            if (!hasUnboundedArray)
+            {
+                AZStd::fixed_vector<
+                    VkDescriptorSetLayout,
+                    RHI::Limits::Device::FrameCountMax>
+                    nativeLayouts;
+                for (uint32_t descriptorSetIndex = 0;
+                     descriptorSetIndex < count;
+                     ++descriptorSetIndex)
+                {
+                    nativeLayouts.emplace_back(
+                        descriptorSetLayout.GetNativeDescriptorSetLayout());
+                    nativeDescriptorSets.emplace_back(
+                        VK_NULL_HANDLE);
+                }
+
+                VkDescriptorSetAllocateInfo allocInfo{};
+                allocInfo.sType =
+                    VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+                allocInfo.descriptorPool = m_nativeDescriptorPool;
+                allocInfo.descriptorSetCount = count;
+                allocInfo.pSetLayouts = nativeLayouts.data();
+
+                auto& device = static_cast<Device&>(GetDevice());
+                VkResult result = device.GetContext().AllocateDescriptorSets(
+                    device.GetNativeDevice(),
+                    &allocInfo,
+                    nativeDescriptorSets.data());
+                if (result == VK_ERROR_FRAGMENTED_POOL)
+                {
+                    AZ_Warning(
+                        "Vulkan RHI",
+                        false,
+                        "Fragmented pool, will be recreated in DescriptorSetAllocator afterward");
+                }
+                else
+                {
+                    AssertSuccess(result);
+                }
+
+                if (result != VK_SUCCESS)
+                {
+                    return AZStd::make_pair(
+                        result,
+                        DescriptorSetList{});
+                }
+            }
+
             DescriptorSet::Descriptor descSetDesc;
             descSetDesc.m_device = static_cast<Device*>(&GetDevice());
             descSetDesc.m_descriptorPool = this;
             descSetDesc.m_descriptorSetLayout = &descriptorSetLayout;
-            VkResult vkResult;
+
+            for (uint32_t descriptorSetIndex = 0;
+                 descriptorSetIndex < count;
+                 ++descriptorSetIndex)
             {
-                AZ_PROFILE_SCOPE(RHI, "Vulkan::DescriptorPool::Allocate::InitDescriptorSet");
-                vkResult = descriptorSets->Init(descSetDesc);
+                VkResult result = descriptorSets[descriptorSetIndex]->Init(
+                    descSetDesc,
+                    hasUnboundedArray
+                        ? VK_NULL_HANDLE
+                        : nativeDescriptorSets[descriptorSetIndex]);
+                if (result != VK_SUCCESS)
+                {
+                    for (uint32_t initializedIndex = 0;
+                         initializedIndex <= descriptorSetIndex;
+                         ++initializedIndex)
+                    {
+                        descriptorSets[initializedIndex]->Shutdown();
+                    }
+
+                    if (!hasUnboundedArray &&
+                        descriptorSetIndex + 1 < count)
+                    {
+                        auto& device =
+                            static_cast<Device&>(GetDevice());
+                        AssertSuccess(
+                            device.GetContext().FreeDescriptorSets(
+                                device.GetNativeDevice(),
+                                m_nativeDescriptorPool,
+                                count - descriptorSetIndex - 1,
+                                nativeDescriptorSets.data() +
+                                    descriptorSetIndex + 1));
+                    }
+
+                    return AZStd::make_pair(
+                        result,
+                        DescriptorSetList{});
+                }
             }
-            if (vkResult != VK_SUCCESS)
+
+            for (const RHI::Ptr<DescriptorSet>& descriptorSet :
+                 descriptorSets)
             {
-                return AZStd::make_pair(vkResult, nullptr);
+                m_objects.insert(descriptorSet);
             }
-            
-            {
-                AZ_PROFILE_SCOPE(RHI, "Vulkan::DescriptorPool::Allocate::TrackObject");
-                m_objects.insert(descriptorSets);
-            }
-            return AZStd::make_pair(vkResult, descriptorSets);
+            return AZStd::make_pair(
+                VK_SUCCESS,
+                AZStd::move(descriptorSets));
         }
 
         void DescriptorPool::DeAllocate(RHI::Ptr<ObjectType> object)

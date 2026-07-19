@@ -29,8 +29,12 @@ set(FILES
     Source/RHI/CommandQueue.h
     Source/RHI/CommandQueueContext.cpp
     Source/RHI/CommandQueueContext.h
+    Source/RHI/ConstantDataAllocator.cpp
+    Source/RHI/ConstantDataAllocator.h
     Source/RHI/DescriptorPool.cpp
     Source/RHI/DescriptorPool.h
+    Source/RHI/DescriptorPoolState.cpp
+    Source/RHI/DescriptorPoolState.h
     Source/RHI/DescriptorSet.cpp
     Source/RHI/DescriptorSet.h
     Source/RHI/DescriptorSetLayout.cpp

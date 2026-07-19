@@ -7,13 +7,18 @@
  */
 #pragma once
 
-#include <AzCore/std/containers/list.h>
 #include <AzCore/std/parallel/mutex.h>
+#include <AzCore/std/parallel/atomic.h>
 #include <Atom/RHI/Object.h>
 #include <Atom/RHI/ObjectPool.h>
 #include <Atom/RHI.Reflect/Limits.h>
+#include <AzCore/std/containers/fixed_vector.h>
 #include <AzCore/std/containers/unordered_map.h>
+#include <AzCore/std/containers/vector.h>
+#include <AzCore/std/smart_ptr/unique_ptr.h>
+#include <AzCore/std/smart_ptr/shared_ptr.h>
 #include <RHI/DescriptorPool.h>
+#include <RHI/DescriptorPoolState.h>
 #include <RHI/DescriptorSet.h>
 
 namespace AZ
@@ -21,6 +26,19 @@ namespace AZ
     namespace Vulkan
     {
         class Device;
+        class ConstantDataAllocator;
+
+        struct DescriptorSetAllocatorStatistics
+        {
+            uint64_t m_allocationCount = 0;
+            uint64_t m_poolAttemptCount = 0;
+            uint64_t m_poolAcquireCount = 0;
+            size_t m_totalPoolCount = 0;
+            size_t m_availablePoolCount = 0;
+            size_t m_fullPoolCount = 0;
+            size_t m_pendingCollectPoolCount = 0;
+            bool m_hasCurrentPool = false;
+        };
 
         namespace Internal
         {
@@ -67,15 +85,22 @@ namespace AZ
                 void Init(DescriptorPoolAllocator& descriptorPoolAllocator, Device& device, const DescriptorPool::Descriptor& poolDescriptor);
 
                 RHI::Ptr<ObjectType> Allocate(DescriptorSetLayout& layout);
+                DescriptorPool::DescriptorSetList AllocateBatch(
+                    DescriptorSetLayout& layout,
+                    uint32_t count);
                 void DeAllocate(RHI::Ptr<ObjectType> descriptorSet);
                 void Reset();
                 void Collect();
+                DescriptorSetAllocatorStatistics GetStatistics() const;
 
             private:
                 Device* m_device;
                 DescriptorPoolAllocator* m_descriptorPoolAllocator = nullptr;
                 DescriptorPool::Descriptor m_poolDescriptor;
-                AZStd::list<DescriptorPool*> m_pools;
+                DescriptorPoolState m_poolState;
+                uint64_t m_allocationCount = 0;
+                uint64_t m_poolAttemptCount = 0;
+                uint64_t m_poolAcquireCount = 0;
             };
         }
 
@@ -101,22 +126,37 @@ namespace AZ
                 uint32_t m_frameCountMax = RHI::Limits::Device::FrameCountMax;
                 uint32_t m_poolSize = 0;
                 const DescriptorSetLayout* m_layout = nullptr;
-                BufferPool* m_constantDataPool = nullptr;
+                AZStd::shared_ptr<ConstantDataAllocator> m_constantDataAllocator;
+                bool m_enableConcurrentAllocation = false;
             };
 
             DescriptorSetAllocator() = default;
             ~DescriptorSetAllocator() = default;
 
+            using Statistics = DescriptorSetAllocatorStatistics;
+            using DescriptorSetList =
+                AZStd::fixed_vector<RHI::Ptr<ObjectType>, RHI::Limits::Device::FrameCountMax>;
+
             RHI::ResultCode Init(const Descriptor& descriptor);
             RHI::Ptr<ObjectType> Allocate(DescriptorSetLayout& layout);
+            DescriptorSetList AllocateBatch(DescriptorSetLayout& layout, uint32_t count);
             void DeAllocate(RHI::Ptr<ObjectType> descriptor);
             void Collect();
+            Statistics GetStatistics() const;
             void Shutdown() override;
 
         private:
-            AZStd::mutex m_subAllocatorMutex;
-            Internal::DescriptorSetSubAllocator m_subAllocator;
-            Internal::DescriptorPoolAllocator m_poolAllocator;
+            struct AllocationLane
+            {
+                mutable AZStd::mutex m_mutex;
+                Internal::DescriptorSetSubAllocator m_subAllocator;
+                Internal::DescriptorPoolAllocator m_poolAllocator;
+            };
+
+            AllocationLane& SelectAllocationLane();
+
+            AZStd::vector<AZStd::unique_ptr<AllocationLane>> m_allocationLanes;
+            AZStd::atomic_uint32_t m_nextAllocationLane{ 0 };
             Descriptor m_descriptor;
             bool m_isInitialized = false;
         };

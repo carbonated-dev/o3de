@@ -145,11 +145,50 @@ namespace AZ
         {
             if (!page->IsEmpty())
             {
-                pageIterators.push_back({ pageIterator(page), pageIterator(nullptr) });
+                pageIterators.push_back(
+                    { pageIterator(page), pageIterator(nullptr), page->m_itemCount });
             }
             page = page->m_nextPage;
         }
         return pageIterators;
+    }
+
+    template<typename T, size_t ElementsPerPage, class Allocator>
+    auto StableDynamicArray<T, ElementsPerPage, Allocator>::GetParallelRanges(
+        size_t maxRangeSize) -> ParallelRanges
+    {
+        AZ_Assert(maxRangeSize > 0, "StableDynamicArray parallel range size must be greater than zero.");
+
+        ParallelRanges ranges;
+        if (maxRangeSize == 0)
+        {
+            return ranges;
+        }
+
+        Page* page = m_firstPage;
+        while (page)
+        {
+            if (!page->IsEmpty())
+            {
+                pageIterator rangeBegin(page);
+                const pageIterator pageEnd(nullptr);
+                while (rangeBegin != pageEnd)
+                {
+                    pageIterator rangeEnd = rangeBegin;
+                    size_t rangeSize = 0;
+                    while (rangeEnd != pageEnd && rangeSize < maxRangeSize)
+                    {
+                        ++rangeEnd;
+                        ++rangeSize;
+                    }
+
+                    ranges.push_back({ rangeBegin, rangeEnd, rangeSize });
+                    rangeBegin = rangeEnd;
+                }
+            }
+            page = page->m_nextPage;
+        }
+        return ranges;
     }
 
     template<typename T, size_t ElementsPerPage, class Allocator>

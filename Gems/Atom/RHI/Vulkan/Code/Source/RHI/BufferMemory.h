@@ -57,6 +57,9 @@ namespace AZ
             // Unmap have to be called after Map is called for memory.
             void Unmap(size_t offset, RHI::HostMemoryAccess hostAccess);
 
+            // Flush a persistently mapped write range.
+            void Flush(size_t offset, size_t size);
+
             const VkBuffer GetNativeBuffer();
             const Descriptor& GetDescriptor() const;
 

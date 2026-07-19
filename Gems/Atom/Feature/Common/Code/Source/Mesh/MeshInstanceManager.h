@@ -45,6 +45,9 @@ namespace AZ::Render
         //! Get begin and end iterators for each page in the MeshInstanceGroup, which can be processed in parallel
         ParallelRanges GetParallelRanges();
 
+        //! Get ranges containing at most maxRangeSize instance groups.
+        ParallelRanges GetParallelRanges(size_t maxRangeSize);
+
     private:
 
         MeshInstanceGroupList m_instanceData;

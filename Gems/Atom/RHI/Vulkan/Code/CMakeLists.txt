@@ -214,3 +214,27 @@ ly_add_source_properties(
         VALUES
             O3DE_GEM_NAME=${gem_name}
             O3DE_GEM_VERSION=${gem_version})
+
+if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
+    ly_add_target(
+        NAME ${gem_name}.Tests ${PAL_TRAIT_TEST_TARGET_TYPE}
+        NAMESPACE Gem
+        FILES_CMAKE
+            atom_rhi_vulkan_private_tests_files.cmake
+        INCLUDE_DIRECTORIES
+            PRIVATE
+                Include
+                Source
+                ${pal_source_dir}
+        BUILD_DEPENDENCIES
+            PRIVATE
+                AZ::AzTest
+                Gem::Atom_RHI.Reflect
+                Gem::${gem_name}.Reflect
+                Gem::${gem_name}.Private.Static
+    )
+
+    ly_add_googletest(
+        NAME Gem::${gem_name}.Tests
+    )
+endif()

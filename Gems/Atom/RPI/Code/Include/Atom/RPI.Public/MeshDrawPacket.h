@@ -101,6 +101,11 @@ namespace AZ
                 const Scene& parentScene,
                 bool useFallbackShaders);
 
+            //! Captures the state needed to prepare a specialized packet without retaining this
+            //! MeshDrawPacket. Preparation and PSO creation both occur on the pipeline build queue.
+            DrawPacketBuiltRequestPtr CreateDeferredDrawPacketBuiltRequest(
+                const Scene& parentScene);
+
             //! Applies a successfully completed build to this MeshDrawPacket.
             bool ApplyDrawPacketBuiltRequest(DrawPacketBuiltRequestPtr drawPacketBuiltRequest);
 
@@ -122,6 +127,18 @@ namespace AZ
                 uint8_t m_stencilRef = 0;
             };
 
+            struct DrawSrgReuseData
+            {
+                Data::AssetId m_shaderAssetId;
+                Name m_materialPipelineName;
+                Name m_shaderTag;
+                RHI::DrawListTag m_drawListTag;
+                Data::Instance<ShaderResourceGroup> m_drawSrg;
+            };
+
+            using DrawSrgReuseDataList =
+                AZStd::fixed_vector<DrawSrgReuseData, RHI::DrawPacketBuilder::DrawItemCountMax>;
+
             struct DrawPacketBuildData
             {
                 RHI::DrawArguments m_drawArguments;
@@ -130,21 +147,30 @@ namespace AZ
                 ConstPtr<RHI::ShaderResourceGroup> m_materialSrg;
                 RHI::ConstPtr<RHI::ConstantsLayout> m_rootConstantsLayout;
                 AZStd::fixed_vector<DrawItemBuildData, RHI::DrawPacketBuilder::DrawItemCountMax> m_drawItems;
+                DrawSrgReuseDataList m_drawSrgReuseData;
 #ifdef DEBUG_MESH_SHADERVARIANTS
                 AZStd::vector<AZStd::string_view> m_shaderVariantNames;
 #endif
             };
 
             bool DoUpdate(const Scene& parentScene);
+            DrawPacketBuiltRequestPtr CreateDrawPacketBuiltRequestInternal(
+                const Scene& parentScene,
+                bool useFallbackShaders,
+                const DrawSrgReuseDataList* drawSrgSourceData,
+                bool updateReusedDrawSrgs);
             bool PreparePipelineStateBuildItems(
                 const Scene& parentScene,
                 bool useFallbackShaders,
                 PipelineStateBuildItemList& pipelineStateBuildItems,
-                DrawPacketBuildData& drawPacketBuildData);
+                DrawPacketBuildData& drawPacketBuildData,
+                const DrawSrgReuseDataList* drawSrgSourceData,
+                bool updateReusedDrawSrgs);
             bool BuildDrawPacket(
                 DrawPacketBuildData&& drawPacketBuildData,
                 PipelineStateBuildItemList&& pipelineStateBuildItems,
-                AZStd::span<const RHI::ConstPtr<RHI::PipelineState>> pipelineStates);
+                AZStd::span<const RHI::ConstPtr<RHI::PipelineState>> pipelineStates,
+                bool useFallbackShaders);
             void ForValidShaderOptionName(const Name& shaderOptionName, const AZStd::function<bool(const ShaderCollection::Item&, ShaderOptionIndex)>& callback);
 
             Ptr<RHI::DrawPacket> m_drawPacket;
@@ -154,6 +180,10 @@ namespace AZ
 
             // Maintains references to the shader instances to keep their PSO caches resident (see Shader::Shutdown())
             ShaderList m_activeShaders;
+
+            // Keeps the non-specialized shader instances and their fallback PSO caches resident
+            // after the specialized packet replaces the fallback packet.
+            AZStd::fixed_vector<Data::Instance<Shader>, RHI::DrawPacketBuilder::DrawItemCountMax> m_retainedFallbackShaders;
 
             RHI::ConstPtr<RHI::ConstantsLayout> m_rootConstantsLayout;
 
@@ -170,7 +200,7 @@ namespace AZ
             // does not allow public access to its Instance<RPI::ShaderResourceGroup>.
             ConstPtr<RHI::ShaderResourceGroup> m_materialSrg;
 
-            AZStd::fixed_vector<Data::Instance<ShaderResourceGroup>, RHI::DrawPacketBuilder::DrawItemCountMax> m_perDrawSrgs;
+            DrawSrgReuseDataList m_drawSrgReuseData;
 
             // A reference to the material, used to rebuild the DrawPacket if needed
             Data::Instance<Material> m_material;
@@ -224,6 +254,7 @@ namespace AZ
 
             PipelineStateBuildRequestPtr m_pipelineStateBuildRequest;
             DrawPacketBuildData m_drawPacketBuildData;
+            bool m_useFallbackShaders = false;
         };
         
         using MeshDrawPacketList = AZStd::vector<RPI::MeshDrawPacket>;

@@ -15,6 +15,7 @@
 #include <AzCore/std/containers/deque.h>
 #include <AzCore/std/containers/span.h>
 #include <AzCore/std/containers/vector.h>
+#include <AzCore/std/function/function_template.h>
 #include <AzCore/std/parallel/atomic.h>
 #include <AzCore/std/parallel/condition_variable.h>
 #include <AzCore/std/parallel/mutex.h>
@@ -37,6 +38,9 @@ namespace AZ::RPI
         : public AZStd::enable_shared_from_this<PipelineStateBuildRequest>
     {
     public:
+        using PrepareFunction =
+            AZStd::function<bool(PipelineStateBuildItemList&)>;
+
         enum class State : uint8_t
         {
             Pending,
@@ -47,6 +51,7 @@ namespace AZ::RPI
         };
 
         explicit PipelineStateBuildRequest(PipelineStateBuildItemList pipelineStateBuildItems);
+        explicit PipelineStateBuildRequest(PrepareFunction prepareFunction);
 
         //! Builds the pipeline states on the calling thread. If the request is already building,
         //! waits for that build to complete.
@@ -77,6 +82,7 @@ namespace AZ::RPI
 
         PipelineStateBuildItemList m_pipelineStateBuildItems;
         AZStd::vector<RHI::ConstPtr<RHI::PipelineState>> m_pipelineStates;
+        PrepareFunction m_prepareFunction;
 
         AZStd::atomic<State> m_state{ State::Pending };
         AZStd::atomic_bool m_cancelRequested{ false };

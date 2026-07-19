@@ -37,7 +37,9 @@
 #include <AzCore/Console/IConsole.h>
 #include <AzCore/Jobs/Algorithms.h>
 #include <AzCore/Jobs/JobCompletion.h>
+#include <AzCore/Jobs/JobContext.h>
 #include <AzCore/Jobs/JobFunction.h>
+#include <AzCore/Jobs/JobManager.h>
 #include <AzCore/Math/ShapeIntersection.h>
 #include <AzCore/Name/NameDictionary.h>
 #include <AzCore/RTTI/RTTI.h>
@@ -229,8 +231,6 @@ namespace AZ
             const uint64_t generation = BeginDrawPacketBuildGeneration(target);
             RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr fallbackRequest =
                 drawPacket.CreateDrawPacketBuiltRequest(parentScene, true);
-            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr specializedRequest =
-                drawPacket.CreateDrawPacketBuiltRequest(parentScene, false);
 
             // Always make a renderable non-specialized packet available before the specialized
             // packet is queued. PipelineStateCache makes this blocking acquisition inexpensive
@@ -242,7 +242,8 @@ namespace AZ
 
             const bool fallbackApplied =
                 fallbackRequest &&
-                drawPacket.ApplyDrawPacketBuiltRequest(AZStd::move(fallbackRequest));
+                drawPacket.ApplyDrawPacketBuiltRequest(
+                    AZStd::move(fallbackRequest));
             if (fallbackApplied)
             {
                 drawPacket.DebugOutputShaderVariants();
@@ -258,8 +259,14 @@ namespace AZ
 
             // A successful fallback build with no draw packet means every shader item was
             // filtered out or disabled. There is no specialized PSO or packet to build.
-            if (specializedRequest &&
-                (!fallbackApplied || drawPacket.GetRHIDrawPacket()))
+            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr specializedRequest;
+            if (fallbackApplied && drawPacket.GetRHIDrawPacket())
+            {
+                specializedRequest =
+                    drawPacket.CreateDeferredDrawPacketBuiltRequest(parentScene);
+            }
+
+            if (specializedRequest)
             {
                 QueuePendingDrawPacketBuild(
                     target,
@@ -504,13 +511,30 @@ namespace AZ
 
         void MeshFeatureProcessor::CancelAllPendingDrawPacketBuilds()
         {
-            AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
-            for (PendingDrawPacketBuild& pendingBuild : m_pendingDrawPacketBuilds)
+            AZStd::vector<RPI::PipelineStateBuildRequestPtr> requests;
             {
-                pendingBuild.m_request->GetPipelineStateBuildRequest()->Cancel();
+                AZStd::lock_guard<AZStd::mutex> lock(
+                    m_pendingDrawPacketBuildMutex);
+                requests.reserve(m_pendingDrawPacketBuilds.size());
+                for (PendingDrawPacketBuild& pendingBuild :
+                     m_pendingDrawPacketBuilds)
+                {
+                    RPI::PipelineStateBuildRequestPtr request =
+                        pendingBuild.m_request
+                            ->GetPipelineStateBuildRequest();
+                    request->Cancel();
+                    requests.push_back(AZStd::move(request));
+                }
+                m_pendingDrawPacketBuilds.clear();
+                m_drawPacketBuildGenerations.clear();
             }
-            m_pendingDrawPacketBuilds.clear();
-            m_drawPacketBuildGenerations.clear();
+
+            // Deferred preparation retains a Scene pointer. Ensure an active callback has
+            // stopped before the feature processor releases its parent scene.
+            for (const RPI::PipelineStateBuildRequestPtr& request : requests)
+            {
+                request->Wait();
+            }
         }
 
         void MeshFeatureProcessor::Activate()
@@ -697,7 +721,30 @@ namespace AZ
 #if defined(CARBONATED)
             MEMORY_TAG(Mesh);
 #endif
-            const auto instanceManagerRanges = m_meshInstanceManager.GetParallelRanges();
+            constexpr size_t JobsPerWorker = 2;
+            constexpr size_t MinInstanceGroupsPerJob = 16;
+            constexpr size_t MaxInstanceGroupsPerJob = 32;
+
+            const AZ::JobContext* jobContext =
+                AZ::JobContext::GetGlobalContext();
+            const size_t workerCount =
+                jobContext
+                ? jobContext->GetJobManager().GetNumWorkerThreads()
+                : 1;
+            const size_t targetJobCount =
+                AZStd::max<size_t>(1, workerCount * JobsPerWorker);
+            const size_t instanceGroupCount =
+                m_meshInstanceManager.GetInstanceGroupCount();
+            const size_t unconstrainedRangeSize =
+                AZ::DivideAndRoundUp(instanceGroupCount, targetJobCount);
+            const size_t rangeSize = AZStd::max(
+                MinInstanceGroupsPerJob,
+                AZStd::min(
+                    MaxInstanceGroupsPerJob,
+                    unconstrainedRangeSize));
+
+            const auto instanceManagerRanges =
+                m_meshInstanceManager.GetParallelRanges(rangeSize);
             AZStd::vector<Job*> perInstanceGroupJobQueue;
             perInstanceGroupJobQueue.reserve(instanceManagerRanges.size());
             RPI::Scene* scene = GetParentScene();

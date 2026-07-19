@@ -41,6 +41,9 @@ namespace AZ
             //! A convenience method for unmapping the resource region spanned by the view.
             void Unmap(size_t offset, RHI::HostMemoryAccess hostAccess);
 
+            //! Flushes a persistently mapped write range when the memory is not host coherent.
+            void Flush(size_t offset, size_t size);
+
             //! Returns the VMA allocation
             VmaAllocation GetVmaAllocation() const;
 

@@ -20,6 +20,7 @@
 #include <Atom/RPI.Reflect/Shader/ShaderVariantTreeAsset.h>
 #include <Atom/RPI.Reflect/Shader/PrecompiledShaderAssetSourceData.h>
 
+#include <Atom/RHI/Factory.h>
 #include <AtomCore/Instance/InstanceDatabase.h>
 
 namespace AZ
@@ -76,6 +77,11 @@ namespace AZ
                 {
                     return ShaderResourceGroup::CreateInternal(*(azrtti_cast<ShaderAsset*>(shaderAsset)), srgInitBlob);
                 };
+                if (RHI::Factory::IsReady() &&
+                    RHI::Factory::Get().GetAPIUniqueIndex() == static_cast<uint32_t>(RHI::APIIndex::Vulkan))
+                {
+                    handler.m_creationPolicy = Data::InstanceCreationPolicy::Concurrent;
+                }
                 Data::InstanceDatabase<ShaderResourceGroup>::Create(azrtti_typeid<ShaderResourceGroup>(), handler, false);
             }
 

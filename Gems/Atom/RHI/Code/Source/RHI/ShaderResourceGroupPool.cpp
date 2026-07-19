@@ -9,7 +9,6 @@
 #include <Atom/RHI/BufferView.h>
 #include <Atom/RHI/ImageView.h>
 #include <AzCore/Console/IConsole.h>
-#include <AzCore/Debug/Profiler.h>
 
 #if defined(CARBONATED)
 #include <AzCore/Memory/MemoryMarker.h>
@@ -71,31 +70,13 @@ namespace AZ::RHI
 #if defined(CARBONATED)
         MEMORY_TAG(Shader);
 #endif
-        AZ_PROFILE_SCOPE(
-            RHI,
-            "RHI::ShaderResourceGroupPool::InitGroup Pool=%p",
-            this);
-
-        ResultCode resultCode;
-        {
-            AZ_PROFILE_SCOPE(RHI, "RHI::ShaderResourceGroupPool::InitGroup::InitResource");
-            resultCode = ResourcePool::InitResource(
-                &group,
-                [this, &group]()
-                {
-                    AZ_PROFILE_SCOPE(RHI, "RHI::ShaderResourceGroupPool::InitGroup::PlatformInit");
-                    return InitGroupInternal(group);
-                });
-        }
+        ResultCode resultCode = ResourcePool::InitResource(&group, [this, &group]() { return InitGroupInternal(group); });
         if (resultCode == ResultCode::Success)
         {
             const ShaderResourceGroupLayout* layout = GetLayout();
 
             // Pre-initialize the data so that we can build view diffs later.
-            {
-                AZ_PROFILE_SCOPE(RHI, "RHI::ShaderResourceGroupPool::InitGroup::CreateData");
-                group.m_data = ShaderResourceGroupData(layout);
-            }
+            group.m_data = ShaderResourceGroupData(layout);
 
             // Cache off the binding slot for one less indirection.
             group.m_bindingSlot = layout->GetBindingSlot();
@@ -136,16 +117,7 @@ namespace AZ::RHI
 
     void ShaderResourceGroupPool::QueueForCompile(ShaderResourceGroup& shaderResourceGroup, const ShaderResourceGroupData& groupData)
     {
-        AZ_PROFILE_SCOPE(
-            RHI,
-            "RHI::ShaderResourceGroupPool::QueueForCompile Pool=%p",
-            this);
-
-        AZStd::unique_lock<AZStd::shared_mutex> lock(m_groupsToCompileMutex, AZStd::defer_lock);
-        {
-            AZ_PROFILE_SCOPE(RHI, "RHI::ShaderResourceGroupPool::QueueForCompile::Lock");
-            lock.lock();
-        }
+        AZStd::lock_guard<AZStd::shared_mutex> lock(m_groupsToCompileMutex);
 
         bool isQueuedForCompile = shaderResourceGroup.IsQueuedForCompile();
         AZ_Warning(
@@ -155,17 +127,8 @@ namespace AZ::RHI
 
         if (!isQueuedForCompile)
         {
-            {
-                AZ_PROFILE_SCOPE(RHI, "RHI::ShaderResourceGroupPool::QueueForCompile::CalculateDataDiff");
-                CalculateGroupDataDiff(shaderResourceGroup, groupData);
-            }
-
-            {
-                AZ_PROFILE_SCOPE(RHI, "RHI::ShaderResourceGroupPool::QueueForCompile::SetData");
-                shaderResourceGroup.SetData(groupData);
-            }
-
-            AZ_PROFILE_SCOPE(RHI, "RHI::ShaderResourceGroupPool::QueueForCompile::Enqueue");
+            CalculateGroupDataDiff(shaderResourceGroup, groupData);
+            shaderResourceGroup.SetData(groupData);
             QueueForCompileNoLock(shaderResourceGroup);
         }
     }

@@ -10,6 +10,7 @@
 #include <Atom/RHI/ShaderResourceGroupPool.h>
 #include <RHI/Buffer.h>
 #include <RHI/BufferPool.h>
+#include <RHI/ConstantDataAllocator.h>
 #include <RHI/DescriptorSetAllocator.h>
 #include <RHI/DescriptorSetLayout.h>
 
@@ -47,6 +48,7 @@ namespace AZ
 
         private:
             RHI::Ptr<BufferPool> m_constantBufferPool;
+            AZStd::shared_ptr<ConstantDataAllocator> m_constantDataAllocator;
             uint32_t m_descriptorSetCount = 0;
             RHI::Ptr<DescriptorSetAllocator> m_descriptorSetAllocator;
             RHI::Ptr<DescriptorSetLayout> m_descriptorSetLayout;

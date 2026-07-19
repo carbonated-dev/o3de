@@ -202,6 +202,140 @@ namespace UnitTest
         EXPECT_NE(orphanedInstance, instance2);
     }
 
+    TEST_F(InstanceDatabaseTest, ConcurrentCreationPolicyAllowsCreationCallbacksToOverlap)
+    {
+        AZStd::mutex creationMutex;
+        AZStd::condition_variable creationCondition;
+        size_t activeCreationCount = 0;
+        bool concurrentCreationObserved = false;
+
+        InstanceHandler<TestInstanceB> instanceHandler;
+        instanceHandler.m_createFunction =
+            [&creationMutex, &creationCondition, &activeCreationCount, &concurrentCreationObserved](AssetData* assetData)
+        {
+            {
+                AZStd::unique_lock<AZStd::mutex> lock(creationMutex);
+                ++activeCreationCount;
+                if (activeCreationCount > 1)
+                {
+                    concurrentCreationObserved = true;
+                    creationCondition.notify_all();
+                }
+                else
+                {
+                    creationCondition.wait_for(
+                        lock,
+                        AZStd::chrono::seconds(2),
+                        [&concurrentCreationObserved]()
+                        {
+                            return concurrentCreationObserved;
+                        });
+                }
+                --activeCreationCount;
+            }
+
+            return aznew TestInstanceB(static_cast<TestAssetType*>(assetData));
+        };
+        instanceHandler.m_creationPolicy = InstanceCreationPolicy::Concurrent;
+        InstanceDatabase<TestInstanceB>::Create(azrtti_typeid<TestAssetType>(), instanceHandler);
+
+        Asset<TestAssetType> someAsset =
+            AssetManager::Instance().CreateAsset<TestAssetType>(s_assetId0, AZ::Data::AssetLoadBehavior::Default);
+        auto& instanceDatabase = InstanceDatabase<TestInstanceB>::Instance();
+
+        AZStd::thread firstThread(
+            [&instanceDatabase, someAsset]()
+            {
+                Instance<TestInstanceB> instance = instanceDatabase.Create(someAsset);
+                EXPECT_NE(instance, nullptr);
+            });
+        AZStd::thread secondThread(
+            [&instanceDatabase, someAsset]()
+            {
+                Instance<TestInstanceB> instance = instanceDatabase.Create(someAsset);
+                EXPECT_NE(instance, nullptr);
+            });
+
+        firstThread.join();
+        secondThread.join();
+
+        EXPECT_TRUE(concurrentCreationObserved);
+        InstanceDatabase<TestInstanceB>::Destroy();
+    }
+
+    TEST_F(InstanceDatabaseTest, InstanceDeletionDoesNotHoldDatabaseMutex)
+    {
+        InstanceHandler<TestInstanceB> instanceHandler;
+        instanceHandler.m_createFunction = [](AssetData* assetData)
+        {
+            return aznew TestInstanceB(static_cast<TestAssetType*>(assetData));
+        };
+        InstanceDatabase<TestInstanceB>::Create(azrtti_typeid<TestAssetType>(), instanceHandler);
+
+        auto& instanceDatabase = InstanceDatabase<TestInstanceB>::Instance();
+        Asset<TestAssetType> retainedAsset =
+            AssetManager::Instance().CreateAsset<TestAssetType>(s_assetId0, AZ::Data::AssetLoadBehavior::Default);
+        Asset<TestAssetType> deletedAsset =
+            AssetManager::Instance().CreateAsset<TestAssetType>(s_assetId1, AZ::Data::AssetLoadBehavior::Default);
+        Instance<TestInstanceB> retainedInstance = instanceDatabase.FindOrCreate(s_instanceId0, retainedAsset);
+        Instance<TestInstanceB> deletedInstance = instanceDatabase.FindOrCreate(s_instanceId1, deletedAsset);
+
+        AZStd::mutex deletionMutex;
+        AZStd::condition_variable deletionCondition;
+        bool deletionStarted = false;
+        bool databaseOperationCompleted = false;
+        bool databaseOperationCompletedDuringDeletion = false;
+
+        deletedInstance->m_onDeleteCallback =
+            [&deletionMutex,
+             &deletionCondition,
+             &deletionStarted,
+             &databaseOperationCompleted,
+             &databaseOperationCompletedDuringDeletion]()
+        {
+            AZStd::unique_lock<AZStd::mutex> lock(deletionMutex);
+            deletionStarted = true;
+            deletionCondition.notify_all();
+            databaseOperationCompletedDuringDeletion = deletionCondition.wait_for(
+                lock,
+                AZStd::chrono::seconds(2),
+                [&databaseOperationCompleted]()
+                {
+                    return databaseOperationCompleted;
+                });
+        };
+
+        AZStd::thread databaseThread(
+            [&instanceDatabase, &deletionMutex, &deletionCondition, &deletionStarted, &databaseOperationCompleted]()
+            {
+                {
+                    AZStd::unique_lock<AZStd::mutex> lock(deletionMutex);
+                    deletionCondition.wait(
+                        lock,
+                        [&deletionStarted]()
+                        {
+                            return deletionStarted;
+                        });
+                }
+
+                EXPECT_NE(instanceDatabase.Find(s_instanceId0), nullptr);
+
+                {
+                    AZStd::lock_guard<AZStd::mutex> lock(deletionMutex);
+                    databaseOperationCompleted = true;
+                }
+                deletionCondition.notify_all();
+            });
+
+        deletedInstance = nullptr;
+        databaseThread.join();
+
+        EXPECT_TRUE(databaseOperationCompletedDuringDeletion);
+
+        retainedInstance = nullptr;
+        InstanceDatabase<TestInstanceB>::Destroy();
+    }
+
     enum class ParallelInstanceTestCases
     {
         Create,

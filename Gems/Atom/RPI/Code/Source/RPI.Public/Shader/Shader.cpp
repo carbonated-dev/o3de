@@ -14,7 +14,6 @@
 #include <Atom/RPI.Public/Shader/ShaderReloadDebugTracker.h>
 #include <Atom/RPI.Public/Shader/ShaderSystemInterface.h>
 #include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
-#include <AzCore/Debug/Profiler.h>
 #include <AzCore/Interface/Interface.h>
 #include <AzCore/std/parallel/mutex.h>
 #include <AzCore/std/time.h>
@@ -171,6 +170,8 @@ namespace AZ
             RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get();
             RHI::DrawListTagRegistry* drawListTagRegistry = rhiSystem->GetDrawListTagRegistry();
 
+            m_drawSrgPool = nullptr;
+            m_drawSrgLayout = nullptr;
             m_asset = { &shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad };
             m_pipelineStateType = shaderAsset.GetPipelineStateType();
 
@@ -182,6 +183,25 @@ namespace AZ
             }
             auto rootShaderVariantAsset = shaderAsset.GetRootVariantAsset(m_supervariantIndex);
             m_rootVariant.Init(m_asset, rootShaderVariantAsset, m_supervariantIndex);
+
+            m_drawSrgLayout =
+                m_asset->GetDrawSrgLayout(m_supervariantIndex);
+            if (m_drawSrgLayout)
+            {
+                m_drawSrgPool = ShaderResourceGroupPool::FindOrCreate(
+                    m_asset,
+                    m_supervariantIndex,
+                    m_drawSrgLayout->GetName());
+                if (!m_drawSrgPool)
+                {
+                    AZ_Error(
+                        "Shader",
+                        false,
+                        "Failed to acquire DrawSrg pool for shader '%s'.",
+                        m_asset->GetName().GetCStr());
+                    return RHI::ResultCode::Fail;
+                }
+            }
 
             if (m_pipelineLibraryHandle.IsNull())
             {
@@ -251,6 +271,9 @@ namespace AZ
                 drawListTagRegistry->ReleaseTag(m_drawListTag);
                 m_drawListTag.Reset();
             }
+
+            m_drawSrgPool = nullptr;
+            m_drawSrgLayout = nullptr;
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -593,40 +616,33 @@ namespace AZ
 #if defined(CARBONATED)
             MEMORY_TAG(Shader);
 #endif
-            AZ_PROFILE_SCOPE(
-                RPI,
-                "Shader::CreateDrawSrgForShaderVariant Shader=%s Supervariant=%s",
-                m_asset->GetName().GetCStr(),
-                m_asset->GetSupervariantName(GetSupervariantIndex()).GetCStr());
-
-            RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout;
-            {
-                AZ_PROFILE_SCOPE(RPI, "Shader::CreateDrawSrgForShaderVariant::GetDrawSrgLayout");
-                drawSrgLayout = m_asset->GetDrawSrgLayout(GetSupervariantIndex());
-            }
-
             Data::Instance<ShaderResourceGroup> drawSrg;
-            if (drawSrgLayout)
+            if (m_drawSrgLayout)
             {
+                drawSrg = RPI::ShaderResourceGroup::CreateTransient(
+                    *m_asset,
+                    m_drawSrgLayout,
+                    m_drawSrgPool);
+
+                if (!drawSrg)
                 {
-                    AZ_PROFILE_SCOPE(
-                        RPI,
-                        "Shader::CreateDrawSrgForShaderVariant::CreateSrg Layout=%p",
-                        drawSrgLayout.get());
-                    drawSrg = RPI::ShaderResourceGroup::Create(m_asset, GetSupervariantIndex(), drawSrgLayout->GetName());
+                    AZ_Error(
+                        "Shader",
+                        false,
+                        "Failed to create DrawSrg for shader '%s'.",
+                        m_asset->GetName().GetCStr());
+                    return nullptr;
                 }
 
                 bool useFallbackKey = !shaderOptions.GetShaderOptionLayout()->IsFullySpecialized() ||
                     !m_asset->UseSpecializationConstants(GetSupervariantIndex());
-                if (useFallbackKey && drawSrgLayout->HasShaderVariantKeyFallbackEntry())
+                if (useFallbackKey && m_drawSrgLayout->HasShaderVariantKeyFallbackEntry())
                 {
-                    AZ_PROFILE_SCOPE(RPI, "Shader::CreateDrawSrgForShaderVariant::SetFallbackKey");
                     drawSrg->SetShaderVariantKeyFallbackValue(shaderOptions.GetShaderVariantKeyFallbackValue());
                 }
 
                 if (compileTheSrg)
                 {
-                    AZ_PROFILE_SCOPE(RPI, "Shader::CreateDrawSrgForShaderVariant::Compile");
                     drawSrg->Compile();
                 }
             }
