@@ -15,6 +15,9 @@
 #include "../MaterialInputs/NormalInput.azsli"
 #include "../MaterialInputs/OcclusionInput.azsli"
 #include "../MaterialInputs/EmissiveInput.azsli"
+// Begin Carbonated
+#include "../MaterialInputs/RimLightingInput.azsli"
+// End Carbonated
 #include "../MaterialInputs/UvSetCount.azsli"
 #include "../MaterialInputs/DetailMapsInput.azsli"
 #include "../MaterialInputs/DualSpecular.azsli"
@@ -31,6 +34,9 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
     COMMON_SRG_INPUTS_OCCLUSION()
     COMMON_SRG_INPUTS_DETAIL_MAPS()
     COMMON_SRG_INPUTS_DUAL_SPECULAR()
+    // Begin Carbonated
+    COMMON_SRG_INPUTS_RIM_LIGHTING()
+    // End Carbonated
     
     Sampler m_sampler
     {

@@ -1,6 +1,6 @@
 {
     "description": "Material Type tailored for rendering skin, with support for blended wrinkle maps that work with animated vertex blend shapes.",
-    "version": 4,
+    "version": 5,
     "versionUpdates": [
         {
             "toVersion": 4,
@@ -40,6 +40,9 @@
             },
             { 
                 "$import": "MaterialInputs/SubsurfaceAndTransmissionPropertyGroup.json"
+            },
+            {
+                "$import": "MaterialInputs/RimLightingPropertyGroup.json"
             },
             {
                 "name": "wrinkleLayers",

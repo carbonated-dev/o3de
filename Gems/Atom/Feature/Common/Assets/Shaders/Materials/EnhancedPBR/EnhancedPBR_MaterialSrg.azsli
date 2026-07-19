@@ -20,6 +20,9 @@
 #include "../MaterialInputs/ClearCoatInput.azsli"
 #include "../MaterialInputs/OcclusionInput.azsli"
 #include "../MaterialInputs/EmissiveInput.azsli"
+// Begin Carbonated
+#include "../MaterialInputs/RimLightingInput.azsli"
+// End Carbonated
 #include "../MaterialInputs/ParallaxInput.azsli"
 #include "../MaterialInputs/UvSetCount.azsli"
 #include "../MaterialInputs/DetailMapsInput.azsli"
@@ -41,6 +44,9 @@ ShaderResourceGroup MaterialSrg : SRG_PerMaterial
     COMMON_SRG_INPUTS_CLEAR_COAT()
     COMMON_SRG_INPUTS_OCCLUSION()     
     COMMON_SRG_INPUTS_EMISSIVE()      
+    // Begin Carbonated
+    COMMON_SRG_INPUTS_RIM_LIGHTING()
+    // End Carbonated
     COMMON_SRG_INPUTS_PARALLAX()
     COMMON_SRG_INPUTS_DETAIL_MAPS()
     COMMON_SRG_INPUTS_WET()  // CARBONATED Addition.

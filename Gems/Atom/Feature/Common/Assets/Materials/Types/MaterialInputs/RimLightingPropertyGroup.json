@@ -1,0 +1,63 @@
+{
+    "name": "rimLighting",
+    "displayName": "Rim Lighting",
+    "description": "Properties for configuring stylized, light-aware rim lighting. The rim is shaped by the view angle and can be constrained by the primary directional light color and direction.",
+    "properties": [
+        {
+            "name": "mode",
+            "displayName": "Mode",
+            "description": "Selects the rim lighting mode. Off skips the rim lighting calculation. Camera uses a view-angle rim. Light Direction constrains the rim to the light-facing side. Inverted Light Direction constrains it to the side facing away from the primary directional light.",
+            "type": "Enum",
+            "enumValues": [ "Off", "Camera", "LightDirection", "InvertedLightDirection" ],
+            "defaultValue": "Off",
+            "connection": {
+                "type": "ShaderOption",
+                "name": "o_rimLighting_mode"
+            }
+        },
+        {
+            "name": "tint",
+            "displayName": "Tint",
+            "description": "Tint applied to the primary directional light color to produce the final rim color. Color is displayed as sRGB but the values are stored as linear color.",
+            "type": "Color",
+            "defaultValue": [ 1.0, 1.0, 1.0 ],
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_rimLightingTint"
+            }
+        },
+        {
+            "name": "intensity",
+            "displayName": "Intensity",
+            "description": "Brightness multiplier for the rim highlight. A value of 0 removes the visible rim even when the feature is enabled.",
+            "type": "Float",
+            "defaultValue": 1.0,
+            "min": 0.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_rimLightingIntensity"
+            }
+        },
+        {
+            "name": "power",
+            "displayName": "Power",
+            "description": "Controls the silhouette falloff. Lower values create a broader rim; higher values keep the rim tighter to the silhouette.",
+            "type": "Float",
+            "defaultValue": 3.0,
+            "min": 0.25,
+            "softMax": 8.0,
+            "connection": {
+                "type": "ShaderInput",
+                "name": "m_rimLightingPower"
+            }
+        }
+    ],
+    "functors": [
+        {
+            "type": "Lua",
+            "args": {
+                "file": "Materials/Types/StandardPBR_RimLightingState.lua"
+            }
+        }
+    ]
+}
