@@ -214,6 +214,9 @@ namespace AZ
             auto depthClipEnabled = physicalDevice.GetPhysicalDeviceDepthClipEnableFeatures();            
             auto rayQueryFeatures = physicalDevice.GetRayQueryFeatures();            
             auto shaderImageAtomicInt64 = physicalDevice.GetShaderImageAtomicInt64Features();            
+#if defined(CARBONATED)
+            auto fragmentShaderInterlockFeatures = physicalDevice.GetPhysicalDeviceFragmentShaderInterlockFeatures();
+#endif
 
             VkPhysicalDeviceRobustness2FeaturesEXT robustness2 = {};
             robustness2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
@@ -223,6 +226,9 @@ namespace AZ
             depthClipEnabled.pNext = nullptr;
             rayQueryFeatures.pNext = nullptr;
             shaderImageAtomicInt64.pNext = nullptr;
+#if defined(CARBONATED)
+            fragmentShaderInterlockFeatures.pNext = nullptr;
+#endif
             robustness2.pNext = nullptr;
 
             AppendVkStruct(
@@ -234,6 +240,18 @@ namespace AZ
                     &shaderImageAtomicInt64,
                     &robustness2
                 });
+
+#if defined(CARBONATED)
+            if (physicalDevice.IsOptionalDeviceExtensionSupported(OptionalDeviceExtension::FragmentShaderInterlock) &&
+                fragmentShaderInterlockFeatures.fragmentShaderPixelInterlock)
+            {
+                AppendVkStruct(chainInit, &fragmentShaderInterlockFeatures);
+            }
+            else
+            {
+                physicalDevice.DisableOptionalDeviceExtension(OptionalDeviceExtension::FragmentShaderInterlock);
+            }
+#endif
 
             auto fragmenDensityMapFeatures = physicalDevice.GetPhysicalDeviceFragmentDensityMapFeatures();
             auto fragmenShadingRateFeatures = physicalDevice.GetPhysicalDeviceFragmentShadingRateFeatures();
@@ -1205,6 +1223,9 @@ namespace AZ
 
             // Check if the Vulkan device support subgroup operations
             m_features.m_waveOperation = physicalDevice.IsFeatureSupported(DeviceFeature::SubgroupOperation);
+#if defined(CARBONATED)
+            m_features.m_rasterizerOrderedViews = physicalDevice.IsFeatureSupported(DeviceFeature::FragmentShaderInterlock);
+#endif
 
             // check for the VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME in the list of physical device extensions
             // to determine if ray tracing is supported on this device

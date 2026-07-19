@@ -6,6 +6,9 @@
  *
  */
     
+// StandardMultilayerPBR does not support transparency, so do not include OIT shader options for it.
+#define ENABLE_OIT 0
+
 #include <scenesrg.srgi>
 #include <viewsrg.srgi>
 #include <Atom/Features/PBR/DefaultObjectSrg.azsli>

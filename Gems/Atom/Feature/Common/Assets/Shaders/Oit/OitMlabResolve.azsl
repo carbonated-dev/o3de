@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#include <scenesrg.srgi>
+#include <Atom/Features/Oit/OitCommon.azsli>
+
+ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
+{
+    RWTexture2D<float4> m_inputOutput;
+    RWTexture2D<uint> m_oitMlabFragmentCount;
+    RWTexture2D<float4> m_oitMlabFragmentColor;
+    RWTexture2D<float4> m_oitMlabFragmentDepthTransmission;
+};
+
+[numthreads(8, 8, 1)]
+void MainCS(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    const uint2 pixelCoord = dispatchThreadId.xy;
+    uint width = 0;
+    uint height = 0;
+    PassSrg::m_inputOutput.GetDimensions(width, height);
+    if (pixelCoord.x >= width || pixelCoord.y >= height)
+    {
+        return;
+    }
+
+    float4 outputColor = PassSrg::m_inputOutput[pixelCoord];
+    uint nodeCount = 0;
+
+    const uint nodeCapacity = OitGetMlabFragmentCount(SceneSrg::m_oitMlabLayerCount);
+    // Gather writes the final stored count after updating the node atlas. Resolve uses that count so stale atlas slots are ignored.
+    const uint storedNodeCount = min(PassSrg::m_oitMlabFragmentCount[pixelCoord], nodeCapacity);
+
+    if (storedNodeCount > 0)
+    {
+        const float3 background = outputColor.rgb;
+
+        float3 color = float3(0, 0, 0);
+        float3 transmission = float3(1.0f, 1.0f, 1.0f);
+
+        for (uint nodeIndex = 0; nodeIndex < storedNodeCount; ++nodeIndex)
+        {
+            // Nodes are already stored from nearest to farthest for O3DE's reverse depth range.
+            const uint2 atlasCoord = OitGetMlabAtlasCoord(pixelCoord, nodeIndex, nodeCapacity);
+            const float4 colorNode = PassSrg::m_oitMlabFragmentColor[atlasCoord];
+            const float4 depthTransmissionNode = PassSrg::m_oitMlabFragmentDepthTransmission[atlasCoord];
+            const float nodeDepth = depthTransmissionNode.x;
+
+            if (nodeDepth > float(OitMlabEmptyDepth))
+            {
+                color += transmission * colorNode.rgb;
+                transmission = saturate(transmission * depthTransmissionNode.yzw);
+                nodeCount += 1;
+            }
+        }
+
+        // Front-to-back composition keeps RGB transmission so tinted transparent fragments attenuate the background per channel.
+        outputColor.rgb = color + background * transmission;
+        outputColor.a = 1.0f;
+        // The gather pass clears the texture, but resetting the count here avoids stale data if the pass graph is reused.
+        PassSrg::m_oitMlabFragmentCount[pixelCoord] = 0;
+    }
+
+    if (SceneSrg::m_oitMlabDebugMode == 1)
+    {
+        outputColor.rgb = nodeCount > 0 ? float3(float(nodeCount) / float(OitMlabMaxFragmentCount), 0, 1) : float3(0, 0, 0);
+    }
+
+    PassSrg::m_inputOutput[pixelCoord] = outputColor;
+}
