@@ -9,11 +9,18 @@
 #include <Atom/RHI/ShaderResourceGroupPool.h>
 #include <Atom/RHI/BufferView.h>
 #include <Atom/RHI/ImageView.h>
+#include <AzCore/Debug/Profiler.h>
 
 namespace AZ::RHI
 {
     void ShaderResourceGroup::Compile(const ShaderResourceGroupData& groupData, CompileMode compileMode /*= CompileMode::Async*/)
     {
+        AZ_PROFILE_SCOPE(
+            RHI,
+            "RHI::ShaderResourceGroup::Compile Pool=%p Mode=%d",
+            GetPool(),
+            static_cast<int>(compileMode));
+
         switch (compileMode)
         {
         case CompileMode::Async:

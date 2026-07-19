@@ -8,6 +8,7 @@
 #include <Atom/RHI/BufferPool.h>
 #include <Atom/RHI/BufferView.h>
 #include <Atom/RHI/ImageView.h>
+#include <AzCore/Debug/Profiler.h>
 #include <RHI/Buffer.h>
 #include <RHI/BufferPool.h>
 #include <RHI/DescriptorPool.h>
@@ -73,20 +74,40 @@ namespace AZ
 
         RHI::ResultCode ShaderResourceGroupPool::InitGroupInternal(RHI::ShaderResourceGroup& groupBase)
         {
+            AZ_PROFILE_SCOPE(
+                RHI,
+                "Vulkan::ShaderResourceGroupPool::InitGroupInternal Pool=%p DescriptorSets=%zu",
+                this,
+                m_descriptorSetCount);
+
             RHI::ResultCode result = RHI::ResultCode::Success;
 
             auto& group = static_cast<ShaderResourceGroup&>(groupBase);
 
             for (size_t i = 0; i < m_descriptorSetCount; ++i)
             {
-                auto descriptorSet = m_descriptorSetAllocator->Allocate(*m_descriptorSetLayout);
+                RHI::Ptr<DescriptorSet> descriptorSet;
+                {
+                    AZ_PROFILE_SCOPE(
+                        RHI,
+                        "Vulkan::ShaderResourceGroupPool::AllocateDescriptorSet Pool=%p Index=%zu",
+                        this,
+                        i);
+                    descriptorSet = m_descriptorSetAllocator->Allocate(*m_descriptorSetLayout);
+                }
                 if (!descriptorSet)
                 {
                     return RHI::ResultCode::OutOfMemory;
                 }
-                AZStd::string name = AZStd::string::format("%s_%d", GetName().GetCStr(), static_cast<int>(i));
-                descriptorSet->SetName(AZ::Name(name));
-                group.m_compiledData.push_back(descriptorSet);
+                {
+                    AZ_PROFILE_SCOPE(RHI, "Vulkan::ShaderResourceGroupPool::NameDescriptorSet");
+                    AZStd::string name = AZStd::string::format("%s_%d", GetName().GetCStr(), static_cast<int>(i));
+                    descriptorSet->SetName(AZ::Name(name));
+                }
+                {
+                    AZ_PROFILE_SCOPE(RHI, "Vulkan::ShaderResourceGroupPool::StoreDescriptorSet");
+                    group.m_compiledData.push_back(descriptorSet);
+                }
             }
             
             return result;
@@ -104,6 +125,11 @@ namespace AZ
 
         RHI::ResultCode ShaderResourceGroupPool::CompileGroupInternal(RHI::ShaderResourceGroup& groupBase, const RHI::ShaderResourceGroupData& groupData)
         {
+            AZ_PROFILE_SCOPE(
+                RHI,
+                "Vulkan::ShaderResourceGroupPool::CompileGroupInternal Pool=%p",
+                this);
+
             auto& group = static_cast<ShaderResourceGroup&>(groupBase);
 
             group.UpdateCompiledDataIndex(m_currentIteration);
@@ -111,69 +137,106 @@ namespace AZ
 
             const RHI::ShaderResourceGroupLayout* layout = groupData.GetLayout();
 
-            for (uint32_t groupIndex = 0; groupIndex < static_cast<uint32_t>(layout->GetShaderInputListForBuffers().size()); ++groupIndex)
             {
-                const RHI::ShaderInputBufferIndex index(groupIndex);
-                auto bufViews = groupData.GetBufferViewArray(index);
-                uint32_t layoutIndex = m_descriptorSetLayout->GetLayoutIndexFromGroupIndex(groupIndex, DescriptorSetLayout::ResourceType::BufferView);
-                descriptorSet.UpdateBufferViews(layoutIndex, bufViews);
+                AZ_PROFILE_SCOPE(
+                    RHI,
+                    "Vulkan::ShaderResourceGroupPool::PrepareBufferUpdates Inputs=%zu",
+                    layout->GetShaderInputListForBuffers().size());
+                for (uint32_t groupIndex = 0; groupIndex < static_cast<uint32_t>(layout->GetShaderInputListForBuffers().size()); ++groupIndex)
+                {
+                    const RHI::ShaderInputBufferIndex index(groupIndex);
+                    auto bufViews = groupData.GetBufferViewArray(index);
+                    uint32_t layoutIndex = m_descriptorSetLayout->GetLayoutIndexFromGroupIndex(groupIndex, DescriptorSetLayout::ResourceType::BufferView);
+                    descriptorSet.UpdateBufferViews(layoutIndex, bufViews);
+                }
             }
             
             auto const& shaderImageList = layout->GetShaderInputListForImages();
-            for (uint32_t groupIndex = 0; groupIndex < static_cast<uint32_t>(shaderImageList.size()); ++groupIndex)
             {
-                const RHI::ShaderInputImageIndex index(groupIndex);
-                auto imgViews = groupData.GetImageViewArray(index);
-                uint32_t layoutIndex =
-                    m_descriptorSetLayout->GetLayoutIndexFromGroupIndex(groupIndex, DescriptorSetLayout::ResourceType::ImageView);
-                descriptorSet.UpdateImageViews(layoutIndex, imgViews, shaderImageList[groupIndex].m_type);
+                AZ_PROFILE_SCOPE(
+                    RHI,
+                    "Vulkan::ShaderResourceGroupPool::PrepareImageUpdates Inputs=%zu",
+                    shaderImageList.size());
+                for (uint32_t groupIndex = 0; groupIndex < static_cast<uint32_t>(shaderImageList.size()); ++groupIndex)
+                {
+                    const RHI::ShaderInputImageIndex index(groupIndex);
+                    auto imgViews = groupData.GetImageViewArray(index);
+                    uint32_t layoutIndex =
+                        m_descriptorSetLayout->GetLayoutIndexFromGroupIndex(groupIndex, DescriptorSetLayout::ResourceType::ImageView);
+                    descriptorSet.UpdateImageViews(layoutIndex, imgViews, shaderImageList[groupIndex].m_type);
+                }
             }
             
 
-            for (uint32_t groupIndex = 0; groupIndex < static_cast<uint32_t>(layout->GetShaderInputListForBufferUnboundedArrays().size()); ++groupIndex)
             {
-                const RHI::ShaderInputBufferUnboundedArrayIndex index(groupIndex);
-                auto bufViews = groupData.GetBufferViewUnboundedArray(index);
-                if (bufViews.empty())
+                AZ_PROFILE_SCOPE(
+                    RHI,
+                    "Vulkan::ShaderResourceGroupPool::PrepareUnboundedBufferUpdates Inputs=%zu",
+                    layout->GetShaderInputListForBufferUnboundedArrays().size());
+                for (uint32_t groupIndex = 0; groupIndex < static_cast<uint32_t>(layout->GetShaderInputListForBufferUnboundedArrays().size()); ++groupIndex)
                 {
-                    // skip empty unbounded arrays
-                    continue;
-                }
+                    const RHI::ShaderInputBufferUnboundedArrayIndex index(groupIndex);
+                    auto bufViews = groupData.GetBufferViewUnboundedArray(index);
+                    if (bufViews.empty())
+                    {
+                        // skip empty unbounded arrays
+                        continue;
+                    }
 
-                uint32_t layoutIndex = m_descriptorSetLayout->GetLayoutIndexFromGroupIndex(groupIndex, DescriptorSetLayout::ResourceType::BufferViewUnboundedArray);
-                descriptorSet.UpdateBufferViews(layoutIndex, bufViews);
+                    uint32_t layoutIndex = m_descriptorSetLayout->GetLayoutIndexFromGroupIndex(groupIndex, DescriptorSetLayout::ResourceType::BufferViewUnboundedArray);
+                    descriptorSet.UpdateBufferViews(layoutIndex, bufViews);
+                }
             }
             
             auto const& shaderImageUnboundeArrayList = layout->GetShaderInputListForImageUnboundedArrays();
-            for (uint32_t groupIndex = 0; groupIndex < static_cast<uint32_t>(shaderImageUnboundeArrayList.size()); ++groupIndex)
             {
-                const RHI::ShaderInputImageUnboundedArrayIndex index(groupIndex);
-                auto imgViews = groupData.GetImageViewUnboundedArray(index);
-                if (imgViews.empty())
+                AZ_PROFILE_SCOPE(
+                    RHI,
+                    "Vulkan::ShaderResourceGroupPool::PrepareUnboundedImageUpdates Inputs=%zu",
+                    shaderImageUnboundeArrayList.size());
+                for (uint32_t groupIndex = 0; groupIndex < static_cast<uint32_t>(shaderImageUnboundeArrayList.size()); ++groupIndex)
                 {
-                    // skip empty unbounded arrays
-                    continue;
-                }
+                    const RHI::ShaderInputImageUnboundedArrayIndex index(groupIndex);
+                    auto imgViews = groupData.GetImageViewUnboundedArray(index);
+                    if (imgViews.empty())
+                    {
+                        // skip empty unbounded arrays
+                        continue;
+                    }
 
-                uint32_t layoutIndex = m_descriptorSetLayout->GetLayoutIndexFromGroupIndex(groupIndex, DescriptorSetLayout::ResourceType::ImageViewUnboundedArray);
-                descriptorSet.UpdateImageViews(layoutIndex, imgViews, shaderImageUnboundeArrayList[groupIndex].m_type);
+                    uint32_t layoutIndex = m_descriptorSetLayout->GetLayoutIndexFromGroupIndex(groupIndex, DescriptorSetLayout::ResourceType::ImageViewUnboundedArray);
+                    descriptorSet.UpdateImageViews(layoutIndex, imgViews, shaderImageUnboundeArrayList[groupIndex].m_type);
+                }
             }
             
-            for (uint32_t groupIndex = 0; groupIndex < static_cast<uint32_t>(layout->GetShaderInputListForSamplers().size()); ++groupIndex)
             {
-                const RHI::ShaderInputSamplerIndex index(groupIndex);
-                auto samplerArray = groupData.GetSamplerArray(index);
-                uint32_t layoutIndex =
-                    m_descriptorSetLayout->GetLayoutIndexFromGroupIndex(groupIndex, DescriptorSetLayout::ResourceType::Sampler);
-                descriptorSet.UpdateSamplers(layoutIndex, samplerArray);
+                AZ_PROFILE_SCOPE(
+                    RHI,
+                    "Vulkan::ShaderResourceGroupPool::PrepareSamplerUpdates Inputs=%zu",
+                    layout->GetShaderInputListForSamplers().size());
+                for (uint32_t groupIndex = 0; groupIndex < static_cast<uint32_t>(layout->GetShaderInputListForSamplers().size()); ++groupIndex)
+                {
+                    const RHI::ShaderInputSamplerIndex index(groupIndex);
+                    auto samplerArray = groupData.GetSamplerArray(index);
+                    uint32_t layoutIndex =
+                        m_descriptorSetLayout->GetLayoutIndexFromGroupIndex(groupIndex, DescriptorSetLayout::ResourceType::Sampler);
+                    descriptorSet.UpdateSamplers(layoutIndex, samplerArray);
+                }
             }
 
             auto constantData = groupData.GetConstantData();
             if (!constantData.empty())
             {
+                AZ_PROFILE_SCOPE(
+                    RHI,
+                    "Vulkan::ShaderResourceGroupPool::PrepareConstantUpdate Bytes=%zu",
+                    constantData.size());
                 descriptorSet.UpdateConstantData(constantData);
             }
-            descriptorSet.CommitUpdates();
+            {
+                AZ_PROFILE_SCOPE(RHI, "Vulkan::ShaderResourceGroupPool::CommitDescriptorUpdates");
+                descriptorSet.CommitUpdates();
+            }
 
             return RHI::ResultCode::Success;
         }

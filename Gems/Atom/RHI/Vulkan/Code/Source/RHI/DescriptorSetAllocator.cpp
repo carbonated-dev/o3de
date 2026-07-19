@@ -6,6 +6,7 @@
  *
  */
 #include <AzCore/std/algorithm.h>
+#include <AzCore/Debug/Profiler.h>
 #include <AzCore/std/parallel/lock.h>
 #include <Atom/RHI.Reflect/ShaderResourceGroupLayout.h>
 #include <RHI/DescriptorSetAllocator.h>
@@ -27,6 +28,10 @@ namespace AZ
 
             RHI::Ptr<DescriptorPool> DescriptorPoolFactory::CreateObject(const DescriptorPool::Descriptor& poolDescriptor)
             {
+                AZ_PROFILE_SCOPE(
+                    RHI,
+                    "Vulkan::DescriptorPoolFactory::CreateObject MaxSets=%u",
+                    poolDescriptor.m_maxSets);
                 RHI::Ptr<DescriptorPool> descriptorPool = DescriptorPool::Create();
                 if (descriptorPool->Init(poolDescriptor) != RHI::ResultCode::Success)
                 {
@@ -69,6 +74,12 @@ namespace AZ
 
             RHI::Ptr<DescriptorSetSubAllocator::ObjectType> DescriptorSetSubAllocator::Allocate(DescriptorSetLayout& layout)
             {
+                AZ_PROFILE_SCOPE(
+                    RHI,
+                    "Vulkan::DescriptorSetSubAllocator::Allocate Allocator=%p Pools=%zu",
+                    this,
+                    m_pools.size());
+
                 // Look for a pool that can allocate the descriptor set
                 for (DescriptorPool* pool : m_pools)
                 {
@@ -80,7 +91,14 @@ namespace AZ
                         continue;
                     }
 
-                    auto result = pool->Allocate(layout);
+                    DescriptorPool::AllocResult result;
+                    {
+                        AZ_PROFILE_SCOPE(
+                            RHI,
+                            "Vulkan::DescriptorSetSubAllocator::AllocateFromExistingPool Pool=%p",
+                            pool);
+                        result = pool->Allocate(layout);
+                    }
                     VkResult vkResult = result.first;
                     if (vkResult == VK_SUCCESS)
                     {
@@ -93,8 +111,19 @@ namespace AZ
                     }
                 }
 
-                DescriptorPool* newPool = m_descriptorPoolAllocator->Allocate(m_poolDescriptor);
-                auto result = newPool->Allocate(layout);
+                DescriptorPool* newPool;
+                {
+                    AZ_PROFILE_SCOPE(RHI, "Vulkan::DescriptorSetSubAllocator::AcquireNewPool");
+                    newPool = m_descriptorPoolAllocator->Allocate(m_poolDescriptor);
+                }
+                DescriptorPool::AllocResult result;
+                {
+                    AZ_PROFILE_SCOPE(
+                        RHI,
+                        "Vulkan::DescriptorSetSubAllocator::AllocateFromNewPool Pool=%p",
+                        newPool);
+                    result = newPool->Allocate(layout);
+                }
                 if (result.first != VK_SUCCESS)
                 {
                     AZ_Assert(false, "Failed to Allocate descriptor set");
@@ -175,7 +204,25 @@ namespace AZ
 
         RHI::Ptr<DescriptorSetAllocator::ObjectType> DescriptorSetAllocator::Allocate(DescriptorSetLayout& layout)
         {
-            AZStd::lock_guard<AZStd::mutex> lock(m_subAllocatorMutex);
+            AZ_PROFILE_SCOPE(
+                RHI,
+                "Vulkan::DescriptorSetAllocator::Allocate Allocator=%p Layout=%p",
+                this,
+                &layout);
+
+            AZStd::unique_lock<AZStd::mutex> lock(m_subAllocatorMutex, AZStd::defer_lock);
+            {
+                AZ_PROFILE_SCOPE(
+                    RHI,
+                    "Vulkan::DescriptorSetAllocator::Lock Allocator=%p",
+                    this);
+                lock.lock();
+            }
+
+            AZ_PROFILE_SCOPE(
+                RHI,
+                "Vulkan::DescriptorSetAllocator::SubAllocate Allocator=%p",
+                this);
             return m_subAllocator.Allocate(layout);
         }
 

@@ -8,6 +8,7 @@
 #include <RHI/Buffer.h>
 #include <RHI/BufferPool.h>
 #include <RHI/BufferView.h>
+#include <AzCore/Debug/Profiler.h>
 #include <Atom/RHI.Reflect/Vulkan/Conversion.h>
 #include <RHI/DescriptorPool.h>
 #include <RHI/DescriptorSetLayout.h>
@@ -33,6 +34,10 @@ namespace AZ
 
         void DescriptorSet::CommitUpdates()
         {
+            AZ_PROFILE_SCOPE(
+                RHI,
+                "Vulkan::DescriptorSet::CommitUpdates UpdateEntries=%zu",
+                m_updateData.size());
             if (!m_updateData.empty())
             {
                 UpdateNativeDescriptorSet();
@@ -220,6 +225,12 @@ namespace AZ
 
         VkResult DescriptorSet::Init(const Descriptor& descriptor)
         {
+            AZ_PROFILE_SCOPE(
+                RHI,
+                "Vulkan::DescriptorSet::Init Pool=%p Layout=%p",
+                descriptor.m_descriptorPool,
+                descriptor.m_descriptorSetLayout);
+
             m_descriptor = descriptor;
             AZ_Assert(descriptor.m_device, "Device is null.");
             AZ_Assert(descriptor.m_descriptorPool, "DescriptorPool is null.");
@@ -237,8 +248,16 @@ namespace AZ
                 allocInfo.descriptorSetCount = 1;
                 allocInfo.pSetLayouts = &nativeLayout;
 
-                VkResult result = descriptor.m_device->GetContext().AllocateDescriptorSets(
-                    descriptor.m_device->GetNativeDevice(), &allocInfo, &m_nativeDescriptorSet);
+                VkResult result;
+                {
+                    AZ_PROFILE_SCOPE(
+                        RHI,
+                        "Vulkan::vkAllocateDescriptorSets Pool=%p Layout=%p",
+                        descriptor.m_descriptorPool,
+                        descriptor.m_descriptorSetLayout);
+                    result = descriptor.m_device->GetContext().AllocateDescriptorSets(
+                        descriptor.m_device->GetNativeDevice(), &allocInfo, &m_nativeDescriptorSet);
+                }
                 if (result == VK_ERROR_FRAGMENTED_POOL)
                 {
                     // fragmented pool will be re-created subsequently in DescriptorSetAllocator, so warning only 
@@ -260,6 +279,10 @@ namespace AZ
             size_t constantDataSize = m_descriptor.m_descriptorSetLayout->GetConstantDataSize();
             if (vulkanDescriptor.m_constantDataPool && constantDataSize)
             {
+                AZ_PROFILE_SCOPE(
+                    RHI,
+                    "Vulkan::DescriptorSet::CreateConstantBuffer Bytes=%zu",
+                    constantDataSize);
                 m_constantDataBuffer = Buffer::Create();
                 const RHI::BufferDescriptor bufferDescriptor(RHI::BufferBindFlags::Constant, constantDataSize);
                 RHI::BufferInitRequest request(*m_constantDataBuffer, bufferDescriptor);
@@ -279,7 +302,10 @@ namespace AZ
 
             m_nullDescriptorSupported = static_cast<const PhysicalDevice&>(m_descriptor.m_device->GetPhysicalDevice()).IsFeatureSupported(DeviceFeature::NullDescriptor);
 
-            SetName(GetName());
+            {
+                AZ_PROFILE_SCOPE(RHI, "Vulkan::DescriptorSet::Init::SetName");
+                SetName(GetName());
+            }
             return VK_SUCCESS;
         }
 
@@ -308,6 +334,11 @@ namespace AZ
 
         void DescriptorSet::UpdateNativeDescriptorSet()
         {
+            AZ_PROFILE_SCOPE(
+                RHI,
+                "Vulkan::DescriptorSet::UpdateNativeDescriptorSet UpdateEntries=%zu",
+                m_updateData.size());
+
             // if this descriptor set has an unbounded array we need to allocate it now, or if it
             // is already allocated adjust the allocation size
             if (m_descriptor.m_descriptorSetLayout->GetHasUnboundedArray())
@@ -394,8 +425,14 @@ namespace AZ
             if (!writeDescSetDescs.empty())
             {
                 auto& device = static_cast<Device&>(GetDevice());
-                device.GetContext().UpdateDescriptorSets(
-                    device.GetNativeDevice(), static_cast<uint32_t>(writeDescSetDescs.size()), writeDescSetDescs.data(), 0, nullptr);
+                {
+                    AZ_PROFILE_SCOPE(
+                        RHI,
+                        "Vulkan::vkUpdateDescriptorSets Writes=%zu",
+                        writeDescSetDescs.size());
+                    device.GetContext().UpdateDescriptorSets(
+                        device.GetNativeDevice(), static_cast<uint32_t>(writeDescSetDescs.size()), writeDescSetDescs.data(), 0, nullptr);
+                }
             }
 
             m_updateData.clear();
@@ -451,6 +488,10 @@ namespace AZ
 
             if (m_nativeDescriptorSet == VK_NULL_HANDLE)
             {
+                AZ_PROFILE_SCOPE(
+                    RHI,
+                    "Vulkan::DescriptorSet::AllocateUnboundedDescriptorSet Count=%u",
+                    unboundedArraySize);
                 VkDescriptorSetVariableDescriptorCountAllocateInfo variableDescriptorCounts = {};
                 variableDescriptorCounts.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
                 variableDescriptorCounts.descriptorSetCount = 1;
@@ -464,8 +505,14 @@ namespace AZ
                 allocInfo.descriptorSetCount = 1;
                 allocInfo.pSetLayouts = &nativeLayout;
 
-                AssertSuccess(m_descriptor.m_device->GetContext().AllocateDescriptorSets(
-                    m_descriptor.m_device->GetNativeDevice(), &allocInfo, &m_nativeDescriptorSet));
+                {
+                    AZ_PROFILE_SCOPE(
+                        RHI,
+                        "Vulkan::vkAllocateDescriptorSets UnboundedCount=%u",
+                        unboundedArraySize);
+                    AssertSuccess(m_descriptor.m_device->GetContext().AllocateDescriptorSets(
+                        m_descriptor.m_device->GetNativeDevice(), &allocInfo, &m_nativeDescriptorSet));
+                }
 
                 m_currentUnboundedArrayAllocation = unboundedArraySize;
                 SetName(GetName());

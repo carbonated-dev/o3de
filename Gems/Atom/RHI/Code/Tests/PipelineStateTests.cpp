@@ -9,16 +9,20 @@
 #include "RHITestFixture.h"
 #include <Tests/Factory.h>
 #include <Tests/Device.h>
+#include <Tests/PipelineState.h>
 #include <Tests/ThreadTester.h>
 
 #include <Atom/RHI/PipelineStateCache.h>
 
 #include <Atom/RHI.Reflect/PipelineLayoutDescriptor.h>
 
+#include <AzCore/Console/IConsole.h>
 #include <AzCore/Math/Random.h>
 #include <AzCore/std/chrono/chrono.h>
 #include <AzCore/std/parallel/condition_variable.h>
 #include <AzCore/std/parallel/thread.h>
+
+AZ_CVAR_EXTERNED(AZ::u32, r_pipelineLibraryStrategy);
 
 namespace UnitTest
 {
@@ -70,6 +74,25 @@ namespace UnitTest
         void ValidateCacheIntegrity(RHI::Ptr<RHI::PipelineStateCache>& cache) const
         {
             cache->ValidateCacheIntegrity();
+        }
+
+        RHI::PipelineLibrary* GetGlobalPipelineLibrary(const RHI::Ptr<RHI::PipelineStateCache>& cache) const
+        {
+            return cache->m_globalPipelineLibrary.get();
+        }
+
+        bool HasThreadLocalPipelineLibrary(const RHI::Ptr<RHI::PipelineStateCache>& cache) const
+        {
+            bool foundThreadLocalLibrary = false;
+            cache->m_threadLibrarySet.ForEach(
+                [&foundThreadLocalLibrary](const RHI::PipelineStateCache::ThreadLibrarySet& threadLibrarySet)
+                {
+                    for (const RHI::PipelineStateCache::ThreadLibraryEntry& entry : threadLibrarySet)
+                    {
+                        foundThreadLocalLibrary |= entry.m_library != nullptr;
+                    }
+                });
+            return foundThreadLocalLibrary;
         }
 
     private:
@@ -246,6 +269,51 @@ namespace UnitTest
         }
     }
 
+    TEST_F(PipelineStateTests, PipelineStateCache_GlobalPipelineLibraryStrategy_UsesOneLibraryPerCache)
+    {
+        const AZ::u32 previousStrategy = r_pipelineLibraryStrategy;
+        r_pipelineLibraryStrategy = static_cast<AZ::u32>(RHI::PipelineLibraryStrategy::Global);
+
+        RHI::Ptr<RHI::Device> device = MakeTestDevice();
+        RHI::Ptr<RHI::PipelineStateCache> pipelineStateCache = RHI::PipelineStateCache::Create(*device);
+        RHI::Ptr<RHI::PipelineStateCache> secondPipelineStateCache = RHI::PipelineStateCache::Create(*device);
+
+        // Verify that changing the CVAR after construction does not change either cache.
+        r_pipelineLibraryStrategy = static_cast<AZ::u32>(RHI::PipelineLibraryStrategy::PerThreadPerShader);
+        EXPECT_EQ(pipelineStateCache->GetPipelineLibraryStrategy(), RHI::PipelineLibraryStrategy::Global);
+        EXPECT_EQ(secondPipelineStateCache->GetPipelineLibraryStrategy(), RHI::PipelineLibraryStrategy::Global);
+
+        const RHI::PipelineLibraryHandle firstLibraryHandle = pipelineStateCache->CreateLibrary(nullptr);
+        const RHI::PipelineLibraryHandle secondLibraryHandle = pipelineStateCache->CreateLibrary(nullptr);
+        secondPipelineStateCache->CreateLibrary(nullptr);
+
+        RHI::PipelineLibrary* globalPipelineLibrary = GetGlobalPipelineLibrary(pipelineStateCache);
+        RHI::PipelineLibrary* secondGlobalPipelineLibrary = GetGlobalPipelineLibrary(secondPipelineStateCache);
+        EXPECT_NE(globalPipelineLibrary, nullptr);
+        EXPECT_NE(secondGlobalPipelineLibrary, nullptr);
+        EXPECT_NE(globalPipelineLibrary, secondGlobalPipelineLibrary);
+
+        ThreadTester::Dispatch(
+            4,
+            [&](size_t threadIndex)
+            {
+                const RHI::PipelineLibraryHandle handle =
+                    (threadIndex & 1) ? firstLibraryHandle : secondLibraryHandle;
+                EXPECT_NE(
+                    pipelineStateCache->AcquirePipelineState(
+                        handle, CreatePipelineStateDescriptor(static_cast<uint32_t>(threadIndex))),
+                    nullptr);
+            });
+
+        EXPECT_FALSE(HasThreadLocalPipelineLibrary(pipelineStateCache));
+        EXPECT_EQ(pipelineStateCache->GetMergedLibrary(firstLibraryHandle).get(), globalPipelineLibrary);
+        EXPECT_FALSE(pipelineStateCache->ShouldSavePipelineLibrary(firstLibraryHandle));
+        pipelineStateCache->ReleaseLibrary(firstLibraryHandle);
+        EXPECT_TRUE(pipelineStateCache->ShouldSavePipelineLibrary(secondLibraryHandle));
+
+        r_pipelineLibraryStrategy = previousStrategy;
+    }
+
     TEST_F(PipelineStateTests, PipelineStateCache_NullHandle_Test)
     {
         RHI::Ptr<RHI::Device> device = MakeTestDevice();
@@ -319,7 +387,7 @@ namespace UnitTest
         bool normalAcquireCompleted = false;
         bool compactCompleted = false;
 
-        PipelineState::SetCompileCallback(
+        UnitTest::PipelineState::SetCompileCallback(
             [&]()
             {
                 AZStd::unique_lock<AZStd::mutex> lock(mutex);
@@ -421,7 +489,7 @@ namespace UnitTest
         compactThread.join();
         normalAcquireThread.join();
         asyncAcquireThread.join();
-        PipelineState::SetCompileCallback({});
+        UnitTest::PipelineState::SetCompileCallback({});
 
         EXPECT_TRUE(compactCompletedBeforeRelease);
         EXPECT_FALSE(normalAcquireCompletedBeforeRelease);

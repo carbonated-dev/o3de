@@ -11,6 +11,7 @@
 #include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
 
 #include <AtomCore/Instance/InstanceDatabase.h>
+#include <AzCore/Debug/Profiler.h>
 
 #if defined(CARBONATED)
 #include <AzCore/Memory/MemoryMarker.h>
@@ -70,6 +71,11 @@ namespace AZ
 
             SrgInitParams initParams{ supervariantIndex, srgName };
             auto anyInitParams = AZStd::any(initParams);
+            AZ_PROFILE_SCOPE(
+                RPI,
+                "RPI::ShaderResourceGroup::InstanceDatabaseCreate Shader=%s Srg=%s",
+                shaderAsset->GetName().GetCStr(),
+                srgName.GetCStr());
             return Data::InstanceDatabase<ShaderResourceGroup>::Instance().Create(shaderAsset, &anyInitParams);
         }
 
@@ -82,6 +88,12 @@ namespace AZ
 #endif
             SrgInitParams initParams{ supervariantIndex, srgName };
             auto anyInitParams = AZStd::any(initParams);
+            AZ_PROFILE_SCOPE(
+                RPI,
+                "RPI::ShaderResourceGroup::InstanceDatabaseCreate Shader=%s Srg=%s Supervariant=%u",
+                shaderAsset->GetName().GetCStr(),
+                srgName.GetCStr(),
+                supervariantIndex.GetIndex());
             return Data::InstanceDatabase<ShaderResourceGroup>::Instance().Create(shaderAsset, &anyInitParams);
         }
 
@@ -93,8 +105,23 @@ namespace AZ
             AZ_Assert(anySrgInitParams, "Invalid SrgInitParams");
             auto srgInitParams = AZStd::any_cast<SrgInitParams>(*anySrgInitParams);
 
-            Data::Instance<ShaderResourceGroup> srg = aznew ShaderResourceGroup();
-            const RHI::ResultCode resultCode = srg->Init(shaderAsset, srgInitParams.m_supervariantIndex, srgInitParams.m_srgName);
+            AZ_PROFILE_SCOPE(
+                RPI,
+                "RPI::ShaderResourceGroup::CreateInternal Shader=%s Srg=%s",
+                shaderAsset.GetName().GetCStr(),
+                srgInitParams.m_srgName.GetCStr());
+
+            Data::Instance<ShaderResourceGroup> srg;
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroup::Allocate");
+                srg = aznew ShaderResourceGroup();
+            }
+
+            RHI::ResultCode resultCode;
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroup::Init");
+                resultCode = srg->Init(shaderAsset, srgInitParams.m_supervariantIndex, srgInitParams.m_srgName);
+            }
             if (resultCode != RHI::ResultCode::Success)
             {
                 return nullptr;
@@ -108,8 +135,11 @@ namespace AZ
 #if defined(CARBONATED)
             MEMORY_TAG(Shader);
 #endif
-            const auto& lay = shaderAsset.FindShaderResourceGroupLayout(srgName, supervariantIndex);
-            m_layout = lay.get();
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroup::Init::FindLayout");
+                const auto& lay = shaderAsset.FindShaderResourceGroupLayout(srgName, supervariantIndex);
+                m_layout = lay.get();
+            }
 
             if (!m_layout)
             {
@@ -117,8 +147,14 @@ namespace AZ
                 return RHI::ResultCode::Fail;
             }
 
-            m_pool = ShaderResourceGroupPool::FindOrCreate(
-                AZ::Data::Asset<ShaderAsset>(&shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad), supervariantIndex, srgName);
+            {
+                AZ_PROFILE_SCOPE(
+                    RPI,
+                    "RPI::ShaderResourceGroup::Init::FindOrCreatePool Layout=%p",
+                    m_layout);
+                m_pool = ShaderResourceGroupPool::FindOrCreate(
+                    AZ::Data::Asset<ShaderAsset>(&shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad), supervariantIndex, srgName);
+            }
             AZ_Assert(m_layout->GetHash() == m_pool->GetRHIPool()->GetLayout()->GetHash(), "This can happen if two shaders are including the same partial srg from different .azsl shader files and adding more custom entries to the srg. Recommendation is to just make a bigger SRG that can be shared between the two shaders.");
             
             if (!m_pool)
@@ -126,18 +162,37 @@ namespace AZ
                 return RHI::ResultCode::Fail;
             }
 
-            m_shaderResourceGroup = m_pool->CreateRHIShaderResourceGroup();
+            {
+                AZ_PROFILE_SCOPE(
+                    RPI,
+                    "RPI::ShaderResourceGroup::Init::CreateRhiSrg Pool=%p",
+                    m_pool->GetRHIPool());
+                m_shaderResourceGroup = m_pool->CreateRHIShaderResourceGroup();
+            }
             if (!m_shaderResourceGroup)
             {
                 return RHI::ResultCode::Fail;
             }
-            m_shaderResourceGroup->SetName(m_pool->GetRHIPool()->GetName());
-            m_data = RHI::ShaderResourceGroupData(m_layout);
-            m_asset = { &shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad };
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroup::Init::SetRhiName");
+                m_shaderResourceGroup->SetName(m_pool->GetRHIPool()->GetName());
+            }
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroup::Init::CreateData");
+                m_data = RHI::ShaderResourceGroupData(m_layout);
+                m_asset = { &shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad };
+            }
 
             // The RPI groups match the same dimensions as the RHI group.
-            m_imageGroup.resize(m_layout->GetGroupSizeForImages());
-            m_bufferGroup.resize(m_layout->GetGroupSizeForBuffers());
+            {
+                AZ_PROFILE_SCOPE(
+                    RPI,
+                    "RPI::ShaderResourceGroup::Init::ResizeGroups Images=%u Buffers=%u",
+                    m_layout->GetGroupSizeForImages(),
+                    m_layout->GetGroupSizeForBuffers());
+                m_imageGroup.resize(m_layout->GetGroupSizeForImages());
+                m_bufferGroup.resize(m_layout->GetGroupSizeForBuffers());
+            }
 
             m_isInitialized = true;
 

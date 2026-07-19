@@ -14,7 +14,9 @@
 #include <Atom/RPI.Public/Shader/ShaderReloadDebugTracker.h>
 #include <Atom/RPI.Public/Shader/ShaderSystemInterface.h>
 #include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
+#include <AzCore/Debug/Profiler.h>
 #include <AzCore/Interface/Interface.h>
+#include <AzCore/std/parallel/mutex.h>
 #include <AzCore/std/time.h>
 
 #include <AzCore/Component/TickBus.h>
@@ -125,13 +127,35 @@ namespace AZ
                 }
                 
                 char pipelineLibraryPathTemp[AZ_MAX_PATH_LEN];
-                azsnprintf(
-                    pipelineLibraryPathTemp, AZ_MAX_PATH_LEN, "@user@/Atom/PipelineStateCache_%s_%u_%u_%s_Ver_%i/%s/%s_%s_%d.bin",
-                    ToString(physicalDeviceDesc.m_vendorId).data(), physicalDeviceDesc.m_deviceId,
-                    physicalDeviceDesc.m_driverVersion, configString.data(),
-                    PSOCacheVersion, platformName.GetCStr(),
-                    shaderName.GetCStr(), uuidString.data(),
-                    assetId.m_subId);
+                if (rhiSystem->GetPipelineStateCache()->GetPipelineLibraryStrategy() == RHI::PipelineLibraryStrategy::Global)
+                {
+                    azsnprintf(
+                        pipelineLibraryPathTemp,
+                        AZ_MAX_PATH_LEN,
+                        "@user@/Atom/PipelineStateCache_%s_%u_%u_%s_Ver_%i/%s/Global.bin",
+                        ToString(physicalDeviceDesc.m_vendorId).data(),
+                        physicalDeviceDesc.m_deviceId,
+                        physicalDeviceDesc.m_driverVersion,
+                        configString.data(),
+                        PSOCacheVersion,
+                        platformName.GetCStr());
+                }
+                else
+                {
+                    azsnprintf(
+                        pipelineLibraryPathTemp,
+                        AZ_MAX_PATH_LEN,
+                        "@user@/Atom/PipelineStateCache_%s_%u_%u_%s_Ver_%i/%s/%s_%s_%d.bin",
+                        ToString(physicalDeviceDesc.m_vendorId).data(),
+                        physicalDeviceDesc.m_deviceId,
+                        physicalDeviceDesc.m_driverVersion,
+                        configString.data(),
+                        PSOCacheVersion,
+                        platformName.GetCStr(),
+                        shaderName.GetCStr(),
+                        uuidString.data(),
+                        assetId.m_subId);
+                }
 
                 fileIOBase->ResolvePath(pipelineLibraryPathTemp, pipelineLibraryPath, pipelineLibraryPathLength);
                 return true;
@@ -167,7 +191,8 @@ namespace AZ
                 // in a new pipeline library every time.
 
                 RHI::PipelineStateCache* pipelineStateCache = rhiSystem->GetPipelineStateCache();
-                ConstPtr<RHI::PipelineLibraryData> serializedData = LoadPipelineLibrary();
+                ConstPtr<RHI::PipelineLibraryData> serializedData =
+                    pipelineStateCache->NeedsPipelineLibraryData() ? LoadPipelineLibrary() : nullptr;
                 RHI::PipelineLibraryHandle pipelineLibraryHandle = pipelineStateCache->CreateLibrary(serializedData.get(), m_pipelineLibraryPath);
 
                 if (pipelineLibraryHandle.IsNull())
@@ -210,7 +235,7 @@ namespace AZ
 
             if (m_pipelineLibraryHandle.IsValid())
             {
-                if (r_enablePsoCaching)
+                if (r_enablePsoCaching && m_pipelineStateCache->ShouldSavePipelineLibrary(m_pipelineLibraryHandle))
                 {
                     SavePipelineLibrary();
                 }
@@ -390,6 +415,15 @@ namespace AZ
             RHI::Device* device = RHI::RHISystemInterface::Get()->GetDevice();
             if (m_pipelineLibraryPath[0] != 0)
             {
+                // All shaders share the same file in global mode. Serialize and write it under one lock so an
+                // older snapshot cannot finish after a newer snapshot and overwrite it.
+                static AZStd::mutex globalPipelineLibrarySaveMutex;
+                AZStd::unique_lock<AZStd::mutex> globalSaveLock(globalPipelineLibrarySaveMutex, AZStd::defer_lock);
+                if (m_pipelineStateCache->GetPipelineLibraryStrategy() == RHI::PipelineLibraryStrategy::Global)
+                {
+                    globalSaveLock.lock();
+                }
+
                 RHI::ConstPtr<RHI::PipelineLibrary> pipelineLib = m_pipelineStateCache->GetMergedLibrary(m_pipelineLibraryHandle);
                 if(!pipelineLib)
                 {
@@ -559,20 +593,40 @@ namespace AZ
 #if defined(CARBONATED)
             MEMORY_TAG(Shader);
 #endif
-            RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout = m_asset->GetDrawSrgLayout(GetSupervariantIndex());
+            AZ_PROFILE_SCOPE(
+                RPI,
+                "Shader::CreateDrawSrgForShaderVariant Shader=%s Supervariant=%s",
+                m_asset->GetName().GetCStr(),
+                m_asset->GetSupervariantName(GetSupervariantIndex()).GetCStr());
+
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout;
+            {
+                AZ_PROFILE_SCOPE(RPI, "Shader::CreateDrawSrgForShaderVariant::GetDrawSrgLayout");
+                drawSrgLayout = m_asset->GetDrawSrgLayout(GetSupervariantIndex());
+            }
+
             Data::Instance<ShaderResourceGroup> drawSrg;
             if (drawSrgLayout)
             {
-                drawSrg = RPI::ShaderResourceGroup::Create(m_asset, GetSupervariantIndex(), drawSrgLayout->GetName());
+                {
+                    AZ_PROFILE_SCOPE(
+                        RPI,
+                        "Shader::CreateDrawSrgForShaderVariant::CreateSrg Layout=%p",
+                        drawSrgLayout.get());
+                    drawSrg = RPI::ShaderResourceGroup::Create(m_asset, GetSupervariantIndex(), drawSrgLayout->GetName());
+                }
+
                 bool useFallbackKey = !shaderOptions.GetShaderOptionLayout()->IsFullySpecialized() ||
                     !m_asset->UseSpecializationConstants(GetSupervariantIndex());
                 if (useFallbackKey && drawSrgLayout->HasShaderVariantKeyFallbackEntry())
                 {
+                    AZ_PROFILE_SCOPE(RPI, "Shader::CreateDrawSrgForShaderVariant::SetFallbackKey");
                     drawSrg->SetShaderVariantKeyFallbackValue(shaderOptions.GetShaderVariantKeyFallbackValue());
                 }
 
                 if (compileTheSrg)
                 {
+                    AZ_PROFILE_SCOPE(RPI, "Shader::CreateDrawSrgForShaderVariant::Compile");
                     drawSrg->Compile();
                 }
             }

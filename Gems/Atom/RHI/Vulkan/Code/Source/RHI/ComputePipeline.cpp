@@ -57,8 +57,15 @@ namespace AZ
             createInfo.basePipelineHandle = VK_NULL_HANDLE;
             createInfo.basePipelineIndex = -1;
 
+            const VkPipelineCache pipelineCache =
+                descriptor.m_pipelineLibrary ? descriptor.m_pipelineLibrary->GetNativePipelineCache() : VK_NULL_HANDLE;
             VkResult result = descriptor.m_device->GetContext().CreateComputePipelines(
-                descriptor.m_device->GetNativeDevice(), VK_NULL_HANDLE, 1, &createInfo, VkSystemAllocator::Get(), &GetNativePipelineRef());
+                descriptor.m_device->GetNativeDevice(),
+                pipelineCache,
+                1,
+                &createInfo,
+                VkSystemAllocator::Get(),
+                &GetNativePipelineRef());
 
             return ConvertResult(result);
         }

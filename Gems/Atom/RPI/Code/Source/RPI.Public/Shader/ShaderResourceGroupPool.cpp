@@ -13,6 +13,7 @@
 
 #include <AtomCore/Instance/InstanceDatabase.h>
 #include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
+#include <AzCore/Debug/Profiler.h>
 
 namespace AZ
 {
@@ -21,9 +22,18 @@ namespace AZ
         Data::Instance<ShaderResourceGroupPool> ShaderResourceGroupPool::FindOrCreate(
             const Data::Asset<ShaderAsset>& shaderAsset, const SupervariantIndex& supervariantIndex, const AZ::Name& srgName)
         {
-            auto instanceId = ShaderResourceGroup::MakeSrgPoolInstanceId(shaderAsset, supervariantIndex, srgName);
+            Data::InstanceId instanceId;
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroupPool::MakeInstanceId");
+                instanceId = ShaderResourceGroup::MakeSrgPoolInstanceId(shaderAsset, supervariantIndex, srgName);
+            }
             ShaderResourceGroup::SrgInitParams srgInitParams{ supervariantIndex, srgName };
             auto anyArgInitParams = AZStd::any(srgInitParams);
+            AZ_PROFILE_SCOPE(
+                RPI,
+                "RPI::ShaderResourceGroupPool::InstanceDatabaseFindOrCreate Shader=%s Srg=%s",
+                shaderAsset->GetName().GetCStr(),
+                srgName.GetCStr());
             return Data::InstanceDatabase<ShaderResourceGroupPool>::Instance().FindOrCreate(instanceId,
                 shaderAsset, &anyArgInitParams);
         }
@@ -34,8 +44,23 @@ namespace AZ
             AZ_Assert(anySrgInitParams, "Invalid SrgInitParams");
             auto srgInitParams = AZStd::any_cast<ShaderResourceGroup::SrgInitParams>(*anySrgInitParams);
 
-            Data::Instance<ShaderResourceGroupPool> srgPool = aznew ShaderResourceGroupPool();
-            const RHI::ResultCode resultCode = srgPool->Init(shaderAsset, srgInitParams.m_supervariantIndex, srgInitParams.m_srgName);
+            AZ_PROFILE_SCOPE(
+                RPI,
+                "RPI::ShaderResourceGroupPool::CreateInternal Shader=%s Srg=%s",
+                shaderAsset.GetName().GetCStr(),
+                srgInitParams.m_srgName.GetCStr());
+
+            Data::Instance<ShaderResourceGroupPool> srgPool;
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroupPool::Allocate");
+                srgPool = aznew ShaderResourceGroupPool();
+            }
+
+            RHI::ResultCode resultCode;
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroupPool::Init");
+                resultCode = srgPool->Init(shaderAsset, srgInitParams.m_supervariantIndex, srgInitParams.m_srgName);
+            }
             if (resultCode != RHI::ResultCode::Success)
             {
                 return nullptr;
@@ -49,7 +74,10 @@ namespace AZ
         {
             RHI::Ptr<RHI::Device> device = RHI::RHISystemInterface::Get()->GetDevice();
 
-            m_pool = RHI::Factory::Get().CreateShaderResourceGroupPool();
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroupPool::Init::CreateRhiPool");
+                m_pool = RHI::Factory::Get().CreateShaderResourceGroupPool();
+            }
             if (!m_pool)
             {
                 AZ_Error("ShaderResourceGroupPool", false, "Failed to create RHI::ShaderResourceGroupPool");
@@ -57,21 +85,39 @@ namespace AZ
             }
 
             RHI::ShaderResourceGroupPoolDescriptor poolDescriptor;
-            poolDescriptor.m_layout = shaderAsset.FindShaderResourceGroupLayout(srgName, supervariantIndex).get();
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroupPool::Init::FindLayout");
+                poolDescriptor.m_layout = shaderAsset.FindShaderResourceGroupLayout(srgName, supervariantIndex).get();
+            }
 
-            m_pool->SetName(AZ::Name(AZStd::string::format("%s_%s",shaderAsset.GetName().GetCStr(),srgName.GetCStr())));
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroupPool::Init::SetName");
+                m_pool->SetName(AZ::Name(AZStd::string::format("%s_%s",shaderAsset.GetName().GetCStr(),srgName.GetCStr())));
+            }
  
+            AZ_PROFILE_SCOPE(
+                RPI,
+                "RPI::ShaderResourceGroupPool::Init::InitRhiPool Layout=%p",
+                poolDescriptor.m_layout.get());
             const RHI::ResultCode resultCode = m_pool->Init(*device, poolDescriptor);
             return resultCode;
         }
 
         RHI::Ptr<RHI::ShaderResourceGroup> ShaderResourceGroupPool::CreateRHIShaderResourceGroup()
         {
-            RHI::Ptr<RHI::ShaderResourceGroup> srg = RHI::Factory::Get().CreateShaderResourceGroup();
+            RHI::Ptr<RHI::ShaderResourceGroup> srg;
+            {
+                AZ_PROFILE_SCOPE(RPI, "RPI::ShaderResourceGroupPool::CreateRhiSrg::FactoryCreate");
+                srg = RHI::Factory::Get().CreateShaderResourceGroup();
+            }
             AZ_Error("ShaderResourceGroupPool", srg, "Failed to create RHI::ShaderResourceGroup");
 
             if (srg)
             {
+                AZ_PROFILE_SCOPE(
+                    RPI,
+                    "RPI::ShaderResourceGroupPool::CreateRhiSrg::InitGroup Pool=%p",
+                    m_pool.get());
                 RHI::ResultCode result = m_pool->InitGroup(*srg);
                 if (result != RHI::ResultCode::Success)
                 {

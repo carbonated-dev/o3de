@@ -22,6 +22,12 @@ namespace UnitTest
 
 namespace AZ::RHI
 {
+    enum class PipelineLibraryStrategy : uint32_t
+    {
+        PerThreadPerShader = 0,
+        Global = 1
+    };
+
     //! Problem: High-level rendering code works in 'materials', 'shaders', and 'models', but the RHI works in
     //! 'pipeline states'. Therefore, a translation process must exist to resolve a shader variation (plus runtime
     //! state) into a pipeline state suitable for consumption by the RHI. These resolve operations can number in the
@@ -49,8 +55,9 @@ namespace AZ::RHI
     //!
     //! Each library has global and thread-local caches. Initially, the global cache is checked, if that fails, the
     //! thread-local cache is checked (no locks taken). Finally, the pending cache is checked under a lock and if
-    //! the entry still doesn't exist, it is allocated and added to the pending cache. A thread-local PipelineLibrary
-    //! is used to compile the pipeline state, which eliminates all locking for compilation.
+    //! the entry still doesn't exist, it is allocated and added to the pending cache. Depending on
+    //! PipelineLibraryStrategy, compilation uses either a thread-local PipelineLibrary or one PipelineLibrary
+    //! shared by all shaders and threads for the device.
     //!
     //! Pipeline states can be acquired at any time and from any thread. The cache will take a reader lock. During
     //! AcquirePipelineState, the global read-only cache is not updated, but the thread-local cache and pending
@@ -111,6 +118,17 @@ namespace AZ::RHI
         static const size_t LibraryCountMax = 256;
 
         static Ptr<PipelineStateCache> Create(Device& device);
+
+        //! Returns the pipeline library strategy captured when this cache was created.
+        PipelineLibraryStrategy GetPipelineLibraryStrategy() const;
+
+        //! Returns whether the caller should load serialized data before creating its library handle.
+        //! Global mode only consumes serialized data for the first library.
+        bool NeedsPipelineLibraryData() const;
+
+        //! Returns whether this library handle should persist pipeline library data now.
+        //! In global mode only the final active library should save the shared library.
+        bool ShouldSavePipelineLibrary(PipelineLibraryHandle handle) const;
 
         //! Resets the caches of all pipeline libraries back to empty. All internal references to pipeline states are released.
         void Reset();
@@ -232,10 +250,9 @@ namespace AZ::RHI
             // A thread-local cache used to reduce contention on the global pending cache.
             PipelineStateSet m_threadLocalCache;
 
-            //! Each thread has its own pipeline library. This allows threads to cache disjoint
-            //! pipeline states without locking. The libraries are coalesced into a single library
-            //! during GetMergedLibrary. The library is lazily initialized on the thread
-            //! and uses the initial serialized data passed in at creation time.
+            //! In PerThreadPerShader mode, each thread has its own pipeline library. This allows threads
+            //! to cache disjoint pipeline states without locking. The libraries are coalesced into a
+            //! single library during GetMergedLibrary. This member remains null in Global mode.
             Ptr<PipelineLibrary> m_library;
         };
 
@@ -269,7 +286,7 @@ namespace AZ::RHI
 
         PipelineStateAcquireResult CompilePipelineState(
             GlobalLibraryEntry& globalLibraryEntry,
-            ThreadLibraryEntry& threadLibraryEntry,
+            PipelineLibrary* pipelineLibrary,
             const PipelineStateDescriptor& pipelineStateDescriptor,
             PipelineStateHash pipelineStateHash,
             const AZ::Name& name,
@@ -279,6 +296,13 @@ namespace AZ::RHI
         void ResetLibraryImpl(PipelineLibraryHandle handle);
 
         Ptr<Device> m_device;
+
+        //! The pipeline library strategy is captured at construction and cannot change for the lifetime of the cache.
+        const PipelineLibraryStrategy m_pipelineLibraryStrategy;
+
+        //! In global mode this is the one PipelineLibrary used by every shader and compilation thread for this device.
+        Ptr<PipelineLibrary> m_globalPipelineLibrary;
+        AZStd::atomic_bool m_globalPipelineLibraryHasData = false;
 
         /// Each thread owns a set of ThreadLibraryEntry elements. RHI::PipelineLibraryHandle is an
         /// index into the array.
