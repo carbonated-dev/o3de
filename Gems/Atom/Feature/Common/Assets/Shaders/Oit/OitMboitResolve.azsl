@@ -1,0 +1,93 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#include <scenesrg.srgi>
+
+ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
+{
+    RWTexture2D<float4> m_inputOutput;
+    Texture2D<float4> m_oitMboitMoments;
+    Texture2D<float4> m_oitMboitAccum;
+};
+
+float OitMboitEstimateOpticalDepth(float4 moments0, float2 moments1)
+{
+    const float totalOpticalDepth = max(moments0.x, 0.0f);
+    if (totalOpticalDepth <= 0.00001f)
+    {
+        return 0.0f;
+    }
+
+    const float meanDepth = moments0.y / totalOpticalDepth;
+    const float secondMoment = moments0.z / totalOpticalDepth;
+    // This reconstruction is intentionally conservative: variance and bias reduce under-occlusion artifacts.
+    const float variance = max(secondMoment - meanDepth * meanDepth, 0.0f);
+    float estimate = totalOpticalDepth + SceneSrg::m_oitMboitMomentBias + variance * SceneSrg::m_oitMboitOverestimation;
+
+    if (SceneSrg::m_oitMboitMomentCount > 4)
+    {
+        // Six-moment mode pulls the extra terms from the second atlas slice to refine the transmittance estimate.
+        const float fourthMoment = moments1.x / totalOpticalDepth;
+        const float fifthMoment = moments1.y / totalOpticalDepth;
+        estimate += max(fourthMoment + fifthMoment, 0.0f) * SceneSrg::m_oitMboitOverestimation;
+    }
+
+    return estimate;
+}
+
+[numthreads(8, 8, 1)]
+void MainCS(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    const uint2 pixelCoord = dispatchThreadId.xy;
+    uint width = 0;
+    uint height = 0;
+    PassSrg::m_inputOutput.GetDimensions(width, height);
+    if (pixelCoord.x >= width || pixelCoord.y >= height)
+    {
+        return;
+    }
+
+    float4 outputColor = PassSrg::m_inputOutput[pixelCoord];
+    const float4 moments0 = PassSrg::m_oitMboitMoments[pixelCoord];
+    const float4 accum = PassSrg::m_oitMboitAccum[pixelCoord];
+
+    float2 moments1 = float2(0.0f, 0.0f);
+    if (SceneSrg::m_oitMboitMomentCount > 4)
+    {
+        // The parent pass doubles the moment texture height only when r_oitMboitMomentCount selects six moments.
+        moments1 = PassSrg::m_oitMboitMoments[uint2(pixelCoord.x, pixelCoord.y + height)].xy;
+    }
+
+    if (accum.a > 0.00001f && moments0.x > 0.00001f)
+    {
+        // Resolve reconstructs a scalar transmission from moments, then applies the average accumulated color.
+        const float opticalDepth = OitMboitEstimateOpticalDepth(moments0, moments1);
+        const float transmission = saturate(exp(-opticalDepth));
+        const float opacity = 1.0f - transmission;
+        const float3 averageColor = accum.rgb / max(accum.a, 0.00001f);
+
+        outputColor.rgb = averageColor * opacity + outputColor.rgb * transmission;
+        outputColor.a = 1.0f;
+    }
+
+    if (SceneSrg::m_oitMboitDebugMode == 1)
+    {
+        outputColor.rgb = saturate(float3(moments0.x, moments0.x, moments0.x));
+        outputColor.a = 1.0f;
+    }
+    else if (SceneSrg::m_oitMboitDebugMode == 2)
+    {
+        const float variance = moments0.x > 0.00001f
+            ? max(moments0.z / moments0.x - (moments0.y / moments0.x) * (moments0.y / moments0.x), 0.0f)
+            : 0.0f;
+        outputColor.rgb = saturate(float3(variance, variance, variance));
+        outputColor.a = 1.0f;
+    }
+
+    PassSrg::m_inputOutput[pixelCoord] = outputColor;
+}

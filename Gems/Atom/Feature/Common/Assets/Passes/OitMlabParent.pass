@@ -1,0 +1,265 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "OitMlabParentTemplate",
+            "PassClass": "OitMlabParentPass",
+            "Slots": [
+                {
+                    "Name": "DirectionalShadowmap",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "DirectionalESM",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "ProjectedShadowmap",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "ProjectedESM",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "TileLightData",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "LightListRemapped",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "InputLinearDepth",
+                    "SlotType": "Input"
+                },
+                {
+                    "Name": "DepthStencil",
+                    "SlotType": "InputOutput"
+                },
+                {
+                    "Name": "InputOutput",
+                    "SlotType": "InputOutput"
+                },
+                {
+                    "Name": "OitMlabFragmentCount",
+                    "SlotType": "InputOutput"
+                },
+                {
+                    "Name": "OitMlabFragmentColor",
+                    "SlotType": "InputOutput"
+                },
+                {
+                    "Name": "OitMlabFragmentDepthTransmission",
+                    "SlotType": "InputOutput"
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "OitMlabFragmentCountImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "InputOutput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R32_UINT"
+                    }
+                },
+                {
+                    "Name": "OitMlabFragmentColorImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "InputOutput"
+                        },
+                        "Multipliers": {
+                            "WidthMultiplier": 1.0,
+                            "HeightMultiplier": 4.0
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R16G16B16A16_FLOAT"
+                    }
+                },
+                {
+                    "Name": "OitMlabFragmentDepthTransmissionImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "InputOutput"
+                        },
+                        "Multipliers": {
+                            "WidthMultiplier": 1.0,
+                            "HeightMultiplier": 4.0
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R16G16B16A16_FLOAT"
+                    }
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "OitMlabFragmentCount",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "OitMlabFragmentCountImage"
+                    }
+                },
+                {
+                    "LocalSlot": "OitMlabFragmentColor",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "OitMlabFragmentColorImage"
+                    }
+                },
+                {
+                    "LocalSlot": "OitMlabFragmentDepthTransmission",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "OitMlabFragmentDepthTransmissionImage"
+                    }
+                }
+            ],
+            "PassRequests": [
+                {
+                    "Name": "OitMlabGatherPass",
+                    "TemplateName": "OitMlabGatherTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "DirectionalLightShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DirectionalShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ExponentialShadowmapDirectional",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DirectionalESM"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ProjectedShadowmap",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "ProjectedShadowmap"
+                            }
+                        },
+                        {
+                            "LocalSlot": "ExponentialShadowmapProjected",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "ProjectedESM"
+                            }
+                        },
+                        {
+                            "LocalSlot": "TileLightData",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "TileLightData"
+                            }
+                        },
+                        {
+                            "LocalSlot": "LightListRemapped",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "LightListRemapped"
+                            }
+                        },
+                        {
+                            "LocalSlot": "InputLinearDepth",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "InputLinearDepth"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthStencil",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthStencil"
+                            }
+                        },
+                        {
+                            "LocalSlot": "InputOutput",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "InputOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "OitMlabFragmentCount",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "OitMlabFragmentCount"
+                            }
+                        },
+                        {
+                            "LocalSlot": "OitMlabFragmentColor",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "OitMlabFragmentColor"
+                            }
+                        },
+                        {
+                            "LocalSlot": "OitMlabFragmentDepthTransmission",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "OitMlabFragmentDepthTransmission"
+                            }
+                        }
+                    ],
+                    "PassData": {
+                        "$type": "RasterPassData",
+                        "DrawListTag": "transparent",
+                        "DrawListSortType": "KeyThenDepth",
+                        "BindViewSrg": true,
+                        "PassSrgShaderAsset": {
+                            "FilePath": "Shaders/ForwardPassSrg.shader"
+                        }
+                    }
+                },
+                {
+                    "Name": "OitMlabResolvePass",
+                    "TemplateName": "OitMlabResolveTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "InputOutput",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "InputOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "OitMlabFragmentCount",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "OitMlabFragmentCount"
+                            }
+                        },
+                        {
+                            "LocalSlot": "OitMlabFragmentColor",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "OitMlabFragmentColor"
+                            }
+                        },
+                        {
+                            "LocalSlot": "OitMlabFragmentDepthTransmission",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "OitMlabFragmentDepthTransmission"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

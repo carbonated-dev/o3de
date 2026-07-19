@@ -35,6 +35,9 @@ namespace AZ
             BufferDeviceAddress,
             SubgroupOperation,
             MemoryBudget,
+#if defined(CARBONATED)
+            FragmentShaderInterlock,
+#endif
             Count // Must be last
         };
 
@@ -64,6 +67,9 @@ namespace AZ
             ShaderFloatControls,
             FragmentShadingRate,
             FragmentDensityMap,
+#if defined(CARBONATED)
+            FragmentShaderInterlock,
+#endif
             Renderpass2,
             TimelineSempahore,
 #if defined(CARBONATED)
@@ -109,6 +115,9 @@ namespace AZ
             const VkPhysicalDeviceRayQueryFeaturesKHR& GetRayQueryFeatures() const;
             const VkPhysicalDeviceFragmentShadingRateFeaturesKHR& GetPhysicalDeviceFragmentShadingRateFeatures() const;
             const VkPhysicalDeviceFragmentDensityMapFeaturesEXT& GetPhysicalDeviceFragmentDensityMapFeatures() const;
+#if defined(CARBONATED)
+            const VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT& GetPhysicalDeviceFragmentShaderInterlockFeatures() const;
+#endif
             const VkPhysicalDeviceFragmentDensityMapPropertiesEXT& GetPhysicalDeviceFragmentDensityMapProperties() const;
             const VkPhysicalDeviceFragmentShadingRatePropertiesKHR& GetPhysicalDeviceFragmentShadingRateProperties() const;
             const VkPhysicalDeviceTimelineSemaphoreFeatures& GetPhysicalDeviceTimelineSemaphoreFeatures() const;
@@ -155,6 +164,9 @@ namespace AZ
             VkPhysicalDeviceVulkan12Features m_vulkan12Features{};
             VkPhysicalDeviceFragmentShadingRateFeaturesKHR m_shadingRateFeatures{};
             VkPhysicalDeviceFragmentDensityMapFeaturesEXT m_fragmentDensityMapFeatures{};
+#if defined(CARBONATED)
+            VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT m_fragmentShaderInterlockFeatures{};
+#endif
             VkPhysicalDeviceFragmentDensityMapPropertiesEXT m_fragmentDensityMapProperties{};
             VkPhysicalDeviceFragmentShadingRatePropertiesKHR m_fragmentShadingRateProperties{};
             VkPhysicalDeviceTimelineSemaphoreFeatures m_timelineSemaphoreFeatures{};

@@ -1,0 +1,62 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ *
+ */
+
+#include <scenesrg.srgi>
+
+ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
+{
+    RWTexture2D<float4> m_inputOutput;
+    Texture2D<float4> m_oitWboitAccum;
+    Texture2D<float4> m_oitWboitRevealage;
+};
+
+float OitWboitLuminance(float3 color)
+{
+    return dot(color, float3(0.2126f, 0.7152f, 0.0722f));
+}
+
+[numthreads(8, 8, 1)]
+void MainCS(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    const uint2 pixelCoord = dispatchThreadId.xy;
+    uint width = 0;
+    uint height = 0;
+    PassSrg::m_inputOutput.GetDimensions(width, height);
+    if (pixelCoord.x >= width || pixelCoord.y >= height)
+    {
+        return;
+    }
+
+    float4 outputColor = PassSrg::m_inputOutput[pixelCoord];
+    const float4 accum = PassSrg::m_oitWboitAccum[pixelCoord];
+    const float4 revealage = PassSrg::m_oitWboitRevealage[pixelCoord];
+    // Revealage is stored as RGB transmission so tinted transparent materials can color the background.
+    const float3 transmission = saturate(revealage.rgb);
+
+    if (accum.a > 0.00001f)
+    {
+        // Gather stores weighted premultiplied color in rgb and weighted opacity in a.
+        const float3 averageColor = accum.rgb / max(accum.a, 0.00001f);
+        const float opacity = 1.0f - saturate(OitWboitLuminance(transmission));
+        outputColor.rgb = averageColor * opacity + outputColor.rgb * transmission;
+        outputColor.a = 1.0f;
+    }
+
+    if (SceneSrg::m_oitWboitDebugMode == 1)
+    {
+        outputColor.rgb = saturate(float3(accum.a / max(SceneSrg::m_oitWboitWeightMax, 0.00001f), 0.0f, 1.0f));
+        outputColor.a = 1.0f;
+    }
+    else if (SceneSrg::m_oitWboitDebugMode == 2)
+    {
+        outputColor.rgb = transmission;
+        outputColor.a = 1.0f;
+    }
+
+    PassSrg::m_inputOutput[pixelCoord] = outputColor;
+}

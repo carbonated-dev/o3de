@@ -375,7 +375,7 @@ set(FILES
     Source/SplashScreen/SplashScreenPass.h
     Source/TransformService/TransformServiceFeatureProcessor.cpp
     Source/Utils/GpuBufferHandler.cpp
-# Begin CARBONATED
+# Begin Carbonated
     Source/VolumetricFog/VolumetricFogFeatureProcessor.cpp
     Source/VolumetricFog/VolumetricFogFeatureProcessor.h
     Source/VolumetricFog/FogVolumeFeatureProcessor.cpp
@@ -385,8 +385,14 @@ set(FILES
     Source/VolumetricFog/FroxelIntegratePass.cpp
     Source/VolumetricFog/FroxelIntegratePass.h
     Source/VolumetricFog/VolumetricFogUtils.cpp
-    Source/VolumetricFog/VolumetricFogUtils.h    
-# End CARBONATED
+    Include/Atom/Feature/OrderIndependentTransparency/OitMethod.h
+    Source/OrderIndependentTransparency/OrderIndependentTransparencyFeatureProcessor.h
+    Source/OrderIndependentTransparency/OrderIndependentTransparencyFeatureProcessor.cpp
+    Source/OrderIndependentTransparency/OitMlabParentPass.h
+    Source/OrderIndependentTransparency/OitMlabParentPass.cpp
+    Source/OrderIndependentTransparency/OitMboitParentPass.h
+    Source/OrderIndependentTransparency/OitMboitParentPass.cpp
+# End Carbonated
 )
 
 set(SKIP_UNITY_BUILD_INCLUSION_FILES

@@ -117,4 +117,7 @@ set(FILES
     Source/SkinnedMesh/SkinnedMeshInputBuffers.cpp
     Source/SkinnedMesh/SkinnedMeshInstance.cpp
     Source/SplashScreen/SplashScreenSettings.cpp
+# Begin Carbonated
+    Include/Atom/Feature/OrderIndependentTransparency/OitMethod.h
+# End Carbonated
 )

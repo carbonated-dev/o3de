@@ -1,0 +1,47 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "OitMlabResolveTemplate",
+            "PassClass": "ComputePass",
+            "Slots": [
+                {
+                    "Name": "InputOutput",
+                    "SlotType": "InputOutput",
+                    "ShaderInputName": "m_inputOutput",
+                    "ScopeAttachmentUsage": "Shader",
+                    "LoadStoreAction": {
+                        "LoadAction": "Load"
+                    }
+                },
+                {
+                    "Name": "OitMlabFragmentCount",
+                    "SlotType": "InputOutput",
+                    "ShaderInputName": "m_oitMlabFragmentCount",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "OitMlabFragmentColor",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_oitMlabFragmentColor",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "OitMlabFragmentDepthTransmission",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_oitMlabFragmentDepthTransmission",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "PassData": {
+                "$type": "ComputePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/Oit/OitMlabResolve.shader"
+                },
+                "Make Fullscreen Pass": true
+            }
+        }
+    }
+}

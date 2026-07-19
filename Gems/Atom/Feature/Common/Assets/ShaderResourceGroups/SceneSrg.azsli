@@ -16,6 +16,7 @@
 // Begin Carbonated
 #include <Atom/Feature/Common/Assets/ShaderResourceGroups/Weather/SceneSrg.azsli>
 #include <Atom/Feature/Common/Assets/ShaderResourceGroups/VolumetricFog/SceneSrg.azsli>
+#include <Atom/Feature/Common/Assets/ShaderResourceGroups/Oit/SceneSrg.azsli>
 // End Carbonated
 
 partial ShaderResourceGroup SceneSrg
