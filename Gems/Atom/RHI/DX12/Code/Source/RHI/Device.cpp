@@ -241,9 +241,6 @@ namespace AZ
             GetDevice()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
             // DX12's tile resource implementation uses undefined swizzle tile layout which only requires tier 1
             m_features.m_tiledResource = options.TiledResourcesTier >= D3D12_TILED_RESOURCES_TIER_1;
-#if defined(CARBONATED)
-            m_features.m_rasterizerOrderedViews = options.ROVsSupported;
-#endif
 
             // Check support of wive operation
             D3D12_FEATURE_DATA_SHADER_MODEL shaderModel;

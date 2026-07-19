@@ -10,7 +10,6 @@
 
 // Begin Carbonated
 #include <Atom/Features/VolumetricFog/ApplyVolumetricFog.azsli>
-#include <Atom/Features/Oit/OitTransparent.azsli>
 // End Carbonated
 
 struct ForwardPassOutput
@@ -32,11 +31,6 @@ VsOutput VertexShader(VsInput IN, uint instanceId : SV_InstanceID)
 
 // --- Pixel Shader ---
 
-// Begin Carbonated
-#if ENABLE_OIT
-[earlydepthstencil]
-#endif
-// End Carbonated
 ForwardPassOutput PixelShader(VsOutput IN, bool isFrontFace : SV_IsFrontFace)
 {
     // ------- Geometry -> Surface -> Lighting -------
@@ -104,22 +98,6 @@ ForwardPassOutput PixelShader(VsOutput IN, bool isFrontFace : SV_IsFrontFace)
         // Everything is pre-multiplied.
         OUT.m_color1.a = 0;
     }
-
-// Begin Carbonated
-#if ENABLE_OIT
-    if (OitIsEnabled())
-    {
-        const float3 oitTransmission = o_opacity_mode == OpacityMode::TintedTransparent
-            ? OUT.m_color2.rgb : float3(1.0f - alpha, 1.0f - alpha, 1.0f - alpha);
-
-        OitStoreTransparentFragment(uint2(IN.position.xy), IN.position.z, alpha, OUT.m_color1.rgb, oitTransmission);
-
-        // Keep the bound render target unchanged while the OIT resolve pass performs composition.
-        OUT.m_color1 = float4(0, 0, 0, 0);
-        OUT.m_color2 = float4(1, 1, 1, 0);
-    }
-#endif
-// End Carbonated
 
     return OUT;
 }

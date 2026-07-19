@@ -92,12 +92,6 @@ namespace AZ::RHI
             
         //! Whether the adapter supports wave/subgroup operation
         bool m_waveOperation = false;
-
-#if defined(CARBONATED)
-        //! Whether the adapter supports rasterizer ordered shader writes for fragment/pixel work.
-        //! DX12 exposes this as ROVs. Vulkan exposes the equivalent ordering through fragment shader interlock.
-        bool m_rasterizerOrderedViews = false;
-#endif
                         
         //! Whether swapchain scaling support is available.
         RHI::ScalingFlags m_swapchainScalingFlags = RHI::ScalingFlags::None;

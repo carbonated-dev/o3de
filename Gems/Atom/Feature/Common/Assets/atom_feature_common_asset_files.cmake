@@ -640,30 +640,4 @@ set(FILES
     Shaders/SkyBox/SkyBox_TwoOutputs.shader
     Shaders/SplashScreen/SplashScreenPass.azsl
     Shaders/SplashScreen/SplashScreenPass.shader
-# Begin Carbonated
-    Passes/OitMlabGather.pass
-    Passes/OitMlabParentPassRequest.azasset
-    Passes/OitMlabResolve.pass
-    Passes/OitMlabParent.pass
-    Passes/OitWboitGather.pass
-    Passes/OitWboitParentPassRequest.azasset
-    Passes/OitWboitResolve.pass
-    Passes/OitWboitParent.pass
-    Passes/OitMboitGather.pass
-    Passes/OitMboitParentPassRequest.azasset
-    Passes/OitMboitResolve.pass
-    Passes/OitMboitParent.pass
-    ShaderLib/Atom/Features/Oit/OitCommon.azsli
-    ShaderLib/Atom/Features/Oit/OitMlab.azsli
-    ShaderLib/Atom/Features/Oit/OitWboit.azsli
-    ShaderLib/Atom/Features/Oit/OitMboit.azsli
-    ShaderLib/Atom/Features/Oit/OitTransparent.azsli
-    ShaderResourceGroups/Oit/SceneSrg.azsli
-    Shaders/Oit/OitMlabResolve.azsl
-    Shaders/Oit/OitMlabResolve.shader
-    Shaders/Oit/OitWboitResolve.azsl
-    Shaders/Oit/OitWboitResolve.shader
-    Shaders/Oit/OitMboitResolve.azsl
-    Shaders/Oit/OitMboitResolve.shader
-# End Carbonated
-)
+) 

@@ -342,27 +342,6 @@
             },
             "platformFlags": 511,
             "pathHint": "shaders/volumetricfog/volumetricfogmintransparent.azshader"
-        },
-        {
-            "assetId": {
-                "guid": "{53A8B4AB-D5DD-5AF0-845B-A23A86447BA5}"
-            },
-            "platformFlags": 511,
-            "pathHint": "passes/oitmboitparentpassrequest.azasset"
-        },
-        {
-            "assetId": {
-                "guid": "{013227C4-5864-59F0-B9FE-9ECB67B0AEF2}"
-            },
-            "platformFlags": 511,
-            "pathHint": "passes/oitmlabparentpassrequest.azasset"
-        },
-        {
-            "assetId": {
-                "guid": "{10542726-3B92-517E-84AF-B3EF9C6F1C3C}"
-            },
-            "platformFlags": 511,
-            "pathHint": "passes/oitwboitparentpassrequest.azasset"
         }
     ]
 }

@@ -161,42 +161,6 @@
                 "Path": "Passes/Transparent.pass"
             },
             {
-                "Name": "OitMlabGatherTemplate",
-                "Path": "Passes/OitMlabGather.pass"
-            },
-            {
-                "Name": "OitMlabResolveTemplate",
-                "Path": "Passes/OitMlabResolve.pass"
-            },
-            {
-                "Name": "OitMlabParentTemplate",
-                "Path": "Passes/OitMlabParent.pass"
-            },
-            {
-                "Name": "OitWboitGatherTemplate",
-                "Path": "Passes/OitWboitGather.pass"
-            },
-            {
-                "Name": "OitWboitResolveTemplate",
-                "Path": "Passes/OitWboitResolve.pass"
-            },
-            {
-                "Name": "OitWboitParentTemplate",
-                "Path": "Passes/OitWboitParent.pass"
-            },
-            {
-                "Name": "OitMboitGatherTemplate",
-                "Path": "Passes/OitMboitGather.pass"
-            },
-            {
-                "Name": "OitMboitResolveTemplate",
-                "Path": "Passes/OitMboitResolve.pass"
-            },
-            {
-                "Name": "OitMboitParentTemplate",
-                "Path": "Passes/OitMboitParent.pass"
-            },
-            {
                 "Name": "ConvertToAcescgTemplate",
                 "Path": "Passes/ConvertToAcescg.pass"
             },

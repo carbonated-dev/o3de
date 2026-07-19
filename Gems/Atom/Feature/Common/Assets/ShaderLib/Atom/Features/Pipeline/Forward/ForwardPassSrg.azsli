@@ -57,22 +57,12 @@ ShaderResourceGroup PassSrg : SRG_PerPass
     // And the shaders can calculate linear depth themselves
     uint m_isOriginalDepth;
 
-    // Begin Carbonated
-    #if !defined(FORCE_SMALL_SRGS) || ENABLE_VOLUMETRIC_FOG
-        // Precomputed froxel volume (in-scatter RGB, transmittance A) for transparent surfaces.
-        // Only bound during the transparent pass; SRG_PerPass_WithFallback makes it optional
-        // for opaque passes that do not use it.
-        Texture3D<float4> m_froxelVolumetricFog;
-    #endif
-    
-     // Compact OIT storage shared by MLAB, WBOIT, and MBOIT. Only one OIT method owns these bindings at a time.
-    [[verbatim("globallycoherent")]]
-    RasterizerOrderedTexture2D<uint> m_oitFragmentCount;
-    
-    [[verbatim("globallycoherent")]]
-    RasterizerOrderedTexture2D<float4> m_oitFragmentData0;
-    
-    [[verbatim("globallycoherent")]]
-    RasterizerOrderedTexture2D<float4> m_oitFragmentData1;
+// Begin Carbonated
+#if !defined(FORCE_SMALL_SRGS) || ENABLE_VOLUMETRIC_FOG
+    // Precomputed froxel volume (in-scatter RGB, transmittance A) for transparent surfaces.
+    // Only bound during the transparent pass; SRG_PerPass_WithFallback makes it optional
+    // for opaque passes that do not use it.
+    Texture3D<float4> m_froxelVolumetricFog;
+#endif
 // End Carbonated
 }
