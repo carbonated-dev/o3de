@@ -346,7 +346,7 @@ namespace AZ
         MTLFunctionConstantValues* PipelineState::CreateFunctionConstantsValues(const RHI::PipelineStateDescriptor& pipelineDescriptor) const
         {
             MTLFunctionConstantValues* constantValues = [[MTLFunctionConstantValues alloc] init];
-            for(const auto& specializationData : pipelineDescriptor.m_specializationData)
+            for (const auto& specializationData : pipelineDescriptor.GetSpecializationConstants())
             {
                 uint32_t value = specializationData.m_value.GetIndex();
                 MTLDataType type;

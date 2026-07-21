@@ -10,6 +10,7 @@
 #include <Atom/RPI.Reflect/Shader/ShaderAsset.h>
 
 #include <Atom/RHI/DrawListTagRegistry.h>
+#include <AzCore/std/smart_ptr/shared_ptr.h>
 
 namespace AZ
 {
@@ -34,6 +35,11 @@ namespace AZ
             //! Fills a pipeline state descriptor with settings provided by the ShaderVariant.
             //! It also configures the specialization constants if they are being used by the shader variant.
             void ConfigurePipelineState(RHI::PipelineStateDescriptor& descriptor, const ShaderOptionGroup& specialization) const;
+            //! Fast path for callers that have already assigned defaults to every shader option.
+            //! Specialization data is cached by its packed option key and materialized only on a PSO cache miss.
+            void ConfigurePipelineStateWithFullySpecifiedOptions(
+                RHI::PipelineStateDescriptor& descriptor,
+                const ShaderOptionGroup& specialization) const;
             //! Fills a pipeline state descriptor with settings provided by the ShaderVariant.
             //! Only use this function if the shader variant is not using ANY specialization constant. Otherwise
             //! an error will be raised and the default values will be used.
@@ -74,6 +80,11 @@ namespace AZ
                 const Data::Asset<ShaderVariantAsset>& shaderVariantAsset,
                 SupervariantIndex supervariantIndex);
 
+            void ConfigurePipelineStateBase(RHI::PipelineStateDescriptor& descriptor) const;
+            RHI::SpecializationDataPtr GetOrCreateSpecializationData(const ShaderOptionGroup& specialization) const;
+
+            struct SpecializationCache;
+
             //! A reference to the shader asset that this is a variant of.
             Data::Asset<ShaderAsset> m_shaderAsset;
 
@@ -90,6 +101,8 @@ namespace AZ
 
             // True if there's at least one shader option that is using a specialization constant.
             bool m_useSpecializationConstants = false;
+
+            AZStd::shared_ptr<SpecializationCache> m_specializationCache;
         };
     }
 }

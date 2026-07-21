@@ -19,7 +19,7 @@ namespace AZ
         //! An encoded bitmask for tangent used by UV streams.
         //! It contains the information about number of UV streams and which tangent/bitangent is used by each UV stream.
         //! See m_mask for more details.
-        //! The mask will be passed through per draw SRG.
+        //! The mask will be passed through a root constant.
         class UvStreamTangentBitmask
         {
         public:
@@ -46,8 +46,8 @@ namespace AZ
             //! The bit mask indicating generated tangent/bitangent will be used.
             static constexpr uint32_t UnassignedTangent = 0b1111u;
 
-            //! The variable name defined in the SRG shader code.
-            static constexpr const char* SrgName = "m_uvStreamTangentBitmask";
+            //! The variable name defined in the shader root constants.
+            static constexpr const char* RootConstantName = "m_uvStreamTangentBitmask";
         private:
             //! Mask composition:
             //! The number of UV slots (highest 4 bits) + tangent mask (4 bits each) * 7

@@ -100,7 +100,33 @@ namespace AZ
                 return nullptr;
             }
 
+            if (srgInitParams.m_compileAfterInit)
+            {
+                srg->Compile();
+            }
+
             return srg;
+        }
+
+        Data::Instance<ShaderResourceGroup> ShaderResourceGroup::FindOrCreateSharedDummy(
+            const Data::Asset<ShaderAsset>& shaderAsset,
+            const SupervariantIndex& supervariantIndex,
+            const AZ::Name& srgName)
+        {
+            const Data::InstanceId poolInstanceId =
+                MakeSrgPoolInstanceId(shaderAsset, supervariantIndex, srgName);
+            const AZStd::string dummyInstanceName = AZStd::string::format(
+                "%s:SharedDummyDrawSrg",
+                poolInstanceId.ToString<AZStd::string>().c_str());
+            const Data::InstanceId dummyInstanceId =
+                Data::InstanceId::CreateName(dummyInstanceName.c_str());
+
+            SrgInitParams initParams{ supervariantIndex, srgName, true };
+            AZStd::any anyInitParams(initParams);
+            return Data::InstanceDatabase<ShaderResourceGroup>::Instance().FindOrCreate(
+                dummyInstanceId,
+                shaderAsset,
+                &anyInitParams);
         }
 
         Data::Instance<ShaderResourceGroup> ShaderResourceGroup::CreateTransient(

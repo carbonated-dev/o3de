@@ -120,6 +120,12 @@ namespace AZ::RHI
         return m_succeeded;
     }
 
+    bool PipelineStateCache::PipelineStateCompileState::IsCompleteAndSuccessful()
+    {
+        AZStd::lock_guard<AZStd::mutex> lock(m_mutex);
+        return m_isComplete && m_succeeded;
+    }
+
     void PipelineStateCache::ValidateCacheIntegrity() const
     {
 #if defined(AZ_ENABLE_TRACING)
@@ -419,22 +425,26 @@ namespace AZ::RHI
     }
 
     const PipelineState* PipelineStateCache::AcquirePipelineState(
-        PipelineLibraryHandle handle, const PipelineStateDescriptor& descriptor, const AZ::Name& name /*= AZ::Name()*/)
+        PipelineLibraryHandle handle,
+        const PipelineStateDescriptor& descriptor,
+        const AZ::Name& name /*= AZ::Name()*/,
+        bool acquireOnlyIfCached /*= false*/)
     {
-        return AcquirePipelineStateInternal(handle, descriptor, name, false);
+        return AcquirePipelineStateInternal(handle, descriptor, name, false, acquireOnlyIfCached);
     }
 
     const PipelineState* PipelineStateCache::AcquirePipelineStateAsync(
         PipelineLibraryHandle handle, const PipelineStateDescriptor& descriptor, const AZ::Name& name /*= AZ::Name()*/)
     {
-        return AcquirePipelineStateInternal(handle, descriptor, name, true);
+        return AcquirePipelineStateInternal(handle, descriptor, name, true, false);
     }
 
     const PipelineState* PipelineStateCache::AcquirePipelineStateInternal(
         PipelineLibraryHandle handle,
         const PipelineStateDescriptor& descriptor,
         const AZ::Name& name,
-        bool isAsyncAcquire)
+        bool isAsyncAcquire,
+        bool acquireOnlyIfCached)
     {
         if (handle.IsNull())
         {
@@ -452,7 +462,7 @@ namespace AZ::RHI
         // Search the read-only cache first.
         if (const PipelineStateEntry* pipelineStateEntry = FindPipelineStateEntry(globalLibraryEntry.m_readOnlyCache, descriptor))
         {
-            return ResolvePipelineStateEntry(*pipelineStateEntry, isAsyncAcquire);
+            return ResolvePipelineStateEntry(*pipelineStateEntry, isAsyncAcquire, acquireOnlyIfCached);
         }
 
         // Search the thread-local cache next.
@@ -463,7 +473,20 @@ namespace AZ::RHI
 
             if (const PipelineStateEntry* pipelineStateEntry = FindPipelineStateEntry(threadLocalCache, descriptor))
             {
-                return ResolvePipelineStateEntry(*pipelineStateEntry, isAsyncAcquire);
+                return ResolvePipelineStateEntry(*pipelineStateEntry, isAsyncAcquire, acquireOnlyIfCached);
+            }
+
+            if (acquireOnlyIfCached)
+            {
+                // A completed PSO may still be in the pending cache until the next Compact().
+                // Check it without allocating a thread-local library or starting compilation.
+                AZStd::lock_guard<AZStd::mutex> pendingCacheLock(globalLibraryEntry.m_pendingCacheMutex);
+                if (const PipelineStateEntry* pipelineStateEntry =
+                    FindPipelineStateEntry(globalLibraryEntry.m_pendingCache, descriptor))
+                {
+                    return ResolvePipelineStateEntry(*pipelineStateEntry, false, true);
+                }
+                return nullptr;
             }
 
             // No entry in the thread-local set. Request a pipeline state from the pending cache and add
@@ -525,8 +548,16 @@ namespace AZ::RHI
     }
 
     const PipelineState* PipelineStateCache::ResolvePipelineStateEntry(
-        const PipelineStateEntry& pipelineStateEntry, bool isAsyncAcquire)
+        const PipelineStateEntry& pipelineStateEntry,
+        bool isAsyncAcquire,
+        bool acquireOnlyIfCached)
     {
+        if (acquireOnlyIfCached && pipelineStateEntry.m_compileState &&
+            !pipelineStateEntry.m_compileState->IsCompleteAndSuccessful())
+        {
+            return nullptr;
+        }
+
         if (pipelineStateEntry.m_compileState &&
             (isAsyncAcquire || pipelineStateEntry.m_compileState->m_isAsyncCompile) &&
             !pipelineStateEntry.m_compileState->WaitForCompletion())

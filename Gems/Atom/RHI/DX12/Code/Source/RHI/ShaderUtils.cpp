@@ -72,7 +72,8 @@ namespace AZ::DX12
     {
         ShaderByteCode patched(shaderFunction.GetByteCode(subStageIndex).size());
         ::memcpy(patched.data(), shaderFunction.GetByteCode(subStageIndex).data(), patched.size());
-        const AZStd::vector<RHI::SpecializationConstant>& specializationConstants = descriptor.m_specializationData;
+        const AZStd::vector<RHI::SpecializationConstant>& specializationConstants =
+            descriptor.GetSpecializationConstants();
         for (const auto& element : shaderFunction.GetSpecializationOffsets(subStageIndex))
         {
             auto findIter = AZStd::find_if(

@@ -329,6 +329,38 @@ namespace UnitTest
         ValidateCacheIntegrity(pipelineStateCache);
     }
 
+    TEST_F(PipelineStateTests, PipelineStateCache_CacheOnlyAcquire_DoesNotCompileOnMiss)
+    {
+        RHI::Ptr<RHI::Device> device = MakeTestDevice();
+        RHI::Ptr<RHI::PipelineStateCache> pipelineStateCache = RHI::PipelineStateCache::Create(*device);
+        const RHI::PipelineLibraryHandle libraryHandle = pipelineStateCache->CreateLibrary(nullptr);
+        const RHI::PipelineStateDescriptorForDraw descriptor = CreatePipelineStateDescriptor(0);
+
+        size_t compileCount = 0;
+        UnitTest::PipelineState::SetCompileCallback(
+            [&compileCount]()
+            {
+                ++compileCount;
+            });
+
+        EXPECT_EQ(
+            pipelineStateCache->AcquirePipelineState(libraryHandle, descriptor, AZ::Name(), true),
+            nullptr);
+        EXPECT_EQ(compileCount, 0);
+
+        const RHI::PipelineState* compiledPipelineState =
+            pipelineStateCache->AcquirePipelineState(libraryHandle, descriptor);
+        EXPECT_NE(compiledPipelineState, nullptr);
+        EXPECT_EQ(compileCount, 1);
+        EXPECT_EQ(
+            pipelineStateCache->AcquirePipelineState(libraryHandle, descriptor, AZ::Name(), true),
+            compiledPipelineState);
+
+        UnitTest::PipelineState::SetCompileCallback({});
+        pipelineStateCache->Compact();
+        ValidateCacheIntegrity(pipelineStateCache);
+    }
+
     TEST_F(PipelineStateTests, PipelineStateCache_PipelineStateThreading_Same_Test)
     {
         RHI::Ptr<RHI::Device> device = MakeTestDevice();

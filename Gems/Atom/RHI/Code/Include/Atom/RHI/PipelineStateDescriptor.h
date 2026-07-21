@@ -43,10 +43,20 @@ namespace AZ::RHI
 
         bool operator == (const PipelineStateDescriptor& rhs) const;
 
+        //! Uses a shared immutable specialization payload. Cache lookup can hash and compare this
+        //! payload without constructing the backend-facing specialization-constant vector.
+        void SetSpecializationData(SpecializationDataPtr specializationData);
+        void ClearSpecializationData();
+
+        //! Returns the full backend-facing constants, materializing a shared payload on first use.
+        const AZStd::vector<SpecializationConstant>& GetSpecializationConstants() const;
+
         //! The pipeline layout describing the shader resource bindings.
         ConstPtr<PipelineLayoutDescriptor> m_pipelineLayoutDescriptor = nullptr;
 
         //! Values for specialization constants.
+        //! Kept public for compatibility with direct RHI descriptor construction. RPI shader
+        //! variants use SetSpecializationData() instead.
         AZStd::vector<SpecializationConstant> m_specializationData;
 
     protected:
@@ -54,8 +64,14 @@ namespace AZ::RHI
 
         virtual HashValue64 GetHashInternal() const = 0;
 
+        bool SpecializationDataEquals(const PipelineStateDescriptor& rhs) const;
+
     private:
+        bool HasSpecializationData() const;
+        HashValue64 GetSpecializationDataHash() const;
+
         PipelineStateType m_type = PipelineStateType::Count;
+        SpecializationDataPtr m_specializationDataSource;
     };
 
     //! Describes state necessary to build a compute pipeline state object. The compute pipe

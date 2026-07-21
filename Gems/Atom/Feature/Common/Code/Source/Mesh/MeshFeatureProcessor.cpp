@@ -45,7 +45,6 @@
 #include <AzCore/RTTI/RTTI.h>
 #include <AzCore/RTTI/TypeInfo.h>
 #include <AzCore/Serialization/SerializeContext.h>
-
 #include <algorithm>
 
 #if defined(CARBONATED)
@@ -178,7 +177,9 @@ namespace AZ
         void MeshFeatureProcessor::AddPendingDrawPacketBuild(
             const DrawPacketBuildTarget& target,
             uint64_t generation,
-            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request)
+            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request,
+            PendingDrawPacketBuild::Purpose purpose,
+            AZ::HashValue64 fallbackPipelineStateKey)
         {
             if (!request)
             {
@@ -195,13 +196,20 @@ namespace AZ
             }
 
             m_pendingDrawPacketBuilds.push_back(
-                PendingDrawPacketBuild{ target, generation, AZStd::move(request) });
+                PendingDrawPacketBuild{
+                    target,
+                    generation,
+                    AZStd::move(request),
+                    purpose,
+                    fallbackPipelineStateKey });
         }
 
         void MeshFeatureProcessor::QueuePendingDrawPacketBuild(
             const DrawPacketBuildTarget& target,
             uint64_t generation,
-            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request)
+            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request,
+            PendingDrawPacketBuild::Purpose purpose,
+            AZ::HashValue64 fallbackPipelineStateKey)
         {
             if (!request)
             {
@@ -213,8 +221,177 @@ namespace AZ
             AddPendingDrawPacketBuild(
                 target,
                 generation,
-                AZStd::move(request));
+                AZStd::move(request),
+                purpose,
+                fallbackPipelineStateKey);
             pipelineStateBuildRequest->Queue();
+        }
+
+        RPI::MeshDrawPacket::FallbackPipelineStateBundlePtr
+        MeshFeatureProcessor::FindSharedFallbackPipelineStateBundle(
+            AZ::HashValue64 fallbackPipelineStateKey)
+        {
+            AZStd::lock_guard<AZStd::mutex> lock(
+                m_sharedFallbackPipelineStateMutex);
+            const auto entry = m_sharedFallbackPipelineStates.find(
+                fallbackPipelineStateKey);
+            return entry != m_sharedFallbackPipelineStates.end()
+                ? entry->second.m_bundle
+                : nullptr;
+        }
+
+        void MeshFeatureProcessor::EnsureSharedFallbackPipelineStateBundle(
+            RPI::MeshDrawPacket& drawPacket,
+            const RPI::Scene& parentScene,
+            AZ::HashValue64 fallbackPipelineStateKey,
+            const DrawPacketBuildTarget* subscriberTarget,
+            uint64_t subscriberGeneration)
+        {
+            RPI::PipelineStateBuildRequestPtr pipelineStateBuildRequest;
+            {
+                AZStd::lock_guard<AZStd::mutex> lock(
+                    m_sharedFallbackPipelineStateMutex);
+                SharedFallbackPipelineStateEntry& entry =
+                    m_sharedFallbackPipelineStates[fallbackPipelineStateKey];
+                if (entry.m_bundle)
+                {
+                    return;
+                }
+
+                if (subscriberTarget)
+                {
+                    const bool alreadySubscribed = AZStd::any_of(
+                        entry.m_subscribers.begin(),
+                        entry.m_subscribers.end(),
+                        [subscriberTarget, subscriberGeneration](
+                            const SharedFallbackPipelineStateEntry::Subscriber& subscriber)
+                        {
+                            return subscriber.m_target == *subscriberTarget &&
+                                subscriber.m_generation == subscriberGeneration;
+                        });
+                    if (!alreadySubscribed)
+                    {
+                        entry.m_subscribers.push_back(
+                            { *subscriberTarget, subscriberGeneration });
+                    }
+                }
+
+                if (entry.m_request)
+                {
+                    return;
+                }
+
+                entry.m_request = drawPacket
+                    .CreateDeferredFallbackPipelineStateBundleRequest(
+                        parentScene);
+                if (!entry.m_request)
+                {
+                    m_sharedFallbackPipelineStates.erase(
+                        fallbackPipelineStateKey);
+                    return;
+                }
+                pipelineStateBuildRequest =
+                    entry.m_request->GetPipelineStateBuildRequest();
+            }
+            pipelineStateBuildRequest->Queue();
+        }
+
+        void MeshFeatureProcessor::StoreSharedFallbackPipelineStateBundle(
+            AZ::HashValue64 fallbackPipelineStateKey,
+            RPI::MeshDrawPacket::FallbackPipelineStateBundlePtr bundle)
+        {
+            if (!bundle)
+            {
+                return;
+            }
+            AZStd::lock_guard<AZStd::mutex> lock(
+                m_sharedFallbackPipelineStateMutex);
+            SharedFallbackPipelineStateEntry& entry =
+                m_sharedFallbackPipelineStates[fallbackPipelineStateKey];
+            entry.m_bundle = AZStd::move(bundle);
+            entry.m_request.reset();
+        }
+
+        AZStd::vector<MeshFeatureProcessor::SharedFallbackPipelineStateEntry::Subscriber>
+        MeshFeatureProcessor::PublishCompletedSharedFallbackPipelineStateBundles()
+        {
+            AZStd::vector<SharedFallbackPipelineStateEntry::Subscriber>
+                completedSubscribers;
+            AZStd::vector<AZStd::pair<
+                AZ::HashValue64,
+                RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr>>
+                completedRequests;
+            {
+                AZStd::lock_guard<AZStd::mutex> lock(
+                    m_sharedFallbackPipelineStateMutex);
+                for (auto& [key, entry] : m_sharedFallbackPipelineStates)
+                {
+                    if (entry.m_request &&
+                        entry.m_request->GetPipelineStateBuildRequest()
+                            ->IsComplete())
+                    {
+                        completedRequests.emplace_back(key, entry.m_request);
+                    }
+                }
+            }
+
+            for (const auto& [key, request] : completedRequests)
+            {
+                const auto bundle =
+                    RPI::MeshDrawPacket::CreateFallbackPipelineStateBundle(
+                        request);
+                AZStd::lock_guard<AZStd::mutex> lock(
+                    m_sharedFallbackPipelineStateMutex);
+                const auto entry = m_sharedFallbackPipelineStates.find(key);
+                if (entry == m_sharedFallbackPipelineStates.end() ||
+                    entry->second.m_request != request)
+                {
+                    continue;
+                }
+
+                completedSubscribers.insert(
+                    completedSubscribers.end(),
+                    AZStd::make_move_iterator(
+                        entry->second.m_subscribers.begin()),
+                    AZStd::make_move_iterator(
+                        entry->second.m_subscribers.end()));
+                if (bundle)
+                {
+                    entry->second.m_bundle = bundle;
+                    entry->second.m_request.reset();
+                    entry->second.m_subscribers.clear();
+                }
+                else
+                {
+                    m_sharedFallbackPipelineStates.erase(entry);
+                }
+            }
+            return completedSubscribers;
+        }
+
+        void MeshFeatureProcessor::ClearSharedFallbackPipelineStateBundles()
+        {
+            AZStd::vector<RPI::PipelineStateBuildRequestPtr> requests;
+            {
+                AZStd::lock_guard<AZStd::mutex> lock(
+                    m_sharedFallbackPipelineStateMutex);
+                for (auto& entryPair : m_sharedFallbackPipelineStates)
+                {
+                    SharedFallbackPipelineStateEntry& entry = entryPair.second;
+                    if (entry.m_request)
+                    {
+                        RPI::PipelineStateBuildRequestPtr request =
+                            entry.m_request->GetPipelineStateBuildRequest();
+                        request->Cancel();
+                        requests.emplace_back(AZStd::move(request));
+                    }
+                }
+                m_sharedFallbackPipelineStates.clear();
+            }
+            for (const RPI::PipelineStateBuildRequestPtr& request : requests)
+            {
+                request->Wait();
+            }
         }
 
         bool MeshFeatureProcessor::QueueDrawPacketUpdate(
@@ -229,21 +406,97 @@ namespace AZ
             }
 
             const uint64_t generation = BeginDrawPacketBuildGeneration(target);
-            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr fallbackRequest =
-                drawPacket.CreateDrawPacketBuiltRequest(parentScene, true);
 
-            // Always make a renderable non-specialized packet available before the specialized
-            // packet is queued. PipelineStateCache makes this blocking acquisition inexpensive
-            // after the fallback PSO has been compiled once.
-            if (fallbackRequest)
+            if (!drawPacket.HasDrawItems(parentScene))
             {
-                fallbackRequest->GetPipelineStateBuildRequest()->Build();
+                drawPacket.ResetRHIDrawPacket();
+
+                AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
+                const auto generationEntry = m_drawPacketBuildGenerations.find(target);
+                if (generationEntry != m_drawPacketBuildGenerations.end() &&
+                    generationEntry->second == generation)
+                {
+                    m_drawPacketBuildGenerations.erase(generationEntry);
+                }
+                return true;
             }
 
-            const bool fallbackApplied =
-                fallbackRequest &&
-                drawPacket.ApplyDrawPacketBuiltRequest(
+            const AZ::HashValue64 fallbackPipelineStateKey =
+                drawPacket.GetFallbackPipelineStateKey(parentScene);
+
+            // Resolve the exact specialized descriptors first. If every PSO is already compiled,
+            // publish the specialized packet immediately and avoid all fallback work.
+            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr cachedSpecializedRequest =
+                drawPacket.CreateDrawPacketBuiltRequest(parentScene, false);
+
+            bool specializedPacketApplied = false;
+            if (cachedSpecializedRequest)
+            {
+                if (cachedSpecializedRequest->GetPipelineStateBuildRequest()->TryAcquireFromCache())
+                {
+                    specializedPacketApplied = drawPacket.ApplyDrawPacketBuiltRequest(
+                        AZStd::move(cachedSpecializedRequest));
+                }
+            }
+
+            if (specializedPacketApplied)
+            {
+                drawPacket.DebugOutputShaderVariants();
+                EnsureSharedFallbackPipelineStateBundle(
+                    drawPacket,
+                    parentScene,
+                    fallbackPipelineStateKey);
+
+                {
+                    AZStd::lock_guard<AZStd::mutex> lock(
+                        m_pendingDrawPacketBuildMutex);
+                    const auto generationEntry =
+                        m_drawPacketBuildGenerations.find(target);
+                    if (generationEntry !=
+                            m_drawPacketBuildGenerations.end() &&
+                        generationEntry->second == generation)
+                    {
+                        m_drawPacketBuildGenerations.erase(generationEntry);
+                    }
+                }
+                return true;
+            }
+            cachedSpecializedRequest.reset();
+
+            RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr fallbackRequest;
+            const auto sharedFallbackBundle =
+                FindSharedFallbackPipelineStateBundle(
+                    fallbackPipelineStateKey);
+            if (sharedFallbackBundle)
+            {
+                fallbackRequest = drawPacket
+                    .CreateDrawPacketBuiltRequestFromFallbackBundle(
+                        parentScene,
+                        sharedFallbackBundle);
+            }
+
+            bool fallbackApplied = false;
+            if (fallbackRequest)
+            {
+                fallbackApplied = drawPacket.ApplyDrawPacketBuiltRequest(
                     AZStd::move(fallbackRequest));
+            }
+            else
+            {
+                // The previous specialized packet contains stale specialization constants and
+                // cannot remain renderable. Subscribe this packet to the single shared fallback
+                // build for its structural key; descriptor preparation, cache acquisition, and
+                // driver compilation all stay on the pipeline-state queue.
+                EnsureSharedFallbackPipelineStateBundle(
+                    drawPacket,
+                    parentScene,
+                    fallbackPipelineStateKey,
+                    &target,
+                    generation);
+                drawPacket.ResetRHIDrawPacket();
+                return true;
+            }
+
             if (fallbackApplied)
             {
                 drawPacket.DebugOutputShaderVariants();
@@ -253,8 +506,7 @@ namespace AZ
                 AZ_Error(
                     "MeshFeatureProcessor",
                     false,
-                    "Failed to synchronously build the non-specialized mesh draw-packet fallback.");
-                drawPacket.ResetRHIDrawPacket();
+                    "Failed to acquire the non-specialized mesh draw-packet fallback.");
             }
 
             // A successful fallback build with no draw packet means every shader item was
@@ -288,6 +540,10 @@ namespace AZ
 
         void MeshFeatureProcessor::PublishCompletedDrawPacketBuilds()
         {
+            AZStd::vector<SharedFallbackPipelineStateEntry::Subscriber>
+                completedFallbackSubscribers =
+                    PublishCompletedSharedFallbackPipelineStateBundles();
+
             AZStd::vector<PendingDrawPacketBuild> completedBuilds;
             {
                 AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
@@ -306,7 +562,7 @@ namespace AZ
                 }
             }
 
-            if (completedBuilds.empty())
+            if (completedBuilds.empty() && completedFallbackSubscribers.empty())
             {
                 return;
             }
@@ -335,8 +591,89 @@ namespace AZ
                 }
             }
 
+            // A shared fallback bundle is ready. Mark each still-current subscriber dirty so
+            // its normal update job can create the packet-specific Draw SRG and draw packet
+            // from the canonical descriptors without repeating fallback PSO preparation.
+            for (const SharedFallbackPipelineStateEntry::Subscriber& subscriber :
+                 completedFallbackSubscribers)
+            {
+                {
+                    AZStd::lock_guard<AZStd::mutex> lock(
+                        m_pendingDrawPacketBuildMutex);
+                    const auto generationEntry =
+                        m_drawPacketBuildGenerations.find(subscriber.m_target);
+                    if (generationEntry == m_drawPacketBuildGenerations.end() ||
+                        generationEntry->second != subscriber.m_generation)
+                    {
+                        continue;
+                    }
+                }
+
+                RPI::MeshDrawPacket* drawPacket = nullptr;
+                if (subscriber.m_target.m_ownerType ==
+                    DrawPacketBuildTarget::OwnerType::Model)
+                {
+                    const auto ownerEntry =
+                        modelOwners.find(subscriber.m_target.m_ownerId);
+                    if (ownerEntry != modelOwners.end() &&
+                        subscriber.m_target.m_lodIndex <
+                            ownerEntry->second->m_drawPacketListsByLod.size())
+                    {
+                        RPI::MeshDrawPacketList& drawPacketList =
+                            ownerEntry->second->m_drawPacketListsByLod[
+                                subscriber.m_target.m_lodIndex];
+                        if (subscriber.m_target.m_packetIndex <
+                            drawPacketList.size())
+                        {
+                            drawPacket = &drawPacketList[
+                                subscriber.m_target.m_packetIndex];
+                        }
+                    }
+                }
+                else
+                {
+                    const auto ownerEntry =
+                        instanceGroupOwners.find(subscriber.m_target.m_ownerId);
+                    if (ownerEntry != instanceGroupOwners.end())
+                    {
+                        drawPacket = &ownerEntry->second->m_drawPacket;
+                    }
+                }
+
+                if (drawPacket)
+                {
+                    drawPacket->RequestUpdate();
+                }
+
+                AZStd::lock_guard<AZStd::mutex> lock(
+                    m_pendingDrawPacketBuildMutex);
+                const auto generationEntry =
+                    m_drawPacketBuildGenerations.find(subscriber.m_target);
+                if (generationEntry != m_drawPacketBuildGenerations.end() &&
+                    generationEntry->second == subscriber.m_generation)
+                {
+                    m_drawPacketBuildGenerations.erase(generationEntry);
+                }
+            }
+
             for (PendingDrawPacketBuild& completedBuild : completedBuilds)
             {
+                // A completed fallback is globally useful even if its originating packet
+                // generation was superseded before publication.
+                if (completedBuild.m_purpose ==
+                        PendingDrawPacketBuild::Purpose::PublishFallbackPacket &&
+                    completedBuild.m_fallbackPipelineStateKey !=
+                        AZ::HashValue64{} &&
+                    completedBuild.m_request->GetPipelineStateBuildRequest()
+                        ->IsSuccessful())
+                {
+                    StoreSharedFallbackPipelineStateBundle(
+                        completedBuild.m_fallbackPipelineStateKey,
+                        RPI::MeshDrawPacket::
+                            CreateFallbackPipelineStateBundle(
+                                completedBuild.m_request));
+                }
+
                 {
                     AZStd::lock_guard<AZStd::mutex> lock(m_pendingDrawPacketBuildMutex);
                     const auto generationEntry =
@@ -396,6 +733,53 @@ namespace AZ
 
                     instanceGroupOwner = ownerEntry->second;
                     drawPacket = &instanceGroupOwner->m_drawPacket;
+                }
+
+                if (completedBuild.m_purpose ==
+                    PendingDrawPacketBuild::Purpose::PublishFallbackPacket)
+                {
+                    if (!drawPacket->ApplyDrawPacketBuiltRequest(
+                            AZStd::move(completedBuild.m_request)))
+                    {
+                        continue;
+                    }
+
+                    drawPacket->DebugOutputShaderVariants();
+                    if (modelOwner)
+                    {
+                        modelOwner->HandleDrawPacketUpdate();
+                    }
+                    else
+                    {
+                        instanceGroupOwner->HandleDrawPacketUpdate();
+                        CacheRootConstantInterval(*instanceGroupOwner);
+                    }
+
+                    // The fallback is renderable now. Prepare and compile the specialized
+                    // replacement asynchronously without changing this generation.
+                    RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr
+                        specializedRequest =
+                            drawPacket->CreateDeferredDrawPacketBuiltRequest(
+                                *GetParentScene());
+                    if (specializedRequest)
+                    {
+                        QueuePendingDrawPacketBuild(
+                            completedBuild.m_target,
+                            completedBuild.m_generation,
+                            AZStd::move(specializedRequest),
+                            PendingDrawPacketBuild::Purpose::
+                                PublishSpecializedPacket);
+                    }
+                    continue;
+                }
+
+                if (completedBuild.m_purpose ==
+                    PendingDrawPacketBuild::Purpose::
+                        RetainFallbackPipelineStates)
+                {
+                    drawPacket->RetainFallbackPipelineStates(
+                        AZStd::move(completedBuild.m_request));
+                    continue;
                 }
 
                 if (!drawPacket->ApplyDrawPacketBuiltRequest(
@@ -546,7 +930,11 @@ namespace AZ
             m_reflectionProbeFeatureProcessor = GetParentScene()->GetFeatureProcessor<ReflectionProbeFeatureProcessor>();
             m_handleGlobalShaderOptionUpdate = RPI::ShaderSystemInterface::GlobalShaderOptionUpdatedEvent::Handler
             {
-                [this](const AZ::Name&, RPI::ShaderOptionValue) { m_forceRebuildDrawPackets = true; }
+                [this](const AZ::Name&, RPI::ShaderOptionValue)
+                {
+                    ClearSharedFallbackPipelineStateBundles();
+                    m_forceRebuildDrawPackets = true;
+                }
             };
             RPI::ShaderSystemInterface::Get()->Connect(m_handleGlobalShaderOptionUpdate);
             EnableSceneNotification();
@@ -600,6 +988,12 @@ namespace AZ
         void MeshFeatureProcessor::Deactivate()
         {
             CancelAllPendingDrawPacketBuilds();
+            ClearSharedFallbackPipelineStateBundles();
+            {
+                AZStd::lock_guard<AZStd::mutex> lock(m_prewarmedShaderMutex);
+                m_prewarmedMaterials.clear();
+                m_prewarmedShaderInstances.clear();
+            }
             m_flagRegistry.reset();
 
             m_handleGlobalShaderOptionUpdate.Disconnect();
@@ -1564,6 +1958,7 @@ namespace AZ
             meshDataHandle->m_descriptor.m_modelChangedEventHandler.Connect(meshDataHandle->m_modelChangedEvent);
             meshDataHandle->m_descriptor.m_objectSrgCreatedHandler.Connect(meshDataHandle->m_objectSrgCreatedEvent);
             meshDataHandle->m_scene = GetParentScene();
+            meshDataHandle->m_meshFeatureProcessor = this;
             meshDataHandle->m_objectId = m_transformService->ReserveObjectId();
             meshDataHandle->m_rayTracingUuid = AZ::Uuid::CreateRandom();
             meshDataHandle->m_drawPacketOwnerId = AcquireDrawPacketOwnerId();
@@ -2032,6 +2427,7 @@ namespace AZ
         void MeshFeatureProcessor::OnRenderPipelineChanged([[maybe_unused]] RPI::RenderPipeline* pipeline,
             [[maybe_unused]] RPI::SceneNotification::RenderPipelineChangeType changeType)
         {
+            ClearSharedFallbackPipelineStateBundles();
             m_forceRebuildDrawPackets = true;
         }
 
@@ -2405,8 +2801,102 @@ namespace AZ
         void ModelDataInstance::QueueInit(const Data::Instance<RPI::Model>& model)
         {
             m_model = model;
+            PrewarmFallbackShaders(m_meshFeatureProcessor);
             m_flags.m_needsInit = true;
             m_aabb = m_model->GetModelAsset()->GetAabb();
+        }
+
+        void ModelDataInstance::PrewarmFallbackShaders(
+            MeshFeatureProcessor* meshFeatureProcessor)
+        {
+            AZ_PROFILE_SCOPE(
+                AzRender,
+                "MeshFeatureProcessor: Prewarm Fallback Shaders");
+            if (!m_model || !meshFeatureProcessor)
+            {
+                return;
+            }
+
+            for (size_t modelLodIndex = 0;
+                 modelLodIndex < m_model->GetLodCount();
+                 ++modelLodIndex)
+            {
+                const RPI::ModelLod& modelLod =
+                    *m_model->GetLods()[modelLodIndex];
+                const AZStd::span<const RPI::ModelLod::Mesh> meshes =
+                    modelLod.GetMeshes();
+                for (const RPI::ModelLod::Mesh& mesh : meshes)
+                {
+                    const CustomMaterialId customMaterialId(
+                        aznumeric_cast<AZ::u64>(modelLodIndex),
+                        mesh.m_materialSlotStableId);
+                    const CustomMaterialInfo& customMaterialInfo =
+                        GetCustomMaterialWithFallback(customMaterialId);
+                    const Data::Instance<RPI::Material>& material =
+                        customMaterialInfo.m_material
+                        ? customMaterialInfo.m_material
+                        : mesh.m_material;
+                    if (!material)
+                    {
+                        continue;
+                    }
+
+                    meshFeatureProcessor->PrewarmMaterialShaders(material);
+                }
+            }
+        }
+
+        void MeshFeatureProcessor::PrewarmMaterialShaders(
+            const Data::Instance<RPI::Material>& material)
+        {
+            if (!material)
+            {
+                return;
+            }
+
+            AZStd::lock_guard<AZStd::mutex> lock(m_prewarmedShaderMutex);
+            const Data::InstanceId materialId = material->GetId();
+            const RPI::Material::ChangeId changeId =
+                material->GetCurrentChangeId();
+            const auto materialEntry = m_prewarmedMaterials.find(materialId);
+            if (materialEntry != m_prewarmedMaterials.end() &&
+                materialEntry->second == changeId)
+            {
+                return;
+            }
+
+            material->ForAllShaderItems(
+                [this](
+                    const Name&,
+                    const RPI::ShaderCollection::Item& shaderItem)
+                {
+                    if (!shaderItem.IsEnabled())
+                    {
+                        return true;
+                    }
+
+                    Data::Instance<RPI::Shader> shader =
+                        RPI::Shader::FindOrCreate(shaderItem.GetShaderAsset());
+                    if (!shader)
+                    {
+                        return true;
+                    }
+
+                    m_prewarmedShaderInstances[shader->GetId()] = shader;
+                    if (shader->GetAsset()->UseSpecializationConstants(
+                            shader->GetSupervariantIndex()))
+                    {
+                        Data::Instance<RPI::Shader> fallbackShader =
+                            shader->FindOrCreateShaderOptionFallback();
+                        if (fallbackShader)
+                        {
+                            m_prewarmedShaderInstances[fallbackShader->GetId()] =
+                                AZStd::move(fallbackShader);
+                        }
+                    }
+                    return true;
+                });
+            m_prewarmedMaterials[materialId] = changeId;
         }
 
         void ModelDataInstance::Init(MeshFeatureProcessor* meshFeatureProcessor)

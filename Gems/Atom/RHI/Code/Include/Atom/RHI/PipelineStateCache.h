@@ -154,8 +154,12 @@ namespace AZ::RHI
         //! It is permitted to take a strong reference to the returned pointer, but is not necessary as long as the reference
         //! is discarded on a library reset / release event. The cache will store a reference internally. If a strong reference
         //! is held externally, the instance will remain valid even after the cache is reset / destroyed.
+        //! @param acquireOnlyIfCached When true, returns null instead of allocating, compiling, or waiting for an in-flight PSO.
         const PipelineState* AcquirePipelineState(
-            PipelineLibraryHandle library, const PipelineStateDescriptor& descriptor, const AZ::Name& name = AZ::Name());
+            PipelineLibraryHandle library,
+            const PipelineStateDescriptor& descriptor,
+            const AZ::Name& name = AZ::Name(),
+            bool acquireOnlyIfCached = false);
 
         //! Acquires a fully compiled pipeline state for persistent asynchronous work. If another thread owns
         //! compilation, this call waits for it to complete. Returns null if compilation fails.
@@ -181,6 +185,7 @@ namespace AZ::RHI
             void SetCompleted(bool succeeded);
             bool WaitForCompletion();
             bool IsSuccessful();
+            bool IsCompleteAndSuccessful();
 
             const bool m_isAsyncCompile = false;
             AZStd::mutex m_mutex;
@@ -279,10 +284,13 @@ namespace AZ::RHI
             PipelineLibraryHandle library,
             const PipelineStateDescriptor& descriptor,
             const AZ::Name& name,
-            bool isAsyncAcquire);
+            bool isAsyncAcquire,
+            bool acquireOnlyIfCached);
 
         static const PipelineState* ResolvePipelineStateEntry(
-            const PipelineStateEntry& pipelineStateEntry, bool isAsyncAcquire);
+            const PipelineStateEntry& pipelineStateEntry,
+            bool isAsyncAcquire,
+            bool acquireOnlyIfCached);
 
         PipelineStateAcquireResult CompilePipelineState(
             GlobalLibraryEntry& globalLibraryEntry,

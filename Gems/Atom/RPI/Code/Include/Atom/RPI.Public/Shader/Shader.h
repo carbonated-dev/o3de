@@ -127,7 +127,9 @@ namespace AZ
             const ShaderOutputContract& GetOutputContract() const;
             
             //! Acquires a pipeline state directly from a descriptor.
-            const RHI::PipelineState* AcquirePipelineState(const RHI::PipelineStateDescriptor& descriptor) const;
+            const RHI::PipelineState* AcquirePipelineState(
+                const RHI::PipelineStateDescriptor& descriptor,
+                bool acquireOnlyIfCached = false) const;
 
             //! Acquires a fully compiled pipeline state for a persistent asynchronous build.
             //! Returns null if compilation fails.
@@ -159,6 +161,11 @@ namespace AZ
             //! @param compileTheSrg If you need to set other values in the SRG, set this to false, and the call Compile() when you are done.
             //! @return The DrawSrg instance, or null if the shader does not include a DrawSrg.
             Data::Instance<ShaderResourceGroup> CreateDefaultDrawSrg(bool compileTheSrg);
+
+            //! Returns the shared dummy DrawSrg used to satisfy the RHI binding for fully specialized
+            //! variants whose DrawSrg contains no data other than the unused shader-option fallback key.
+            //! Returns null when this shader needs real per-draw SRG data.
+            const Data::Instance<ShaderResourceGroup>& GetDummyDrawSrg() const;
 
             //! Returns a reference to the asset used to initialize this shader.
             const Data::Asset<ShaderAsset>& GetAsset() const;
@@ -195,6 +202,7 @@ namespace AZ
             //! Cached creation context for this shader's DrawSrg.
             RHI::Ptr<RHI::ShaderResourceGroupLayout> m_drawSrgLayout;
             Data::Instance<ShaderResourceGroupPool> m_drawSrgPool;
+            Data::Instance<ShaderResourceGroup> m_dummyDrawSrg;
 
             /////////////////////////////////////////////////////////////////////////////////////
             //! The following variables are necessary to reliably reload the Shader

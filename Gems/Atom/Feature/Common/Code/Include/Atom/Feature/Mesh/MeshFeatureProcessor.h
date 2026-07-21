@@ -115,6 +115,7 @@ namespace AZ
             // but preserve all the settings such as the model, material assignment, etc., then queue it for re-initialization
             void ReInit(MeshFeatureProcessor* meshFeatureProcessor);
             void QueueInit(const Data::Instance<RPI::Model>& model);
+            void PrewarmFallbackShaders(MeshFeatureProcessor* meshFeatureProcessor);
             void Init(MeshFeatureProcessor* meshFeatureProcessor);
             void BuildDrawPacketList(MeshFeatureProcessor* meshFeatureProcessor, size_t modelLodIndex);
             void SetRayTracingData(MeshFeatureProcessor* meshFeatureProcessor);
@@ -170,6 +171,7 @@ namespace AZ
             // needs to stay alive until the queued function is executed.
             AZStd::shared_ptr<MeshLoader> m_meshLoader;
             RPI::Scene* m_scene = nullptr;
+            MeshFeatureProcessor* m_meshFeatureProcessor = nullptr;
             RHI::DrawItemSortKey m_sortKey = 0;
             uint32_t m_lightingChannelMask = 1;
 
@@ -322,9 +324,30 @@ namespace AZ
 
             struct PendingDrawPacketBuild
             {
+                enum class Purpose : uint8_t
+                {
+                    PublishFallbackPacket,
+                    PublishSpecializedPacket,
+                    RetainFallbackPipelineStates
+                };
+
                 DrawPacketBuildTarget m_target;
                 uint64_t m_generation = 0;
                 RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr m_request;
+                Purpose m_purpose = Purpose::PublishSpecializedPacket;
+                AZ::HashValue64 m_fallbackPipelineStateKey;
+            };
+
+            struct SharedFallbackPipelineStateEntry
+            {
+                RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr m_request;
+                RPI::MeshDrawPacket::FallbackPipelineStateBundlePtr m_bundle;
+                struct Subscriber
+                {
+                    DrawPacketBuildTarget m_target;
+                    uint64_t m_generation = 0;
+                };
+                AZStd::vector<Subscriber> m_subscribers;
             };
 
             uint64_t AcquireDrawPacketOwnerId();
@@ -332,11 +355,32 @@ namespace AZ
             void AddPendingDrawPacketBuild(
                 const DrawPacketBuildTarget& target,
                 uint64_t generation,
-                RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request);
+                RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request,
+                PendingDrawPacketBuild::Purpose purpose =
+                    PendingDrawPacketBuild::Purpose::PublishSpecializedPacket,
+                AZ::HashValue64 fallbackPipelineStateKey = {});
             void QueuePendingDrawPacketBuild(
                 const DrawPacketBuildTarget& target,
                 uint64_t generation,
-                RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request);
+                RPI::MeshDrawPacket::DrawPacketBuiltRequestPtr request,
+                PendingDrawPacketBuild::Purpose purpose =
+                    PendingDrawPacketBuild::Purpose::PublishSpecializedPacket,
+                AZ::HashValue64 fallbackPipelineStateKey = {});
+            RPI::MeshDrawPacket::FallbackPipelineStateBundlePtr
+                FindSharedFallbackPipelineStateBundle(
+                    AZ::HashValue64 fallbackPipelineStateKey);
+            void EnsureSharedFallbackPipelineStateBundle(
+                RPI::MeshDrawPacket& drawPacket,
+                const RPI::Scene& parentScene,
+                AZ::HashValue64 fallbackPipelineStateKey,
+                const DrawPacketBuildTarget* subscriberTarget = nullptr,
+                uint64_t subscriberGeneration = 0);
+            void StoreSharedFallbackPipelineStateBundle(
+                AZ::HashValue64 fallbackPipelineStateKey,
+                RPI::MeshDrawPacket::FallbackPipelineStateBundlePtr bundle);
+            AZStd::vector<SharedFallbackPipelineStateEntry::Subscriber>
+                PublishCompletedSharedFallbackPipelineStateBundles();
+            void ClearSharedFallbackPipelineStateBundles();
             //! Returns true when the current RHI draw packet was synchronously replaced or reset.
             bool QueueDrawPacketUpdate(
                 RPI::MeshDrawPacket& drawPacket,
@@ -346,6 +390,7 @@ namespace AZ
             void PublishCompletedDrawPacketBuilds();
             void CancelPendingDrawPacketBuildsForOwner(uint64_t ownerId);
             void CancelAllPendingDrawPacketBuilds();
+            void PrewarmMaterialShaders(const Data::Instance<RPI::Material>& material);
 
             void ForceRebuildDrawPackets(const AZ::ConsoleCommandContainer& arguments);
             AZ_CONSOLEFUNC(MeshFeatureProcessor,
@@ -385,6 +430,21 @@ namespace AZ
             AZStd::vector<PendingDrawPacketBuild> m_pendingDrawPacketBuilds;
             AZStd::unordered_map<DrawPacketBuildTarget, uint64_t, DrawPacketBuildTargetHasher>
                 m_drawPacketBuildGenerations;
+
+            AZStd::mutex m_sharedFallbackPipelineStateMutex;
+            AZStd::unordered_map<
+                AZ::HashValue64,
+                SharedFallbackPipelineStateEntry>
+                m_sharedFallbackPipelineStates;
+
+            // Prewarm is intentionally feature-processor scoped. A local reference would be
+            // released before the parallel mesh-init jobs start and recreate the shader and its
+            // pipeline library on those workers.
+            AZStd::mutex m_prewarmedShaderMutex;
+            AZStd::unordered_map<Data::InstanceId, Data::Instance<RPI::Shader>>
+                m_prewarmedShaderInstances;
+            AZStd::unordered_map<Data::InstanceId, RPI::Material::ChangeId>
+                m_prewarmedMaterials;
 
             MeshInstanceManager m_meshInstanceManager;
 

@@ -53,6 +53,9 @@ namespace AZ
 
             class DrawPacketBuiltRequest;
             using DrawPacketBuiltRequestPtr = AZStd::shared_ptr<DrawPacketBuiltRequest>;
+            class FallbackPipelineStateBundle;
+            using FallbackPipelineStateBundlePtr =
+                AZStd::shared_ptr<const FallbackPipelineStateBundle>;
 
             MeshDrawPacket() = default;
             MeshDrawPacket(
@@ -71,12 +74,19 @@ namespace AZ
             //! The caller must capture and build a replacement from the current state when this returns true.
             bool BeginUpdate(bool forceUpdate = false);
 
+            //! Marks the packet for rebuilding during the next mesh update pass.
+            void RequestUpdate() { m_needUpdate = true; }
+
             RHI::DrawPacket* GetRHIDrawPacket() { return m_drawPacket.get(); }
             const RHI::DrawPacket* GetRHIDrawPacket() const { return m_drawPacket.get(); }
             const RHI::ConstPtr<RHI::ConstantsLayout> GetRootConstantsLayout() const;
 
             //! Stops rendering this mesh draw packet until a replacement is applied.
             void ResetRHIDrawPacket();
+
+            //! Performs a lightweight enabled/draw-list/scene-output check without resolving
+            //! shader instances or constructing pipeline-state descriptors.
+            bool HasDrawItems(const Scene& parentScene) const;
 
             void SetStencilRef(uint8_t stencilRef);
             void SetSortKey(RHI::DrawItemSortKey sortKey);
@@ -106,8 +116,50 @@ namespace AZ
             DrawPacketBuiltRequestPtr CreateDeferredDrawPacketBuiltRequest(
                 const Scene& parentScene);
 
+            //! Captures a fallback-only PSO warm-up request. Descriptor preparation and PSO
+            //! creation occur on the pipeline-state queue; no draw packet or Draw SRG is built.
+            DrawPacketBuiltRequestPtr CreateDeferredFallbackPipelineStateRequest(
+                const Scene& parentScene);
+
+            //! Creates the one queue-side request used to populate a shared fallback bundle.
+            //! It contains no packet-specific Draw SRGs and is safe to share across packets
+            //! with the same fallback structural key.
+            DrawPacketBuiltRequestPtr CreateDeferredFallbackPipelineStateBundleRequest(
+                const Scene& parentScene);
+
+            //! Captures a complete fallback packet for queue-side preparation. Used when no
+            //! compatible shared fallback bundle has completed yet.
+            DrawPacketBuiltRequestPtr CreateDeferredFallbackDrawPacketBuiltRequest(
+                const Scene& parentScene);
+
+            //! Returns a specialization-value-independent key for fallback PSO preparation.
+            AZ::HashValue64 GetFallbackPipelineStateKey(const Scene& parentScene) const;
+
+            //! Creates a reusable immutable bundle from a completed fallback request.
+            static FallbackPipelineStateBundlePtr CreateFallbackPipelineStateBundle(
+                const DrawPacketBuiltRequestPtr& drawPacketBuiltRequest);
+
+            //! Refreshes packet-specific fallback keys/SRG state and completes the request from
+            //! a previously prepared shared bundle without rebuilding PSO descriptors.
+            DrawPacketBuiltRequestPtr CreateDrawPacketBuiltRequestFromFallbackBundle(
+                const Scene& parentScene,
+                const FallbackPipelineStateBundlePtr& fallbackBundle);
+
             //! Applies a successfully completed build to this MeshDrawPacket.
             bool ApplyDrawPacketBuiltRequest(DrawPacketBuiltRequestPtr drawPacketBuiltRequest);
+
+            //! Retains a completed fallback warm-up so its shader pipeline libraries and PSOs
+            //! cannot be compacted before this packet needs them.
+            bool RetainFallbackPipelineStates(DrawPacketBuiltRequestPtr drawPacketBuiltRequest);
+
+            //! Returns whether the current packet revision has neither a retained fallback nor
+            //! an in-flight fallback warm-up.
+            bool NeedsFallbackPipelineStateWarmup() const;
+
+            //! Publishes a fallback request directly from the exact PSOs retained for an earlier
+            //! revision when its prepared descriptors have the same fingerprint.
+            bool TryApplyRetainedFallbackPipelineStates(
+                DrawPacketBuiltRequestPtr drawPacketBuiltRequest);
 
             void DebugOutputShaderVariants();
 
@@ -134,6 +186,21 @@ namespace AZ
                 Name m_shaderTag;
                 RHI::DrawListTag m_drawListTag;
                 Data::Instance<ShaderResourceGroup> m_drawSrg;
+                bool m_isDummy = false;
+            };
+
+            struct CachedDrawListTag
+            {
+                Data::AssetId m_shaderAssetId;
+                Name m_drawListName;
+                RHI::DrawListTag m_drawListTag;
+            };
+
+            struct CachedShaderInstance
+            {
+                Data::AssetId m_shaderAssetId;
+                SupervariantIndex m_supervariantIndex;
+                Data::Instance<Shader> m_shader;
             };
 
             using DrawSrgReuseDataList =
@@ -146,6 +213,7 @@ namespace AZ
                 ConstPtr<RHI::ShaderResourceGroup> m_objectSrg;
                 ConstPtr<RHI::ShaderResourceGroup> m_materialSrg;
                 RHI::ConstPtr<RHI::ConstantsLayout> m_rootConstantsLayout;
+                uint32_t m_uvStreamTangentBitmask = 0;
                 AZStd::fixed_vector<DrawItemBuildData, RHI::DrawPacketBuilder::DrawItemCountMax> m_drawItems;
                 DrawSrgReuseDataList m_drawSrgReuseData;
 #ifdef DEBUG_MESH_SHADERVARIANTS
@@ -159,18 +227,28 @@ namespace AZ
                 bool useFallbackShaders,
                 const DrawSrgReuseDataList* drawSrgSourceData,
                 bool updateReusedDrawSrgs);
+            DrawPacketBuiltRequestPtr CreateDeferredDrawPacketBuiltRequestInternal(
+                const Scene& parentScene,
+                bool useFallbackShaders,
+                bool prepareDrawSrgs);
             bool PreparePipelineStateBuildItems(
                 const Scene& parentScene,
                 bool useFallbackShaders,
                 PipelineStateBuildItemList& pipelineStateBuildItems,
                 DrawPacketBuildData& drawPacketBuildData,
                 const DrawSrgReuseDataList* drawSrgSourceData,
-                bool updateReusedDrawSrgs);
+                bool updateReusedDrawSrgs,
+                bool prepareDrawSrgs = true,
+                const PipelineStateBuildItemList* reusablePipelineStateBuildItems = nullptr);
             bool BuildDrawPacket(
                 DrawPacketBuildData&& drawPacketBuildData,
                 PipelineStateBuildItemList&& pipelineStateBuildItems,
                 AZStd::span<const RHI::ConstPtr<RHI::PipelineState>> pipelineStates,
                 bool useFallbackShaders);
+            Data::Instance<Shader> FindOrCreateCachedShader(
+                const Data::Asset<ShaderAsset>& shaderAsset,
+                const Name& supervariantName = Name{});
+            RHI::DrawListTag ResolveDrawListTag(const ShaderCollection::Item& shaderItem) const;
             void ForValidShaderOptionName(const Name& shaderOptionName, const AZStd::function<bool(const ShaderCollection::Item&, ShaderOptionIndex)>& callback);
 
             Ptr<RHI::DrawPacket> m_drawPacket;
@@ -184,6 +262,13 @@ namespace AZ
             // Keeps the non-specialized shader instances and their fallback PSO caches resident
             // after the specialized packet replaces the fallback packet.
             AZStd::fixed_vector<Data::Instance<Shader>, RHI::DrawPacketBuilder::DrawItemCountMax> m_retainedFallbackShaders;
+            AZStd::fixed_vector<RHI::ConstPtr<RHI::PipelineState>, RHI::DrawPacketBuilder::DrawItemCountMax>
+                m_retainedFallbackPipelineStates;
+            DrawSrgReuseDataList m_retainedFallbackDrawSrgReuseData;
+            AZ::HashValue64 m_retainedFallbackFingerprint;
+            uint64_t m_pipelineStateRevision = 0;
+            uint64_t m_retainedFallbackRevision = 0;
+            uint64_t m_fallbackWarmupRevision = 0;
 
             RHI::ConstPtr<RHI::ConstantsLayout> m_rootConstantsLayout;
 
@@ -201,6 +286,12 @@ namespace AZ
             ConstPtr<RHI::ShaderResourceGroup> m_materialSrg;
 
             DrawSrgReuseDataList m_drawSrgReuseData;
+            mutable AZStd::fixed_vector<CachedDrawListTag, RHI::DrawPacketBuilder::DrawItemCountMax>
+                m_cachedDrawListTags;
+            AZStd::fixed_vector<
+                CachedShaderInstance,
+                RHI::DrawPacketBuilder::DrawItemCountMax * 2>
+                m_cachedShaderInstances;
 
             // A reference to the material, used to rebuild the DrawPacket if needed
             Data::Instance<Material> m_material;
@@ -255,6 +346,19 @@ namespace AZ
             PipelineStateBuildRequestPtr m_pipelineStateBuildRequest;
             DrawPacketBuildData m_drawPacketBuildData;
             bool m_useFallbackShaders = false;
+            uint64_t m_fallbackStateRevision = 0;
+        };
+
+        //! Immutable fallback shader/descriptor/PSO state shared by structurally equivalent
+        //! mesh packets. Packet-specific SRGs and draw data are deliberately excluded.
+        class MeshDrawPacket::FallbackPipelineStateBundle
+        {
+        private:
+            friend class MeshDrawPacket;
+
+            PipelineStateBuildItemList m_pipelineStateBuildItems;
+            PipelineStateList m_pipelineStates;
+            AZ::HashValue64 m_fingerprint;
         };
         
         using MeshDrawPacketList = AZStd::vector<RPI::MeshDrawPacket>;

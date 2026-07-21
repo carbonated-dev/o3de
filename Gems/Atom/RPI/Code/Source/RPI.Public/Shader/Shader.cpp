@@ -15,6 +15,7 @@
 #include <Atom/RPI.Public/Shader/ShaderSystemInterface.h>
 #include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
 #include <AzCore/Interface/Interface.h>
+#include <AzCore/std/algorithm.h>
 #include <AzCore/std/parallel/mutex.h>
 #include <AzCore/std/time.h>
 
@@ -30,13 +31,52 @@ namespace AZ
 {
     namespace RPI
     {
+        static bool HasOnlyShaderVariantKeyFallback(const RHI::ShaderResourceGroupLayout* layout)
+        {
+            if (!layout ||
+                !layout->GetStaticSamplers().empty() ||
+                !layout->GetShaderInputListForBuffers().empty() ||
+                !layout->GetShaderInputListForImages().empty() ||
+                !layout->GetShaderInputListForBufferUnboundedArrays().empty() ||
+                !layout->GetShaderInputListForImageUnboundedArrays().empty() ||
+                !layout->GetShaderInputListForSamplers().empty())
+            {
+                return false;
+            }
+
+            const AZStd::span<const RHI::ShaderInputConstantDescriptor> constants =
+                layout->GetShaderInputListForConstants();
+            if (!layout->HasShaderVariantKeyFallbackEntry())
+            {
+                return constants.empty();
+            }
+
+            const RHI::ShaderInputConstantIndex fallbackIndex =
+                layout->GetShaderVariantKeyFallbackConstantIndex();
+            if (!fallbackIndex.IsValid())
+            {
+                return false;
+            }
+
+            const RHI::ShaderInputConstantDescriptor& fallbackConstant =
+                layout->GetShaderInput(fallbackIndex);
+            const uint32_t fallbackBegin = fallbackConstant.m_constantByteOffset;
+            const uint32_t fallbackEnd = fallbackBegin + fallbackConstant.m_constantByteCount;
+
+            // AZSL reflection can expose aliases for elements of the generated fallback-key array.
+            // They are still fallback storage as long as they are contained by its byte range.
+            return AZStd::all_of(
+                constants.begin(),
+                constants.end(),
+                [fallbackBegin, fallbackEnd](const RHI::ShaderInputConstantDescriptor& constant)
+                {
+                    return constant.m_constantByteOffset >= fallbackBegin &&
+                        constant.m_constantByteOffset + constant.m_constantByteCount <= fallbackEnd;
+                });
+        }
+
         Data::Instance<Shader> Shader::FindOrCreate(const Data::Asset<ShaderAsset>& shaderAsset, const Name& supervariantName)
         {
-#if defined(CARBONATED)
-                ASSET_TAG(shaderAsset.GetHint().c_str());
-#endif
-            auto anySupervariantName = AZStd::any(supervariantName);
-
             // retrieve the supervariant index from the shader asset
             SupervariantIndex supervariantIndex = shaderAsset->GetSupervariantIndex(supervariantName);
             if (!supervariantIndex.IsValid())
@@ -49,8 +89,23 @@ namespace AZ
             const Data::InstanceId instanceId =
                 Data::InstanceId::CreateFromAsset(shaderAsset, { supervariantIndex.GetIndex() });
 
+            Data::InstanceDatabase<Shader>& instanceDatabase =
+                Data::InstanceDatabase<Shader>::Instance();
+            if (Data::Instance<Shader> shader = instanceDatabase.Find(instanceId))
+            {
+                return shader;
+            }
+
+#if defined(CARBONATED)
+            ASSET_TAG(shaderAsset.GetHint().c_str());
+#endif
+            auto anySupervariantName = AZStd::any(supervariantName);
+
             // retrieve the shader instance from the Instance database
-            return Data::InstanceDatabase<Shader>::Instance().FindOrCreate(instanceId, shaderAsset, &anySupervariantName);
+            return instanceDatabase.FindOrCreate(
+                instanceId,
+                shaderAsset,
+                &anySupervariantName);
         }
 
         Data::Instance<Shader> Shader::FindOrCreate(const Data::Asset<ShaderAsset>& shaderAsset)
@@ -170,6 +225,7 @@ namespace AZ
             RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get();
             RHI::DrawListTagRegistry* drawListTagRegistry = rhiSystem->GetDrawListTagRegistry();
 
+            m_dummyDrawSrg = nullptr;
             m_drawSrgPool = nullptr;
             m_drawSrgLayout = nullptr;
             m_asset = { &shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad };
@@ -200,6 +256,25 @@ namespace AZ
                         "Failed to acquire DrawSrg pool for shader '%s'.",
                         m_asset->GetName().GetCStr());
                     return RHI::ResultCode::Fail;
+                }
+
+                if (m_asset->IsFullySpecialized(m_supervariantIndex) &&
+                    HasOnlyShaderVariantKeyFallback(m_drawSrgLayout.get()))
+                {
+                    m_dummyDrawSrg =
+                        RPI::ShaderResourceGroup::FindOrCreateSharedDummy(
+                            m_asset,
+                            m_supervariantIndex,
+                            m_drawSrgLayout->GetName());
+                    if (!m_dummyDrawSrg)
+                    {
+                        AZ_Error(
+                            "Shader",
+                            false,
+                            "Failed to create the shared dummy DrawSrg for shader '%s'.",
+                            m_asset->GetName().GetCStr());
+                        return RHI::ResultCode::Fail;
+                    }
                 }
             }
 
@@ -272,6 +347,7 @@ namespace AZ
                 m_drawListTag.Reset();
             }
 
+            m_dummyDrawSrg = nullptr;
             m_drawSrgPool = nullptr;
             m_drawSrgLayout = nullptr;
         }
@@ -477,6 +553,11 @@ namespace AZ
 
         const ShaderVariant& Shader::GetVariant(const ShaderVariantId& shaderVariantId)
         {
+            if (m_asset->IsFullySpecialized(m_supervariantIndex))
+            {
+                return m_rootVariant;
+            }
+
             Data::Asset<ShaderVariantAsset> shaderVariantAsset = m_asset->GetVariantAsset(shaderVariantId, m_supervariantIndex);
             if (!shaderVariantAsset || shaderVariantAsset->IsRootVariant())
             {
@@ -581,9 +662,15 @@ namespace AZ
             return m_asset->GetOutputContract(m_supervariantIndex);
         }
 
-        const RHI::PipelineState* Shader::AcquirePipelineState(const RHI::PipelineStateDescriptor& descriptor) const
+        const RHI::PipelineState* Shader::AcquirePipelineState(
+            const RHI::PipelineStateDescriptor& descriptor,
+            bool acquireOnlyIfCached) const
         {
-            return m_pipelineStateCache->AcquirePipelineState(m_pipelineLibraryHandle, descriptor, m_asset->GetName());
+            return m_pipelineStateCache->AcquirePipelineState(
+                m_pipelineLibraryHandle,
+                descriptor,
+                m_asset->GetName(),
+                acquireOnlyIfCached);
         }
 
         const RHI::PipelineState* Shader::AcquirePipelineStateAsync(const RHI::PipelineStateDescriptor& descriptor) const
@@ -653,6 +740,11 @@ namespace AZ
         Data::Instance<ShaderResourceGroup> Shader::CreateDefaultDrawSrg(bool compileTheSrg)
         {
             return CreateDrawSrgForShaderVariant(m_asset->GetDefaultShaderOptions(), compileTheSrg);
+        }
+
+        const Data::Instance<ShaderResourceGroup>& Shader::GetDummyDrawSrg() const
+        {
+            return m_dummyDrawSrg;
         }
 
         const Data::Asset<ShaderAsset>& Shader::GetAsset() const

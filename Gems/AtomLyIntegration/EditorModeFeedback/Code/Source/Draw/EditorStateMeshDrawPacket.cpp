@@ -13,6 +13,7 @@
 #include <Atom/RPI.Public/Shader/ShaderSystemInterface.h>
 #include <Atom/RPI.Public/Scene.h>
 #include <Atom/RPI.Reflect/Material/MaterialFunctor.h>
+#include <Atom/RHI/ConstantsData.h>
 #include <Atom/RHI/DrawPacketBuilder.h>
 #include <Atom/RHI/RHISystemInterface.h>
 #include <AzCore/Console/Console.h>
@@ -142,6 +143,9 @@ namespace AZ::Render
         // that the memory won't be relocated when new entries are added.
         AZStd::fixed_vector<RPI::ModelLod::StreamBufferViewList, RHI::DrawPacketBuilder::DrawItemCountMax> streamBufferViewsPerShader;
 
+        RHI::ConstPtr<RHI::ConstantsLayout> rootConstantsLayout;
+        uint32_t uvStreamTangentBitmaskValue = 0;
+
         m_perDrawSrgs.clear();
 
         auto appendShader = [&](const RPI::ShaderCollection::Item& shaderItem, const Name& materialPipelineName)
@@ -214,6 +218,22 @@ namespace AZ::Render
                 return false;
             }
 
+            const uint32_t fullTangentBitmask = uvStreamTangentBitmask.GetFullTangentBitmask();
+            if (fullTangentBitmask != 0)
+            {
+                AZ_Error(
+                    "EditorStateMeshDrawPacket",
+                    uvStreamTangentBitmaskValue == 0 || uvStreamTangentBitmaskValue == fullTangentBitmask,
+                    "Shader %s produced a UV stream tangent bitmask that differs from another draw item. "
+                    "All draw items in a draw packet share the same root constants.",
+                    shaderItem.GetShaderAsset()->GetName().GetCStr());
+
+                if (uvStreamTangentBitmaskValue == 0)
+                {
+                    uvStreamTangentBitmaskValue = fullTangentBitmask;
+                }
+            }
+
             auto drawSrgLayout = shader->GetAsset()->GetDrawSrgLayout(shader->GetSupervariantIndex());
             Data::Instance<RPI::ShaderResourceGroup> drawSrg;
             if (drawSrgLayout)
@@ -226,21 +246,28 @@ namespace AZ::Render
                     drawSrg->SetShaderVariantKeyFallbackValue(shaderOptions.GetShaderVariantKeyFallbackValue());
                 }
 
-                // Pass UvStreamTangentBitmask to the shader if the draw SRG has it.
-                {
-                    AZ::Name shaderUvStreamTangentBitmask = AZ::Name(RPI::UvStreamTangentBitmask::SrgName);
-                    auto index = drawSrg->FindShaderInputConstantIndex(shaderUvStreamTangentBitmask);
-
-                    if (index.IsValid())
-                    {
-                        drawSrg->SetConstant(index, uvStreamTangentBitmask.GetFullTangentBitmask());
-                    }
-                }
-
                 drawSrg->Compile();
             }
 
             parentScene.ConfigurePipelineState(m_drawListTag, pipelineStateDescriptor);
+
+            const RHI::ConstantsLayout* shaderRootConstantsLayout =
+                pipelineStateDescriptor.m_pipelineLayoutDescriptor->GetRootConstantsLayout();
+            if (shaderRootConstantsLayout && shaderRootConstantsLayout->GetDataSize() > 0)
+            {
+                if (!rootConstantsLayout)
+                {
+                    rootConstantsLayout = shaderRootConstantsLayout;
+                }
+                else
+                {
+                    AZ_Error(
+                        "EditorStateMeshDrawPacket",
+                        rootConstantsLayout->GetHash() == shaderRootConstantsLayout->GetHash(),
+                        "Shader %s has a root constant layout that differs from another draw item.",
+                        shaderItem.GetShaderAsset()->GetName().GetCStr());
+                }
+            }
 
             const RHI::PipelineState* pipelineState = shader->AcquirePipelineState(pipelineStateDescriptor);
             if (!pipelineState)
@@ -305,6 +332,19 @@ namespace AZ::Render
 
                 return true;
             });
+
+        RHI::ConstantsData rootConstants;
+        if (rootConstantsLayout)
+        {
+            rootConstants = RHI::ConstantsData(rootConstantsLayout.get());
+            const RHI::ShaderInputConstantIndex uvStreamTangentBitmaskIndex =
+                rootConstantsLayout->FindShaderInputIndex(Name(RPI::UvStreamTangentBitmask::RootConstantName));
+            if (uvStreamTangentBitmaskIndex.IsValid())
+            {
+                rootConstants.SetConstant(uvStreamTangentBitmaskIndex, uvStreamTangentBitmaskValue);
+            }
+            drawPacketBuilder.SetRootConstants(rootConstants.GetConstantData());
+        }
 
         m_drawPacket = drawPacketBuilder.End();
 

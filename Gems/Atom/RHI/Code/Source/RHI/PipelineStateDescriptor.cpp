@@ -27,9 +27,9 @@ namespace AZ::RHI
         AZ_Assert(m_pipelineLayoutDescriptor, "Pipeline layout descriptor is null.");
         AZ::HashValue64 seed = AZ::HashValue64{ 0 };
         seed = TypeHash64(m_pipelineLayoutDescriptor->GetHash(), seed);
-        for (const auto& constant : m_specializationData)
+        if (HasSpecializationData())
         {
-            seed = TypeHash64(constant.GetHash(), seed);
+            seed = TypeHash64(GetSpecializationDataHash(), seed);
         }
         seed = TypeHash64(GetHashInternal(), seed);
         return seed;
@@ -37,7 +37,61 @@ namespace AZ::RHI
 
     bool PipelineStateDescriptor::operator==(const PipelineStateDescriptor& rhs) const
     {
-        return m_type == rhs.m_type && m_specializationData == rhs.m_specializationData;
+        return m_type == rhs.m_type && SpecializationDataEquals(rhs);
+    }
+
+    void PipelineStateDescriptor::SetSpecializationData(SpecializationDataPtr specializationData)
+    {
+        m_specializationData.clear();
+        m_specializationDataSource = AZStd::move(specializationData);
+    }
+
+    void PipelineStateDescriptor::ClearSpecializationData()
+    {
+        m_specializationData.clear();
+        m_specializationDataSource.reset();
+    }
+
+    const AZStd::vector<SpecializationConstant>& PipelineStateDescriptor::GetSpecializationConstants() const
+    {
+        return m_specializationDataSource
+            ? m_specializationDataSource->GetConstants()
+            : m_specializationData;
+    }
+
+    bool PipelineStateDescriptor::SpecializationDataEquals(const PipelineStateDescriptor& rhs) const
+    {
+        if (m_specializationDataSource && rhs.m_specializationDataSource)
+        {
+            return m_specializationDataSource->IsEquivalent(*rhs.m_specializationDataSource);
+        }
+
+        if (!m_specializationDataSource && !rhs.m_specializationDataSource)
+        {
+            return m_specializationData == rhs.m_specializationData;
+        }
+
+        return GetSpecializationConstants() == rhs.GetSpecializationConstants();
+    }
+
+    bool PipelineStateDescriptor::HasSpecializationData() const
+    {
+        return m_specializationDataSource || !m_specializationData.empty();
+    }
+
+    HashValue64 PipelineStateDescriptor::GetSpecializationDataHash() const
+    {
+        if (m_specializationDataSource)
+        {
+            return m_specializationDataSource->GetConstantsHash();
+        }
+
+        HashValue64 seed = HashValue64{ 0 };
+        for (const SpecializationConstant& constant : m_specializationData)
+        {
+            seed = TypeHash64(constant.GetHash(), seed);
+        }
+        return seed;
     }
 
     PipelineStateDescriptorForDraw::PipelineStateDescriptorForDraw()
@@ -99,20 +153,20 @@ namespace AZ::RHI
             m_renderStates == rhs.m_renderStates && m_vertexFunction == rhs.m_vertexFunction &&
             m_geometryFunction == rhs.m_geometryFunction && m_inputStreamLayout == rhs.m_inputStreamLayout && 
             m_renderAttachmentConfiguration == rhs.m_renderAttachmentConfiguration &&
-            m_specializationData == rhs.m_specializationData;
+            SpecializationDataEquals(rhs);
     }
 
     bool PipelineStateDescriptorForDispatch::operator == (const PipelineStateDescriptorForDispatch& rhs) const
     {
         return m_computeFunction == rhs.m_computeFunction &&
             m_pipelineLayoutDescriptor == rhs.m_pipelineLayoutDescriptor &&
-            m_specializationData == rhs.m_specializationData;
+            SpecializationDataEquals(rhs);
     }
 
     bool PipelineStateDescriptorForRayTracing::operator == (const PipelineStateDescriptorForRayTracing& rhs) const
     {
         return m_pipelineLayoutDescriptor == rhs.m_pipelineLayoutDescriptor &&
             m_rayTracingFunction == rhs.m_rayTracingFunction &&
-            m_specializationData == rhs.m_specializationData;
+            SpecializationDataEquals(rhs);
     }
 }

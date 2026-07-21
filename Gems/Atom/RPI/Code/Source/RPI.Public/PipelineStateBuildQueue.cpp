@@ -15,6 +15,7 @@ namespace AZ::RPI
         PipelineStateBuildItemList pipelineStateBuildItems)
         : m_pipelineStateBuildItems(AZStd::move(pipelineStateBuildItems))
     {
+        UpdateBuildFingerprint();
     }
 
     PipelineStateBuildRequest::PipelineStateBuildRequest(
@@ -43,6 +44,83 @@ namespace AZ::RPI
         {
             Wait();
         }
+    }
+
+    bool PipelineStateBuildRequest::TryAcquireFromCache()
+    {
+        AZ_Assert(
+            GetState() == State::Pending && !m_prepareFunction,
+            "Cache-only acquisition requires a prepared, pending pipeline-state request.");
+        if (GetState() != State::Pending || m_prepareFunction ||
+            m_cancelRequested.load(AZStd::memory_order_acquire))
+        {
+            return false;
+        }
+
+        m_pipelineStates.clear();
+        for (size_t itemIndex = 0;
+             itemIndex < m_pipelineStateBuildItems.size();
+             ++itemIndex)
+        {
+            const PipelineStateBuildItem& buildItem =
+                m_pipelineStateBuildItems[itemIndex];
+            const RHI::PipelineState* pipelineState = nullptr;
+            for (size_t previousIndex = 0;
+                 previousIndex < itemIndex;
+                 ++previousIndex)
+            {
+                const PipelineStateBuildItem& previousItem =
+                    m_pipelineStateBuildItems[previousIndex];
+                if (previousItem.m_shader.get() == buildItem.m_shader.get() &&
+                    previousItem.m_descriptor == buildItem.m_descriptor)
+                {
+                    pipelineState = m_pipelineStates[previousIndex].get();
+                    break;
+                }
+            }
+
+            if (!pipelineState)
+            {
+                pipelineState = buildItem.m_shader->AcquirePipelineState(
+                    buildItem.m_descriptor,
+                    true);
+            }
+            if (!pipelineState)
+            {
+                m_pipelineStates.clear();
+                return false;
+            }
+            m_pipelineStates.emplace_back(pipelineState);
+        }
+
+        SetTerminalState(State::Succeeded);
+        return true;
+    }
+
+    bool PipelineStateBuildRequest::CompleteFromCachedPipelineStates(
+        AZStd::span<const RHI::ConstPtr<RHI::PipelineState>> pipelineStates)
+    {
+        if (GetState() != State::Pending || m_prepareFunction ||
+            m_cancelRequested.load(AZStd::memory_order_acquire) ||
+            pipelineStates.size() != m_pipelineStateBuildItems.size() ||
+            pipelineStates.size() > m_pipelineStates.max_size())
+        {
+            return false;
+        }
+
+        m_pipelineStates.clear();
+        for (const RHI::ConstPtr<RHI::PipelineState>& pipelineState : pipelineStates)
+        {
+            if (!pipelineState)
+            {
+                m_pipelineStates.clear();
+                return false;
+            }
+            m_pipelineStates.emplace_back(pipelineState);
+        }
+
+        SetTerminalState(State::Succeeded);
+        return true;
     }
 
     void PipelineStateBuildRequest::Queue()
@@ -102,11 +180,23 @@ namespace AZ::RPI
         return GetState() == State::Succeeded;
     }
 
+    AZ::HashValue64 PipelineStateBuildRequest::GetBuildFingerprint() const
+    {
+        return m_buildFingerprint;
+    }
+
     AZStd::span<const RHI::ConstPtr<RHI::PipelineState>>
     PipelineStateBuildRequest::GetPipelineStates() const
     {
         AZ_Assert(IsSuccessful(), "Pipeline states are only available after a successful build.");
         return m_pipelineStates;
+    }
+
+    AZStd::span<const PipelineStateBuildItem>
+    PipelineStateBuildRequest::GetBuildItems() const
+    {
+        AZ_Assert(IsSuccessful(), "Pipeline-state build items are only available after a successful build.");
+        return m_pipelineStateBuildItems;
     }
 
     PipelineStateBuildItemList PipelineStateBuildRequest::TakeBuildItems()
@@ -115,7 +205,9 @@ namespace AZ::RPI
         return AZStd::move(m_pipelineStateBuildItems);
     }
 
-    void PipelineStateBuildRequest::BuildInternal(bool useAsyncCacheAcquire)
+    void PipelineStateBuildRequest::BuildInternal(
+        bool useAsyncCacheAcquire,
+        BatchPipelineStateList* batchPipelineStates)
     {
         if (m_cancelRequested.load(AZStd::memory_order_acquire))
         {
@@ -126,7 +218,8 @@ namespace AZ::RPI
 
         if (m_prepareFunction)
         {
-            const bool preparationSucceeded =
+            bool preparationSucceeded;
+            preparationSucceeded =
                 m_prepareFunction(m_pipelineStateBuildItems);
             m_prepareFunction = {};
             if (!preparationSucceeded)
@@ -137,44 +230,96 @@ namespace AZ::RPI
                     : State::Failed);
                 return;
             }
+            UpdateBuildFingerprint();
         }
 
         m_pipelineStates.clear();
-        m_pipelineStates.reserve(m_pipelineStateBuildItems.size());
 
-        for (const PipelineStateBuildItem& buildItem : m_pipelineStateBuildItems)
         {
-            if (m_cancelRequested.load(AZStd::memory_order_acquire))
+            for (const PipelineStateBuildItem& buildItem : m_pipelineStateBuildItems)
             {
-                m_pipelineStates.clear();
-                SetTerminalState(State::Cancelled);
-                return;
-            }
+                if (m_cancelRequested.load(AZStd::memory_order_acquire))
+                {
+                    m_pipelineStates.clear();
+                    SetTerminalState(State::Cancelled);
+                    return;
+                }
 
-            const RHI::PipelineState* pipelineState =
-                useAsyncCacheAcquire
-                ? buildItem.m_shader->AcquirePipelineStateAsync(
-                    buildItem.m_descriptor)
-                : buildItem.m_shader->AcquirePipelineState(
-                    buildItem.m_descriptor);
-            if (!pipelineState)
-            {
-                AZ_Error(
-                    "PipelineStateBuildQueue",
-                    false,
-                    "Shader '%s'. Failed to acquire pipeline state",
-                    buildItem.m_shader->GetAsset()->GetName().GetCStr());
-                m_pipelineStates.clear();
-                SetTerminalState(State::Failed);
-                return;
+                const AZ::HashValue64 descriptorHash =
+                    buildItem.m_descriptor.GetHash();
+                const RHI::PipelineState* pipelineState = nullptr;
+                if (batchPipelineStates)
+                {
+                    for (const BatchPipelineState& batchPipelineState :
+                         *batchPipelineStates)
+                    {
+                        if (batchPipelineState.m_shader ==
+                                buildItem.m_shader.get() &&
+                            batchPipelineState.m_descriptorHash ==
+                                descriptorHash &&
+                            *batchPipelineState.m_descriptor ==
+                                buildItem.m_descriptor)
+                        {
+                            pipelineState =
+                                batchPipelineState.m_pipelineState.get();
+                            break;
+                        }
+                    }
+                }
+
+                if (!pipelineState)
+                {
+                    pipelineState = useAsyncCacheAcquire
+                        ? buildItem.m_shader->AcquirePipelineStateAsync(
+                            buildItem.m_descriptor)
+                        : buildItem.m_shader->AcquirePipelineState(
+                            buildItem.m_descriptor);
+                    if (pipelineState && batchPipelineStates)
+                    {
+                        batchPipelineStates->push_back(
+                            BatchPipelineState{
+                                buildItem.m_shader.get(),
+                                &buildItem.m_descriptor,
+                                descriptorHash,
+                                pipelineState });
+                    }
+                }
+                if (!pipelineState)
+                {
+                    AZ_Error(
+                        "PipelineStateBuildQueue",
+                        false,
+                        "Shader '%s'. Failed to acquire pipeline state",
+                        buildItem.m_shader->GetAsset()->GetName().GetCStr());
+                    m_pipelineStates.clear();
+                    SetTerminalState(State::Failed);
+                    return;
+                }
+                m_pipelineStates.emplace_back(pipelineState);
             }
-            m_pipelineStates.emplace_back(pipelineState);
         }
 
         SetTerminalState(
             m_cancelRequested.load(AZStd::memory_order_acquire)
             ? State::Cancelled
             : State::Succeeded);
+    }
+
+    void PipelineStateBuildRequest::UpdateBuildFingerprint()
+    {
+        const size_t itemCount = m_pipelineStateBuildItems.size();
+        AZ::HashValue64 fingerprint = AZ::TypeHash64(itemCount);
+        for (const PipelineStateBuildItem& buildItem :
+             m_pipelineStateBuildItems)
+        {
+            const uintptr_t shaderAddress =
+                reinterpret_cast<uintptr_t>(buildItem.m_shader.get());
+            fingerprint = AZ::TypeHash64(shaderAddress, fingerprint);
+            const AZ::HashValue64 descriptorHash =
+                buildItem.m_descriptor.GetHash();
+            fingerprint = AZ::TypeHash64(descriptorHash, fingerprint);
+        }
+        m_buildFingerprint = fingerprint;
     }
 
     void PipelineStateBuildRequest::SetTerminalState(State state)
@@ -200,6 +345,11 @@ namespace AZ::RPI
 
         AZStd::thread_desc threadDesc;
         threadDesc.m_name = "PipelineStateBuildQueue";
+#if defined(AZ_PLATFORM_WINDOWS)
+        // Driver compilation is throughput work and must not preempt the mesh-init workers
+        // that the frame is synchronously waiting on.
+        threadDesc.m_priority = -1; // THREAD_PRIORITY_BELOW_NORMAL
+#endif
         m_serviceThread = AZStd::thread(
             threadDesc,
             [this]()
@@ -259,7 +409,7 @@ namespace AZ::RPI
     {
         while (true)
         {
-            PipelineStateBuildRequestPtr request;
+            AZStd::deque<PipelineStateBuildRequestPtr> requests;
             {
                 AZStd::unique_lock<AZStd::mutex> lock(m_mutex);
                 m_workCondition.wait(
@@ -275,11 +425,18 @@ namespace AZ::RPI
                     return;
                 }
 
-                request = AZStd::move(m_pendingRequests.front());
-                m_pendingRequests.pop_front();
+                requests.swap(m_pendingRequests);
             }
 
-            request->BuildInternal(true);
+            PipelineStateBuildRequest::BatchPipelineStateList
+                batchPipelineStates;
+            batchPipelineStates.reserve(
+                requests.size() *
+                RHI::DrawPacketBuilder::DrawItemCountMax);
+            for (const PipelineStateBuildRequestPtr& request : requests)
+            {
+                request->BuildInternal(true, &batchPipelineStates);
+            }
         }
     }
 } // namespace AZ::RPI

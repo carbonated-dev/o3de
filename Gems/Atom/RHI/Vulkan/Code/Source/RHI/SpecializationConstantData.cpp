@@ -22,8 +22,10 @@ namespace AZ::Vulkan
 
     RHI::ResultCode SpecializationConstantData::Init(const RHI::PipelineStateDescriptor& pipelineDescriptor)
     {
-        m_specializationData.reserve(pipelineDescriptor.m_specializationData.size() * sizeof(uint32_t));
-        for (const RHI::SpecializationConstant& specialization : pipelineDescriptor.m_specializationData)
+        const AZStd::vector<RHI::SpecializationConstant>& specializationConstants =
+            pipelineDescriptor.GetSpecializationConstants();
+        m_specializationData.reserve(specializationConstants.size() * sizeof(uint32_t));
+        for (const RHI::SpecializationConstant& specialization : specializationConstants)
         {
             m_specializationMap.emplace_back();
             VkSpecializationMapEntry& entry = m_specializationMap.back();

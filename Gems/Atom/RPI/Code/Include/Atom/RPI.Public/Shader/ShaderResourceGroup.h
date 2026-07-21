@@ -322,6 +322,7 @@ namespace AZ
                 AZ_TYPE_INFO(SrgInitParams, "{FDBDDB75-3DE6-4383-8D19-C0092246A411}");
                 SupervariantIndex m_supervariantIndex;
                 AZ::Name m_srgName;
+                bool m_compileAfterInit = false;
             };
 
             //! Usually subclasses of AZ::Data::InstanceData leverage the AssetId of the given asset as a means to define
@@ -347,6 +348,10 @@ namespace AZ
                 const Data::Instance<ShaderResourceGroupPool>& pool);
 
             static AZ::Data::Instance<ShaderResourceGroup> CreateInternal(ShaderAsset& shaderAsset, const AZStd::any* srgInitParams);
+            static AZ::Data::Instance<ShaderResourceGroup> FindOrCreateSharedDummy(
+                const Data::Asset<ShaderAsset>& shaderAsset,
+                const SupervariantIndex& supervariantIndex,
+                const AZ::Name& srgName);
             static AZ::Data::Instance<ShaderResourceGroup> CreateTransient(
                 ShaderAsset& shaderAsset,
                 const RHI::Ptr<RHI::ShaderResourceGroupLayout>& layout,

@@ -10,9 +10,11 @@
 
 #include <Atom/RHI/PipelineState.h>
 #include <Atom/RHI/PipelineStateDescriptor.h>
+#include <Atom/RHI/DrawPacketBuilder.h>
 #include <Atom/RPI.Public/Shader/Shader.h>
 
 #include <AzCore/std/containers/deque.h>
+#include <AzCore/std/containers/fixed_vector.h>
 #include <AzCore/std/containers/span.h>
 #include <AzCore/std/containers/vector.h>
 #include <AzCore/std/function/function_template.h>
@@ -31,7 +33,12 @@ namespace AZ::RPI
         RHI::PipelineStateDescriptorForDraw m_descriptor;
     };
 
-    using PipelineStateBuildItemList = AZStd::vector<PipelineStateBuildItem>;
+    //! A draw packet cannot contain more than DrawItemCountMax items. Keeping the request
+    //! storage inline avoids one allocation per mesh packet during large rebuild bursts.
+    using PipelineStateBuildItemList =
+        AZStd::fixed_vector<PipelineStateBuildItem, RHI::DrawPacketBuilder::DrawItemCountMax>;
+    using PipelineStateList =
+        AZStd::fixed_vector<RHI::ConstPtr<RHI::PipelineState>, RHI::DrawPacketBuilder::DrawItemCountMax>;
 
     //! Owns one immutable set of pipeline-state descriptors and its completed pipeline states.
     class PipelineStateBuildRequest
@@ -57,6 +64,16 @@ namespace AZ::RPI
         //! waits for that build to complete.
         void Build();
 
+        //! Tries to acquire every pipeline state without compiling or waiting. This must be called
+        //! while the request is still privately owned and pending. On a miss the request remains
+        //! pending; on success it becomes a completed request that can be published immediately.
+        bool TryAcquireFromCache();
+
+        //! Completes a prepared request with an externally retained set of pipeline states.
+        //! This is used by MeshDrawPacket to switch directly to an exact retained fallback.
+        bool CompleteFromCachedPipelineStates(
+            AZStd::span<const RHI::ConstPtr<RHI::PipelineState>> pipelineStates);
+
         //! Submits the request to the renderer-wide pipeline-state build queue.
         void Queue();
 
@@ -70,19 +87,36 @@ namespace AZ::RPI
         bool IsComplete() const;
         bool IsSuccessful() const;
 
+        //! Stable for the lifetime of this request after its build items have been prepared.
+        AZ::HashValue64 GetBuildFingerprint() const;
+
         AZStd::span<const RHI::ConstPtr<RHI::PipelineState>> GetPipelineStates() const;
+        AZStd::span<const PipelineStateBuildItem> GetBuildItems() const;
         PipelineStateBuildItemList TakeBuildItems();
 
     private:
         friend class PipelineStateBuildQueue;
 
+        struct BatchPipelineState
+        {
+            const Shader* m_shader = nullptr;
+            const RHI::PipelineStateDescriptorForDraw* m_descriptor = nullptr;
+            AZ::HashValue64 m_descriptorHash;
+            RHI::ConstPtr<RHI::PipelineState> m_pipelineState;
+        };
+        using BatchPipelineStateList = AZStd::vector<BatchPipelineState>;
+
         bool TryBeginBuild();
-        void BuildInternal(bool useAsyncCacheAcquire);
+        void BuildInternal(
+            bool useAsyncCacheAcquire,
+            BatchPipelineStateList* batchPipelineStates = nullptr);
+        void UpdateBuildFingerprint();
         void SetTerminalState(State state);
 
         PipelineStateBuildItemList m_pipelineStateBuildItems;
-        AZStd::vector<RHI::ConstPtr<RHI::PipelineState>> m_pipelineStates;
+        PipelineStateList m_pipelineStates;
         PrepareFunction m_prepareFunction;
+        AZ::HashValue64 m_buildFingerprint;
 
         AZStd::atomic<State> m_state{ State::Pending };
         AZStd::atomic_bool m_cancelRequested{ false };
