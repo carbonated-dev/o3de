@@ -16,7 +16,7 @@
 
 #include <vma/vk_mem_alloc.h>
 
-#if !defined(_RELEASE) && !(defined(CARBONATED_OCGA) && defined(AZ_PLATFORM_LINUX))
+#if !defined(_RELEASE) && !defined(CARBONATED_OCGA)
     #define AZ_VULKAN_USE_DEBUG_LABELS
 #endif
 
