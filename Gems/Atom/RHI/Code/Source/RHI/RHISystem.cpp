@@ -59,6 +59,7 @@ namespace AZ::RHI
 
         m_drawListTagRegistry = RHI::DrawListTagRegistry::Create();
         m_pipelineStateCache = RHI::PipelineStateCache::Create(*m_devices[MultiDevice::DefaultDeviceIndex]);
+        m_pipelineStateBuildQueue.Init(m_pipelineStateCache);
 
         m_gpuMarkersEnabled = !RHI::QueryCommandLineOption("rhi-disable-gpu-markers");
 
@@ -248,6 +249,7 @@ namespace AZ::RHI
     void RHISystem::Shutdown()
     {
         m_frameScheduler.Shutdown();
+        m_pipelineStateBuildQueue.Shutdown();
         m_pipelineStateCache = nullptr;
 
         while (!m_devices.empty())
@@ -285,7 +287,7 @@ namespace AZ::RHI
                     AZ_Error("RHISystem", false, "Frame Scheduler Compilation Failure: %s", outcome.GetError().c_str());
                 }
 
-                m_pipelineStateCache->Compact();
+                m_pipelineStateCache->TryCompact();
             }
         }
 
@@ -333,6 +335,11 @@ namespace AZ::RHI
     RHI::PipelineStateCache* RHISystem::GetPipelineStateCache()
     {
         return m_pipelineStateCache.get();
+    }
+
+    RHI::PipelineStateBuildQueue* RHISystem::GetPipelineStateBuildQueue()
+    {
+        return &m_pipelineStateBuildQueue;
     }
 
     RHI::DrawListTagRegistry* RHISystem::GetDrawListTagRegistry()

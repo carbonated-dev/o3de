@@ -7,6 +7,7 @@
  */
 #pragma once
 
+#include <Atom/RHI.Reflect/Base.h>
 #include <Atom/RHI/PipelineState.h>
 #include <Atom/RHI/PipelineLibrary.h>
 #include <Atom/RHI/ThreadLocalContext.h>
@@ -20,6 +21,22 @@ namespace UnitTest
 
 namespace AZ::RHI
 {
+    enum class PipelineStateAcquireFlags : uint8_t
+    {
+        //! By default, pending pipeline states are shared. The caller guarantees that all participating compilation work
+        //! completes before any returned pipeline state is used.
+        None = 0,
+
+        //! Compile an independent pipeline state when no completed cache entry is available. The independent pipeline
+        //! state is published only after compilation succeeds and is returned as a strong reference even if another
+        //! compilation wins the cache insertion race.
+        NoShare = AZ_BIT(0),
+
+        //! Search only the compacted global read-only cache without starting compilation.
+        NoCompile = AZ_BIT(1)
+    };
+    AZ_DEFINE_ENUM_BITWISE_OPERATORS(AZ::RHI::PipelineStateAcquireFlags)
+
     //! Problem: High-level rendering code works in 'materials', 'shaders', and 'models', but the RHI works in
     //! 'pipeline states'. Therefore, a translation process must exist to resolve a shader variation (plus runtime
     //! state) into a pipeline state suitable for consumption by the RHI. These resolve operations can number in the
@@ -127,31 +144,48 @@ namespace AZ::RHI
         Ptr<PipelineLibrary> GetMergedLibrary(PipelineLibraryHandle handle) const;
 
         //! Acquires a pipeline state (either draw or dispatch variants) from the cache. Pipeline states are associated
-        //! to a specific library handle. Successive calls with the same pipeline state descriptor hash will return the same
-        //! pipeline state, even across threads. If the library handle is invalid or the acquire operation fails, a null pointer
-        //! is returned. Otherwise, a valid pipeline state pointer is returned (regardless of whether pipeline state compilation succeeds).
+        //! to a specific library handle. Shared calls with the same descriptor return the same pipeline state, even across
+        //! threads. The default behavior may return an entry whose compilation is still pending. Callers using
+        //! that overload must ensure all participating compilation work finishes before use.
         //!
         //! It is permitted to take a strong reference to the returned pointer, but is not necessary as long as the reference
         //! is discarded on a library reset / release event. The cache will store a reference internally. If a strong reference
         //! is held externally, the instance will remain valid even after the cache is reset / destroyed.
         const PipelineState* AcquirePipelineState(
-            PipelineLibraryHandle library, const PipelineStateDescriptor& descriptor, const AZ::Name& name = AZ::Name());
+            PipelineLibraryHandle library,
+            const PipelineStateDescriptor& descriptor,
+            const AZ::Name& name = AZ::Name());
+
+        //! Acquires a pipeline state using an explicit sharing policy and returns a strong reference. NoShare requests
+        //! compile privately after a global-cache miss. NoCompile searches only the compacted global read-only cache.
+        ConstPtr<PipelineState> AcquirePipelineState(
+            PipelineLibraryHandle library,
+            const PipelineStateDescriptor& descriptor,
+            PipelineStateAcquireFlags acquireFlags,
+            const AZ::Name& name = AZ::Name());
 
         //! This method merges the global pending cache into the global read-only cache and clears all thread-local caches.
         //! This reduces the total memory footprint of the caches and optimizes subsequent fetches. This method should be called
         //! once per frame.
         void Compact();
 
+        //! Attempts to compact without waiting for active cache users. Returns false when compaction is deferred.
+        bool TryCompact();
+
     private:
         PipelineStateCache(Device& device);
 
+        void CompactInternal();
         void ValidateCacheIntegrity() const;
 
         using PipelineStateHash = HashValue64;
 
         struct PipelineStateEntry
         {
-            PipelineStateEntry(PipelineStateHash hash, ConstPtr<PipelineState> pipelineState, const PipelineStateDescriptor& descriptor);
+            PipelineStateEntry(
+                PipelineStateHash hash,
+                ConstPtr<PipelineState> pipelineState,
+                const PipelineStateDescriptor& descriptor);
 
             bool operator < (const PipelineStateEntry& rhs) const
             {
@@ -216,18 +250,26 @@ namespace AZ::RHI
         using ThreadLibrarySet = AZStd::array<ThreadLibraryEntry, LibraryCountMax>;
 
         //! Helper function which binary searches a pipeline state set looking for an entry which matches the requested descriptor.
-        static const PipelineState* FindPipelineState(const PipelineStateSet& pipelineStateSet, const PipelineStateDescriptor& descriptor);
+        static const PipelineState* FindPipelineState(
+            const PipelineStateSet& pipelineStateSet, const PipelineStateDescriptor& descriptor);
 
         //! Helper function which inserts an entry into the set. Returns true if the entry was inserted, or false is a duplicate entry existed.
         static bool InsertPipelineState(PipelineStateSet& pipelineStateSet, PipelineStateEntry pipelineStateEntry);
 
-        //! Performs a pipeline state compilation on the global cache using the thread-local pipeline library.
-        ConstPtr<PipelineState> CompilePipelineState(
+        ConstPtr<PipelineState> AcquirePipelineStateInternal(
+            PipelineLibraryHandle library,
+            const PipelineStateDescriptor& descriptor,
+            const AZ::Name& name,
+            PipelineStateAcquireFlags acquireFlags);
+
+        //! Finds a pending entry or performs pipeline state compilation using the thread-local pipeline library.
+        ConstPtr<PipelineState> AcquirePendingPipelineState(
             GlobalLibraryEntry& globalLibraryEntry,
             ThreadLibraryEntry& threadLibraryEntry,
             const PipelineStateDescriptor& pipelineStateDescriptor,
             PipelineStateHash pipelineStateHash,
-            const AZ::Name& name);
+            const AZ::Name& name,
+            PipelineStateAcquireFlags acquireFlags);
 
         //! Resets the library without validating the handle or taking a lock.
         void ResetLibraryImpl(PipelineLibraryHandle handle);

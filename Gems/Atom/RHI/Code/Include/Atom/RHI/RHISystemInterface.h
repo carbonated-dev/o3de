@@ -23,6 +23,7 @@ namespace AZ::RHI
     class Device;
     class FrameGraphBuilder;
     class PipelineState;
+    class PipelineStateBuildQueue;
     class PipelineStateCache;
     class PlatformLimitsDescriptor;
     class PhysicalDeviceDescriptor;
@@ -53,6 +54,8 @@ namespace AZ::RHI
         virtual RHI::DrawListTagRegistry* GetDrawListTagRegistry() = 0;
 
         virtual RHI::PipelineStateCache* GetPipelineStateCache() = 0;
+
+        virtual RHI::PipelineStateBuildQueue* GetPipelineStateBuildQueue() = 0;
 
         virtual void ModifyFrameSchedulerStatisticsFlags(RHI::FrameSchedulerStatisticsFlags statisticsFlags, bool enableFlags) = 0;
 

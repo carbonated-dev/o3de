@@ -131,6 +131,9 @@ namespace AZ
 
         void MeshFeatureProcessor::Activate()
         {
+            m_pipelineStateBuildGroupId =
+                RHI::RHISystemInterface::Get()->GetPipelineStateBuildQueue()->CreateRequestGroup();
+
             m_transformService = GetParentScene()->GetFeatureProcessor<TransformServiceFeatureProcessor>();
             AZ_Assert(m_transformService, "MeshFeatureProcessor requires a TransformServiceFeatureProcessor on its parent scene.");
 
@@ -187,6 +190,9 @@ namespace AZ
 
         void MeshFeatureProcessor::Deactivate()
         {
+            RHI::RHISystemInterface::Get()->GetPipelineStateBuildQueue()->ReleaseRequestGroup(m_pipelineStateBuildGroupId);
+            m_pipelineStateBuildGroupId.Reset();
+
             m_flagRegistry.reset();
 
             m_handleGlobalShaderOptionUpdate.Disconnect();
@@ -222,6 +228,9 @@ namespace AZ
             AZ::Job* parentJob = packet.m_parentJob;
             AZStd::concurrency_check_scope scopeCheck(m_meshDataChecker);
 
+            // Publish completed PSOs at one deterministic point before mesh jobs and culling can consume draw packets.
+            PublishPipelineStateBuildResults();
+
             // If the instancing cvar has changed, we need to re-initalize the ModelDataInstances
             CheckForInstancingCVarChange();
 
@@ -250,6 +259,50 @@ namespace AZ
             }
 
             m_forceRebuildDrawPackets = false;
+        }
+
+        void MeshFeatureProcessor::PublishPipelineStateBuildResults()
+        {
+            RHI::PipelineStateBuildRequestList completedRequests =
+                RHI::RHISystemInterface::Get()->GetPipelineStateBuildQueue()->TakeCompletedRequests(m_pipelineStateBuildGroupId);
+            if (completedRequests.empty())
+            {
+                return;
+            }
+
+            RHI::PipelineStateBuildRequestSet completedRequestSet;
+            completedRequestSet.reserve(completedRequests.size());
+            for (const RHI::PipelineStateBuildRequestPtr& request : completedRequests)
+            {
+                completedRequestSet.insert(request.get());
+            }
+
+            for (const auto& iteratorRange : m_modelData.GetParallelRanges())
+            {
+                for (auto meshDataIter = iteratorRange.m_begin; meshDataIter != iteratorRange.m_end; ++meshDataIter)
+                {
+                    for (RPI::MeshDrawPacketList& drawPacketList : meshDataIter->m_drawPacketListsByLod)
+                    {
+                        for (RPI::MeshDrawPacket& drawPacket : drawPacketList)
+                        {
+                            drawPacket.PublishPipelineStateBuildResults(completedRequestSet);
+                        }
+                    }
+                }
+            }
+
+            for (const auto& iteratorRange : m_meshInstanceManager.GetParallelRanges())
+            {
+                for (auto instanceGroupDataIter = iteratorRange.m_begin; instanceGroupDataIter != iteratorRange.m_end;
+                     ++instanceGroupDataIter)
+                {
+                    if (instanceGroupDataIter->m_drawPacket.PublishPipelineStateBuildResults(completedRequestSet))
+                    {
+                        // Per-view packets are clones. Recreate them so they pick up the newly published Specialized PSO.
+                        instanceGroupDataIter->m_perViewDrawPackets.clear();
+                    }
+                }
+            }
         }
 
         void MeshFeatureProcessor::CheckForInstancingCVarChange()
@@ -2166,6 +2219,7 @@ namespace AZ
                 {
                     // setup the mesh draw packet
                     RPI::MeshDrawPacket drawPacket(modelLod, meshIndex, material, meshObjectSrg, customMaterialInfo.m_uvMapping);
+                    drawPacket.SetPipelineStateBuildGroup(meshFeatureProcessor->GetPipelineStateBuildGroupId());
 
                     // set the shader option to select forward pass IBL specular if necessary
                     if (!drawPacket.SetShaderOption(s_o_meshUseForwardPassIBLSpecular_Name, AZ::RPI::ShaderOptionValue{ m_descriptor.m_useForwardPassIblSpecular }))

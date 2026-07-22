@@ -478,20 +478,15 @@ namespace UnitTest
             }
         }
 
-        void BeginCreatingTestShaderAsset(AZ::RPI::ShaderAssetCreator& creator,
+        void AddTestSupervariant(
+            AZ::RPI::ShaderAssetCreator& creator,
+            const AZ::Name& name,
             const AZStd::vector<RHI::ShaderStage>& stagesToActivate = {RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment},
             SpecializationType specializationType = SpecializationType::None)
         {
             using namespace AZ;
 
-            creator.Begin(Uuid::CreateRandom());
-            creator.SetName(m_name);
-            creator.SetDrawListName(m_drawListName);
-            creator.SetShaderOptionGroupLayout(GetShaderOptionGroupForAssets(specializationType));
-
-            creator.BeginAPI(RHI::Factory::Get().GetType());
-
-            creator.BeginSupervariant(AZ::Name{}); // The default (first) supervariant MUST be nameless.
+            creator.BeginSupervariant(name);
 
             creator.SetSrgLayoutList(m_srgLayouts);
             creator.SetPipelineLayout(m_pipelineLayoutDescriptor);
@@ -511,6 +506,21 @@ namespace UnitTest
             creator.SetRootShaderVariantAsset(shaderVariantAsset);
 
             creator.EndSupervariant();
+        }
+
+        void BeginCreatingTestShaderAsset(AZ::RPI::ShaderAssetCreator& creator,
+            const AZStd::vector<RHI::ShaderStage>& stagesToActivate = {RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment},
+            SpecializationType specializationType = SpecializationType::None)
+        {
+            using namespace AZ;
+
+            creator.Begin(Uuid::CreateRandom());
+            creator.SetName(m_name);
+            creator.SetDrawListName(m_drawListName);
+            creator.SetShaderOptionGroupLayout(GetShaderOptionGroupForAssets(specializationType));
+            creator.BeginAPI(RHI::Factory::Get().GetType());
+
+            AddTestSupervariant(creator, AZ::Name{}, stagesToActivate, specializationType);
         }
 
         //! Used to finish creating a shader that began with BeginCreatingTestShaderAsset(). Call this after adding all the desired shader variants.
@@ -1390,6 +1400,35 @@ namespace UnitTest
 
         Data::Asset<RPI::ShaderAsset> serializedShaderAsset = tester.SerializeInHelper(Uuid::CreateRandom());
         ValidateShaderAsset(serializedShaderAsset);
+    }
+
+    TEST_F(ShaderTests, ShaderAsset_ShaderOptionFallbackNameAndLookup)
+    {
+        using namespace AZ;
+
+        EXPECT_EQ(
+            RPI::ShaderAsset::MakeShaderOptionFallbackSupervariantName(Name{}),
+            Name(RPI::NoSpecializationSupervariantName));
+        EXPECT_EQ(
+            RPI::ShaderAsset::MakeShaderOptionFallbackSupervariantName(Name("NoMS")),
+            Name("NoMSNoSpecialization"));
+
+        RPI::ShaderAssetCreator creator;
+        BeginCreatingTestShaderAsset(
+            creator,
+            { RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment },
+            SpecializationType::Full);
+        AddTestSupervariant(creator, Name(RPI::NoSpecializationSupervariantName));
+
+        Data::Asset<RPI::ShaderAsset> shaderAsset = EndCreatingTestShaderAsset(creator);
+        ASSERT_TRUE(shaderAsset);
+
+        Data::Instance<RPI::Shader> specializedShader = RPI::Shader::FindOrCreate(shaderAsset);
+        ASSERT_TRUE(specializedShader);
+        Data::Instance<RPI::Shader> fallbackShader = specializedShader->FindOrCreateShaderOptionFallback();
+        ASSERT_TRUE(fallbackShader);
+        EXPECT_EQ(fallbackShader->GetSupervariantIndex(), RPI::SupervariantIndex(1));
+        EXPECT_FALSE(fallbackShader->FindOrCreateShaderOptionFallback());
     }
 
     TEST_F(ShaderTests, ShaderAsset_PipelineLayout_Missing_Test)

@@ -283,6 +283,7 @@ namespace AZ
 
             MeshInstanceManager& GetMeshInstanceManager();
             bool IsMeshInstancingEnabled() const;
+            RHI::PipelineStateBuildGroupId GetPipelineStateBuildGroupId() const { return m_pipelineStateBuildGroupId; }
         private:
             MeshFeatureProcessor(const MeshFeatureProcessor&) = delete;
 
@@ -299,6 +300,7 @@ namespace AZ
             void OnRenderPipelineChanged(AZ::RPI::RenderPipeline* pipeline, RPI::SceneNotification::RenderPipelineChangeType changeType) override;
 
             void CheckForInstancingCVarChange();
+            void PublishPipelineStateBuildResults();
             AZStd::vector<AZ::Job*> CreateInitJobQueue();
             AZStd::vector<AZ::Job*> CreatePerInstanceGroupJobQueue();
             AZStd::vector<AZ::Job*> CreateUpdateCullingJobQueue();
@@ -368,6 +370,7 @@ namespace AZ
             AZ::RHI::Handle<uint32_t> m_meshMovedFlag;
             RHI::DrawListTag m_meshMotionDrawListTag;
             RHI::DrawListTag m_transparentDrawListTag;
+            RHI::PipelineStateBuildGroupId m_pipelineStateBuildGroupId;
             bool m_forceRebuildDrawPackets = false;
             bool m_reportShaderOptionFlags = false;
             bool m_enablePerMeshShaderOptionFlags = false;

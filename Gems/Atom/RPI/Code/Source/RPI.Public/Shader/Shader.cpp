@@ -57,6 +57,18 @@ namespace AZ
             return FindOrCreate(shaderAsset, AZ::Name{ "" });
         }
 
+        Data::Instance<Shader> Shader::FindOrCreateShaderOptionFallback() const
+        {
+            if (!m_asset->UseSpecializationConstants(m_supervariantIndex))
+            {
+                return nullptr;
+            }
+
+            const Name fallbackSupervariantName = ShaderAsset::MakeShaderOptionFallbackSupervariantName(
+                m_asset->GetSupervariantName(m_supervariantIndex));
+            return FindOrCreate(m_asset, fallbackSupervariantName);
+        }
+
         Data::Instance<Shader> Shader::CreateInternal([[maybe_unused]] ShaderAsset& shaderAsset, const AZStd::any* anySupervariantName)
         {
             AZ_Assert(anySupervariantName != nullptr, "Invalid supervariant name param");
@@ -514,6 +526,23 @@ namespace AZ
         const RHI::PipelineState* Shader::AcquirePipelineState(const RHI::PipelineStateDescriptor& descriptor) const
         {
             return m_pipelineStateCache->AcquirePipelineState(m_pipelineLibraryHandle, descriptor, m_asset->GetName());
+        }
+
+        RHI::ConstPtr<RHI::PipelineState> Shader::AcquirePipelineState(
+            const RHI::PipelineStateDescriptor& descriptor,
+            RHI::PipelineStateAcquireFlags acquireFlags) const
+        {
+            return m_pipelineStateCache->AcquirePipelineState(
+                m_pipelineLibraryHandle, descriptor, acquireFlags, m_asset->GetName());
+        }
+
+        RHI::PipelineStateBuildRequestPtr Shader::QueuePipelineStateBuild(
+            RHI::PipelineStateBuildGroupId groupId,
+            const RHI::PipelineStateDescriptor& descriptor) const
+        {
+            RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get();
+            return rhiSystem->GetPipelineStateBuildQueue()->QueuePipelineStateBuild(
+                groupId, m_pipelineLibraryHandle, descriptor, m_asset->GetName());
         }
 
         const RHI::Ptr<RHI::ShaderResourceGroupLayout>& Shader::FindShaderResourceGroupLayout(const Name& shaderResourceGroupName) const

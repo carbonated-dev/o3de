@@ -160,12 +160,14 @@ set(FILES
     Include/Atom/RHI/MultiDevicePipelineLibrary.h
     Include/Atom/RHI/PipelineState.h
     Include/Atom/RHI/MultiDevicePipelineState.h
+    Include/Atom/RHI/PipelineStateBuildQueue.h
     Include/Atom/RHI/PipelineStateCache.h
     Include/Atom/RHI/PipelineStateDescriptor.h
     Source/RHI/PipelineLibrary.cpp
     Source/RHI/MultiDevicePipelineLibrary.cpp
     Source/RHI/PipelineState.cpp
     Source/RHI/MultiDevicePipelineState.cpp
+    Source/RHI/PipelineStateBuildQueue.cpp
     Source/RHI/PipelineStateCache.cpp
     Source/RHI/PipelineStateDescriptor.cpp
     Include/Atom/RHI/Query.h

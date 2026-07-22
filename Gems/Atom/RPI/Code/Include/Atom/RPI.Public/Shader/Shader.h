@@ -16,6 +16,8 @@
 
 #include <Atom/RHI/DrawListTagRegistry.h>
 #include <Atom/RHI/PipelineLibrary.h>
+#include <Atom/RHI/PipelineStateBuildQueue.h>
+#include <Atom/RHI/PipelineStateCache.h>
 
 #include <AtomCore/Instance/InstanceData.h>
 #include <AzCore/IO/SystemFile.h>
@@ -65,6 +67,10 @@ namespace AZ
 
             //! Same as above, but uses the default supervariant 
             static Data::Instance<Shader> FindOrCreate(const Data::Asset<ShaderAsset>& shaderAsset);
+
+            //! Finds or creates the generated Fallback companion for this Specialized shader.
+            //! Returns null when this shader does not use specialization constants.
+            Data::Instance<Shader> FindOrCreateShaderOptionFallback() const;
 
             ~Shader();
             AZ_DISABLE_COPY_MOVE(Shader);
@@ -123,6 +129,16 @@ namespace AZ
             
             //! Acquires a pipeline state directly from a descriptor.
             const RHI::PipelineState* AcquirePipelineState(const RHI::PipelineStateDescriptor& descriptor) const;
+
+            //! Acquires a pipeline state with an explicit sharing policy and returns a strong reference.
+            RHI::ConstPtr<RHI::PipelineState> AcquirePipelineState(
+                const RHI::PipelineStateDescriptor& descriptor,
+                RHI::PipelineStateAcquireFlags acquireFlags) const;
+
+            //! Queues a pipeline-state compilation using this shader's pipeline library.
+            RHI::PipelineStateBuildRequestPtr QueuePipelineStateBuild(
+                RHI::PipelineStateBuildGroupId groupId,
+                const RHI::PipelineStateDescriptor& descriptor) const;
 
             //! Finds and returns the shader resource group asset with the requested name. Returns an empty handle if no matching group was found.
             const RHI::Ptr<RHI::ShaderResourceGroupLayout>& FindShaderResourceGroupLayout(const Name& shaderResourceGroupName) const;
