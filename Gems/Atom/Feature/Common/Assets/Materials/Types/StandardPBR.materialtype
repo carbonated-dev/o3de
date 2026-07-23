@@ -48,6 +48,9 @@
             { 
                 "$import": "MaterialInputs/EmissivePropertyGroup.json"
             },
+            {
+                "$import": "MaterialInputs/RimLightingPropertyGroup.json"
+            },
             { 
                 "$import": "MaterialInputs/ClearCoatPropertyGroup.json"
             },

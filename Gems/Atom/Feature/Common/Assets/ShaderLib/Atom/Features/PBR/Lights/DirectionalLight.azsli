@@ -15,6 +15,10 @@
 #endif
 
 // Begin Carbonated
+#ifndef ENABLE_RIM_LIGHTING
+#define ENABLE_RIM_LIGHTING 0
+#endif
+
 static real camToSurfDist = 0;
 
 void ApplyDirectionalLight(int lightIndex, Surface surface, inout LightingData lightingData, float4 screenUv, out ApplyLightingInfo outInfo)
@@ -81,6 +85,44 @@ void ApplyDirectionalLight(int lightIndex, Surface surface, inout LightingData l
 #endif // ENABLE_SHADOWS
     
     real3 lightIntensity = real3(light.m_rgbIntensityLux);
+
+// Begin Carbonated
+#if ENABLE_RIM_LIGHTING
+    uint currentLightIndex = uint(lightIndex);
+    bool isPrimaryDirectionalLight = (shadowIndex < SceneSrg::m_directionalLightCount)
+        ? (currentLightIndex == shadowIndex)
+        : (currentLightIndex == 0);
+
+    if (o_rimLighting_mode != RimLightingMode::Off && isPrimaryDirectionalLight)
+    {
+        real directionTerm = 1.0;
+
+        if (o_rimLighting_mode == RimLightingMode::LightDirection)
+        {
+            real nDotL = dot(normalize(surface.GetDefaultNormal()), normalize(dirToLight));
+            directionTerm = saturate(nDotL);
+        }
+        else if (o_rimLighting_mode == RimLightingMode::InvertedLightDirection)
+        {
+            real nDotL = dot(normalize(surface.GetDefaultNormal()), normalize(dirToLight));
+            directionTerm = saturate(-nDotL);
+        }
+
+        real maxLightChannel = max(max(lightIntensity.r, lightIntensity.g), lightIntensity.b);
+        real3 rimLightColor = maxLightChannel > 1e-3 ? lightIntensity / maxLightChannel : real3(1.0, 1.0, 1.0);
+
+        lightingData.emissiveLighting += GetRimLightingInput(
+            surface.GetDefaultNormal(),
+            lightingData.dirToCamera,
+            real3(MaterialSrg::m_rimLightingTint),
+            rimLightColor,
+            real(MaterialSrg::m_rimLightingIntensity),
+            real(MaterialSrg::m_rimLightingPower),
+            directionTerm);
+    }
+#endif
+// End Carbonated
+
     // Transmission contribution
 #if ENABLE_TRANSMISSION
     lightingData.translucentBackLighting += GetBackLighting(surface, lightingData, lightIntensity, dirToLight, real(currentTransmissionDistance), camToSurfDist);
