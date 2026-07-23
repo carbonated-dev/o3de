@@ -66,8 +66,9 @@ namespace AZ::Render
         uint32_t m_shaderOptionFlagMask = 0;
 
         // Update mesh draw packet
+        // Associated instance notifications can be deferred by the caller when multiple packets are updated in parallel.
         // Return true if DrawPacket was rebuilt
-        bool UpdateDrawPacket(const RPI::Scene& parentScene, bool forceUpdate);
+        bool UpdateDrawPacket(const RPI::Scene& parentScene, bool forceUpdate, bool notifyAssociatedInstances = true);
 
         // Update shader option flags for the instance group
         // It goes through the cullable's m_shaderOptionFlags of each associated ModelDataInstance and get combined m_shaderOptionFlags and m_shaderOptionFlagMask

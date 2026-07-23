@@ -37,12 +37,15 @@
 #include <AzCore/Console/IConsole.h>
 #include <AzCore/Jobs/Algorithms.h>
 #include <AzCore/Jobs/JobCompletion.h>
+#include <AzCore/Jobs/JobContext.h>
 #include <AzCore/Jobs/JobFunction.h>
+#include <AzCore/Jobs/JobManager.h>
 #include <AzCore/Math/ShapeIntersection.h>
 #include <AzCore/Name/NameDictionary.h>
 #include <AzCore/RTTI/RTTI.h>
 #include <AzCore/RTTI/TypeInfo.h>
 #include <AzCore/Serialization/SerializeContext.h>
+#include <AzCore/std/containers/unordered_set.h>
 
 #include <algorithm>
 
@@ -54,6 +57,14 @@ namespace AZ
 {
     namespace Render
     {
+        AZ_CVAR(
+            uint32_t,
+            r_meshUpdateMode,
+            1,
+            nullptr,
+            AZ::ConsoleFunctorFlags::Null,
+            "Mesh update scheduling mode. 0 = PerModel, 1 = PerDrawPacket (more balance Jobs).");
+
         static AZ::Name s_o_meshUseForwardPassIBLSpecular_Name =
             AZ::Name::FromStringLiteral("o_meshUseForwardPassIBLSpecular", AZ::Interface<AZ::NameDictionary>::Get());
         static AZ::Name s_Manual_Name = AZ::Name::FromStringLiteral("Manual", AZ::Interface<AZ::NameDictionary>::Get());
@@ -234,28 +245,46 @@ namespace AZ
             // If the instancing cvar has changed, we need to re-initalize the ModelDataInstances
             CheckForInstancingCVarChange();
 
-            AZStd::vector<Job*> initJobQueue = CreateInitJobQueue();
-            AZStd::vector<Job*> updateCullingJobQueue = CreateUpdateCullingJobQueue();
+            // Snapshot the mode once so a console change cannot mix scheduling strategies within a single simulation.
+            const uint32_t meshUpdateMode = static_cast<uint32_t>(r_meshUpdateMode);
+            const bool usePerDrawPacketMeshUpdates = meshUpdateMode != 0;
+            AZStd::vector<Job*> initJobQueue = CreateInitJobQueue(!usePerDrawPacketMeshUpdates);
 
-            if (!r_meshInstancingEnabled)
+            if (usePerDrawPacketMeshUpdates)
             {
-                // There's no need for all the init jobs to finish before any of the update culling jobs are run.
-                // Any update culling job can run once it's corresponding init job is done. So instead of separating the jobs
-                // entirely, use individual job dependencies to synchronize them. This performs better than having a big sync between them
-                ExecuteCombinedJobQueue(initJobQueue, updateCullingJobQueue, parentJob);
+                ExecuteSimulateJobQueue(initJobQueue, parentJob);
+
+                // Initialization creates the MeshDrawPackets, so build and execute the packet-level work only after initialization is complete.
+                ExecuteUpdateDrawPackets(parentJob);
+
+                // Cullables consume the updated DrawPackets and must be rebuilt after all packet jobs and owner notifications are complete.
+                AZStd::vector<Job*> updateCullingJobQueue = CreateUpdateCullingJobQueue();
+                ExecuteSimulateJobQueue(updateCullingJobQueue, parentJob);
             }
             else
             {
+                AZStd::vector<Job*> updateCullingJobQueue = CreateUpdateCullingJobQueue();
 
-                ExecuteSimulateJobQueue(initJobQueue, parentJob);
-                // Per-InstanceGroup work must be done after the Init jobs are complete, because the init jobs will determine which instance
-                // group each mesh belongs to and populate those instance groups
-                // Note: the Per-InstanceGroup jobs need to be created after init jobs because it's possible new instance groups are created in init jobs
-                AZStd::vector<Job*> perInstanceGroupJobQueue = CreatePerInstanceGroupJobQueue();
-                ExecuteSimulateJobQueue(perInstanceGroupJobQueue, parentJob);
-                // Updating the culling scene must happen after the per-instance group work is done
-                // because the per-instance group work will update the draw packets.
-                ExecuteSimulateJobQueue(updateCullingJobQueue, parentJob);
+                if (!r_meshInstancingEnabled)
+                {
+                    // There's no need for all the init jobs to finish before any of the update culling jobs are run.
+                    // Any update culling job can run once it's corresponding init job is done. So instead of separating the jobs
+                    // entirely, use individual job dependencies to synchronize them. This performs better than having a big sync between them
+                    ExecuteCombinedJobQueue(initJobQueue, updateCullingJobQueue, parentJob);
+                }
+                else
+                {
+                    ExecuteSimulateJobQueue(initJobQueue, parentJob);
+
+                    // Per-InstanceGroup work must be done after the Init jobs are complete, because the init jobs will determine which instance
+                    // group each mesh belongs to and populate those instance groups
+                    // Note: the Per-InstanceGroup jobs need to be created after init jobs because it's possible new instance groups are created in init jobs
+                    AZStd::vector<Job*> perInstanceGroupJobQueue = CreatePerInstanceGroupJobQueue();
+                    ExecuteSimulateJobQueue(perInstanceGroupJobQueue, parentJob);
+                    // Updating the culling scene must happen after the per-instance group work is done
+                    // because the per-instance group work will update the draw packets.
+                    ExecuteSimulateJobQueue(updateCullingJobQueue, parentJob);
+                }
             }
 
             m_forceRebuildDrawPackets = false;
@@ -348,13 +377,175 @@ namespace AZ
                     }
                 };
                 Job* executePerInstanceGroupJob =
-                    aznew JobFunction<decltype(perInstanceGroupJobLambda)>(perInstanceGroupJobLambda, true, nullptr); // Auto-deletes
+                    aznew JobFunction<decltype(perInstanceGroupJobLambda)>(perInstanceGroupJobLambda, true, nullptr);
                 perInstanceGroupJobQueue.push_back(executePerInstanceGroupJob);
             }
             return perInstanceGroupJobQueue;
         }
 
-        AZStd::vector<Job*> MeshFeatureProcessor::CreateInitJobQueue()
+        void MeshFeatureProcessor::ExecuteUpdateDrawPackets(AZ::Job* parentJob)
+        {
+#if defined(CARBONATED)
+            MEMORY_TAG(Mesh);
+#endif
+
+            struct DrawPacketUpdateWorkItem
+            {
+                RPI::MeshDrawPacket* m_drawPacket = nullptr;
+                ModelDataInstance* m_modelDataInstance = nullptr;
+                MeshInstanceGroupData* m_instanceGroupData = nullptr;
+                bool m_enableDrawMotion = false;
+            };
+
+            struct DrawPacketUpdateResult
+            {
+                AZStd::vector<ModelDataInstance*> m_updatedModelDataInstances;
+                AZStd::vector<MeshInstanceGroupData*> m_updatedInstanceGroups;
+            };
+
+            auto workItems = AZStd::make_shared<AZStd::vector<DrawPacketUpdateWorkItem>>();
+
+            // [GFX TODO] [ATOM-1357] Currently all draw packets must be checked for material changes because material properties can
+            // select a different shader and SRG. Keep that behavior while distributing the checks across the available workers.
+            if (r_meshInstancingEnabled)
+            {
+                workItems->reserve(m_meshInstanceManager.GetInstanceGroupCount());
+                for (const auto& iteratorRange : m_meshInstanceManager.GetParallelRanges())
+                {
+                    for (auto instanceGroupDataIter = iteratorRange.m_begin; instanceGroupDataIter != iteratorRange.m_end;
+                         ++instanceGroupDataIter)
+                    {
+                        workItems->push_back(
+                            DrawPacketUpdateWorkItem{ nullptr, nullptr, &*instanceGroupDataIter, false });
+                    }
+                }
+            }
+            else
+            {
+                for (const auto& iteratorRange : m_modelData.GetParallelRanges())
+                {
+                    for (auto meshDataIter = iteratorRange.m_begin; meshDataIter != iteratorRange.m_end; ++meshDataIter)
+                    {
+                        if (!meshDataIter->m_model || !meshDataIter->m_flags.m_visible)
+                        {
+                            continue;
+                        }
+
+                        const bool enableDrawMotion = !meshDataIter->m_flags.m_isDrawMotion && meshDataIter->m_flags.m_dynamic;
+                        for (RPI::MeshDrawPacketList& drawPacketList : meshDataIter->m_drawPacketListsByLod)
+                        {
+                            for (RPI::MeshDrawPacket& drawPacket : drawPacketList)
+                            {
+                                workItems->push_back(
+                                    DrawPacketUpdateWorkItem{ &drawPacket, &*meshDataIter, nullptr, enableDrawMotion });
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (workItems->empty())
+            {
+                return;
+            }
+
+            JobContext* jobContext = JobContext::GetGlobalContext();
+            const size_t workerThreadCount =
+                jobContext ? AZStd::max<size_t>(jobContext->GetJobManager().GetNumWorkerThreads(), 1) : 1;
+            const size_t jobCount = AZStd::min(workerThreadCount, workItems->size());
+            const size_t basePacketsPerJob = workItems->size() / jobCount;
+            const size_t jobsWithExtraPacket = workItems->size() % jobCount;
+
+            auto updateResults = AZStd::make_shared<AZStd::vector<DrawPacketUpdateResult>>(jobCount);
+            AZStd::vector<Job*> drawPacketUpdateJobQueue;
+            drawPacketUpdateJobQueue.reserve(jobCount);
+
+            RPI::Scene* scene = GetParentScene();
+            const RHI::DrawListTag meshMotionDrawListTag =
+                AZ::RHI::RHISystemInterface::Get()->GetDrawListTagRegistry()->FindTag(MeshCommon::MotionDrawListTagName);
+            const bool forceRebuildDrawPackets = m_forceRebuildDrawPackets;
+
+            size_t workItemBegin = 0;
+            for (size_t jobIndex = 0; jobIndex < jobCount; ++jobIndex)
+            {
+                const size_t workItemCount = basePacketsPerJob + (jobIndex < jobsWithExtraPacket ? 1 : 0);
+                const size_t workItemEnd = workItemBegin + workItemCount;
+
+                const auto drawPacketUpdateJobLambda =
+                    [scene,
+                     workItems,
+                     updateResults,
+                     jobIndex,
+                     workItemBegin,
+                     workItemEnd,
+                     meshMotionDrawListTag,
+                     forceRebuildDrawPackets]() -> void
+                {
+                AZ_PROFILE_SCOPE(AzRender, "MeshFeatureProcessor: Simulate: PerDrawPacketUpdate");
+#if defined(CARBONATED)
+                    MEMORY_TAG(Mesh);
+#endif
+
+                    DrawPacketUpdateResult& result = (*updateResults)[jobIndex];
+
+                    for (size_t workItemIndex = workItemBegin; workItemIndex < workItemEnd; ++workItemIndex)
+                    {
+                        DrawPacketUpdateWorkItem& workItem = (*workItems)[workItemIndex];
+                        if (workItem.m_instanceGroupData)
+                        {
+                            if (workItem.m_instanceGroupData->UpdateDrawPacket(
+                                    *scene, forceRebuildDrawPackets, false))
+                            {
+                                CacheRootConstantInterval(*workItem.m_instanceGroupData);
+                                result.m_updatedInstanceGroups.push_back(workItem.m_instanceGroupData);
+                            }
+                        }
+                        else
+                        {
+                            if (workItem.m_enableDrawMotion)
+                            {
+                                workItem.m_drawPacket->SetEnableDraw(meshMotionDrawListTag, true);
+                            }
+
+                            if (workItem.m_drawPacket->Update(*scene, forceRebuildDrawPackets))
+                            {
+                                result.m_updatedModelDataInstances.push_back(workItem.m_modelDataInstance);
+                            }
+                        }
+                    }
+                };
+
+                Job* drawPacketUpdateJob =
+                    aznew JobFunction<decltype(drawPacketUpdateJobLambda)>(drawPacketUpdateJobLambda, true, jobContext);
+                drawPacketUpdateJobQueue.push_back(drawPacketUpdateJob);
+                workItemBegin = workItemEnd;
+            }
+
+            ExecuteSimulateJobQueue(drawPacketUpdateJobQueue, parentJob);
+
+            // Multiple packets belonging to the same model may have run on different workers. Consolidate owner updates after the jobs
+            // complete so ModelDataInstance flags remain single-threaded.
+            AZStd::unordered_set<ModelDataInstance*> updatedModelDataInstances;
+            for (const DrawPacketUpdateResult& result : *updateResults)
+            {
+                updatedModelDataInstances.insert(
+                    result.m_updatedModelDataInstances.begin(), result.m_updatedModelDataInstances.end());
+
+                for (MeshInstanceGroupData* instanceGroupData : result.m_updatedInstanceGroups)
+                {
+                    AZStd::scoped_lock<AZStd::mutex> associatedInstancesLock(instanceGroupData->m_eventLock);
+                    updatedModelDataInstances.insert(
+                        instanceGroupData->m_associatedInstances.begin(), instanceGroupData->m_associatedInstances.end());
+                }
+            }
+
+            for (ModelDataInstance* modelDataInstance : updatedModelDataInstances)
+            {
+                modelDataInstance->HandleDrawPacketUpdate();
+            }
+        }
+
+        AZStd::vector<Job*> MeshFeatureProcessor::CreateInitJobQueue(bool updateDrawPackets)
         {
 #if defined(CARBONATED)
             MEMORY_TAG(Mesh);
@@ -365,7 +556,7 @@ namespace AZ
             bool removePerMeshShaderOptionFlags = !r_enablePerMeshShaderOptionFlags && m_enablePerMeshShaderOptionFlags;
             for (const auto& iteratorRange : iteratorRanges)
             {
-                const auto initJobLambda = [this, iteratorRange, removePerMeshShaderOptionFlags]() -> void
+                const auto initJobLambda = [this, iteratorRange, removePerMeshShaderOptionFlags, updateDrawPackets]() -> void
                 {
                     AZ_PROFILE_SCOPE(AzRender, "MeshFeatureProcessor: Simulate: Init");
 #if defined(CARBONATED)
@@ -421,11 +612,14 @@ namespace AZ
                                 meshDataIter->m_cullable.m_prevShaderOptionFlags = 0;
                             }
 
-                            // [GFX TODO] [ATOM-1357] Currently all of the draw packets have to be checked for material ID changes because
-                            // material properties can impact which actual shader is used, which impacts the SRG in the draw packet.
-                            // This is scheduled to be optimized so the work is only done on draw packets that need it instead of having
-                            // to check every one.
-                            meshDataIter->UpdateDrawPackets(m_forceRebuildDrawPackets);
+                            if (updateDrawPackets)
+                            {
+                                // [GFX TODO] [ATOM-1357] Currently all of the draw packets have to be checked for material ID changes because
+                                // material properties can impact which actual shader is used, which impacts the SRG in the draw packet.
+                                // This is scheduled to be optimized so the work is only done on draw packets that need it instead of having
+                                // to check every one.
+                                meshDataIter->UpdateDrawPackets(m_forceRebuildDrawPackets);
+                            }
                         }
                     }
                 };

@@ -301,8 +301,9 @@ namespace AZ
 
             void CheckForInstancingCVarChange();
             void PublishPipelineStateBuildResults();
-            AZStd::vector<AZ::Job*> CreateInitJobQueue();
+            AZStd::vector<AZ::Job*> CreateInitJobQueue(bool updateDrawPackets);
             AZStd::vector<AZ::Job*> CreatePerInstanceGroupJobQueue();
+            void ExecuteUpdateDrawPackets(AZ::Job* parentJob);
             AZStd::vector<AZ::Job*> CreateUpdateCullingJobQueue();
             void ExecuteSimulateJobQueue(AZStd::span<Job*> jobQueue, Job* parentJob);
             void ExecuteCombinedJobQueue(AZStd::span<Job*> initQueue, AZStd::span<Job*> updateCullingQueue, Job* parentJob);
