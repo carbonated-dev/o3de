@@ -1166,6 +1166,7 @@ namespace AZ
 
         void Device::InitFeaturesAndLimits(const PhysicalDevice& physicalDevice)
         {
+            m_features.m_supportsGlobalPipelineLibrary = true;
             m_features.m_geometryShader = (m_enabledDeviceFeatures.geometryShader == VK_TRUE);
             m_features.m_computeShader = true;
             m_features.m_independentBlend = (m_enabledDeviceFeatures.independentBlend == VK_TRUE);

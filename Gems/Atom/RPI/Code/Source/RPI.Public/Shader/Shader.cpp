@@ -375,6 +375,12 @@ namespace AZ
         
         ConstPtr<RHI::PipelineLibraryData> Shader::LoadPipelineLibrary() const
         {
+            RHI::PipelineStateCache* pipelineStateCache = RHI::RHISystemInterface::Get()->GetPipelineStateCache();
+            if (pipelineStateCache->GetPipelineLibraryStrategy() == RHI::PipelineLibraryStrategy::Global)
+            {
+                return nullptr;
+            }
+
             RHI::Device* device = RHI::RHISystemInterface::Get()->GetDevice();
             //Check if explicit file load/save operation is needed as the RHI backend api may not support it
             if (m_pipelineLibraryPath[0] != 0 && device->GetFeatures().m_isPsoCacheFileOperationsNeeded)
@@ -386,6 +392,11 @@ namespace AZ
 
         void Shader::SavePipelineLibrary() const
         {
+            if (m_pipelineStateCache->GetPipelineLibraryStrategy() == RHI::PipelineLibraryStrategy::Global)
+            {
+                return;
+            }
+
             RHI::Device* device = RHI::RHISystemInterface::Get()->GetDevice();
             if (m_pipelineLibraryPath[0] != 0)
             {

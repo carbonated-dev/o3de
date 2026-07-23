@@ -39,10 +39,9 @@ namespace AZ::RHI
     //! data blob. This enables building up a pipeline state cache on disk, which can dramatically reduce pipeline
     //! state compilation cost when run from a pre-warmed cache.
     //!
-    //! PipelineLibrary is thread-safe, in the sense that it will take a lock during compilation. It is possible
-    //! to initialize pipeline states across threads using the same PipelineLibrary instance, but this will
-    //! result in the two calls serializing on the mutex. Instead, see PipelineStateCache which stores
-    //! a PipelineLibrary instance per thread to avoid this contention.
+    //! PipelineLibrary instances can initialize pipeline states from multiple threads. Synchronization is
+    //! backend-specific: some backends serialize access internally, while others permit concurrent use of the
+    //! native cache. PipelineStateCache selects either a library per thread and shader or one shared library.
     class PipelineLibrary : public DeviceObject
     {
     public:

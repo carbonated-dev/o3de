@@ -21,6 +21,12 @@ namespace UnitTest
 
 namespace AZ::RHI
 {
+    enum class PipelineLibraryStrategy : uint32_t
+    {
+        Thread = 0,
+        Global = 1
+    };
+
     enum class PipelineStateAcquireFlags : uint8_t
     {
         //! By default, pending pipeline states are shared. The caller guarantees that all participating compilation work
@@ -64,8 +70,9 @@ namespace AZ::RHI
     //!
     //! Each library has global and thread-local caches. Initially, the global cache is checked, if that fails, the
     //! thread-local cache is checked (no locks taken). Finally, the pending cache is checked under a lock and if
-    //! the entry still doesn't exist, it is allocated and added to the pending cache. A thread-local PipelineLibrary
-    //! is used to compile the pipeline state, which eliminates all locking for compilation.
+    //! the entry still doesn't exist, it is allocated and added to the pending cache. Depending on the selected
+    //! PipelineLibraryStrategy, compilation uses either a thread-local PipelineLibrary or one PipelineLibrary shared
+    //! by all shaders and threads using this cache.
     //!
     //! Pipeline states can be acquired at any time and from any thread. The cache will take a reader lock. During
     //! AcquirePipelineState, the global read-only cache is not updated, but the thread-local cache and pending
@@ -80,7 +87,7 @@ namespace AZ::RHI
     //!      Both the global read-only cache and thread-local caches miss, one thread wins the race to take a lock
     //!      on the global pending cache. It allocates but does not compile the pipeline state. All other threads wait on the
     //!      lock (which should be quick) and then find and return the uninitialized pipeline state. The compiling
-    //!      thread uses the thread-local PipelineLibrary instance to compile the pipeline state. Non-compiling threads
+    //!      thread uses the selected PipelineLibrary instance to compile the pipeline state. Non-compiling threads
     //!      will enter the uninitialized pipeline state into their thread-local cache (as does the compiling thread once it
     //!      completes). Note that the compiling thread is now busy, but all remaining threads are now unblocked to compile other
     //!      pipeline states.
@@ -127,20 +134,29 @@ namespace AZ::RHI
 
         static Ptr<PipelineStateCache> Create(Device& device);
 
+        ~PipelineStateCache();
+
+        //! Returns the pipeline library strategy captured when this cache was created.
+        PipelineLibraryStrategy GetPipelineLibraryStrategy() const;
+
+        //! Saves the cache-owned PipelineLibrary used by the Global strategy.
+        //! Returns false when Global mode is unavailable or the library could not be saved.
+        bool SaveGlobalPipelineLibrary() const;
+
         //! Resets the caches of all pipeline libraries back to empty. All internal references to pipeline states are released.
         void Reset();
 
-        //! Creates an internal pipeline library instance and returns its handle.
+        //! Creates a per-shader library entry in Thread mode. In Global mode, returns the cache-owned global handle.
         PipelineLibraryHandle CreateLibrary(const PipelineLibraryData* serializedData, const AZStd::string& filePath = "");
 
-        //! Releases the pipeline library and purges it from the cache. Releases all held references to pipeline states for the library.
+        //! Releases a Thread library and its pipeline-state references. This is a no-op in Global mode.
         void ReleaseLibrary(PipelineLibraryHandle handle);
 
         //! Resets cache contents in the library. Releases all held references to pipeline states for the library.
         void ResetLibrary(PipelineLibraryHandle handle);
 
-        //! Returns the resulting merged library from all the threadLibraries related to the passed in handle.
-        //! The merged library can be used to write out the serialized data.
+        //! Returns the shared library in Global mode or the resulting merged thread libraries in Thread mode.
+        //! The returned library can be used to write out serialized data.
         Ptr<PipelineLibrary> GetMergedLibrary(PipelineLibraryHandle handle) const;
 
         //! Acquires a pipeline state (either draw or dispatch variants) from the cache. Pipeline states are associated
@@ -237,10 +253,8 @@ namespace AZ::RHI
             // A thread-local cache used to reduce contention on the global pending cache.
             PipelineStateSet m_threadLocalCache;
 
-            //! Each thread has its own pipeline library. This allows threads to cache disjoint
-            //! pipeline states without locking. The libraries are coalesced into a single library
-            //! during GetMergedLibrary. The library is lazily initialized on the thread
-            //! and uses the initial serialized data passed in at creation time.
+            //! In Thread mode, each thread owns a pipeline library. In Global mode, each thread keeps
+            //! a reference to the cache-owned global library.
             Ptr<PipelineLibrary> m_library;
         };
 
@@ -262,7 +276,7 @@ namespace AZ::RHI
             const AZ::Name& name,
             PipelineStateAcquireFlags acquireFlags);
 
-        //! Finds a pending entry or performs pipeline state compilation using the thread-local pipeline library.
+        //! Finds a pending entry or performs pipeline state compilation using the selected pipeline library.
         ConstPtr<PipelineState> AcquirePendingPipelineState(
             GlobalLibraryEntry& globalLibraryEntry,
             ThreadLibraryEntry& threadLibraryEntry,
@@ -275,6 +289,12 @@ namespace AZ::RHI
         void ResetLibraryImpl(PipelineLibraryHandle handle);
 
         Ptr<Device> m_device;
+
+        //! Captured at construction and fixed for the lifetime of the cache.
+        const PipelineLibraryStrategy m_pipelineLibraryStrategy;
+
+        //! The single PipelineLibrary shared by every shader and thread in Global mode.
+        Ptr<PipelineLibrary> m_globalPipelineLibrary;
 
         /// Each thread owns a set of ThreadLibraryEntry elements. RHI::PipelineLibraryHandle is an
         /// index into the array.

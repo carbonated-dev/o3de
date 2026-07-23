@@ -212,6 +212,9 @@ namespace AZ
             m_features.m_computeShader = true;
             m_features.m_independentBlend = true;
             m_features.m_dualSourceBlending = true;
+            // ID3D12PipelineLibrary does not support two threads loading the same PSO concurrently. PipelineStateCache
+            // worker threads and PipelineStateBuildQueue can compile the same PSO, so DX12 must use Thread libraries.
+            m_features.m_supportsGlobalPipelineLibrary = false;
             D3D12_FEATURE_DATA_D3D12_OPTIONS2 options2;
             GetDevice()->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, &options2, sizeof(options2));
             m_features.m_customSamplePositions =

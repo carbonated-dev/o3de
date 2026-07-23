@@ -20,6 +20,7 @@ namespace UnitTest
     Device::Device()
     {
         m_descriptor.m_platformLimitsDescriptor = aznew RHI::PlatformLimitsDescriptor;
+        m_features.m_supportsGlobalPipelineLibrary = true;
     }
 
     RHI::PhysicalDeviceList PhysicalDevice::Enumerate()
