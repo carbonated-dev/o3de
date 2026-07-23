@@ -29,6 +29,20 @@ namespace AZ
 {
     namespace RPI
     {
+        namespace
+        {
+            bool IsShaderResourceGroupLayoutEmpty(const RHI::ShaderResourceGroupLayout& layout)
+            {
+                return layout.GetStaticSamplers().empty() &&
+                    layout.GetShaderInputListForBuffers().empty() &&
+                    layout.GetShaderInputListForImages().empty() &&
+                    layout.GetShaderInputListForBufferUnboundedArrays().empty() &&
+                    layout.GetShaderInputListForImageUnboundedArrays().empty() &&
+                    layout.GetShaderInputListForSamplers().empty() &&
+                    layout.GetShaderInputListForConstants().empty();
+            }
+        } // namespace
+
         Data::Instance<Shader> Shader::FindOrCreate(const Data::Asset<ShaderAsset>& shaderAsset, const Name& supervariantName)
         {
 #if defined(CARBONATED)
@@ -157,6 +171,29 @@ namespace AZ
             }
             auto rootShaderVariantAsset = shaderAsset.GetRootVariantAsset(m_supervariantIndex);
             m_rootVariant.Init(m_asset, rootShaderVariantAsset, m_supervariantIndex);
+
+            m_dummyDrawSrg = nullptr;
+            const RHI::Ptr<RHI::ShaderResourceGroupLayout>& drawSrgLayout =
+                shaderAsset.GetDrawSrgLayout(m_supervariantIndex);
+            if (shaderAsset.IsFullySpecialized(m_supervariantIndex) &&
+                drawSrgLayout &&
+                IsShaderResourceGroupLayoutEmpty(*drawSrgLayout))
+            {
+                m_dummyDrawSrg =
+                    RPI::ShaderResourceGroup::Create(m_asset, m_supervariantIndex, drawSrgLayout->GetName());
+                if (m_dummyDrawSrg)
+                {
+                    m_dummyDrawSrg->Compile();
+                }
+                else
+                {
+                    AZ_Error(
+                        "Shader",
+                        false,
+                        "Failed to create the shared dummy DrawSrg for fully specialized shader '%s'.",
+                        shaderAsset.GetName().GetCStr());
+                }
+            }
 
             if (m_pipelineLibraryHandle.IsNull())
             {
@@ -581,6 +618,11 @@ namespace AZ
 #if defined(CARBONATED)
             MEMORY_TAG(Shader);
 #endif
+            if (m_dummyDrawSrg)
+            {
+                return m_dummyDrawSrg;
+            }
+
             RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout = m_asset->GetDrawSrgLayout(GetSupervariantIndex());
             Data::Instance<ShaderResourceGroup> drawSrg;
             if (drawSrgLayout)

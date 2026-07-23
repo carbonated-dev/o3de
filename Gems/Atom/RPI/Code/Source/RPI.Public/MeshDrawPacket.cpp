@@ -12,6 +12,7 @@
 #include <Atom/RPI.Public/Shader/ShaderSystemInterface.h>
 #include <Atom/RPI.Public/Scene.h>
 #include <Atom/RPI.Reflect/Material/MaterialFunctor.h>
+#include <Atom/RHI/ConstantsData.h>
 #include <Atom/RHI/DrawPacketBuilder.h>
 #include <Atom/RHI/RHISystemInterface.h>
 #include <AzCore/Console/Console.h>
@@ -413,7 +414,8 @@ namespace AZ
             // The root constants are shared by all draw items in the draw packet. We must populate them with default values.
             // The draw packet builder needs to know where the data is coming from during appendShader, but it's not actually read
             // until drawPacketBuilder.End(), so store the default data out here.
-            AZStd::vector<uint8_t> rootConstants;
+            RHI::ConstantsData rootConstants;
+            RHI::ConstPtr<RHI::ConstantsLayout> rootConstantsLayoutForPacket;
             bool isFirstShaderItem = true;
 
             m_perDrawSrgs.clear();
@@ -536,22 +538,6 @@ namespace AZ
                     return false;
                 }
 
-                Data::Instance<ShaderResourceGroup> drawSrg = shader->CreateDrawSrgForShaderVariant(shaderOptions, false);
-                if (drawSrg)
-                {
-                    // Pass UvStreamTangentBitmask to the shader if the draw SRG has it.
-
-                    AZ::Name shaderUvStreamTangentBitmask = AZ::Name(UvStreamTangentBitmask::SrgName);
-                    auto index = drawSrg->FindShaderInputConstantIndex(shaderUvStreamTangentBitmask);
-
-                    if (index.IsValid())
-                    {
-                        drawSrg->SetConstant(index, uvStreamTangentBitmask.GetFullTangentBitmask());
-                    }
-
-                    drawSrg->Compile();
-                }
-
                 parentScene.ConfigurePipelineState(drawListTag, pipelineStateDescriptor);
 
                 const uint8_t drawItemIndex = aznumeric_cast<uint8_t>(shaderList.size());
@@ -559,6 +545,7 @@ namespace AZ
                 HashValue64 fallbackDescriptorHash = specializedDescriptorHash;
                 Data::Instance<Shader> fallbackShader;
                 RHI::ConstPtr<RHI::PipelineState> pipelineState;
+                bool isUsingFallbackPipelineState = false;
 
                 if (!asyncPipelineStateCompilationEnabled)
                 {
@@ -613,18 +600,22 @@ namespace AZ
                                     fallbackPipelineStateDescriptor, RHI::PipelineStateAcquireFlags::None);
                             }
                             pipelineState = fallbackPipelineState;
+                            isUsingFallbackPipelineState = true;
                             pendingPipelineStateBuilds.emplace_back(
                                 shader->QueuePipelineStateBuild(m_pipelineStateBuildGroupId, pipelineStateDescriptor),
                                 drawItemIndex,
                                 specializedDescriptorHash);
                         }
-                        else if (!fallbackPipelineState)
+                        else
                         {
-                            pendingPipelineStateBuilds.emplace_back(
-                                fallbackShader->QueuePipelineStateBuild(
-                                    m_pipelineStateBuildGroupId, fallbackPipelineStateDescriptor),
-                                drawItemIndex,
-                                fallbackDescriptorHash);
+                            if (!fallbackPipelineState)
+                            {
+                                pendingPipelineStateBuilds.emplace_back(
+                                    fallbackShader->QueuePipelineStateBuild(
+                                        m_pipelineStateBuildGroupId, fallbackPipelineStateDescriptor),
+                                    drawItemIndex,
+                                    fallbackDescriptorHash);
+                            }
                         }
 
                         if (fallbackPipelineState)
@@ -644,6 +635,13 @@ namespace AZ
                     return false;
                 }
 
+                // A fallback PSO needs the fallback shader's DrawSrg so its fallback key is populated.
+                // Shader::CreateDrawSrgForShaderVariant returns the shared dummy when the active shader is fully specialized.
+                const Data::Instance<Shader>& drawSrgShader =
+                    isUsingFallbackPipelineState ? fallbackShader : shader;
+                Data::Instance<ShaderResourceGroup> drawSrg =
+                    drawSrgShader->CreateDrawSrgForShaderVariant(shaderOptions, true);
+
                 drawItemPipelineStates.push_back(
                     { pipelineState, specializedDescriptorHash, fallbackDescriptorHash });
 
@@ -653,9 +651,19 @@ namespace AZ
                 {
                     if (HasRootConstants(rootConstantsLayout))
                     {
-                        m_rootConstantsLayout = rootConstantsLayout;
-                        rootConstants.resize(m_rootConstantsLayout->GetDataSize());
-                        drawPacketBuilder.SetRootConstants(rootConstants);
+                        rootConstantsLayoutForPacket = rootConstantsLayout;
+                        rootConstants = RHI::ConstantsData(rootConstantsLayout);
+
+                        const RHI::ShaderInputConstantIndex uvStreamTangentBitmaskIndex =
+                            rootConstantsLayout->FindShaderInputIndex(Name(UvStreamTangentBitmask::RootConstantName));
+                        if (uvStreamTangentBitmaskIndex.IsValid())
+                        {
+                            rootConstants.SetConstant(
+                                uvStreamTangentBitmaskIndex,
+                                uvStreamTangentBitmask.GetFullTangentBitmask());
+                        }
+
+                        drawPacketBuilder.SetRootConstants(rootConstants.GetConstantData());
                     }
 
                     isFirstShaderItem = false;
@@ -664,8 +672,10 @@ namespace AZ
                 {
                     AZ_Error(
                         "MeshDrawPacket",
-                        (!m_rootConstantsLayout && !HasRootConstants(rootConstantsLayout)) ||
-                        (m_rootConstantsLayout && rootConstantsLayout && m_rootConstantsLayout->GetHash() == rootConstantsLayout->GetHash()),
+                        (!rootConstantsLayoutForPacket && !HasRootConstants(rootConstantsLayout)) ||
+                        (rootConstantsLayoutForPacket &&
+                         rootConstantsLayout &&
+                         rootConstantsLayoutForPacket->GetHash() == rootConstantsLayout->GetHash()),
                         "Shader %s has mis-matched root constant layout in material %s. "
                         "All draw items in a draw packet need to share the same root constants layout. This means that each pass "
                         "(e.g. Depth, Shadows, Forward, MotionVectors) for a given materialtype should use the same layout.",
@@ -756,6 +766,7 @@ namespace AZ
                 m_fallbackPipelineStates = AZStd::move(fallbackPipelineStates);
                 m_pendingPipelineStateBuilds = AZStd::move(pendingPipelineStateBuilds);
                 m_materialSrg = m_material->GetRHIShaderResourceGroup();
+                m_rootConstantsLayout = rootConstantsLayoutForPacket;
                 return true;
             }
             else

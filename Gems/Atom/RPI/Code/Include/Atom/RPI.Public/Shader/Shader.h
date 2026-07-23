@@ -153,10 +153,12 @@ namespace AZ
             AZStd::span<const RHI::Ptr<RHI::ShaderResourceGroupLayout>> GetShaderResourceGroupLayouts() const;
 
             //! Creates a DrawSrg that contains the shader variant fallback key.
+            //! Returns a shared, compiled dummy DrawSrg when this Shader is fully specialized and its DrawSrg layout is empty.
             //! This SRG must be included in the DrawPacket for any shader that has shader options,
             //! otherwise the CommandList will fail validation for SRG being null.
             //! @param shaderOptions The shader option values will be stored in the SRG's shader variant fallback key (if there is one).
-            //! @param compileTheSrg If you need to set other values in the SRG, set this to false, and the call Compile() when you are done.
+            //! @param compileTheSrg If you need to set other values in a non-empty SRG, set this to false, then call Compile() when done.
+            //! This parameter has no effect when the shared dummy DrawSrg is returned because it is already compiled.
             //! @return The DrawSrg instance, or null if the shader does not include a DrawSrg.
             Data::Instance<ShaderResourceGroup> CreateDrawSrgForShaderVariant(const ShaderOptionGroup& shaderOptions, bool compileTheSrg);
 
@@ -239,6 +241,9 @@ namespace AZ
             
             //! DrawListTag associated with this shader.
             RHI::DrawListTag m_drawListTag;
+
+            //! Compiled DrawSrg shared by fully specialized PSOs when the DrawSrg layout has no inputs.
+            Data::Instance<ShaderResourceGroup> m_dummyDrawSrg;
 
             //! PipelineLibrary file name
             char m_pipelineLibraryPath[AZ_MAX_PATH_LEN] = { 0 };

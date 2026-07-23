@@ -77,6 +77,7 @@ namespace AZ::Render
         // does not allow public access to its Instance<RPI::ShaderResourceGroup>.
         RPI::ConstPtr<RHI::ShaderResourceGroup> m_materialSrg;
 
+        // Retains the real per-draw SRGs and references to shader-owned dummy Draw SRGs used by the draw packet.
         AZStd::fixed_vector<Data::Instance<RPI::ShaderResourceGroup>, RHI::DrawPacketBuilder::DrawItemCountMax> m_perDrawSrgs;
 
         // A reference to the material, used to rebuild the DrawPacket if needed
