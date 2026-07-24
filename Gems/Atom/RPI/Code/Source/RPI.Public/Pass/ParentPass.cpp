@@ -246,6 +246,33 @@ namespace AZ
             return nullptr;
         }
 
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+        Pass* ParentPass::FindPass(const Name& name)
+        {
+            if (GetName() == name)
+            {
+                return this;
+            }
+
+            for (const Ptr<Pass>& child : m_children)
+            {
+                if (child->GetName() == name)
+                {
+                    return child.get();
+                }
+                if (ParentPass* asParent = child->AsParent())
+                {
+                    if (Pass* pass = asParent->FindPass(name))
+                    {
+                        return pass;
+                    }
+                }
+            }
+
+            return nullptr;
+        }
+#endif
+
         // --- Timestamp functions ---
 
         void ParentPass::SetTimestampQueryEnabled(bool enable)

@@ -28,10 +28,26 @@
 
 #if defined(CARBONATED)
 #include <Atom/RHI/DeviceAddon.h>
+#if defined(CARBONATED_DYNAMIC_RESOLUTION)
+#include <AzCore/EBus/EBus.h>
 #endif
+#endif  // CARBONATED
 
 namespace AZ::RHI
 {
+
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+    //! This bus is called first to enumerate platform memory heaps.
+    class CPUWaitTime : public AZ::EBusTraits
+    {
+    public:
+        virtual void ReportWaitTime(int dt) = 0;
+    };
+
+    using CPUWaitTimeBus = AZ::EBus<CPUWaitTime>;
+
+#endif
+
     //! The Device is a context for managing GPU state and memory on a physical device. The user creates
     //! a device instance from a PhysicalDevice. Each device has its own capabilities and limits, and can
     //! be configured to buffer a specific number of frames.

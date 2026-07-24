@@ -74,7 +74,7 @@ namespace AZ
                 void SwitchMultiSample(const uint16_t newSampleCount, AZ::RPI::ViewportContextPtr viewportContext) override;
                 void RefreshWindowResolution() override;
 #if defined(CARBONATED)
-                void SetWindowResolutionDirectly(AzFramework::WindowSize resolution) override;
+                void SetWindowResolutionDirectly(AzFramework::WindowSize resolution, bool minimalRebuild) override;
 #endif
 
             protected:

@@ -93,6 +93,10 @@ namespace AZ
             //! Searches the tree for the first pass that uses the given DrawListTag.
             const Pass* FindPass(RHI::DrawListTag drawListTag) const;
 
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            Pass* FindPass(const Name& name);
+#endif
+
             //! Recursively set all the Timestamp queries enabled for all its children.
             void SetTimestampQueryEnabled(bool enable) override;
 

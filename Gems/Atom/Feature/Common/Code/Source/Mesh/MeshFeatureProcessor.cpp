@@ -1546,9 +1546,22 @@ namespace AZ
             m_forceRebuildDrawPackets = true;
         }
 
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+        void MeshFeatureProcessor::OnRenderPipelineResolutionChanged([[maybe_unused]] RPI::RenderPipeline*)
+        {
+            m_nextChangeIsResolution = true;
+        }
+#endif
         void MeshFeatureProcessor::OnRenderPipelineChanged([[maybe_unused]] RPI::RenderPipeline* pipeline,
             [[maybe_unused]] RPI::SceneNotification::RenderPipelineChangeType changeType)
         {
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            if (m_nextChangeIsResolution)
+            {
+                m_nextChangeIsResolution = false;
+                return; // no packet rebuild
+            }
+#endif
             m_forceRebuildDrawPackets = true;
         }
 

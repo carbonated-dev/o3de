@@ -250,6 +250,9 @@ namespace AZ
             //! Update viewport and scissor based on pass tree's output
             void UpdateViewportScissor();
 
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            void SetNextChangeIsResolution();
+#endif
         private:
             RenderPipeline() = default;
 
@@ -374,6 +377,10 @@ namespace AZ
             // viewport and scissor for frame update
             RHI::Viewport m_viewport;
             RHI::Scissor m_scissor;
+
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            bool m_nextChangeIsResolution = false;
+#endif
         };
 
     } // namespace RPI
