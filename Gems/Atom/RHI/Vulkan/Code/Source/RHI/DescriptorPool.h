@@ -9,7 +9,9 @@
 
 #include <Atom/RHI/DeviceObject.h>
 #include <Atom/RHI/ObjectCollector.h>
+#include <Atom/RHI.Reflect/Limits.h>
 #include <AzCore/Memory/PoolAllocator.h>
+#include <AzCore/std/containers/fixed_vector.h>
 #include <AzCore/std/containers/vector.h>
 #include <AzCore/std/containers/unordered_map.h>
 #include <AzCore/std/parallel/mutex.h>
@@ -38,6 +40,7 @@ namespace AZ
         {
             using Base = RHI::DeviceObject;
             using ObjectType = DescriptorSet;
+            friend class DescriptorSet;
             friend class Internal::DescriptorPoolFactory;
             friend class BindlessDescriptorPool;
 
@@ -51,6 +54,7 @@ namespace AZ
                 AZStd::vector<VkDescriptorPoolSize> m_descriptorPoolSizes;
                 uint32_t m_maxSets = 0;
                 uint32_t m_collectLatency = 0;
+                uint32_t m_allocatorLaneIndex = 0;
                 BufferPool* m_constantDataPool = nullptr;
                 bool m_updateAfterBind = false;
             };
@@ -58,6 +62,8 @@ namespace AZ
             ~DescriptorPool();
 
             using AllocResult = AZStd::pair<VkResult, RHI::Ptr<ObjectType>>;
+            using DescriptorSetList =
+                AZStd::fixed_vector<RHI::Ptr<ObjectType>, RHI::Limits::Device::FrameCountMax>;
 
             AllocResult Allocate(const DescriptorSetLayout& descriptorSetLayout);
             void DeAllocate(RHI::Ptr<ObjectType> object);
@@ -76,6 +82,7 @@ namespace AZ
             void Reset();
 
             RHI::ResultCode BuildNativeDescriptorPool();
+            AZStd::mutex& GetMutex() const;
 
             //////////////////////////////////////////////////////////////////////////
             // RHI::Object
@@ -91,6 +98,7 @@ namespace AZ
             VkDescriptorPool m_nativeDescriptorPool = VK_NULL_HANDLE;
             ReleaseQueue m_collector;
             AZStd::unordered_set<RHI::Ptr<ObjectType>> m_objects;
+            mutable AZStd::mutex m_mutex;
         };
     }
 }

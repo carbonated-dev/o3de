@@ -407,52 +407,61 @@ namespace AZ
 
             // [GFX TODO] [ATOM-1357] Currently all draw packets must be checked for material changes because material properties can
             // select a different shader and SRG. Keep that behavior while distributing the checks across the available workers.
-            if (r_meshInstancingEnabled)
             {
-                workItems->reserve(m_meshInstanceManager.GetInstanceGroupCount());
-                for (const auto& iteratorRange : m_meshInstanceManager.GetParallelRanges())
+                if (r_meshInstancingEnabled)
                 {
-                    for (auto instanceGroupDataIter = iteratorRange.m_begin; instanceGroupDataIter != iteratorRange.m_end;
-                         ++instanceGroupDataIter)
+                    workItems->reserve(m_meshInstanceManager.GetInstanceGroupCount());
+                    for (const auto& iteratorRange : m_meshInstanceManager.GetParallelRanges())
                     {
-                        workItems->push_back(
-                            DrawPacketUpdateWorkItem{ nullptr, nullptr, &*instanceGroupDataIter, false });
-                    }
-                }
-            }
-            else
-            {
-                for (const auto& iteratorRange : m_modelData.GetParallelRanges())
-                {
-                    for (auto meshDataIter = iteratorRange.m_begin; meshDataIter != iteratorRange.m_end; ++meshDataIter)
-                    {
-                        if (!meshDataIter->m_model || !meshDataIter->m_flags.m_visible)
+                        for (auto instanceGroupDataIter = iteratorRange.m_begin; instanceGroupDataIter != iteratorRange.m_end;
+                             ++instanceGroupDataIter)
                         {
-                            continue;
-                        }
-
-                        const bool enableDrawMotion = !meshDataIter->m_flags.m_isDrawMotion && meshDataIter->m_flags.m_dynamic;
-                        for (RPI::MeshDrawPacketList& drawPacketList : meshDataIter->m_drawPacketListsByLod)
-                        {
-                            for (RPI::MeshDrawPacket& drawPacket : drawPacketList)
+                            if (instanceGroupDataIter->m_drawPacket.NeedsUpdate(m_forceRebuildDrawPackets))
                             {
                                 workItems->push_back(
-                                    DrawPacketUpdateWorkItem{ &drawPacket, &*meshDataIter, nullptr, enableDrawMotion });
+                                    DrawPacketUpdateWorkItem{ nullptr, nullptr, &*instanceGroupDataIter, false });
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    for (const auto& iteratorRange : m_modelData.GetParallelRanges())
+                    {
+                        for (auto meshDataIter = iteratorRange.m_begin; meshDataIter != iteratorRange.m_end; ++meshDataIter)
+                        {
+                            if (!meshDataIter->m_model || !meshDataIter->m_flags.m_visible)
+                            {
+                                continue;
+                            }
+
+                            const bool enableDrawMotion = !meshDataIter->m_flags.m_isDrawMotion && meshDataIter->m_flags.m_dynamic;
+                            for (RPI::MeshDrawPacketList& drawPacketList : meshDataIter->m_drawPacketListsByLod)
+                            {
+                                for (RPI::MeshDrawPacket& drawPacket : drawPacketList)
+                                {
+                                    if (enableDrawMotion || drawPacket.NeedsUpdate(m_forceRebuildDrawPackets))
+                                    {
+                                        workItems->push_back(
+                                            DrawPacketUpdateWorkItem{ &drawPacket, &*meshDataIter, nullptr, enableDrawMotion });
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
 
+            JobContext* jobContext = JobContext::GetGlobalContext();
+            const size_t workerThreadCount =
+                jobContext ? AZStd::max<size_t>(jobContext->GetJobManager().GetNumWorkerThreads(), 1) : 1;
+            const size_t jobCount = AZStd::min(workerThreadCount, workItems->size());
+
             if (workItems->empty())
             {
                 return;
             }
 
-            JobContext* jobContext = JobContext::GetGlobalContext();
-            const size_t workerThreadCount =
-                jobContext ? AZStd::max<size_t>(jobContext->GetJobManager().GetNumWorkerThreads(), 1) : 1;
-            const size_t jobCount = AZStd::min(workerThreadCount, workItems->size());
             const size_t basePacketsPerJob = workItems->size() / jobCount;
             const size_t jobsWithExtraPacket = workItems->size() % jobCount;
 

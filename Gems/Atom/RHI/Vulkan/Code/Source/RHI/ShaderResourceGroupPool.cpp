@@ -77,16 +77,22 @@ namespace AZ
 
             auto& group = static_cast<ShaderResourceGroup&>(groupBase);
 
-            for (size_t i = 0; i < m_descriptorSetCount; ++i)
+            DescriptorPool::DescriptorSetList descriptorSets;
             {
-                auto descriptorSet = m_descriptorSetAllocator->Allocate(*m_descriptorSetLayout);
-                if (!descriptorSet)
-                {
-                    return RHI::ResultCode::OutOfMemory;
-                }
+                descriptorSets =
+                    m_descriptorSetAllocator->AllocateMultiple(*m_descriptorSetLayout, m_descriptorSetCount);
+            }
+            if (descriptorSets.size() != m_descriptorSetCount)
+            {
+                return RHI::ResultCode::OutOfMemory;
+            }
+
+            for (size_t i = 0; i < descriptorSets.size(); ++i)
+            {
+                RHI::Ptr<DescriptorSet>& descriptorSet = descriptorSets[i];
                 AZStd::string name = AZStd::string::format("%s_%d", GetName().GetCStr(), static_cast<int>(i));
                 descriptorSet->SetName(AZ::Name(name));
-                group.m_compiledData.push_back(descriptorSet);
+                group.m_compiledData.push_back(AZStd::move(descriptorSet));
             }
             
             return result;

@@ -31,10 +31,11 @@ namespace AZ
     {
         AZ_CVAR(bool,
             r_forceRootShaderVariantUsage,
-            false,
+            true,
             [](const bool&) { AZ::Interface<AZ::IConsole>::Get()->PerformCommand("MeshFeatureProcessor.ForceRebuildDrawPackets"); },
             ConsoleFunctorFlags::Null,
-            "(For Testing) Forces usage of root shader variant in the mesh draw packet level, ignoring any other shader variants that may exist."
+            "Forces usage of root shader variant in the mesh draw packet level, ignoring any other shader variants that may exist.\
+             When using specialization constants for shader options, turn on this CVAR to avoid any lookup (since there's no variants)"
         );
 
         AZ_CVAR(
@@ -309,6 +310,14 @@ namespace AZ
             m_needUpdate = true;
         }
 
+        bool MeshDrawPacket::NeedsUpdate(bool forceUpdate /*= false*/) const
+        {
+            return !m_shaderVariantHandler.IsConnected()
+                || forceUpdate
+                || (!m_material->NeedsCompile() && m_materialChangeId != m_material->GetCurrentChangeId())
+                || m_needUpdate;
+        }
+
         bool MeshDrawPacket::Update(const Scene& parentScene, bool forceUpdate /*= false*/)
         {
             // Setup the Shader variant handler when update this MeshDrawPacket the first time .
@@ -338,8 +347,7 @@ namespace AZ
             //      - MeshDrawPacket::Update() is called. But since the GetCurrentChangeId() hasn't changed since last time, DoUpdate() is not called.
             //      - The mesh continues rendering with only the "foo" change applied, indefinitely.
 
-            if (forceUpdate || (!m_material->NeedsCompile() && m_materialChangeId != m_material->GetCurrentChangeId())
-                || m_needUpdate)
+            if (NeedsUpdate(forceUpdate))
             {
                 DoUpdate(parentScene);
                 m_materialChangeId = m_material->GetCurrentChangeId();
@@ -401,10 +409,9 @@ namespace AZ
             const bool asyncPipelineStateCompilationEnabled = r_meshDrawPacketAsyncPSO;
 
             AZStd::vector<DrawItemPipelineState> drawItemPipelineStates;
-            AZStd::vector<PipelineStateReference> fallbackPipelineStates;
+            AZStd::fixed_vector<PipelineStateReference, RHI::DrawPacketBuilder::DrawItemCountMax> fallbackPipelineStates;
             AZStd::vector<PendingPipelineStateBuild> pendingPipelineStateBuilds;
             drawItemPipelineStates.reserve(m_activeShaders.size());
-            fallbackPipelineStates.reserve(m_fallbackPipelineStates.size());
 
             // We have to keep a list of these outside the loops that collect all the shaders because the DrawPacketBuilder
             // keeps pointers to StreamBufferViews until DrawPacketBuilder::End() is called. And we use a fixed_vector to guarantee

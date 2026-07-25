@@ -120,6 +120,11 @@ namespace AZ
             return m_nativeDescriptorPool;
         }
 
+        AZStd::mutex& DescriptorPool::GetMutex() const
+        {
+            return m_mutex;
+        }
+
         DescriptorPool::AllocResult DescriptorPool::Allocate(const DescriptorSetLayout& descriptorSetLayout)
         {
             auto descriptorSets = DescriptorSet::Create();

@@ -33,6 +33,7 @@ namespace AZ
     namespace RPI
     {
         class ShaderResourceGroup;
+        class ShaderResourceGroupPool;
 
         //! Shader is effectively an 'uber-shader' containing a collection of 'variants'. Variants are
         //! designed to be 'variations' on the same core shader technique. To enforce this, every variant
@@ -200,6 +201,10 @@ namespace AZ
 
             //! A strong reference to the shader asset.
             Data::Asset<ShaderAsset> m_asset;
+
+            //! Cached creation context for this shader's DrawSrg.
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> m_drawSrgLayout;
+            Data::Instance<ShaderResourceGroupPool> m_drawSrgPool;
 
             /////////////////////////////////////////////////////////////////////////////////////
             //! The following variables are necessary to reliably reload the Shader

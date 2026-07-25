@@ -31,15 +31,25 @@ namespace AZ
     {
         namespace
         {
-            bool IsShaderResourceGroupLayoutEmpty(const RHI::ShaderResourceGroupLayout& layout)
+            bool IsShaderResourceGroupLayoutEmpty(
+                const RHI::ShaderResourceGroupLayout& layout,
+                bool ignoreShaderVariantKeyFallback)
             {
+                const auto& shaderInputConstants = layout.GetShaderInputListForConstants();
+                const bool hasNoRelevantConstants =
+                    shaderInputConstants.empty() ||
+                    (ignoreShaderVariantKeyFallback &&
+                        layout.HasShaderVariantKeyFallbackEntry() &&
+                        shaderInputConstants.size() == 1 &&
+                        layout.GetShaderVariantKeyFallbackConstantIndex().GetIndex() == 0);
+
                 return layout.GetStaticSamplers().empty() &&
                     layout.GetShaderInputListForBuffers().empty() &&
                     layout.GetShaderInputListForImages().empty() &&
                     layout.GetShaderInputListForBufferUnboundedArrays().empty() &&
                     layout.GetShaderInputListForImageUnboundedArrays().empty() &&
                     layout.GetShaderInputListForSamplers().empty() &&
-                    layout.GetShaderInputListForConstants().empty();
+                    hasNoRelevantConstants;
             }
         } // namespace
 
@@ -160,6 +170,9 @@ namespace AZ
             RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get();
             RHI::DrawListTagRegistry* drawListTagRegistry = rhiSystem->GetDrawListTagRegistry();
 
+            m_dummyDrawSrg = nullptr;
+            m_drawSrgPool = nullptr;
+            m_drawSrgLayout = nullptr;
             m_asset = { &shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad };
             m_pipelineStateType = shaderAsset.GetPipelineStateType();
 
@@ -172,15 +185,32 @@ namespace AZ
             auto rootShaderVariantAsset = shaderAsset.GetRootVariantAsset(m_supervariantIndex);
             m_rootVariant.Init(m_asset, rootShaderVariantAsset, m_supervariantIndex);
 
-            m_dummyDrawSrg = nullptr;
-            const RHI::Ptr<RHI::ShaderResourceGroupLayout>& drawSrgLayout =
-                shaderAsset.GetDrawSrgLayout(m_supervariantIndex);
-            if (shaderAsset.IsFullySpecialized(m_supervariantIndex) &&
-                drawSrgLayout &&
-                IsShaderResourceGroupLayoutEmpty(*drawSrgLayout))
+            m_drawSrgLayout = shaderAsset.GetDrawSrgLayout(m_supervariantIndex);
+            if (m_drawSrgLayout)
             {
-                m_dummyDrawSrg =
-                    RPI::ShaderResourceGroup::Create(m_asset, m_supervariantIndex, drawSrgLayout->GetName());
+                m_drawSrgPool = ShaderResourceGroupPool::FindOrCreate(
+                    m_asset,
+                    m_supervariantIndex,
+                    m_drawSrgLayout->GetName());
+                if (!m_drawSrgPool)
+                {
+                    AZ_Error(
+                        "Shader",
+                        false,
+                        "Failed to acquire DrawSrg pool for shader '%s'.",
+                        shaderAsset.GetName().GetCStr());
+                    return RHI::ResultCode::Fail;
+                }
+            }
+
+            if (shaderAsset.IsFullySpecialized(m_supervariantIndex) &&
+                m_drawSrgLayout &&
+                IsShaderResourceGroupLayoutEmpty(*m_drawSrgLayout, true))
+            {
+                m_dummyDrawSrg = RPI::ShaderResourceGroup::CreateTransient(
+                    shaderAsset,
+                    m_drawSrgLayout,
+                    m_drawSrgPool);
                 if (m_dummyDrawSrg)
                 {
                     m_dummyDrawSrg->Compile();
@@ -262,6 +292,10 @@ namespace AZ
                 drawListTagRegistry->ReleaseTag(m_drawListTag);
                 m_drawListTag.Reset();
             }
+
+            m_dummyDrawSrg = nullptr;
+            m_drawSrgPool = nullptr;
+            m_drawSrgLayout = nullptr;
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -623,14 +657,27 @@ namespace AZ
                 return m_dummyDrawSrg;
             }
 
-            RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout = m_asset->GetDrawSrgLayout(GetSupervariantIndex());
             Data::Instance<ShaderResourceGroup> drawSrg;
-            if (drawSrgLayout)
+            if (m_drawSrgLayout)
             {
-                drawSrg = RPI::ShaderResourceGroup::Create(m_asset, GetSupervariantIndex(), drawSrgLayout->GetName());
+                {
+                    drawSrg = RPI::ShaderResourceGroup::CreateTransient(
+                        *m_asset,
+                        m_drawSrgLayout,
+                        m_drawSrgPool);
+                }
+                if (!drawSrg)
+                {
+                    AZ_Error(
+                        "Shader",
+                        false,
+                        "Failed to create DrawSrg for shader '%s'.",
+                        m_asset->GetName().GetCStr());
+                    return nullptr;
+                }
                 bool useFallbackKey = !shaderOptions.GetShaderOptionLayout()->IsFullySpecialized() ||
                     !m_asset->UseSpecializationConstants(GetSupervariantIndex());
-                if (useFallbackKey && drawSrgLayout->HasShaderVariantKeyFallbackEntry())
+                if (useFallbackKey && m_drawSrgLayout->HasShaderVariantKeyFallbackEntry())
                 {
                     drawSrg->SetShaderVariantKeyFallbackValue(shaderOptions.GetShaderVariantKeyFallbackValue());
                 }

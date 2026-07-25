@@ -103,28 +103,63 @@ namespace AZ
             return srg;
         }
 
+        Data::Instance<ShaderResourceGroup> ShaderResourceGroup::CreateTransient(
+            ShaderAsset& shaderAsset,
+            const RHI::Ptr<RHI::ShaderResourceGroupLayout>& layout,
+            const Data::Instance<ShaderResourceGroupPool>& pool)
+        {
+#if defined(CARBONATED)
+            MEMORY_TAG(Shader);
+#endif
+            Data::Instance<ShaderResourceGroup> srg = aznew ShaderResourceGroup();
+            const RHI::ResultCode resultCode = srg->Init(shaderAsset, layout, pool);
+            if (resultCode != RHI::ResultCode::Success)
+            {
+                return nullptr;
+            }
+
+            return srg;
+        }
+
         RHI::ResultCode ShaderResourceGroup::Init(ShaderAsset& shaderAsset, const SupervariantIndex& supervariantIndex, const AZ::Name& srgName)
         {
 #if defined(CARBONATED)
             MEMORY_TAG(Shader);
 #endif
-            const auto& lay = shaderAsset.FindShaderResourceGroupLayout(srgName, supervariantIndex);
-            m_layout = lay.get();
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> layout =
+                shaderAsset.FindShaderResourceGroupLayout(srgName, supervariantIndex);
 
-            if (!m_layout)
+            if (!layout)
             {
                 AZ_Assert(false, "ShaderResourceGroup cannot be initialized due to invalid ShaderResourceGroupLayout");
                 return RHI::ResultCode::Fail;
             }
 
-            m_pool = ShaderResourceGroupPool::FindOrCreate(
-                AZ::Data::Asset<ShaderAsset>(&shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad), supervariantIndex, srgName);
-            AZ_Assert(m_layout->GetHash() == m_pool->GetRHIPool()->GetLayout()->GetHash(), "This can happen if two shaders are including the same partial srg from different .azsl shader files and adding more custom entries to the srg. Recommendation is to just make a bigger SRG that can be shared between the two shaders.");
-            
-            if (!m_pool)
+            Data::Instance<ShaderResourceGroupPool> pool;
+            {
+                pool = ShaderResourceGroupPool::FindOrCreate(
+                    AZ::Data::Asset<ShaderAsset>(&shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad), supervariantIndex, srgName);
+            }
+
+            return Init(shaderAsset, layout, pool);
+        }
+
+        RHI::ResultCode ShaderResourceGroup::Init(
+            ShaderAsset& shaderAsset,
+            const RHI::Ptr<RHI::ShaderResourceGroupLayout>& layout,
+            const Data::Instance<ShaderResourceGroupPool>& pool)
+        {
+#if defined(CARBONATED)
+            MEMORY_TAG(Shader);
+#endif
+            if (!layout || !pool)
             {
                 return RHI::ResultCode::Fail;
             }
+
+            m_layout = layout.get();
+            m_pool = pool;
+            AZ_Assert(m_layout->GetHash() == m_pool->GetRHIPool()->GetLayout()->GetHash(), "This can happen if two shaders are including the same partial srg from different .azsl shader files and adding more custom entries to the srg. Recommendation is to just make a bigger SRG that can be shared between the two shaders.");
 
             m_shaderResourceGroup = m_pool->CreateRHIShaderResourceGroup();
             if (!m_shaderResourceGroup)

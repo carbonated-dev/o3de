@@ -7,12 +7,15 @@
  */
 #pragma once
 
+#include <AzCore/std/containers/fixed_vector.h>
 #include <AzCore/std/containers/list.h>
+#include <AzCore/std/containers/vector.h>
 #include <AzCore/std/parallel/mutex.h>
+#include <AzCore/std/smart_ptr/unique_ptr.h>
 #include <Atom/RHI/Object.h>
 #include <Atom/RHI/ObjectPool.h>
+#include <Atom/RHI/ThreadLocalContext.h>
 #include <Atom/RHI.Reflect/Limits.h>
-#include <AzCore/std/containers/unordered_map.h>
 #include <RHI/DescriptorPool.h>
 #include <RHI/DescriptorSet.h>
 
@@ -67,6 +70,7 @@ namespace AZ
                 void Init(DescriptorPoolAllocator& descriptorPoolAllocator, Device& device, const DescriptorPool::Descriptor& poolDescriptor);
 
                 RHI::Ptr<ObjectType> Allocate(DescriptorSetLayout& layout);
+                DescriptorPool::DescriptorSetList AllocateMultiple(DescriptorSetLayout& layout, uint32_t count);
                 void DeAllocate(RHI::Ptr<ObjectType> descriptorSet);
                 void Reset();
                 void Collect();
@@ -82,6 +86,8 @@ namespace AZ
         /**
         * Allocator for creating descriptor sets.
         * Each descriptor set is allocated from a descriptor set pool.
+        * Each calling thread gets a persistent allocation lane with independent descriptor pools,
+        * avoiding cross-thread serialization while satisfying Vulkan's external synchronization rules.
         * When the pool can't allocate more descriptor sets we create a new pool.
         * We use the return value from Vulkan to check if the pool ran out of memory and we need to create
         * a new one. A DescriptorSetAllocator is used to generate new descriptor set pools when needed.
@@ -109,14 +115,26 @@ namespace AZ
 
             RHI::ResultCode Init(const Descriptor& descriptor);
             RHI::Ptr<ObjectType> Allocate(DescriptorSetLayout& layout);
+            DescriptorPool::DescriptorSetList AllocateMultiple(DescriptorSetLayout& layout, uint32_t count);
             void DeAllocate(RHI::Ptr<ObjectType> descriptor);
             void Collect();
             void Shutdown() override;
 
         private:
-            AZStd::mutex m_subAllocatorMutex;
-            Internal::DescriptorSetSubAllocator m_subAllocator;
-            Internal::DescriptorPoolAllocator m_poolAllocator;
+            struct AllocationLane
+            {
+                AZStd::mutex m_mutex;
+                Internal::DescriptorSetSubAllocator m_subAllocator;
+                Internal::DescriptorPoolAllocator m_poolAllocator;
+            };
+
+            AllocationLane& GetOrCreateThreadAllocationLane();
+            AllocationLane* GetAllocationLane(uint32_t laneIndex);
+
+            AZStd::mutex m_allocationLaneRegistryMutex;
+            AZStd::vector<AZStd::unique_ptr<AllocationLane>> m_allocationLanes;
+            RHI::ThreadLocalContext<AllocationLane*> m_threadAllocationLaneContext;
+            DescriptorPool::Descriptor m_poolDescriptor;
             Descriptor m_descriptor;
             bool m_isInitialized = false;
         };

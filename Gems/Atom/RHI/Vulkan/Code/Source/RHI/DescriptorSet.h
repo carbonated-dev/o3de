@@ -65,7 +65,8 @@ namespace AZ
             void UpdateSamplers(uint32_t index, const AZStd::span<const RHI::SamplerState>& samplers);
             void UpdateConstantData(AZStd::span<const uint8_t> data);
 
-            RHI::Ptr<BufferView> GetConstantDataBufferView() const;
+            //! Creates a buffer view for the constant-data buffer when it is needed by a merged SRG.
+            RHI::Ptr<BufferView> CreateConstantDataBufferView() const;
 
         private:
             struct WriteDescriptorData
@@ -104,7 +105,6 @@ namespace AZ
             VkDescriptorSet m_nativeDescriptorSet = VK_NULL_HANDLE;
             AZStd::vector<WriteDescriptorData> m_updateData;
             RHI::Ptr<Buffer> m_constantDataBuffer;
-            RHI::Ptr<BufferView> m_constantDataBufferView;
             bool m_nullDescriptorSupported = false;
             uint32_t m_currentUnboundedArrayAllocation = 0;
         };

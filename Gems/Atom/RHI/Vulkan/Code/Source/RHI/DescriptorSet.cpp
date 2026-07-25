@@ -237,8 +237,12 @@ namespace AZ
                 allocInfo.descriptorSetCount = 1;
                 allocInfo.pSetLayouts = &nativeLayout;
 
-                VkResult result = descriptor.m_device->GetContext().AllocateDescriptorSets(
-                    descriptor.m_device->GetNativeDevice(), &allocInfo, &m_nativeDescriptorSet);
+                VkResult result = VK_SUCCESS;
+                {
+                    AZStd::lock_guard<AZStd::mutex> poolLock(descriptor.m_descriptorPool->GetMutex());
+                    result = descriptor.m_device->GetContext().AllocateDescriptorSets(
+                        descriptor.m_device->GetNativeDevice(), &allocInfo, &m_nativeDescriptorSet);
+                }
                 if (result == VK_ERROR_FRAGMENTED_POOL)
                 {
                     // fragmented pool will be re-created subsequently in DescriptorSetAllocator, so warning only 
@@ -269,12 +273,6 @@ namespace AZ
                     return VK_ERROR_OUT_OF_HOST_MEMORY;
                 }
 
-                auto bufferView = m_constantDataBuffer->GetBufferView(
-                    RHI::BufferViewDescriptor::CreateStructured(
-                        0,
-                        1,
-                        aznumeric_caster(constantDataSize)));
-                m_constantDataBufferView = AZStd::static_pointer_cast<BufferView>(bufferView);
             }
 
             m_nullDescriptorSupported = static_cast<const PhysicalDevice&>(m_descriptor.m_device->GetPhysicalDevice()).IsFeatureSupported(DeviceFeature::NullDescriptor);
@@ -296,12 +294,12 @@ namespace AZ
             if (m_nativeDescriptorSet != VK_NULL_HANDLE)
             {
                 AZ_Assert(m_descriptor.m_descriptorPool, "Descriptor pool is null.");
+                AZStd::lock_guard<AZStd::mutex> poolLock(m_descriptor.m_descriptorPool->GetMutex());
                 auto& device = static_cast<Device&>(GetDevice());
                 AssertSuccess(device.GetContext().FreeDescriptorSets(
                     device.GetNativeDevice(), m_descriptor.m_descriptorPool->GetNativeDescriptorPool(), 1, &m_nativeDescriptorSet));
                 m_nativeDescriptorSet = VK_NULL_HANDLE;
             }
-            m_constantDataBufferView = nullptr;
             m_constantDataBuffer = nullptr;
             Base::Shutdown();
         }
@@ -403,6 +401,7 @@ namespace AZ
 
         void DescriptorSet::AllocateDescriptorSetWithUnboundedArray()
         {
+            AZStd::lock_guard<AZStd::mutex> poolLock(m_descriptor.m_descriptorPool->GetMutex());
             const DescriptorSetLayout& layout = *m_descriptor.m_descriptorSetLayout;
             uint32_t unboundedArraySize = 0;
 
@@ -487,9 +486,21 @@ namespace AZ
             return descriptorInfo == VK_NULL_HANDLE;
         }
 
-        RHI::Ptr<BufferView> DescriptorSet::GetConstantDataBufferView() const
+        RHI::Ptr<BufferView> DescriptorSet::CreateConstantDataBufferView() const
         {
-            return m_constantDataBufferView;
+            if (!m_constantDataBuffer)
+            {
+                return nullptr;
+            }
+
+            const size_t constantDataSize =
+                m_descriptor.m_descriptorSetLayout->GetConstantDataSize();
+            auto bufferView = m_constantDataBuffer->GetBufferView(
+                RHI::BufferViewDescriptor::CreateStructured(
+                    0,
+                    1,
+                    aznumeric_caster(constantDataSize)));
+            return AZStd::static_pointer_cast<BufferView>(bufferView);
         }
    }
 }

@@ -235,9 +235,24 @@ namespace AZ::RHI
             return;
         }
 
+        // Completed requests have already left the queue and no longer need cancellation. This is also
+        // important for completed requests shared by many MeshDrawPackets: releasing the final owner
+        // must not perform linear searches through the pending and completed request containers.
+        if (request->IsComplete())
+        {
+            return;
+        }
+
         AZStd::lock_guard<AZStd::mutex> lock(m_mutex);
         {
             AZStd::lock_guard<AZStd::mutex> requestLock(request->m_mutex);
+            if (request->m_state == PipelineStateBuildRequest::State::Succeeded ||
+                request->m_state == PipelineStateBuildRequest::State::Failed ||
+                request->m_state == PipelineStateBuildRequest::State::Cancelled)
+            {
+                return;
+            }
+
             request->m_cancelRequested = true;
             request->m_state = PipelineStateBuildRequest::State::Cancelled;
             request->m_pipelineState = nullptr;
@@ -320,7 +335,7 @@ namespace AZ::RHI
             ConstPtr<PipelineState> pipelineState = m_pipelineStateCache->AcquirePipelineState(
                 request->m_pipelineLibraryHandle,
                 request->GetDescriptor(),
-                PipelineStateAcquireFlags::NoShare,
+                PipelineStateAcquireFlags::NoShare | PipelineStateAcquireFlags::ThreadLocalCache,
                 request->m_name);
 
             {

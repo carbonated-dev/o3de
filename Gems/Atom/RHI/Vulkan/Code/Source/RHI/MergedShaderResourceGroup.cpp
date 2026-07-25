@@ -98,7 +98,9 @@ namespace AZ
                     // Merged ShaderResourceGroups do not contain constant data.
                     // We just use the constant buffer that contains the constant data that was already built and populated
                     // by the original SRG.
-                    data.SetBufferView(constantsDataBufferIndex, srg->GetCompiledData().GetConstantDataBufferView().get());
+                    RHI::Ptr<BufferView> constantDataBufferView =
+                        srg->GetCompiledData().CreateConstantDataBufferView();
+                    data.SetBufferView(constantsDataBufferIndex, constantDataBufferView.get());
                 }
             }
 

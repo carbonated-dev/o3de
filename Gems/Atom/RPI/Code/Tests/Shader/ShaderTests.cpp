@@ -361,13 +361,9 @@ namespace UnitTest
             return srgLayout;
         }
 
-        void UseEmptyDrawShaderResourceGroupLayout()
+        void UseDrawShaderResourceGroupLayout(RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout)
         {
-            RHI::Ptr<RHI::ShaderResourceGroupLayout> emptyDrawSrgLayout = RHI::ShaderResourceGroupLayout::Create();
-            emptyDrawSrgLayout->SetName(CreateShaderResourceGroupId(RPI::SrgBindingSlot::Draw));
-            emptyDrawSrgLayout->SetBindingSlot(RPI::SrgBindingSlot::Draw);
-            EXPECT_TRUE(emptyDrawSrgLayout->Finalize());
-            m_srgLayouts[RPI::SrgBindingSlot::Draw] = emptyDrawSrgLayout;
+            m_srgLayouts[RPI::SrgBindingSlot::Draw] = AZStd::move(drawSrgLayout);
 
             m_pipelineLayoutDescriptor = TestPipelineLayoutDescriptor::Create();
             for (size_t i = 0; i < m_srgLayouts.size(); ++i)
@@ -380,6 +376,35 @@ namespace UnitTest
                 m_pipelineLayoutDescriptor->AddShaderResourceGroupLayoutInfo(*m_srgLayouts[i], bindingInfo);
             }
             EXPECT_EQ(m_pipelineLayoutDescriptor->Finalize(), RHI::ResultCode::Success);
+        }
+
+        void UseEmptyDrawShaderResourceGroupLayout()
+        {
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> emptyDrawSrgLayout = RHI::ShaderResourceGroupLayout::Create();
+            emptyDrawSrgLayout->SetName(CreateShaderResourceGroupId(RPI::SrgBindingSlot::Draw));
+            emptyDrawSrgLayout->SetBindingSlot(RPI::SrgBindingSlot::Draw);
+            EXPECT_TRUE(emptyDrawSrgLayout->Finalize());
+            UseDrawShaderResourceGroupLayout(AZStd::move(emptyDrawSrgLayout));
+        }
+
+        void UseFallbackKeyDrawShaderResourceGroupLayout(bool includeAdditionalConstant)
+        {
+            constexpr uint32_t fallbackKeyByteCount = RPI::ShaderVariantKeyAlignedBitCount / 8;
+            const Name fallbackKeyName{ "m_shaderVariantKeyFallback" };
+
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout = RHI::ShaderResourceGroupLayout::Create();
+            drawSrgLayout->SetName(CreateShaderResourceGroupId(RPI::SrgBindingSlot::Draw));
+            drawSrgLayout->SetBindingSlot(RPI::SrgBindingSlot::Draw);
+            drawSrgLayout->AddShaderInput(
+                RHI::ShaderInputConstantDescriptor{ fallbackKeyName, 0, fallbackKeyByteCount, 0, 0 });
+            drawSrgLayout->SetShaderVariantKeyFallback(fallbackKeyName, RPI::ShaderVariantKeyBitCount);
+            if (includeAdditionalConstant)
+            {
+                drawSrgLayout->AddShaderInput(
+                    RHI::ShaderInputConstantDescriptor{ Name{ "m_otherConstant" }, fallbackKeyByteCount, 4, 0, 0 });
+            }
+            EXPECT_TRUE(drawSrgLayout->Finalize());
+            UseDrawShaderResourceGroupLayout(AZStd::move(drawSrgLayout));
         }
 
         AZ::RHI::ShaderResourceGroupBindingInfo CreateShaderResouceGroupBindingInfo(size_t index)
@@ -1483,6 +1508,58 @@ namespace UnitTest
     TEST_F(ShaderTests, Shader_DoesNotShareDrawSrgForNonEmptyLayout)
     {
         using namespace AZ;
+
+        RPI::ShaderAssetCreator creator;
+        BeginCreatingTestShaderAsset(
+            creator,
+            { RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment },
+            SpecializationType::Full);
+        Data::Asset<RPI::ShaderAsset> shaderAsset = EndCreatingTestShaderAsset(creator);
+        ASSERT_TRUE(shaderAsset);
+
+        Data::Instance<RPI::Shader> shader = RPI::Shader::FindOrCreate(shaderAsset);
+        ASSERT_TRUE(shader);
+        Data::Instance<RPI::ShaderResourceGroup> firstDrawSrg =
+            shader->CreateDrawSrgForShaderVariant(shader->GetDefaultShaderOptions(), false);
+        Data::Instance<RPI::ShaderResourceGroup> secondDrawSrg =
+            shader->CreateDrawSrgForShaderVariant(shader->GetDefaultShaderOptions(), false);
+        ASSERT_TRUE(firstDrawSrg);
+        ASSERT_TRUE(secondDrawSrg);
+        EXPECT_NE(firstDrawSrg.get(), secondDrawSrg.get());
+        EXPECT_FALSE(firstDrawSrg->GetId().IsValid());
+        EXPECT_FALSE(secondDrawSrg->GetId().IsValid());
+    }
+
+    TEST_F(ShaderTests, Shader_SharedDummyDrawSrgForFullySpecializedFallbackKeyOnlyLayout)
+    {
+        using namespace AZ;
+
+        UseFallbackKeyDrawShaderResourceGroupLayout(false);
+
+        RPI::ShaderAssetCreator creator;
+        BeginCreatingTestShaderAsset(
+            creator,
+            { RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment },
+            SpecializationType::Full);
+        Data::Asset<RPI::ShaderAsset> shaderAsset = EndCreatingTestShaderAsset(creator);
+        ASSERT_TRUE(shaderAsset);
+
+        Data::Instance<RPI::Shader> shader = RPI::Shader::FindOrCreate(shaderAsset);
+        ASSERT_TRUE(shader);
+        Data::Instance<RPI::ShaderResourceGroup> firstDrawSrg =
+            shader->CreateDrawSrgForShaderVariant(shader->GetDefaultShaderOptions(), false);
+        Data::Instance<RPI::ShaderResourceGroup> secondDrawSrg =
+            shader->CreateDrawSrgForShaderVariant(shader->GetDefaultShaderOptions(), true);
+        ASSERT_TRUE(firstDrawSrg);
+        ASSERT_TRUE(secondDrawSrg);
+        EXPECT_EQ(firstDrawSrg.get(), secondDrawSrg.get());
+    }
+
+    TEST_F(ShaderTests, Shader_DoesNotShareDrawSrgWhenFallbackKeyLayoutHasAnotherConstant)
+    {
+        using namespace AZ;
+
+        UseFallbackKeyDrawShaderResourceGroupLayout(true);
 
         RPI::ShaderAssetCreator creator;
         BeginCreatingTestShaderAsset(

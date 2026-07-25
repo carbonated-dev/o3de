@@ -529,6 +529,7 @@ namespace AZ::RHI
         PipelineStateHash pipelineStateHash = descriptor.GetHash();
         const bool noCompile = CheckBitsAny(acquireFlags, PipelineStateAcquireFlags::NoCompile);
         const bool noShare = CheckBitsAny(acquireFlags, PipelineStateAcquireFlags::NoShare);
+        const bool useThreadLocalCache = !noShare || CheckBitsAny(acquireFlags, PipelineStateAcquireFlags::ThreadLocalCache);
 
         // Search the read-only cache first.
         if (const PipelineState* pipelineState = FindPipelineState(globalLibraryEntry.m_readOnlyCache, descriptor))
@@ -548,7 +549,7 @@ namespace AZ::RHI
             ThreadLibraryEntry& threadLibraryEntry = threadLibrarySet[handle.GetIndex()];
             PipelineStateSet& threadLocalCache = threadLibraryEntry.m_threadLocalCache;
 
-            if (!noShare)
+            if (useThreadLocalCache)
             {
                 if (const PipelineState* pipelineState = FindPipelineState(threadLocalCache, descriptor))
                 {

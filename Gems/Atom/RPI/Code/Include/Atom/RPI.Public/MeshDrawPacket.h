@@ -60,6 +60,8 @@ namespace AZ
             AZ_DEFAULT_COPY(MeshDrawPacket);
             AZ_DEFAULT_MOVE(MeshDrawPacket);
 
+            //! Returns true when Update() needs to initialize its shader-variant handler or rebuild the draw packet.
+            bool NeedsUpdate(bool forceUpdate = false) const;
             bool Update(const Scene& parentScene, bool forceUpdate = false);
 
             //! Sets the queue group used for asynchronous pipeline-state builds.
@@ -144,7 +146,7 @@ namespace AZ
 
             // Per-draw-item PSO ownership and descriptor compatibility data, plus reusable Fallback PSOs.
             AZStd::vector<DrawItemPipelineState> m_drawItemPipelineStates;
-            AZStd::vector<PipelineStateReference> m_fallbackPipelineStates;
+            AZStd::fixed_vector<PipelineStateReference, RHI::DrawPacketBuilder::DrawItemCountMax> m_fallbackPipelineStates;
             AZStd::vector<PendingPipelineStateBuild> m_pendingPipelineStateBuilds;
             RHI::PipelineStateBuildGroupId m_pipelineStateBuildGroupId;
 

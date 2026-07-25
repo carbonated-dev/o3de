@@ -39,7 +39,10 @@ namespace AZ::RHI
         NoShare = AZ_BIT(0),
 
         //! Search only the compacted global read-only cache without starting compilation.
-        NoCompile = AZ_BIT(1)
+        NoCompile = AZ_BIT(1),
+
+        //! Allow lookup in the calling thread's local cache even when other flags would normally skip it.
+        ThreadLocalCache = AZ_BIT(2)
     };
     AZ_DEFINE_ENUM_BITWISE_OPERATORS(AZ::RHI::PipelineStateAcquireFlags)
 
