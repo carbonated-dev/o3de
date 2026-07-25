@@ -61,11 +61,11 @@ namespace AZ
 
             ~DescriptorPool();
 
-            using AllocResult = AZStd::pair<VkResult, RHI::Ptr<ObjectType>>;
             using DescriptorSetList =
                 AZStd::fixed_vector<RHI::Ptr<ObjectType>, RHI::Limits::Device::FrameCountMax>;
+            using BatchAllocResult = AZStd::pair<VkResult, DescriptorSetList>;
 
-            AllocResult Allocate(const DescriptorSetLayout& descriptorSetLayout);
+            BatchAllocResult AllocateBatch(const DescriptorSetLayout& descriptorSetLayout, uint32_t count);
             void DeAllocate(RHI::Ptr<ObjectType> object);
             const Descriptor& GetDescriptor() const;
             VkDescriptorPool GetNativeDescriptorPool() const;

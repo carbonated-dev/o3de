@@ -67,16 +67,14 @@ namespace AZ
                 DescriptorSetSubAllocator() = default;
                 DescriptorSetSubAllocator(const DescriptorSetSubAllocator&) = delete;
 
-                void Init(DescriptorPoolAllocator& descriptorPoolAllocator, Device& device, const DescriptorPool::Descriptor& poolDescriptor);
+                void Init(DescriptorPoolAllocator& descriptorPoolAllocator, const DescriptorPool::Descriptor& poolDescriptor);
 
-                RHI::Ptr<ObjectType> Allocate(DescriptorSetLayout& layout);
-                DescriptorPool::DescriptorSetList AllocateMultiple(DescriptorSetLayout& layout, uint32_t count);
+                DescriptorPool::DescriptorSetList AllocateBatch(DescriptorSetLayout& layout, uint32_t count);
                 void DeAllocate(RHI::Ptr<ObjectType> descriptorSet);
                 void Reset();
                 void Collect();
 
             private:
-                Device* m_device;
                 DescriptorPoolAllocator* m_descriptorPoolAllocator = nullptr;
                 DescriptorPool::Descriptor m_poolDescriptor;
                 AZStd::list<DescriptorPool*> m_pools;
@@ -114,8 +112,7 @@ namespace AZ
             ~DescriptorSetAllocator() = default;
 
             RHI::ResultCode Init(const Descriptor& descriptor);
-            RHI::Ptr<ObjectType> Allocate(DescriptorSetLayout& layout);
-            DescriptorPool::DescriptorSetList AllocateMultiple(DescriptorSetLayout& layout, uint32_t count);
+            DescriptorPool::DescriptorSetList AllocateBatch(DescriptorSetLayout& layout, uint32_t count);
             void DeAllocate(RHI::Ptr<ObjectType> descriptor);
             void Collect();
             void Shutdown() override;

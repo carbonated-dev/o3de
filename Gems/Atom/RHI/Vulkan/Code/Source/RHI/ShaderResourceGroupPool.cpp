@@ -80,7 +80,7 @@ namespace AZ
             DescriptorPool::DescriptorSetList descriptorSets;
             {
                 descriptorSets =
-                    m_descriptorSetAllocator->AllocateMultiple(*m_descriptorSetLayout, m_descriptorSetCount);
+                    m_descriptorSetAllocator->AllocateBatch(*m_descriptorSetLayout, m_descriptorSetCount);
             }
             if (descriptorSets.size() != m_descriptorSetCount)
             {

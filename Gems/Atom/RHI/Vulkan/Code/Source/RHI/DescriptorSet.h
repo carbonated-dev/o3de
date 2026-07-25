@@ -54,7 +54,6 @@ namespace AZ
             ~DescriptorSet() = default;
 
             static RHI::Ptr<DescriptorSet> Create();
-            VkResult Init(const Descriptor& descriptor);
             const Descriptor& GetDescriptor() const;
             VkDescriptorSet GetNativeDescriptorSet() const;
 
@@ -69,6 +68,12 @@ namespace AZ
             RHI::Ptr<BufferView> CreateConstantDataBufferView() const;
 
         private:
+            VkResult Init(
+                const Descriptor& descriptor,
+                VkDescriptorSet nativeDescriptorSet,
+                const RHI::Ptr<Buffer>& constantDataBuffer,
+                size_t constantDataOffset);
+
             struct WriteDescriptorData
             {
                 uint32_t m_layoutIndex = 0;
@@ -105,6 +110,7 @@ namespace AZ
             VkDescriptorSet m_nativeDescriptorSet = VK_NULL_HANDLE;
             AZStd::vector<WriteDescriptorData> m_updateData;
             RHI::Ptr<Buffer> m_constantDataBuffer;
+            size_t m_constantDataOffset = 0;
             bool m_nullDescriptorSupported = false;
             uint32_t m_currentUnboundedArrayAllocation = 0;
         };

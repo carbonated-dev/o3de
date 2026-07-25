@@ -6,7 +6,6 @@
  *
  */
 #include <RHI/Buffer.h>
-#include <RHI/BufferPool.h>
 #include <RHI/BufferView.h>
 #include <Atom/RHI.Reflect/Vulkan/Conversion.h>
 #include <RHI/DescriptorPool.h>
@@ -199,7 +198,7 @@ namespace AZ
 
             BufferMemoryView* memoryView = m_constantDataBuffer->GetBufferMemoryView();
             uint8_t* mappedData = static_cast<uint8_t*>(memoryView->Map(RHI::HostMemoryAccess::Write));
-            memcpy(mappedData, rawData.data(), rawData.size());
+            memcpy(mappedData + m_constantDataOffset, rawData.data(), rawData.size());
             memoryView->Unmap(RHI::HostMemoryAccess::Write);
 
             WriteDescriptorData data;
@@ -207,7 +206,7 @@ namespace AZ
 
             VkDescriptorBufferInfo bufferInfo;
             bufferInfo.buffer = memoryView->GetNativeBuffer();
-            bufferInfo.offset = memoryView->GetOffset();
+            bufferInfo.offset = memoryView->GetOffset() + m_constantDataOffset;
             bufferInfo.range = rawData.size();
             data.m_bufferViewsInfo.push_back(bufferInfo);
             m_updateData.push_back(AZStd::move(data));
@@ -218,7 +217,11 @@ namespace AZ
             return aznew DescriptorSet();
         }
 
-        VkResult DescriptorSet::Init(const Descriptor& descriptor)
+        VkResult DescriptorSet::Init(
+            const Descriptor& descriptor,
+            VkDescriptorSet nativeDescriptorSet,
+            const RHI::Ptr<Buffer>& constantDataBuffer,
+            size_t constantDataOffset)
         {
             m_descriptor = descriptor;
             AZ_Assert(descriptor.m_device, "Device is null.");
@@ -226,54 +229,16 @@ namespace AZ
             AZ_Assert(descriptor.m_descriptorSetLayout, "DescriptorSetLayout is null.");
             Base::Init(*descriptor.m_device);
 
-            // if this descriptor set contains an unbounded array we need to defer allocation until UpdateNativeDescriptorSet(),
-            // since we do not know the number of views in the unbounded array
-            if (!descriptor.m_descriptorSetLayout->GetHasUnboundedArray())
-            {
-                VkDescriptorSetLayout nativeLayout = descriptor.m_descriptorSetLayout->GetNativeDescriptorSetLayout();
-                VkDescriptorSetAllocateInfo allocInfo{};
-                allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                allocInfo.descriptorPool = descriptor.m_descriptorPool->GetNativeDescriptorPool();
-                allocInfo.descriptorSetCount = 1;
-                allocInfo.pSetLayouts = &nativeLayout;
-
-                VkResult result = VK_SUCCESS;
-                {
-                    AZStd::lock_guard<AZStd::mutex> poolLock(descriptor.m_descriptorPool->GetMutex());
-                    result = descriptor.m_device->GetContext().AllocateDescriptorSets(
-                        descriptor.m_device->GetNativeDevice(), &allocInfo, &m_nativeDescriptorSet);
-                }
-                if (result == VK_ERROR_FRAGMENTED_POOL)
-                {
-                    // fragmented pool will be re-created subsequently in DescriptorSetAllocator, so warning only 
-                    AZ_Warning("Vulkan RHI", false, "Fragmented pool, will be recreated in DescriptorSetAllocator afterward");
-                }
-                else 
-                {
-                    AssertSuccess(result);
-                }
-
-                if (result != VK_SUCCESS)
-                {
-                    return result;
-                }
-            }
+            m_nativeDescriptorSet = nativeDescriptorSet;
 
             // Check if we need to create a uniform buffer for the constants
             DescriptorPool::Descriptor const& vulkanDescriptor = m_descriptor.m_descriptorPool->GetDescriptor();
             size_t constantDataSize = m_descriptor.m_descriptorSetLayout->GetConstantDataSize();
-            if (vulkanDescriptor.m_constantDataPool && constantDataSize)
-            {
-                m_constantDataBuffer = Buffer::Create();
-                const RHI::BufferDescriptor bufferDescriptor(RHI::BufferBindFlags::Constant, constantDataSize);
-                RHI::BufferInitRequest request(*m_constantDataBuffer, bufferDescriptor);
-                RHI::ResultCode rhiResult = vulkanDescriptor.m_constantDataPool->InitBuffer(request);
-                if (rhiResult != RHI::ResultCode::Success)
-                {
-                    return VK_ERROR_OUT_OF_HOST_MEMORY;
-                }
-
-            }
+            m_constantDataBuffer = constantDataBuffer;
+            m_constantDataOffset = constantDataOffset;
+            AZ_Assert(
+                !constantDataSize || !vulkanDescriptor.m_constantDataPool || m_constantDataBuffer,
+                "A batched descriptor set with constant data must reference the shared constant buffer.");
 
             m_nullDescriptorSupported = static_cast<const PhysicalDevice&>(m_descriptor.m_device->GetPhysicalDevice()).IsFeatureSupported(DeviceFeature::NullDescriptor);
 
@@ -301,6 +266,7 @@ namespace AZ
                 m_nativeDescriptorSet = VK_NULL_HANDLE;
             }
             m_constantDataBuffer = nullptr;
+            m_constantDataOffset = 0;
             Base::Shutdown();
         }
 
@@ -401,7 +367,6 @@ namespace AZ
 
         void DescriptorSet::AllocateDescriptorSetWithUnboundedArray()
         {
-            AZStd::lock_guard<AZStd::mutex> poolLock(m_descriptor.m_descriptorPool->GetMutex());
             const DescriptorSetLayout& layout = *m_descriptor.m_descriptorSetLayout;
             uint32_t unboundedArraySize = 0;
 
@@ -430,22 +395,19 @@ namespace AZ
                         return;
                     }
 
-                    if (unboundedArraySize != m_currentUnboundedArrayAllocation)
-                    {
-                        // release existing descriptor set if necessary
-                        if (m_nativeDescriptorSet)
-                        {
-                            AssertSuccess(m_descriptor.m_device->GetContext().FreeDescriptorSets(
-                                m_descriptor.m_device->GetNativeDevice(),
-                                m_descriptor.m_descriptorPool->GetNativeDescriptorPool(),
-                                1,
-                                &m_nativeDescriptorSet));
-                            m_nativeDescriptorSet = VK_NULL_HANDLE;
-                        }
-                    }
-
                     break;
                 }
+            }
+
+            AZStd::lock_guard<AZStd::mutex> poolLock(m_descriptor.m_descriptorPool->GetMutex());
+            if (unboundedArraySize != m_currentUnboundedArrayAllocation && m_nativeDescriptorSet)
+            {
+                AssertSuccess(m_descriptor.m_device->GetContext().FreeDescriptorSets(
+                    m_descriptor.m_device->GetNativeDevice(),
+                    m_descriptor.m_descriptorPool->GetNativeDescriptorPool(),
+                    1,
+                    &m_nativeDescriptorSet));
+                m_nativeDescriptorSet = VK_NULL_HANDLE;
             }
 
             if (m_nativeDescriptorSet == VK_NULL_HANDLE)
@@ -497,9 +459,9 @@ namespace AZ
                 m_descriptor.m_descriptorSetLayout->GetConstantDataSize();
             auto bufferView = m_constantDataBuffer->GetBufferView(
                 RHI::BufferViewDescriptor::CreateStructured(
-                    0,
-                    1,
-                    aznumeric_caster(constantDataSize)));
+                    aznumeric_caster(m_constantDataOffset),
+                    aznumeric_caster(constantDataSize),
+                    1));
             return AZStd::static_pointer_cast<BufferView>(bufferView);
         }
    }

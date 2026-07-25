@@ -26,7 +26,7 @@ AZ_CVAR(
     static_cast<AZ::u32>(AZ::RHI::PipelineLibraryStrategy::Global),
     nullptr,
     AZ::ConsoleFunctorFlags::NeedsReload,
-    "Pipeline library strategy. 0: Thread; 1: Global. The value is captured when PipelineStateCache is created and changing it requires a restart.");
+    "Pipeline library strategy. 0: Per Shader; 1: Global. The value is captured when PipelineStateCache is created and changing it requires a restart.");
 
 namespace AZ::RHI
 {
@@ -96,7 +96,7 @@ namespace AZ::RHI
                 static_cast<AZ::u32>(r_pipelineLibraryStrategy));
             if (!isValidStrategy)
             {
-                return PipelineLibraryStrategy::Thread;
+                return PipelineLibraryStrategy::Shader;
             }
 
             const PipelineLibraryStrategy strategy =
@@ -108,7 +108,7 @@ namespace AZ::RHI
                     "PipelineStateCache",
                     false,
                     "The device does not support a global pipeline library. Falling back to Thread.");
-                return PipelineLibraryStrategy::Thread;
+                return PipelineLibraryStrategy::Shader;
             }
 
             return strategy;

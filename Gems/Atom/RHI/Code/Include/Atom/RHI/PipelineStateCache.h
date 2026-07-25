@@ -23,7 +23,7 @@ namespace AZ::RHI
 {
     enum class PipelineLibraryStrategy : uint32_t
     {
-        Thread = 0,
+        Shader = 0,
         Global = 1
     };
 

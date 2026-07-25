@@ -7,6 +7,8 @@
  */
 #include <Atom/RHI.Reflect/ShaderResourceGroupLayoutDescriptor.h>
 #include <Atom/RHI.Reflect/ShaderResourceGroupLayout.h>
+#include <Atom/RHI.Reflect/Bits.h>
+#include <Atom/RHI/BufferPool.h>
 #include <AzCore/Utils/TypeHash.h>
 #include <AzCore/std/parallel/lock.h>
 #include <Atom/RHI.Reflect/Vulkan/Conversion.h>
@@ -14,6 +16,8 @@
 #include <RHI/DescriptorSet.h>
 #include <RHI/DescriptorSetLayout.h>
 #include <RHI/Device.h>
+#include <RHI/Buffer.h>
+#include <RHI/BufferPool.h>
 #include <Atom/RHI.Reflect/VkAllocator.h>
 
 namespace AZ
@@ -125,21 +129,122 @@ namespace AZ
             return m_mutex;
         }
 
-        DescriptorPool::AllocResult DescriptorPool::Allocate(const DescriptorSetLayout& descriptorSetLayout)
+        DescriptorPool::BatchAllocResult DescriptorPool::AllocateBatch(
+            const DescriptorSetLayout& descriptorSetLayout,
+            uint32_t count)
         {
-            auto descriptorSets = DescriptorSet::Create();
-            DescriptorSet::Descriptor descSetDesc;
-            descSetDesc.m_device = static_cast<Device*>(&GetDevice());
-            descSetDesc.m_descriptorPool = this;
-            descSetDesc.m_descriptorSetLayout = &descriptorSetLayout;
-            VkResult vkResult = descriptorSets->Init(descSetDesc);
-            if (vkResult != VK_SUCCESS)
+            AZ_Assert(
+                count > 0 && count <= RHI::Limits::Device::FrameCountMax,
+                "Invalid descriptor-set batch size.");
+            if (count == 0 || count > RHI::Limits::Device::FrameCountMax)
             {
-                return AZStd::make_pair(vkResult, nullptr);
+                return { VK_ERROR_INITIALIZATION_FAILED, {} };
             }
-            
-            m_objects.insert(descriptorSets);
-            return AZStd::make_pair(vkResult, descriptorSets);
+
+            auto& device = static_cast<Device&>(GetDevice());
+
+            RHI::Ptr<Buffer> constantDataBuffer;
+            const size_t constantDataSize = descriptorSetLayout.GetConstantDataSize();
+            size_t constantDataStride = 0;
+            if (m_descriptor.m_constantDataPool && constantDataSize)
+            {
+                constantDataStride =
+                    RHI::AlignUp(constantDataSize, aznumeric_cast<size_t>(device.GetLimits().m_minConstantBufferViewOffset));
+                constantDataBuffer = Buffer::Create();
+                const RHI::BufferDescriptor bufferDescriptor(
+                    RHI::BufferBindFlags::Constant,
+                    constantDataStride * count);
+                RHI::BufferInitRequest request(*constantDataBuffer, bufferDescriptor);
+                if (m_descriptor.m_constantDataPool->InitBuffer(request) != RHI::ResultCode::Success)
+                {
+                    return { VK_ERROR_OUT_OF_HOST_MEMORY, {} };
+                }
+            }
+
+            AZStd::fixed_vector<VkDescriptorSet, RHI::Limits::Device::FrameCountMax> nativeDescriptorSets;
+            nativeDescriptorSets.resize(count, VK_NULL_HANDLE);
+
+            // Unbounded descriptor sets still have to defer native allocation until their variable
+            // descriptor count is known. Their wrappers and constant data are nevertheless batched.
+            if (!descriptorSetLayout.GetHasUnboundedArray())
+            {
+                AZStd::fixed_vector<VkDescriptorSetLayout, RHI::Limits::Device::FrameCountMax> nativeLayouts;
+                nativeLayouts.resize(count, descriptorSetLayout.GetNativeDescriptorSetLayout());
+
+                VkDescriptorSetAllocateInfo allocInfo{};
+                allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+                allocInfo.descriptorPool = m_nativeDescriptorPool;
+                allocInfo.descriptorSetCount = count;
+                allocInfo.pSetLayouts = nativeLayouts.data();
+
+                VkResult result = VK_SUCCESS;
+                {
+                    AZStd::lock_guard<AZStd::mutex> poolLock(GetMutex());
+                    result = device.GetContext().AllocateDescriptorSets(
+                        device.GetNativeDevice(),
+                        &allocInfo,
+                        nativeDescriptorSets.data());
+                }
+                if (result == VK_ERROR_FRAGMENTED_POOL)
+                {
+                    AZ_Warning(
+                        "Vulkan RHI",
+                        false,
+                        "Fragmented pool while allocating descriptor-set batch; the allocator will retry with another pool.");
+                }
+                else
+                {
+                    AssertSuccess(result);
+                }
+
+                if (result != VK_SUCCESS)
+                {
+                    return { result, {} };
+                }
+            }
+
+            DescriptorSetList descriptorSets;
+            for (uint32_t descriptorSetIndex = 0; descriptorSetIndex < count; ++descriptorSetIndex)
+            {
+                RHI::Ptr<DescriptorSet> descriptorSet = DescriptorSet::Create();
+                DescriptorSet::Descriptor descriptor;
+                descriptor.m_device = &device;
+                descriptor.m_descriptorPool = this;
+                descriptor.m_descriptorSetLayout = &descriptorSetLayout;
+                const VkResult result = descriptorSet->Init(
+                    descriptor,
+                    nativeDescriptorSets[descriptorSetIndex],
+                    constantDataBuffer,
+                    constantDataStride * descriptorSetIndex);
+                AZ_Assert(result == VK_SUCCESS, "Failed to initialize a descriptor set from a successfully allocated batch.");
+                if (result != VK_SUCCESS)
+                {
+                    for (RHI::Ptr<DescriptorSet>& initializedDescriptorSet : descriptorSets)
+                    {
+                        initializedDescriptorSet->Shutdown();
+                    }
+
+                    const uint32_t remainingSetCount = count - descriptorSetIndex;
+                    if (nativeDescriptorSets[descriptorSetIndex] != VK_NULL_HANDLE)
+                    {
+                        AZStd::lock_guard<AZStd::mutex> poolLock(GetMutex());
+                        AssertSuccess(device.GetContext().FreeDescriptorSets(
+                            device.GetNativeDevice(),
+                            m_nativeDescriptorPool,
+                            remainingSetCount,
+                            nativeDescriptorSets.data() + descriptorSetIndex));
+                    }
+                    return { result, {} };
+                }
+
+                descriptorSets.emplace_back(AZStd::move(descriptorSet));
+            }
+
+            for (const RHI::Ptr<DescriptorSet>& descriptorSet : descriptorSets)
+            {
+                m_objects.insert(descriptorSet);
+            }
+            return { VK_SUCCESS, AZStd::move(descriptorSets) };
         }
 
         void DescriptorPool::DeAllocate(RHI::Ptr<ObjectType> object)

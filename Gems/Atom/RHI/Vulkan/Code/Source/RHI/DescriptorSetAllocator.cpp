@@ -61,57 +61,15 @@ namespace AZ
                 return m_descriptor;
             }    
             
-            void DescriptorSetSubAllocator::Init(DescriptorPoolAllocator& descriptorPoolAllocator, Device& device, const DescriptorPool::Descriptor& poolDescriptor)
+            void DescriptorSetSubAllocator::Init(
+                DescriptorPoolAllocator& descriptorPoolAllocator,
+                const DescriptorPool::Descriptor& poolDescriptor)
             {
-                m_device = &device;
                 m_descriptorPoolAllocator = &descriptorPoolAllocator;
                 m_poolDescriptor = poolDescriptor;
             }
 
-            RHI::Ptr<DescriptorSetSubAllocator::ObjectType> DescriptorSetSubAllocator::Allocate(DescriptorSetLayout& layout)
-            {
-                // Look for a pool that can allocate the descriptor set
-                for (DescriptorPool* pool : m_pools)
-                {
-                    // Check that we don't get over the max descriptor sets count.
-                    // In theory the pool would return a VK_ERROR_OUT_OF_POOL_MEMORY result but that would
-                    // trigger a validation layer error that we want to avoid.
-                    if ((pool->GetTotalObjectCount() + 1) > m_poolDescriptor.m_maxSets)
-                    {
-                        continue;
-                    }
-
-                    auto result = pool->Allocate(layout);
-                    if (result.first == VK_SUCCESS)
-                    {
-                        return AZStd::move(result.second);
-                    }
-                    if (result.first != VK_ERROR_FRAGMENTED_POOL && result.first != VK_ERROR_OUT_OF_POOL_MEMORY)
-                    {
-                        AZ_Assert(false, "Failed to allocate descriptor set");
-                        return nullptr;
-                    }
-                }
-
-                DescriptorPool* newPool = m_descriptorPoolAllocator->Allocate(m_poolDescriptor);
-                if (!newPool)
-                {
-                    return nullptr;
-                }
-
-                auto result = newPool->Allocate(layout);
-                if (result.first != VK_SUCCESS)
-                {
-                    m_descriptorPoolAllocator->DeAllocate(newPool);
-                    AZ_Assert(false, "Failed to allocate descriptor set");
-                    return nullptr;
-                }
-
-                m_pools.push_front(newPool);
-                return AZStd::move(result.second);
-            }
-
-            DescriptorPool::DescriptorSetList DescriptorSetSubAllocator::AllocateMultiple(
+            DescriptorPool::DescriptorSetList DescriptorSetSubAllocator::AllocateBatch(
                 DescriptorSetLayout& layout,
                 uint32_t count)
             {
@@ -123,22 +81,43 @@ namespace AZ
                     return {};
                 }
 
-                DescriptorPool::DescriptorSetList descriptorSets;
-                for (uint32_t descriptorSetIndex = 0; descriptorSetIndex < count; ++descriptorSetIndex)
+                // Look for a pool that can allocate the complete batch. Vulkan requires external
+                // synchronization for descriptor-pool access, which is provided by the allocation-lane lock.
+                for (DescriptorPool* pool : m_pools)
                 {
-                    RHI::Ptr<ObjectType> descriptorSet = Allocate(layout);
-                    if (!descriptorSet)
+                    if ((pool->GetTotalObjectCount() + count) > m_poolDescriptor.m_maxSets)
                     {
-                        for (RHI::Ptr<ObjectType>& allocatedDescriptorSet : descriptorSets)
-                        {
-                            DeAllocate(AZStd::move(allocatedDescriptorSet));
-                        }
-                        return {};
+                        continue;
                     }
 
-                    descriptorSets.emplace_back(AZStd::move(descriptorSet));
+                    auto result = pool->AllocateBatch(layout, count);
+                    if (result.first == VK_SUCCESS)
+                    {
+                        return AZStd::move(result.second);
+                    }
+                    if (result.first != VK_ERROR_FRAGMENTED_POOL && result.first != VK_ERROR_OUT_OF_POOL_MEMORY)
+                    {
+                        AZ_Assert(false, "Failed to allocate descriptor-set batch");
+                        return {};
+                    }
                 }
-                return descriptorSets;
+
+                DescriptorPool* newPool = m_descriptorPoolAllocator->Allocate(m_poolDescriptor);
+                if (!newPool)
+                {
+                    return {};
+                }
+
+                auto result = newPool->AllocateBatch(layout, count);
+                if (result.first != VK_SUCCESS)
+                {
+                    m_descriptorPoolAllocator->DeAllocate(newPool);
+                    AZ_Assert(false, "Failed to allocate descriptor-set batch");
+                    return {};
+                }
+
+                m_pools.push_front(newPool);
+                return AZStd::move(result.second);
             }
 
             void DescriptorSetSubAllocator::DeAllocate(RHI::Ptr<ObjectType> descriptorSet)
@@ -216,7 +195,6 @@ namespace AZ
                     lanePoolDescriptor.m_allocatorLaneIndex = laneIndex;
                     lane->m_subAllocator.Init(
                         lane->m_poolAllocator,
-                        *m_descriptor.m_device,
                         lanePoolDescriptor);
 
                     threadLane = lane.get();
@@ -240,14 +218,7 @@ namespace AZ
             return laneIndex < m_allocationLanes.size() ? m_allocationLanes[laneIndex].get() : nullptr;
         }
 
-        RHI::Ptr<DescriptorSetAllocator::ObjectType> DescriptorSetAllocator::Allocate(DescriptorSetLayout& layout)
-        {
-            AllocationLane& lane = GetOrCreateThreadAllocationLane();
-            AZStd::lock_guard<AZStd::mutex> laneLock(lane.m_mutex);
-            return lane.m_subAllocator.Allocate(layout);
-        }
-
-        DescriptorPool::DescriptorSetList DescriptorSetAllocator::AllocateMultiple(
+        DescriptorPool::DescriptorSetList DescriptorSetAllocator::AllocateBatch(
             DescriptorSetLayout& layout,
             uint32_t count)
         {
@@ -259,7 +230,7 @@ namespace AZ
 
             AllocationLane& lane = GetOrCreateThreadAllocationLane();
             AZStd::lock_guard<AZStd::mutex> laneLock(lane.m_mutex);
-            return lane.m_subAllocator.AllocateMultiple(layout, count);
+            return lane.m_subAllocator.AllocateBatch(layout, count);
         }
 
         void DescriptorSetAllocator::DeAllocate(RHI::Ptr<ObjectType> descriptorSet)
