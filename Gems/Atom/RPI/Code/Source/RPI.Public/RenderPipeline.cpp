@@ -219,7 +219,6 @@ namespace AZ
 #if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
         void RenderPipeline::SetNextChangeIsResolution()
         {
-            AZ_Info("ttt", "RenderPipeline::SetNextChangeIsResolution")
             m_nextChangeIsResolution = true;
         }
 #endif
