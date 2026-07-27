@@ -11,6 +11,9 @@
 #include <RHI/MemorySubAllocator.h>
 #include <Atom/RHI/FrameEventBus.h>
 #include <Atom/RHI/ShaderResourceGroupPool.h>
+#if defined(CARBONATED)
+#include <AzCore/std/parallel/mutex.h>
+#endif
 
 namespace AZ
 {
@@ -100,6 +103,9 @@ namespace AZ
 
             AZStd::vector<DescriptorHandle> GetCBVsFromBufferViews(const AZStd::span<const RHI::ConstPtr<RHI::BufferView>>& bufferViews);
 
+#if defined(CARBONATED)
+            AZStd::mutex m_constantAllocatorMutex;
+#endif
             MemoryPoolSubAllocator m_constantAllocator;
             DescriptorContext* m_descriptorContext = nullptr;
             uint32_t m_constantBufferSize = 0;
