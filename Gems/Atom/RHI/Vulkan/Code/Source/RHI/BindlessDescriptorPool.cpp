@@ -305,7 +305,7 @@ namespace AZ::Vulkan
     {
 #if defined(CARBONATED)
         AZStd::lock_guard<AZStd::mutex> lock(m_mutex);
-#endif		
+#endif
         for (size_t i = 0; i != static_cast<uint32_t>(AZ::RHI::BindlessResourceType::Count); ++i)
         {
             m_allocators[i].GarbageCollect();
