@@ -9,6 +9,7 @@
 #pragma once
 
 #include <Atom/Features/SrgSemantics.azsli>
+#include <Atom/RPI/ShaderResourceGroups/DefaultDrawSrgRootConstants.azsli>
 
 #ifndef USE_CUSTOM_DRAW_SRG
 #define USE_CUSTOM_DRAW_SRG 0
@@ -16,8 +17,6 @@
 
 #if USE_CUSTOM_DRAW_SRG
 #else
-rootconstant uint m_uvStreamTangentBitmask;
-
 ShaderResourceGroup DrawSrg : SRG_PerDraw
 {
     uint GetTangentAtUv(uint uvIndex)

@@ -2499,8 +2499,9 @@ namespace AZ
                 return;
             }
 
-            if (!rayTracingFeatureProcessor)
+            if (!rayTracingFeatureProcessor || !rayTracingFeatureProcessor->IsRayTracingEnabled())
             {
+                m_flags.m_needsSetRayTracingData = false;
                 return;
             }
 
