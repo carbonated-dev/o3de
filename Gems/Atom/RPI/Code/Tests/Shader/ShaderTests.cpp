@@ -361,54 +361,6 @@ namespace UnitTest
             return srgLayout;
         }
 
-#if defined(CARBONATED)
-        void UseDrawShaderResourceGroupLayout(RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout)
-        {
-            m_srgLayouts[RPI::SrgBindingSlot::Draw] = AZStd::move(drawSrgLayout);
-
-            m_pipelineLayoutDescriptor = TestPipelineLayoutDescriptor::Create();
-            for (size_t i = 0; i < m_srgLayouts.size(); ++i)
-            {
-                RHI::ShaderResourceGroupBindingInfo bindingInfo;
-                if (i != RPI::SrgBindingSlot::Draw)
-                {
-                    bindingInfo = CreateShaderResouceGroupBindingInfo(i);
-                }
-                m_pipelineLayoutDescriptor->AddShaderResourceGroupLayoutInfo(*m_srgLayouts[i], bindingInfo);
-            }
-            EXPECT_EQ(m_pipelineLayoutDescriptor->Finalize(), RHI::ResultCode::Success);
-        }
-
-        void UseEmptyDrawShaderResourceGroupLayout()
-        {
-            RHI::Ptr<RHI::ShaderResourceGroupLayout> emptyDrawSrgLayout = RHI::ShaderResourceGroupLayout::Create();
-            emptyDrawSrgLayout->SetName(CreateShaderResourceGroupId(RPI::SrgBindingSlot::Draw));
-            emptyDrawSrgLayout->SetBindingSlot(RPI::SrgBindingSlot::Draw);
-            EXPECT_TRUE(emptyDrawSrgLayout->Finalize());
-            UseDrawShaderResourceGroupLayout(AZStd::move(emptyDrawSrgLayout));
-        }
-
-        void UseFallbackKeyDrawShaderResourceGroupLayout(bool includeAdditionalConstant)
-        {
-            constexpr uint32_t fallbackKeyByteCount = RPI::ShaderVariantKeyAlignedBitCount / 8;
-            const Name fallbackKeyName{ "m_shaderVariantKeyFallback" };
-
-            RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout = RHI::ShaderResourceGroupLayout::Create();
-            drawSrgLayout->SetName(CreateShaderResourceGroupId(RPI::SrgBindingSlot::Draw));
-            drawSrgLayout->SetBindingSlot(RPI::SrgBindingSlot::Draw);
-            drawSrgLayout->AddShaderInput(
-                RHI::ShaderInputConstantDescriptor{ fallbackKeyName, 0, fallbackKeyByteCount, 0, 0 });
-            drawSrgLayout->SetShaderVariantKeyFallback(fallbackKeyName, RPI::ShaderVariantKeyBitCount);
-            if (includeAdditionalConstant)
-            {
-                drawSrgLayout->AddShaderInput(
-                    RHI::ShaderInputConstantDescriptor{ Name{ "m_otherConstant" }, fallbackKeyByteCount, 4, 0, 0 });
-            }
-            EXPECT_TRUE(drawSrgLayout->Finalize());
-            UseDrawShaderResourceGroupLayout(AZStd::move(drawSrgLayout));
-        }
-
-#endif
         AZ::RHI::ShaderResourceGroupBindingInfo CreateShaderResouceGroupBindingInfo(size_t index)
         {
             Name srgId = CreateShaderResourceGroupId(index);
@@ -526,21 +478,12 @@ namespace UnitTest
             }
         }
 
-#if defined(CARBONATED)
-        void AddTestSupervariant(
-            AZ::RPI::ShaderAssetCreator& creator,
-            const AZ::Name& name,
-#else
         void BeginCreatingTestShaderAsset(AZ::RPI::ShaderAssetCreator& creator,
-#endif
             const AZStd::vector<RHI::ShaderStage>& stagesToActivate = {RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment},
             SpecializationType specializationType = SpecializationType::None)
         {
             using namespace AZ;
 
-#if defined(CARBONATED)
-            creator.BeginSupervariant(name);
-#else
             creator.Begin(Uuid::CreateRandom());
             creator.SetName(m_name);
             creator.SetDrawListName(m_drawListName);
@@ -549,7 +492,6 @@ namespace UnitTest
             creator.BeginAPI(RHI::Factory::Get().GetType());
 
             creator.BeginSupervariant(AZ::Name{}); // The default (first) supervariant MUST be nameless.
-#endif
 
             creator.SetSrgLayoutList(m_srgLayouts);
             creator.SetPipelineLayout(m_pipelineLayoutDescriptor);
@@ -571,23 +513,6 @@ namespace UnitTest
             creator.EndSupervariant();
         }
 
-#if defined(CARBONATED)
-        void BeginCreatingTestShaderAsset(AZ::RPI::ShaderAssetCreator& creator,
-            const AZStd::vector<RHI::ShaderStage>& stagesToActivate = {RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment},
-            SpecializationType specializationType = SpecializationType::None)
-        {
-            using namespace AZ;
-
-            creator.Begin(Uuid::CreateRandom());
-            creator.SetName(m_name);
-            creator.SetDrawListName(m_drawListName);
-            creator.SetShaderOptionGroupLayout(GetShaderOptionGroupForAssets(specializationType));
-            creator.BeginAPI(RHI::Factory::Get().GetType());
-
-            AddTestSupervariant(creator, AZ::Name{}, stagesToActivate, specializationType);
-        }
-
-#endif
         //! Used to finish creating a shader that began with BeginCreatingTestShaderAsset(). Call this after adding all the desired shader variants.
         AZ::Data::Asset<AZ::RPI::ShaderAsset> EndCreatingTestShaderAsset(RPI::ShaderAssetCreator& creator)
         {
@@ -1467,140 +1392,6 @@ namespace UnitTest
         ValidateShaderAsset(serializedShaderAsset);
     }
 
-#if defined(CARBONATED)
-    TEST_F(ShaderTests, ShaderAsset_ShaderOptionFallbackNameAndLookup)
-    {
-        using namespace AZ;
-
-        EXPECT_EQ(
-            RPI::ShaderAsset::MakeShaderOptionFallbackSupervariantName(Name{}),
-            Name(RPI::NoSpecializationSupervariantName));
-        EXPECT_EQ(
-            RPI::ShaderAsset::MakeShaderOptionFallbackSupervariantName(Name("NoMS")),
-            Name("NoMSNoSpecialization"));
-
-        RPI::ShaderAssetCreator creator;
-        BeginCreatingTestShaderAsset(
-            creator,
-            { RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment },
-            SpecializationType::Full);
-        AddTestSupervariant(creator, Name(RPI::NoSpecializationSupervariantName));
-
-        Data::Asset<RPI::ShaderAsset> shaderAsset = EndCreatingTestShaderAsset(creator);
-        ASSERT_TRUE(shaderAsset);
-
-        Data::Instance<RPI::Shader> specializedShader = RPI::Shader::FindOrCreate(shaderAsset);
-        ASSERT_TRUE(specializedShader);
-        Data::Instance<RPI::Shader> fallbackShader = specializedShader->FindOrCreateShaderOptionFallback();
-        ASSERT_TRUE(fallbackShader);
-        EXPECT_EQ(fallbackShader->GetSupervariantIndex(), RPI::SupervariantIndex(1));
-        EXPECT_FALSE(fallbackShader->FindOrCreateShaderOptionFallback());
-    }
-
-    TEST_F(ShaderTests, Shader_SharedDummyDrawSrgForFullySpecializedEmptyLayout)
-    {
-        using namespace AZ;
-
-        UseEmptyDrawShaderResourceGroupLayout();
-
-        RPI::ShaderAssetCreator creator;
-        BeginCreatingTestShaderAsset(
-            creator,
-            { RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment },
-            SpecializationType::Full);
-        Data::Asset<RPI::ShaderAsset> shaderAsset = EndCreatingTestShaderAsset(creator);
-        ASSERT_TRUE(shaderAsset);
-
-        Data::Instance<RPI::Shader> shader = RPI::Shader::FindOrCreate(shaderAsset);
-        ASSERT_TRUE(shader);
-        Data::Instance<RPI::ShaderResourceGroup> firstDrawSrg =
-            shader->CreateDrawSrgForShaderVariant(shader->GetDefaultShaderOptions(), false);
-        ASSERT_TRUE(firstDrawSrg);
-
-        Data::Instance<RPI::Shader> sameShader = RPI::Shader::FindOrCreate(shaderAsset);
-        ASSERT_TRUE(sameShader);
-        Data::Instance<RPI::ShaderResourceGroup> secondDrawSrg =
-            sameShader->CreateDrawSrgForShaderVariant(sameShader->GetDefaultShaderOptions(), true);
-        ASSERT_TRUE(secondDrawSrg);
-        EXPECT_EQ(firstDrawSrg.get(), secondDrawSrg.get());
-    }
-
-    TEST_F(ShaderTests, Shader_DoesNotShareDrawSrgForNonEmptyLayout)
-    {
-        using namespace AZ;
-
-        RPI::ShaderAssetCreator creator;
-        BeginCreatingTestShaderAsset(
-            creator,
-            { RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment },
-            SpecializationType::Full);
-        Data::Asset<RPI::ShaderAsset> shaderAsset = EndCreatingTestShaderAsset(creator);
-        ASSERT_TRUE(shaderAsset);
-
-        Data::Instance<RPI::Shader> shader = RPI::Shader::FindOrCreate(shaderAsset);
-        ASSERT_TRUE(shader);
-        Data::Instance<RPI::ShaderResourceGroup> firstDrawSrg =
-            shader->CreateDrawSrgForShaderVariant(shader->GetDefaultShaderOptions(), false);
-        Data::Instance<RPI::ShaderResourceGroup> secondDrawSrg =
-            shader->CreateDrawSrgForShaderVariant(shader->GetDefaultShaderOptions(), false);
-        ASSERT_TRUE(firstDrawSrg);
-        ASSERT_TRUE(secondDrawSrg);
-        EXPECT_NE(firstDrawSrg.get(), secondDrawSrg.get());
-        EXPECT_FALSE(firstDrawSrg->GetId().IsValid());
-        EXPECT_FALSE(secondDrawSrg->GetId().IsValid());
-    }
-
-    TEST_F(ShaderTests, Shader_SharedDummyDrawSrgForFullySpecializedFallbackKeyOnlyLayout)
-    {
-        using namespace AZ;
-
-        UseFallbackKeyDrawShaderResourceGroupLayout(false);
-
-        RPI::ShaderAssetCreator creator;
-        BeginCreatingTestShaderAsset(
-            creator,
-            { RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment },
-            SpecializationType::Full);
-        Data::Asset<RPI::ShaderAsset> shaderAsset = EndCreatingTestShaderAsset(creator);
-        ASSERT_TRUE(shaderAsset);
-
-        Data::Instance<RPI::Shader> shader = RPI::Shader::FindOrCreate(shaderAsset);
-        ASSERT_TRUE(shader);
-        Data::Instance<RPI::ShaderResourceGroup> firstDrawSrg =
-            shader->CreateDrawSrgForShaderVariant(shader->GetDefaultShaderOptions(), false);
-        Data::Instance<RPI::ShaderResourceGroup> secondDrawSrg =
-            shader->CreateDrawSrgForShaderVariant(shader->GetDefaultShaderOptions(), true);
-        ASSERT_TRUE(firstDrawSrg);
-        ASSERT_TRUE(secondDrawSrg);
-        EXPECT_EQ(firstDrawSrg.get(), secondDrawSrg.get());
-    }
-
-    TEST_F(ShaderTests, Shader_DoesNotShareDrawSrgWhenFallbackKeyLayoutHasAnotherConstant)
-    {
-        using namespace AZ;
-
-        UseFallbackKeyDrawShaderResourceGroupLayout(true);
-
-        RPI::ShaderAssetCreator creator;
-        BeginCreatingTestShaderAsset(
-            creator,
-            { RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment },
-            SpecializationType::Full);
-        Data::Asset<RPI::ShaderAsset> shaderAsset = EndCreatingTestShaderAsset(creator);
-        ASSERT_TRUE(shaderAsset);
-
-        Data::Instance<RPI::Shader> shader = RPI::Shader::FindOrCreate(shaderAsset);
-        ASSERT_TRUE(shader);
-        Data::Instance<RPI::ShaderResourceGroup> firstDrawSrg =
-            shader->CreateDrawSrgForShaderVariant(shader->GetDefaultShaderOptions(), false);
-        Data::Instance<RPI::ShaderResourceGroup> secondDrawSrg =
-            shader->CreateDrawSrgForShaderVariant(shader->GetDefaultShaderOptions(), false);
-        ASSERT_TRUE(firstDrawSrg);
-        ASSERT_TRUE(secondDrawSrg);
-        EXPECT_NE(firstDrawSrg.get(), secondDrawSrg.get());
-    }
-
-#endif
     TEST_F(ShaderTests, ShaderAsset_PipelineLayout_Missing_Test)
     {
         using namespace AZ;

@@ -17,10 +17,6 @@
 
 #include <AzCore/Math/Random.h>
 
-#if defined(CARBONATED)
-AZ_CVAR_EXTERNED(AZ::u32, r_pipelineLibraryStrategy);
-
-#endif
 namespace UnitTest
 {
     using namespace AZ;
@@ -73,27 +69,6 @@ namespace UnitTest
             cache->ValidateCacheIntegrity();
         }
 
-#if defined(CARBONATED)
-        RHI::PipelineLibrary* GetGlobalPipelineLibrary(const RHI::Ptr<RHI::PipelineStateCache>& cache) const
-        {
-            return cache->m_globalPipelineLibrary.get();
-        }
-
-        bool HasThreadPipelineLibrary(const RHI::Ptr<RHI::PipelineStateCache>& cache) const
-        {
-            bool foundThreadLibrary = false;
-            cache->m_threadLibrarySet.ForEach(
-                [&foundThreadLibrary](const RHI::PipelineStateCache::ThreadLibrarySet& threadLibrarySet)
-                {
-                    for (const RHI::PipelineStateCache::ThreadLibraryEntry& entry : threadLibrarySet)
-                    {
-                        foundThreadLibrary |= entry.m_library != nullptr;
-                    }
-                });
-            return foundThreadLibrary;
-        }
-
-#endif
     private:
 
         void SetUp() override
@@ -320,92 +295,6 @@ namespace UnitTest
         EXPECT_EQ(pipelineStatesMerged.size(), 1);
     }
 
-#if defined(CARBONATED)
-    TEST_F(PipelineStateTests, PipelineStateCache_GlobalPipelineLibraryStrategy_UsesOneLibraryPerCache)
-    {
-        const AZ::u32 previousStrategy = r_pipelineLibraryStrategy;
-        r_pipelineLibraryStrategy = static_cast<AZ::u32>(RHI::PipelineLibraryStrategy::Global);
-
-        RHI::Ptr<RHI::Device> device = MakeTestDevice();
-        RHI::Ptr<RHI::PipelineStateCache> pipelineStateCache = RHI::PipelineStateCache::Create(*device);
-
-        // The strategy is captured for the cache lifetime.
-        r_pipelineLibraryStrategy = static_cast<AZ::u32>(RHI::PipelineLibraryStrategy::Thread);
-        EXPECT_EQ(pipelineStateCache->GetPipelineLibraryStrategy(), RHI::PipelineLibraryStrategy::Global);
-
-        const RHI::PipelineLibraryHandle firstHandle = pipelineStateCache->CreateLibrary(nullptr);
-        const RHI::PipelineLibraryHandle secondHandle = pipelineStateCache->CreateLibrary(nullptr);
-        RHI::PipelineLibrary* globalPipelineLibrary = GetGlobalPipelineLibrary(pipelineStateCache);
-
-        EXPECT_EQ(firstHandle, secondHandle);
-        EXPECT_NE(globalPipelineLibrary, nullptr);
-
-        ThreadTester::Dispatch(
-            4,
-            [&](size_t threadIndex)
-            {
-                const RHI::PipelineLibraryHandle handle = (threadIndex & 1) ? firstHandle : secondHandle;
-                EXPECT_NE(
-                    pipelineStateCache->AcquirePipelineState(
-                        handle, CreatePipelineStateDescriptor(static_cast<uint32_t>(threadIndex))),
-                    nullptr);
-            });
-
-        EXPECT_TRUE(HasThreadPipelineLibrary(pipelineStateCache));
-        EXPECT_EQ(pipelineStateCache->GetMergedLibrary(firstHandle).get(), globalPipelineLibrary);
-        EXPECT_FALSE(pipelineStateCache->ShouldSavePipelineLibrary(firstHandle));
-
-        pipelineStateCache->ReleaseLibrary(firstHandle);
-        EXPECT_NE(
-            pipelineStateCache->AcquirePipelineState(firstHandle, CreatePipelineStateDescriptor(10)),
-            nullptr);
-
-        r_pipelineLibraryStrategy = previousStrategy;
-    }
-
-    TEST_F(PipelineStateTests, PipelineStateCache_ThreadPipelineLibraryStrategy_PreservesThreadLibraries)
-    {
-        const AZ::u32 previousStrategy = r_pipelineLibraryStrategy;
-        r_pipelineLibraryStrategy = static_cast<AZ::u32>(RHI::PipelineLibraryStrategy::Thread);
-
-        RHI::Ptr<RHI::Device> device = MakeTestDevice();
-        RHI::Ptr<RHI::PipelineStateCache> pipelineStateCache = RHI::PipelineStateCache::Create(*device);
-        const RHI::PipelineLibraryHandle handle = pipelineStateCache->CreateLibrary(nullptr);
-
-        EXPECT_EQ(pipelineStateCache->GetPipelineLibraryStrategy(), RHI::PipelineLibraryStrategy::Thread);
-        EXPECT_EQ(GetGlobalPipelineLibrary(pipelineStateCache), nullptr);
-        EXPECT_NE(pipelineStateCache->AcquirePipelineState(handle, CreatePipelineStateDescriptor(0)), nullptr);
-        EXPECT_TRUE(HasThreadPipelineLibrary(pipelineStateCache));
-        EXPECT_TRUE(pipelineStateCache->ShouldSavePipelineLibrary(handle));
-
-        pipelineStateCache->ReleaseLibrary(handle);
-        r_pipelineLibraryStrategy = previousStrategy;
-    }
-
-    TEST_F(PipelineStateTests, PipelineStateCache_GlobalPipelineLibraryStrategy_FallsBackWhenUnsupported)
-    {
-        const AZ::u32 previousStrategy = r_pipelineLibraryStrategy;
-        r_pipelineLibraryStrategy = static_cast<AZ::u32>(RHI::PipelineLibraryStrategy::Global);
-
-        RHI::Ptr<RHI::Device> device = MakeTestDevice();
-        static_cast<UnitTest::Device*>(device.get())->SetSupportsGlobalPipelineLibrary(false);
-
-        AZ_TEST_START_TRACE_SUPPRESSION;
-        RHI::Ptr<RHI::PipelineStateCache> pipelineStateCache = RHI::PipelineStateCache::Create(*device);
-        AZ_TEST_STOP_TRACE_SUPPRESSION(1);
-
-        EXPECT_EQ(pipelineStateCache->GetPipelineLibraryStrategy(), RHI::PipelineLibraryStrategy::Thread);
-        EXPECT_EQ(GetGlobalPipelineLibrary(pipelineStateCache), nullptr);
-
-        const RHI::PipelineLibraryHandle handle = pipelineStateCache->CreateLibrary(nullptr);
-        EXPECT_NE(pipelineStateCache->AcquirePipelineState(handle, CreatePipelineStateDescriptor(0)), nullptr);
-        EXPECT_TRUE(HasThreadPipelineLibrary(pipelineStateCache));
-        pipelineStateCache->ReleaseLibrary(handle);
-
-        r_pipelineLibraryStrategy = previousStrategy;
-    }
-
-#endif
     TEST_F(PipelineStateTests, PipelineStateCache_PipelineStateThreading_Fuzz_Test)
     {
         RHI::Ptr<RHI::Device> device = MakeTestDevice();

@@ -37,13 +37,6 @@ namespace UnitTest
 
         Device();
 
-#if defined(CARBONATED)
-        void SetSupportsGlobalPipelineLibrary(bool supported)
-        {
-            m_features.m_supportsGlobalPipelineLibrary = supported;
-        }
-
-#endif
     private:
 
         AZ::RHI::ResultCode InitInternal(AZ::RHI::PhysicalDevice&) override { return AZ::RHI::ResultCode::Success; }
