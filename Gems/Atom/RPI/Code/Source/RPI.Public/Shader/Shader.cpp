@@ -29,6 +29,7 @@ namespace AZ
 {
     namespace RPI
     {
+#if defined(CARBONATED)
         namespace
         {
             bool IsShaderResourceGroupLayoutEmpty(
@@ -53,6 +54,7 @@ namespace AZ
             }
         } // namespace
 
+#endif
         Data::Instance<Shader> Shader::FindOrCreate(const Data::Asset<ShaderAsset>& shaderAsset, const Name& supervariantName)
         {
 #if defined(CARBONATED)
@@ -81,6 +83,7 @@ namespace AZ
             return FindOrCreate(shaderAsset, AZ::Name{ "" });
         }
 
+#if defined(CARBONATED)
         Data::Instance<Shader> Shader::FindOrCreateShaderOptionFallback() const
         {
             if (!m_asset->UseSpecializationConstants(m_supervariantIndex))
@@ -93,6 +96,7 @@ namespace AZ
             return FindOrCreate(m_asset, fallbackSupervariantName);
         }
 
+#endif
         Data::Instance<Shader> Shader::CreateInternal([[maybe_unused]] ShaderAsset& shaderAsset, const AZStd::any* anySupervariantName)
         {
             AZ_Assert(anySupervariantName != nullptr, "Invalid supervariant name param");
@@ -170,9 +174,11 @@ namespace AZ
             RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get();
             RHI::DrawListTagRegistry* drawListTagRegistry = rhiSystem->GetDrawListTagRegistry();
 
+#if defined(CARBONATED)
             m_dummyDrawSrg = nullptr;
             m_drawSrgPool = nullptr;
             m_drawSrgLayout = nullptr;
+#endif
             m_asset = { &shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad };
             m_pipelineStateType = shaderAsset.GetPipelineStateType();
 
@@ -185,6 +191,7 @@ namespace AZ
             auto rootShaderVariantAsset = shaderAsset.GetRootVariantAsset(m_supervariantIndex);
             m_rootVariant.Init(m_asset, rootShaderVariantAsset, m_supervariantIndex);
 
+#if defined(CARBONATED)
             m_drawSrgLayout = shaderAsset.GetDrawSrgLayout(m_supervariantIndex);
             if (m_drawSrgLayout)
             {
@@ -225,6 +232,7 @@ namespace AZ
                 }
             }
 
+#endif
             if (m_pipelineLibraryHandle.IsNull())
             {
                 // We set up a pipeline library only once for the lifetime of the Shader instance.
@@ -292,10 +300,12 @@ namespace AZ
                 drawListTagRegistry->ReleaseTag(m_drawListTag);
                 m_drawListTag.Reset();
             }
+#if defined(CARBONATED)
 
             m_dummyDrawSrg = nullptr;
             m_drawSrgPool = nullptr;
             m_drawSrgLayout = nullptr;
+#endif
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -446,12 +456,14 @@ namespace AZ
         
         ConstPtr<RHI::PipelineLibraryData> Shader::LoadPipelineLibrary() const
         {
+#if defined(CARBONATED)
             RHI::PipelineStateCache* pipelineStateCache = RHI::RHISystemInterface::Get()->GetPipelineStateCache();
             if (pipelineStateCache->GetPipelineLibraryStrategy() == RHI::PipelineLibraryStrategy::Global)
             {
                 return nullptr;
             }
 
+#endif
             RHI::Device* device = RHI::RHISystemInterface::Get()->GetDevice();
             //Check if explicit file load/save operation is needed as the RHI backend api may not support it
             if (m_pipelineLibraryPath[0] != 0 && device->GetFeatures().m_isPsoCacheFileOperationsNeeded)
@@ -463,11 +475,13 @@ namespace AZ
 
         void Shader::SavePipelineLibrary() const
         {
+#if defined(CARBONATED)
             if (m_pipelineStateCache->GetPipelineLibraryStrategy() == RHI::PipelineLibraryStrategy::Global)
             {
                 return;
             }
 
+#endif
             RHI::Device* device = RHI::RHISystemInterface::Get()->GetDevice();
             if (m_pipelineLibraryPath[0] != 0)
             {
@@ -610,6 +624,7 @@ namespace AZ
             return m_pipelineStateCache->AcquirePipelineState(m_pipelineLibraryHandle, descriptor, m_asset->GetName());
         }
 
+#if defined(CARBONATED)
         RHI::ConstPtr<RHI::PipelineState> Shader::AcquirePipelineState(
             const RHI::PipelineStateDescriptor& descriptor,
             RHI::PipelineStateAcquireFlags acquireFlags) const
@@ -627,6 +642,7 @@ namespace AZ
                 groupId, m_pipelineLibraryHandle, descriptor, m_asset->GetName());
         }
 
+#endif
         const RHI::Ptr<RHI::ShaderResourceGroupLayout>& Shader::FindShaderResourceGroupLayout(const Name& shaderResourceGroupName) const
         {
             return m_asset->FindShaderResourceGroupLayout(shaderResourceGroupName, m_supervariantIndex);
@@ -652,14 +668,23 @@ namespace AZ
 #if defined(CARBONATED)
             MEMORY_TAG(Shader);
 #endif
+#if defined(CARBONATED)
             if (m_dummyDrawSrg)
             {
                 return m_dummyDrawSrg;
             }
 
+#else
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout = m_asset->GetDrawSrgLayout(GetSupervariantIndex());
+#endif
             Data::Instance<ShaderResourceGroup> drawSrg;
+#if defined(CARBONATED)
             if (m_drawSrgLayout)
+#else
+            if (drawSrgLayout)
+#endif
             {
+#if defined(CARBONATED)
                 {
                     drawSrg = RPI::ShaderResourceGroup::CreateTransient(
                         *m_asset,
@@ -675,9 +700,16 @@ namespace AZ
                         m_asset->GetName().GetCStr());
                     return nullptr;
                 }
+#else
+                drawSrg = RPI::ShaderResourceGroup::Create(m_asset, GetSupervariantIndex(), drawSrgLayout->GetName());
+#endif
                 bool useFallbackKey = !shaderOptions.GetShaderOptionLayout()->IsFullySpecialized() ||
                     !m_asset->UseSpecializationConstants(GetSupervariantIndex());
+#if defined(CARBONATED)
                 if (useFallbackKey && m_drawSrgLayout->HasShaderVariantKeyFallbackEntry())
+#else
+                if (useFallbackKey && drawSrgLayout->HasShaderVariantKeyFallbackEntry())
+#endif
                 {
                     drawSrg->SetShaderVariantKeyFallbackValue(shaderOptions.GetShaderVariantKeyFallbackValue());
                 }

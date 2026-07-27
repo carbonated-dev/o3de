@@ -39,7 +39,9 @@ namespace AZ
             struct ShaderData
             {
                 Data::Instance<Shader> m_shader;
+#if defined(CARBONATED)
                 Data::Instance<Shader> m_fallbackShader;
+#endif
                 Name m_materialPipelineName;
                 Name m_shaderTag;
                 ShaderVariantId m_requestedShaderVariantId;
@@ -60,10 +62,13 @@ namespace AZ
             AZ_DEFAULT_COPY(MeshDrawPacket);
             AZ_DEFAULT_MOVE(MeshDrawPacket);
 
+#if defined(CARBONATED)
             //! Returns true when Update() needs to initialize its shader-variant handler or rebuild the draw packet.
-            bool NeedsUpdate(bool forceUpdate = false) const;
+            bool NeedsUpdate() const;
+#endif
             bool Update(const Scene& parentScene, bool forceUpdate = false);
 
+#if defined(CARBONATED)
             //! Sets the queue group used for asynchronous pipeline-state builds.
             void SetPipelineStateBuildGroup(RHI::PipelineStateBuildGroupId groupId);
 
@@ -71,6 +76,7 @@ namespace AZ
             //! Returns true when a Specialized pipeline state replaced a Fallback pipeline state.
             bool PublishPipelineStateBuildResults(const RHI::PipelineStateBuildRequestSet& completedRequests);
 
+#endif
             RHI::DrawPacket* GetRHIDrawPacket() { return m_drawPacket.get(); }
             const RHI::DrawPacket* GetRHIDrawPacket() const { return m_drawPacket.get(); }
             const RHI::ConstPtr<RHI::ConstantsLayout> GetRootConstantsLayout() const;
@@ -95,6 +101,7 @@ namespace AZ
             void DebugOutputShaderVariants();
 
         private:
+#if defined(CARBONATED)
             struct DrawItemPipelineState
             {
                 RHI::ConstPtr<RHI::PipelineState> m_currentPipelineState;
@@ -133,6 +140,7 @@ namespace AZ
                 HashValue64 m_descriptorHash;
             };
 
+#endif
             bool DoUpdate(const Scene& parentScene);
             void ForValidShaderOptionName(const Name& shaderOptionName, const AZStd::function<bool(const ShaderCollection::Item&, ShaderOptionIndex)>& callback);
 
@@ -144,12 +152,14 @@ namespace AZ
             // Maintains references to the shader instances to keep their PSO caches resident (see Shader::Shutdown())
             ShaderList m_activeShaders;
 
+#if defined(CARBONATED)
             // Per-draw-item PSO ownership and descriptor compatibility data, plus reusable Fallback PSOs.
             AZStd::vector<DrawItemPipelineState> m_drawItemPipelineStates;
             AZStd::fixed_vector<PipelineStateReference, RHI::DrawPacketBuilder::DrawItemCountMax> m_fallbackPipelineStates;
             AZStd::vector<PendingPipelineStateBuild> m_pendingPipelineStateBuilds;
             RHI::PipelineStateBuildGroupId m_pipelineStateBuildGroupId;
 
+#endif
             RHI::ConstPtr<RHI::ConstantsLayout> m_rootConstantsLayout;
 
             // The model that contains the mesh being represented by the DrawPacket
@@ -165,7 +175,9 @@ namespace AZ
             // does not allow public access to its Instance<RPI::ShaderResourceGroup>.
             ConstPtr<RHI::ShaderResourceGroup> m_materialSrg;
 
+#if defined(CARBONATED)
             // Retains the real per-draw SRGs and references to shader-owned dummy Draw SRGs used by the draw packet.
+#endif
             AZStd::fixed_vector<Data::Instance<ShaderResourceGroup>, RHI::DrawPacketBuilder::DrawItemCountMax> m_perDrawSrgs;
 
             // A reference to the material, used to rebuild the DrawPacket if needed

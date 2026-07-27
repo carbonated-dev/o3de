@@ -375,6 +375,10 @@ namespace AZ
                 return;
             }
 
+#if !defined(CARBONATED)
+            auto supervariantList = ShaderBuilderUtility::GetSupervariantListFromShaderSourceData(shaderSourceData);
+
+#endif
             RPI::ShaderAssetCreator shaderAssetCreator;
             shaderAssetCreator.Begin(Uuid::CreateRandom());
 
@@ -412,6 +416,7 @@ namespace AZ
                 buildArgsManager.PushArgumentScope(apiName);
                 buildArgsManager.PushArgumentScope(shaderSourceData.m_removeBuildArguments, shaderSourceData.m_addBuildArguments, shaderSourceData.m_definitions);
 
+#if defined(CARBONATED)
                 auto supervariantList = ShaderBuilderUtility::GetSupervariantListFromShaderSourceData(
                     shaderSourceData, &buildArgsManager.GetCurrentArguments());
                 if (supervariantList.empty())
@@ -420,6 +425,7 @@ namespace AZ
                     return;
                 }
 
+#endif
                 // Signal the begin of shader data for an RHI API.
                 shaderAssetCreator.BeginAPI(shaderPlatformInterface->GetAPIType());
 

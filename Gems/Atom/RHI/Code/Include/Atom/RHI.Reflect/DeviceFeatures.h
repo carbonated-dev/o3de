@@ -77,9 +77,11 @@ namespace AZ::RHI
         //! Whether PipelineLibrary related serialized data needs to be loaded/saved explicitly as drivers (like dx12/vk) do not support it internally
         bool m_isPsoCacheFileOperationsNeeded = true;
 
+#if defined(CARBONATED)
         //! Whether one PipelineLibrary can be shared by all compilation threads using a PipelineStateCache.
         bool m_supportsGlobalPipelineLibrary = false;
 
+#endif
         //! Whether supports tile resource.
         bool m_tiledResource = true;
 

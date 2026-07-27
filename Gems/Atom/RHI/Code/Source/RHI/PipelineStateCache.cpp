@@ -8,18 +8,19 @@
 
 #include <Atom/RHI/PipelineStateCache.h>
 #include <Atom/RHI/Factory.h>
-#include <Atom/RHI/RHISystemInterface.h>
 
 #include <AzCore/Debug/Profiler.h>
-#include <AzCore/IO/FileIO.h>
-#include <AzCore/Serialization/Utils.h>
 #include <AzCore/std/sort.h>
 #include <AzCore/std/parallel/exponential_backoff.h>
 
 #if defined(CARBONATED)
+#include <Atom/RHI/RHISystemInterface.h>
+#include <AzCore/IO/FileIO.h>
 #include <AzCore/Memory/MemoryMarker.h>
+#include <AzCore/Serialization/Utils.h>
 #endif
 
+#if defined(CARBONATED)
 AZ_CVAR(
     AZ::u32,
     r_pipelineLibraryStrategy,
@@ -28,8 +29,10 @@ AZ_CVAR(
     AZ::ConsoleFunctorFlags::NeedsReload,
     "Pipeline library strategy. 0: Per Shader; 1: Global. The value is captured when PipelineStateCache is created and changing it requires a restart.");
 
+#endif
 namespace AZ::RHI
 {
+#if defined(CARBONATED)
     namespace
     {
         constexpr int GlobalPipelineCacheVersion = 0;
@@ -115,6 +118,7 @@ namespace AZ::RHI
         }
     }
 
+#endif
     Ptr<PipelineStateCache> PipelineStateCache::Create(Device& device)
     {
         return aznew PipelineStateCache(device);
@@ -122,8 +126,11 @@ namespace AZ::RHI
 
     PipelineStateCache::PipelineStateCache(Device& device)
         : m_device{&device}
+#if defined(CARBONATED)
         , m_pipelineLibraryStrategy{GetPipelineLibraryStrategyFromCVar(device)}
+#endif
     {
+#if defined(CARBONATED)
         if (m_pipelineLibraryStrategy == PipelineLibraryStrategy::Global)
         {
             m_globalLibrarySet.emplace_back();
@@ -153,8 +160,10 @@ namespace AZ::RHI
             // Keep the object even if initialization failed so initialization is only attempted once.
             m_globalPipelineLibrary = AZStd::move(pipelineLibrary);
         }
+#endif
     }
 
+#if defined(CARBONATED)
     PipelineStateCache::~PipelineStateCache()
     {
         if (m_pipelineLibraryStrategy == PipelineLibraryStrategy::Global && r_enablePsoCaching)
@@ -204,6 +213,7 @@ namespace AZ::RHI
     {
         return m_pipelineLibraryStrategy;
     }    
+#endif
 
     void PipelineStateCache::ValidateCacheIntegrity() const
     {
@@ -262,11 +272,13 @@ namespace AZ::RHI
 
     PipelineLibraryHandle PipelineStateCache::CreateLibrary(const PipelineLibraryData* serializedData, const AZStd::string& filePath)
     {
+#if defined(CARBONATED)
         if (m_pipelineLibraryStrategy == PipelineLibraryStrategy::Global)
         {
             return PipelineLibraryHandle{0};
         }
 
+#endif
         AZStd::unique_lock<AZStd::shared_mutex> lock(m_mutex);
 
         PipelineLibraryHandle handle;
@@ -303,11 +315,13 @@ namespace AZ::RHI
 
     void PipelineStateCache::ReleaseLibrary(PipelineLibraryHandle handle)
     {
+#if defined(CARBONATED)
         if (m_pipelineLibraryStrategy == PipelineLibraryStrategy::Global)
         {
             return;
         }
 
+#endif
         if (handle.IsValid())
         {
             AZStd::unique_lock<AZStd::shared_mutex> lock(m_mutex);
@@ -359,11 +373,13 @@ namespace AZ::RHI
             return nullptr;
         }
 
+#if defined(CARBONATED)
         if (m_pipelineLibraryStrategy == PipelineLibraryStrategy::Global)
         {
             return nullptr;
         }
 
+#endif
         AZStd::unique_lock<AZStd::shared_mutex> lock(m_mutex);
         const GlobalLibraryEntry& entry = m_globalLibrarySet[handle.GetIndex()];
 
@@ -413,6 +429,7 @@ namespace AZ::RHI
     {
         AZ_PROFILE_SCOPE(RHI, "PipelineStateCache: Compact");
         AZStd::unique_lock<AZStd::shared_mutex> lock(m_mutex);
+#if defined(CARBONATED)
         CompactInternal();
     }
 
@@ -431,6 +448,7 @@ namespace AZ::RHI
 
     void PipelineStateCache::CompactInternal()
     {
+#endif
         // Merge the pending cache into the read-only cache.
         bool hasCompiledPipelineStates = false;
         for (size_t i = 0; i < m_globalLibrarySet.size(); ++i)
@@ -492,6 +510,7 @@ namespace AZ::RHI
         return ret.second;
     }
 
+#if defined(CARBONATED)
     const PipelineState* PipelineStateCache::AcquirePipelineState(
         PipelineLibraryHandle handle,
         const PipelineStateDescriptor& descriptor,
@@ -521,7 +540,7 @@ namespace AZ::RHI
         }
 #if defined(CARBONATED)
         MEMORY_TAG(Shader);
-#endif        
+#endif
 
         AZStd::shared_lock<AZStd::shared_mutex> lock(m_mutex);
 
@@ -713,6 +732,148 @@ namespace AZ::RHI
         }
         return pipelineState;
     }
+
+#else
+    const PipelineState* PipelineStateCache::AcquirePipelineState(
+        PipelineLibraryHandle handle, const PipelineStateDescriptor& descriptor, const AZ::Name& name /*= AZ::Name()*/)
+    {
+        if (handle.IsNull())
+        {
+            return nullptr;
+        }
+#if defined(CARBONATED)
+        MEMORY_TAG(Shader);
+#endif
+
+        AZStd::shared_lock<AZStd::shared_mutex> lock(m_mutex);
+
+        GlobalLibraryEntry& globalLibraryEntry = m_globalLibrarySet[handle.GetIndex()];
+        PipelineStateHash pipelineStateHash = descriptor.GetHash();
+
+        // Search the read-only cache first.
+        if (const PipelineState* pipelineState = FindPipelineState(globalLibraryEntry.m_readOnlyCache, descriptor))
+        {
+            return pipelineState;
+        }
+
+        // Search the thread-local cache next.
+        {
+            ThreadLibrarySet& threadLibrarySet = m_threadLibrarySet.GetStorage();
+            ThreadLibraryEntry& threadLibraryEntry = threadLibrarySet[handle.GetIndex()];
+            PipelineStateSet& threadLocalCache = threadLibraryEntry.m_threadLocalCache;
+
+            if (const PipelineState* pipelineState = FindPipelineState(threadLocalCache, descriptor))
+            {
+                return pipelineState;
+            }
+
+            // No entry in the thread-local set. Request a pipeline state from the pending cache and add
+            // it to the thread-local cache to reduce contention on the pending cache.
+            {
+                // Lazy-init the library on first access.
+                if (!threadLibraryEntry.m_library)
+                {
+                    Ptr<PipelineLibrary> pipelineLibrary = Factory::Get().CreatePipelineLibrary();
+                    RHI::ResultCode resultCode = pipelineLibrary->Init(*m_device, globalLibraryEntry.m_pipelineLibraryDescriptor);
+                    if (resultCode != RHI::ResultCode::Success)
+                    {
+                        AZ_Warning("PipelineStateCache", false, "Failed to initialize pipeline library. PipelineLibrary usage is disabled.");
+                    }
+
+                    // We store a valid pointer even if initialization failed, to avoid attempting
+                    // to re-create it with every access.
+                    threadLibraryEntry.m_library = AZStd::move(pipelineLibrary);
+                }
+
+                ConstPtr<PipelineState> pipelineState = CompilePipelineState(globalLibraryEntry, threadLibraryEntry, descriptor, pipelineStateHash, name);
+
+                [[maybe_unused]] bool success = InsertPipelineState(threadLocalCache, PipelineStateEntry(pipelineStateHash, pipelineState, descriptor));
+                AZ_Assert(success, "PipelineStateEntry already exists in the thread cache.");
+
+                return pipelineState.get();
+            }
+        }
+    }
+
+    ConstPtr<PipelineState> PipelineStateCache::CompilePipelineState(
+        GlobalLibraryEntry& globalLibraryEntry,
+        ThreadLibraryEntry& threadLibraryEntry,
+        const PipelineStateDescriptor& descriptor,
+        PipelineStateHash pipelineStateHash,
+        const AZ::Name& name)
+    {
+        Ptr<PipelineState> pipelineState;
+
+        PipelineStateSet& pendingCache = globalLibraryEntry.m_pendingCache;
+
+        {
+            AZStd::lock_guard<AZStd::mutex> lock(globalLibraryEntry.m_pendingCacheMutex);
+
+            // Another thread may have started compiling this pipeline state. Check the pending cache.
+            if (const PipelineState* pipeline = FindPipelineState(pendingCache, descriptor))
+            {
+                return pipeline;
+            }
+
+            // We need to create and insert the pipeline state into the locked cache. Create the pipeline state
+            // but don't initialize it yet. We can safely allocate the 'empty' instance and cache it.
+            pipelineState = Factory::Get().CreatePipelineState();
+
+            [[maybe_unused]] bool success = InsertPipelineState(pendingCache, PipelineStateEntry(pipelineStateHash, pipelineState, descriptor));
+            AZ_Assert(success, "PipelineStateEntry already exists in the pending cache.");
+        }
+
+        [[maybe_unused]] ResultCode resultCode = ResultCode::InvalidArgument;
+
+        // Increment the pending compile count on the global entry, which tracks how many pipeline states
+        // are currently being compiled across all threads.
+        if (Validation::IsEnabled())
+        {
+            ++globalLibraryEntry.m_pendingCompileCount;
+        }
+
+        // If the pipeline library failed to initialize, then we don't use it.
+        PipelineLibrary* pipelineLibrary = threadLibraryEntry.m_library.get();
+        if (!pipelineLibrary->IsInitialized())
+        {
+            pipelineLibrary = nullptr;
+        }
+
+        // We no longer have the lock, but we own compilation of the pipeline state. Use the
+        // thread-local library to perform compilation without blocking other threads.
+        switch (descriptor.GetType())
+        {
+        case PipelineStateType::Draw:
+            resultCode = pipelineState->Init(*m_device, static_cast<const PipelineStateDescriptorForDraw&>(descriptor), pipelineLibrary);
+            break;
+
+        case PipelineStateType::Dispatch:
+            resultCode = pipelineState->Init(*m_device, static_cast<const PipelineStateDescriptorForDispatch&>(descriptor), pipelineLibrary);
+            break;
+
+        case PipelineStateType::RayTracing:
+            resultCode = pipelineState->Init(*m_device, static_cast<const PipelineStateDescriptorForRayTracing&>(descriptor), pipelineLibrary);
+            break;
+
+        default:
+            AZ_Assert(false, "Invalid pipeline state descriptor type specified.");
+        }
+
+        pipelineState->SetName(name);
+
+        if (Validation::IsEnabled())
+        {
+            --globalLibraryEntry.m_pendingCompileCount;
+        }
+
+        // NOTE: We can't return null on a failure, since other threads will return the entry without compiling
+        // it. Instead, the pipeline state remains uninitialized.
+
+        AZ_Error("PipelineStateCache", resultCode == ResultCode::Success, "Failed to compile pipeline state. It will remain in an initialized state.");
+        return AZStd::move(pipelineState);
+    }
+
+#endif
 
     PipelineStateCache::PipelineStateEntry::PipelineStateEntry(PipelineStateHash hash, ConstPtr<PipelineState> pipelineState, const PipelineStateDescriptor& descriptor)
         : m_hash{ hash }

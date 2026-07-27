@@ -358,13 +358,23 @@ namespace AZ
             }
 
             AZStd::vector<RPI::ShaderSourceData::SupervariantInfo> GetSupervariantListFromShaderSourceData(
+#if defined(CARBONATED)
                 const RPI::ShaderSourceData& shaderSourceData,
                 const RHI::ShaderBuildArguments* baseBuildArguments)
+#else
+                const RPI::ShaderSourceData& shaderSourceData)
+#endif
             {
+#if defined(CARBONATED)
                 const AZStd::string_view noSpecializationSuffix{ RPI::NoSpecializationSupervariantName };
 
+#endif
                 AZStd::vector<RPI::ShaderSourceData::SupervariantInfo> supervariants;
+#if defined(CARBONATED)
                 supervariants.reserve((shaderSourceData.m_supervariants.size() + 1) * 2);
+#else
+                supervariants.reserve(shaderSourceData.m_supervariants.size() + 1);
+#endif
 
                 // Add the supervariants, always making sure that:
                 //  1- The default, nameless, supervariant goes to the front.
@@ -381,6 +391,7 @@ namespace AZ
                             supervariantInfo.m_name.GetCStr());
                         return {}; // Return an empty vector.
                     }
+#if defined(CARBONATED)
                     const AZStd::string_view supervariantName = supervariantInfo.m_name.GetStringView();
                     if (supervariantName.size() >= noSpecializationSuffix.size() &&
                         supervariantName.substr(supervariantName.size() - noSpecializationSuffix.size()) == noSpecializationSuffix)
@@ -393,6 +404,7 @@ namespace AZ
                             RPI::NoSpecializationSupervariantName);
                         return {};
                     }
+#endif
                     if (uniqueSuperVariants.count(supervariantInfo.m_name))
                     {
                         AZ_Error(
@@ -414,6 +426,7 @@ namespace AZ
                     supervariants.push_back({});
                     // Always move the default, nameless, variant to the begining of the list.
                     AZStd::swap(supervariants.front(), supervariants.back());
+#if defined(CARBONATED)
                     uniqueSuperVariants.emplace(supervariants.front().m_name);
                 }
 
@@ -480,6 +493,7 @@ namespace AZ
                 for (auto& noSpecializationSupervariant : noSpecializationSupervariants)
                 {
                     supervariants.push_back(AZStd::move(noSpecializationSupervariant));
+#endif
                 }
 
                 return supervariants;

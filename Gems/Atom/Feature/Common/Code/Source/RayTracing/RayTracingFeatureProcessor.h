@@ -80,8 +80,10 @@ namespace AZ
             void Deactivate() override;
             void OnRenderPipelineChanged(RPI::RenderPipeline* renderPipeline, RPI::SceneNotification::RenderPipelineChangeType changeType) override;
 
+#if defined(CARBONATED)
             bool IsRayTracingEnabled() const { return m_rayTracingEnabled; }
 
+#endif
             struct Mesh;
 
             //! Contains material data for a single subMesh

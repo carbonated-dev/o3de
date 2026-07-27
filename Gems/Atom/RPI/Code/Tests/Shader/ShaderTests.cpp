@@ -361,6 +361,7 @@ namespace UnitTest
             return srgLayout;
         }
 
+#if defined(CARBONATED)
         void UseDrawShaderResourceGroupLayout(RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout)
         {
             m_srgLayouts[RPI::SrgBindingSlot::Draw] = AZStd::move(drawSrgLayout);
@@ -407,6 +408,7 @@ namespace UnitTest
             UseDrawShaderResourceGroupLayout(AZStd::move(drawSrgLayout));
         }
 
+#endif
         AZ::RHI::ShaderResourceGroupBindingInfo CreateShaderResouceGroupBindingInfo(size_t index)
         {
             Name srgId = CreateShaderResourceGroupId(index);
@@ -524,15 +526,30 @@ namespace UnitTest
             }
         }
 
+#if defined(CARBONATED)
         void AddTestSupervariant(
             AZ::RPI::ShaderAssetCreator& creator,
             const AZ::Name& name,
+#else
+        void BeginCreatingTestShaderAsset(AZ::RPI::ShaderAssetCreator& creator,
+#endif
             const AZStd::vector<RHI::ShaderStage>& stagesToActivate = {RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment},
             SpecializationType specializationType = SpecializationType::None)
         {
             using namespace AZ;
 
+#if defined(CARBONATED)
             creator.BeginSupervariant(name);
+#else
+            creator.Begin(Uuid::CreateRandom());
+            creator.SetName(m_name);
+            creator.SetDrawListName(m_drawListName);
+            creator.SetShaderOptionGroupLayout(GetShaderOptionGroupForAssets(specializationType));
+
+            creator.BeginAPI(RHI::Factory::Get().GetType());
+
+            creator.BeginSupervariant(AZ::Name{}); // The default (first) supervariant MUST be nameless.
+#endif
 
             creator.SetSrgLayoutList(m_srgLayouts);
             creator.SetPipelineLayout(m_pipelineLayoutDescriptor);
@@ -554,6 +571,7 @@ namespace UnitTest
             creator.EndSupervariant();
         }
 
+#if defined(CARBONATED)
         void BeginCreatingTestShaderAsset(AZ::RPI::ShaderAssetCreator& creator,
             const AZStd::vector<RHI::ShaderStage>& stagesToActivate = {RHI::ShaderStage::Vertex, RHI::ShaderStage::Fragment},
             SpecializationType specializationType = SpecializationType::None)
@@ -569,6 +587,7 @@ namespace UnitTest
             AddTestSupervariant(creator, AZ::Name{}, stagesToActivate, specializationType);
         }
 
+#endif
         //! Used to finish creating a shader that began with BeginCreatingTestShaderAsset(). Call this after adding all the desired shader variants.
         AZ::Data::Asset<AZ::RPI::ShaderAsset> EndCreatingTestShaderAsset(RPI::ShaderAssetCreator& creator)
         {
@@ -1448,6 +1467,7 @@ namespace UnitTest
         ValidateShaderAsset(serializedShaderAsset);
     }
 
+#if defined(CARBONATED)
     TEST_F(ShaderTests, ShaderAsset_ShaderOptionFallbackNameAndLookup)
     {
         using namespace AZ;
@@ -1580,6 +1600,7 @@ namespace UnitTest
         EXPECT_NE(firstDrawSrg.get(), secondDrawSrg.get());
     }
 
+#endif
     TEST_F(ShaderTests, ShaderAsset_PipelineLayout_Missing_Test)
     {
         using namespace AZ;

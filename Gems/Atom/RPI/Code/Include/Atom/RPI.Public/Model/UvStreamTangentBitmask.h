@@ -46,8 +46,13 @@ namespace AZ
             //! The bit mask indicating generated tangent/bitangent will be used.
             static constexpr uint32_t UnassignedTangent = 0b1111u;
 
+#if defined(CARBONATED)
             //! The root constant name defined in shader code.
             static constexpr const char* RootConstantName = "m_uvStreamTangentBitmask";
+#else
+            //! The variable name defined in the SRG shader code.
+            static constexpr const char* SrgName = "m_uvStreamTangentBitmask";
+#endif
         private:
             //! Mask composition:
             //! The number of UV slots (highest 4 bits) + tangent mask (4 bits each) * 7

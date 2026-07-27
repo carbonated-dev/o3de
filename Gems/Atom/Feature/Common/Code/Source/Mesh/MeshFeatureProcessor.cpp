@@ -37,26 +37,27 @@
 #include <AzCore/Console/IConsole.h>
 #include <AzCore/Jobs/Algorithms.h>
 #include <AzCore/Jobs/JobCompletion.h>
-#include <AzCore/Jobs/JobContext.h>
 #include <AzCore/Jobs/JobFunction.h>
-#include <AzCore/Jobs/JobManager.h>
 #include <AzCore/Math/ShapeIntersection.h>
 #include <AzCore/Name/NameDictionary.h>
 #include <AzCore/RTTI/RTTI.h>
 #include <AzCore/RTTI/TypeInfo.h>
 #include <AzCore/Serialization/SerializeContext.h>
-#include <AzCore/std/containers/unordered_set.h>
 
 #include <algorithm>
 
 #if defined(CARBONATED)
+#include <AzCore/Jobs/JobContext.h>
+#include <AzCore/Jobs/JobManager.h>
 #include <AzCore/Memory/MemoryMarker.h>
+#include <AzCore/std/containers/unordered_set.h>
 #endif
 
 namespace AZ
 {
     namespace Render
     {
+#if defined(CARBONATED)
         AZ_CVAR(
             uint32_t,
             r_meshUpdateMode,
@@ -65,6 +66,7 @@ namespace AZ
             AZ::ConsoleFunctorFlags::Null,
             "Mesh update scheduling mode. 0 = PerModel, 1 = PerDrawPacket (more balance Jobs).");
 
+#endif
         static AZ::Name s_o_meshUseForwardPassIBLSpecular_Name =
             AZ::Name::FromStringLiteral("o_meshUseForwardPassIBLSpecular", AZ::Interface<AZ::NameDictionary>::Get());
         static AZ::Name s_Manual_Name = AZ::Name::FromStringLiteral("Manual", AZ::Interface<AZ::NameDictionary>::Get());
@@ -142,9 +144,11 @@ namespace AZ
 
         void MeshFeatureProcessor::Activate()
         {
+#if defined(CARBONATED)
             m_pipelineStateBuildGroupId =
                 RHI::RHISystemInterface::Get()->GetPipelineStateBuildQueue()->CreateRequestGroup();
 
+#endif
             m_transformService = GetParentScene()->GetFeatureProcessor<TransformServiceFeatureProcessor>();
             AZ_Assert(m_transformService, "MeshFeatureProcessor requires a TransformServiceFeatureProcessor on its parent scene.");
 
@@ -201,9 +205,11 @@ namespace AZ
 
         void MeshFeatureProcessor::Deactivate()
         {
+#if defined(CARBONATED)
             RHI::RHISystemInterface::Get()->GetPipelineStateBuildQueue()->ReleaseRequestGroup(m_pipelineStateBuildGroupId);
             m_pipelineStateBuildGroupId.Reset();
 
+#endif
             m_flagRegistry.reset();
 
             m_handleGlobalShaderOptionUpdate.Disconnect();
@@ -239,19 +245,31 @@ namespace AZ
             AZ::Job* parentJob = packet.m_parentJob;
             AZStd::concurrency_check_scope scopeCheck(m_meshDataChecker);
 
+#if defined(CARBONATED)
             // Publish completed PSOs at one deterministic point before mesh jobs and culling can consume draw packets.
             PublishPipelineStateBuildResults();
 
+#endif
             // If the instancing cvar has changed, we need to re-initalize the ModelDataInstances
             CheckForInstancingCVarChange();
 
+#if defined(CARBONATED)
             // Snapshot the mode once so a console change cannot mix scheduling strategies within a single simulation.
             const uint32_t meshUpdateMode = static_cast<uint32_t>(r_meshUpdateMode);
             const bool usePerDrawPacketMeshUpdates = meshUpdateMode != 0;
             AZStd::vector<Job*> initJobQueue = CreateInitJobQueue(!usePerDrawPacketMeshUpdates);
+#else
+            AZStd::vector<Job*> initJobQueue = CreateInitJobQueue();
+            AZStd::vector<Job*> updateCullingJobQueue = CreateUpdateCullingJobQueue();
+#endif
 
+#if defined(CARBONATED)
             if (usePerDrawPacketMeshUpdates)
+#else
+            if (!r_meshInstancingEnabled)
+#endif
             {
+#if defined(CARBONATED)
                 ExecuteSimulateJobQueue(initJobQueue, parentJob);
 
                 // Initialization creates the MeshDrawPackets, so build and execute the packet-level work only after initialization is complete.
@@ -260,11 +278,20 @@ namespace AZ
                 // Cullables consume the updated DrawPackets and must be rebuilt after all packet jobs and owner notifications are complete.
                 AZStd::vector<Job*> updateCullingJobQueue = CreateUpdateCullingJobQueue();
                 ExecuteSimulateJobQueue(updateCullingJobQueue, parentJob);
+#else
+                // There's no need for all the init jobs to finish before any of the update culling jobs are run.
+                // Any update culling job can run once it's corresponding init job is done. So instead of separating the jobs
+                // entirely, use individual job dependencies to synchronize them. This performs better than having a big sync between them
+                ExecuteCombinedJobQueue(initJobQueue, updateCullingJobQueue, parentJob);
+#endif
             }
             else
             {
+#if defined(CARBONATED)
                 AZStd::vector<Job*> updateCullingJobQueue = CreateUpdateCullingJobQueue();
+#endif
 
+#if defined(CARBONATED)
                 if (!r_meshInstancingEnabled)
                 {
                     // There's no need for all the init jobs to finish before any of the update culling jobs are run.
@@ -285,11 +312,23 @@ namespace AZ
                     // because the per-instance group work will update the draw packets.
                     ExecuteSimulateJobQueue(updateCullingJobQueue, parentJob);
                 }
+#else
+                ExecuteSimulateJobQueue(initJobQueue, parentJob);
+                // Per-InstanceGroup work must be done after the Init jobs are complete, because the init jobs will determine which instance
+                // group each mesh belongs to and populate those instance groups
+                // Note: the Per-InstanceGroup jobs need to be created after init jobs because it's possible new instance groups are created in init jobs
+                AZStd::vector<Job*> perInstanceGroupJobQueue = CreatePerInstanceGroupJobQueue();
+                ExecuteSimulateJobQueue(perInstanceGroupJobQueue, parentJob);
+                // Updating the culling scene must happen after the per-instance group work is done
+                // because the per-instance group work will update the draw packets.
+                ExecuteSimulateJobQueue(updateCullingJobQueue, parentJob);
+#endif
             }
 
             m_forceRebuildDrawPackets = false;
         }
 
+#if defined(CARBONATED)
         void MeshFeatureProcessor::PublishPipelineStateBuildResults()
         {
             RHI::PipelineStateBuildRequestList completedRequests =
@@ -334,6 +373,7 @@ namespace AZ
             }
         }
 
+#endif
         void MeshFeatureProcessor::CheckForInstancingCVarChange()
         {
             if (m_enableMeshInstancing != r_meshInstancingEnabled || m_enableMeshInstancingForTransparentObjects != r_meshInstancingEnabledForTransparentObjects)
@@ -383,6 +423,7 @@ namespace AZ
             return perInstanceGroupJobQueue;
         }
 
+#if defined(CARBONATED)
         void MeshFeatureProcessor::ExecuteUpdateDrawPackets(AZ::Job* parentJob)
         {
 #if defined(CARBONATED)
@@ -416,7 +457,7 @@ namespace AZ
                         for (auto instanceGroupDataIter = iteratorRange.m_begin; instanceGroupDataIter != iteratorRange.m_end;
                              ++instanceGroupDataIter)
                         {
-                            if (instanceGroupDataIter->m_drawPacket.NeedsUpdate(m_forceRebuildDrawPackets))
+                            if (m_forceRebuildDrawPackets || instanceGroupDataIter->m_drawPacket.NeedsUpdate())
                             {
                                 workItems->push_back(
                                     DrawPacketUpdateWorkItem{ nullptr, nullptr, &*instanceGroupDataIter, false });
@@ -440,7 +481,7 @@ namespace AZ
                             {
                                 for (RPI::MeshDrawPacket& drawPacket : drawPacketList)
                                 {
-                                    if (enableDrawMotion || drawPacket.NeedsUpdate(m_forceRebuildDrawPackets))
+                                    if (enableDrawMotion || m_forceRebuildDrawPackets || drawPacket.NeedsUpdate())
                                     {
                                         workItems->push_back(
                                             DrawPacketUpdateWorkItem{ &drawPacket, &*meshDataIter, nullptr, enableDrawMotion });
@@ -555,6 +596,9 @@ namespace AZ
         }
 
         AZStd::vector<Job*> MeshFeatureProcessor::CreateInitJobQueue(bool updateDrawPackets)
+#else
+        AZStd::vector<Job*> MeshFeatureProcessor::CreateInitJobQueue()
+#endif
         {
 #if defined(CARBONATED)
             MEMORY_TAG(Mesh);
@@ -565,7 +609,11 @@ namespace AZ
             bool removePerMeshShaderOptionFlags = !r_enablePerMeshShaderOptionFlags && m_enablePerMeshShaderOptionFlags;
             for (const auto& iteratorRange : iteratorRanges)
             {
+#if defined(CARBONATED)
                 const auto initJobLambda = [this, iteratorRange, removePerMeshShaderOptionFlags, updateDrawPackets]() -> void
+#else
+                const auto initJobLambda = [this, iteratorRange, removePerMeshShaderOptionFlags]() -> void
+#endif
                 {
                     AZ_PROFILE_SCOPE(AzRender, "MeshFeatureProcessor: Simulate: Init");
 #if defined(CARBONATED)
@@ -621,6 +669,7 @@ namespace AZ
                                 meshDataIter->m_cullable.m_prevShaderOptionFlags = 0;
                             }
 
+#if defined(CARBONATED)
                             if (updateDrawPackets)
                             {
                                 // [GFX TODO] [ATOM-1357] Currently all of the draw packets have to be checked for material ID changes because
@@ -629,6 +678,13 @@ namespace AZ
                                 // to check every one.
                                 meshDataIter->UpdateDrawPackets(m_forceRebuildDrawPackets);
                             }
+#else
+                            // [GFX TODO] [ATOM-1357] Currently all of the draw packets have to be checked for material ID changes because
+                            // material properties can impact which actual shader is used, which impacts the SRG in the draw packet.
+                            // This is scheduled to be optimized so the work is only done on draw packets that need it instead of having
+                            // to check every one.
+                            meshDataIter->UpdateDrawPackets(m_forceRebuildDrawPackets);
+#endif
                         }
                     }
                 };
@@ -2422,7 +2478,9 @@ namespace AZ
                 {
                     // setup the mesh draw packet
                     RPI::MeshDrawPacket drawPacket(modelLod, meshIndex, material, meshObjectSrg, customMaterialInfo.m_uvMapping);
+#if defined(CARBONATED)
                     drawPacket.SetPipelineStateBuildGroup(meshFeatureProcessor->GetPipelineStateBuildGroupId());
+#endif
 
                     // set the shader option to select forward pass IBL specular if necessary
                     if (!drawPacket.SetShaderOption(s_o_meshUseForwardPassIBLSpecular_Name, AZ::RPI::ShaderOptionValue{ m_descriptor.m_useForwardPassIblSpecular }))
@@ -2499,9 +2557,15 @@ namespace AZ
                 return;
             }
 
+#if defined(CARBONATED)
             if (!rayTracingFeatureProcessor || !rayTracingFeatureProcessor->IsRayTracingEnabled())
+#else
+            if (!rayTracingFeatureProcessor)
+#endif
             {
+#if defined(CARBONATED)
                 m_flags.m_needsSetRayTracingData = false;
+#endif
                 return;
             }
 

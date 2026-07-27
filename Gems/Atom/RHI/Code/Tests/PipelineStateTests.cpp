@@ -17,8 +17,10 @@
 
 #include <AzCore/Math/Random.h>
 
+#if defined(CARBONATED)
 AZ_CVAR_EXTERNED(AZ::u32, r_pipelineLibraryStrategy);
 
+#endif
 namespace UnitTest
 {
     using namespace AZ;
@@ -71,6 +73,7 @@ namespace UnitTest
             cache->ValidateCacheIntegrity();
         }
 
+#if defined(CARBONATED)
         RHI::PipelineLibrary* GetGlobalPipelineLibrary(const RHI::Ptr<RHI::PipelineStateCache>& cache) const
         {
             return cache->m_globalPipelineLibrary.get();
@@ -90,6 +93,7 @@ namespace UnitTest
             return foundThreadLibrary;
         }
 
+#endif
     private:
 
         void SetUp() override
@@ -316,6 +320,7 @@ namespace UnitTest
         EXPECT_EQ(pipelineStatesMerged.size(), 1);
     }
 
+#if defined(CARBONATED)
     TEST_F(PipelineStateTests, PipelineStateCache_GlobalPipelineLibraryStrategy_UsesOneLibraryPerCache)
     {
         const AZ::u32 previousStrategy = r_pipelineLibraryStrategy;
@@ -400,6 +405,7 @@ namespace UnitTest
         r_pipelineLibraryStrategy = previousStrategy;
     }
 
+#endif
     TEST_F(PipelineStateTests, PipelineStateCache_PipelineStateThreading_Fuzz_Test)
     {
         RHI::Ptr<RHI::Device> device = MakeTestDevice();

@@ -7,15 +7,20 @@
  */
 #pragma once
 
+#if defined(CARBONATED)
 #include <AzCore/std/containers/fixed_vector.h>
-#include <AzCore/std/containers/list.h>
 #include <AzCore/std/containers/vector.h>
-#include <AzCore/std/parallel/mutex.h>
 #include <AzCore/std/smart_ptr/unique_ptr.h>
+#include <Atom/RHI/ThreadLocalContext.h>
+#endif
+#include <AzCore/std/containers/list.h>
+#include <AzCore/std/parallel/mutex.h>
 #include <Atom/RHI/Object.h>
 #include <Atom/RHI/ObjectPool.h>
-#include <Atom/RHI/ThreadLocalContext.h>
 #include <Atom/RHI.Reflect/Limits.h>
+#if !defined(CARBONATED)
+#include <AzCore/std/containers/unordered_map.h>
+#endif
 #include <RHI/DescriptorPool.h>
 #include <RHI/DescriptorSet.h>
 
@@ -67,14 +72,25 @@ namespace AZ
                 DescriptorSetSubAllocator() = default;
                 DescriptorSetSubAllocator(const DescriptorSetSubAllocator&) = delete;
 
+#if defined(CARBONATED)
                 void Init(DescriptorPoolAllocator& descriptorPoolAllocator, const DescriptorPool::Descriptor& poolDescriptor);
+#else
+                void Init(DescriptorPoolAllocator& descriptorPoolAllocator, Device& device, const DescriptorPool::Descriptor& poolDescriptor);
+#endif
 
+#if defined(CARBONATED)
                 DescriptorPool::DescriptorSetList AllocateBatch(DescriptorSetLayout& layout, uint32_t count);
+#else
+                RHI::Ptr<ObjectType> Allocate(DescriptorSetLayout& layout);
+#endif
                 void DeAllocate(RHI::Ptr<ObjectType> descriptorSet);
                 void Reset();
                 void Collect();
 
             private:
+#if !defined(CARBONATED)
+                Device* m_device;
+#endif
                 DescriptorPoolAllocator* m_descriptorPoolAllocator = nullptr;
                 DescriptorPool::Descriptor m_poolDescriptor;
                 AZStd::list<DescriptorPool*> m_pools;
@@ -84,8 +100,10 @@ namespace AZ
         /**
         * Allocator for creating descriptor sets.
         * Each descriptor set is allocated from a descriptor set pool.
+#if defined(CARBONATED)
         * Each calling thread gets a persistent allocation lane with independent descriptor pools,
         * avoiding cross-thread serialization while satisfying Vulkan's external synchronization rules.
+#endif
         * When the pool can't allocate more descriptor sets we create a new pool.
         * We use the return value from Vulkan to check if the pool ran out of memory and we need to create
         * a new one. A DescriptorSetAllocator is used to generate new descriptor set pools when needed.
@@ -112,12 +130,17 @@ namespace AZ
             ~DescriptorSetAllocator() = default;
 
             RHI::ResultCode Init(const Descriptor& descriptor);
+#if defined(CARBONATED)
             DescriptorPool::DescriptorSetList AllocateBatch(DescriptorSetLayout& layout, uint32_t count);
+#else
+            RHI::Ptr<ObjectType> Allocate(DescriptorSetLayout& layout);
+#endif
             void DeAllocate(RHI::Ptr<ObjectType> descriptor);
             void Collect();
             void Shutdown() override;
 
         private:
+#if defined(CARBONATED)
             struct AllocationLane
             {
                 AZStd::mutex m_mutex;
@@ -132,6 +155,11 @@ namespace AZ
             AZStd::vector<AZStd::unique_ptr<AllocationLane>> m_allocationLanes;
             RHI::ThreadLocalContext<AllocationLane*> m_threadAllocationLaneContext;
             DescriptorPool::Descriptor m_poolDescriptor;
+#else
+            AZStd::mutex m_subAllocatorMutex;
+            Internal::DescriptorSetSubAllocator m_subAllocator;
+            Internal::DescriptorPoolAllocator m_poolAllocator;
+#endif
             Descriptor m_descriptor;
             bool m_isInitialized = false;
         };

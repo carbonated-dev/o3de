@@ -13,13 +13,17 @@
 #include <Atom/RPI.Public/Shader/ShaderSystemInterface.h>
 #include <Atom/RPI.Public/Scene.h>
 #include <Atom/RPI.Reflect/Material/MaterialFunctor.h>
-#include <Atom/RHI/ConstantsData.h>
 #include <Atom/RHI/DrawPacketBuilder.h>
 #include <Atom/RHI/RHISystemInterface.h>
 #include <AzCore/Console/Console.h>
 
+#if defined(CARBONATED)
+#include <Atom/RHI/ConstantsData.h>
+#endif
+
 namespace AZ::Render
 {
+#if defined(CARBONATED)
     namespace
     {
         bool HasRootConstants(const RHI::ConstantsLayout* rootConstantsLayout)
@@ -28,6 +32,7 @@ namespace AZ::Render
         }
     } // namespace
 
+#endif
     EditorStateMeshDrawPacket::EditorStateMeshDrawPacket(
         RPI::ModelLod& modelLod,
         size_t modelLodMeshIndex,
@@ -151,10 +156,12 @@ namespace AZ::Render
         // that the memory won't be relocated when new entries are added.
         AZStd::fixed_vector<RPI::ModelLod::StreamBufferViewList, RHI::DrawPacketBuilder::DrawItemCountMax> streamBufferViewsPerShader;
 
+#if defined(CARBONATED)
         RHI::ConstantsData rootConstants;
         RHI::ConstPtr<RHI::ConstantsLayout> rootConstantsLayoutForPacket;
         bool isFirstShaderItem = true;
 
+#endif
         m_perDrawSrgs.clear();
 
         auto appendShader = [&](const RPI::ShaderCollection::Item& shaderItem, const Name& materialPipelineName)
@@ -227,39 +234,36 @@ namespace AZ::Render
                 return false;
             }
 
-            Data::Instance<RPI::ShaderResourceGroup> drawSrg =
-                shader->CreateDrawSrgForShaderVariant(shaderOptions, true);
-
+#if defined(CARBONATED)
+            Data::Instance<RPI::ShaderResourceGroup> drawSrg = shader->CreateDrawSrgForShaderVariant(shaderOptions, true);
             parentScene.ConfigurePipelineState(m_drawListTag, pipelineStateDescriptor);
 
             const RHI::PipelineState* pipelineState = shader->AcquirePipelineState(pipelineStateDescriptor);
             if (!pipelineState)
             {
-                AZ_Error("EditorStateMeshDrawPacket", false, "Shader '%s'. Failed to acquire default pipeline state", shaderItem.GetShaderAsset()->GetName().GetCStr());
+                AZ_Error(
+                    "EditorStateMeshDrawPacket",
+                    false,
+                    "Shader '%s'. Failed to acquire default pipeline state",
+                    shaderItem.GetShaderAsset()->GetName().GetCStr());
                 return false;
             }
 
-            const RHI::ConstantsLayout* rootConstantsLayout =
-                pipelineStateDescriptor.m_pipelineLayoutDescriptor->GetRootConstantsLayout();
+            const RHI::ConstantsLayout* rootConstantsLayout = pipelineStateDescriptor.m_pipelineLayoutDescriptor->GetRootConstantsLayout();
             if (isFirstShaderItem)
             {
                 if (HasRootConstants(rootConstantsLayout))
                 {
                     rootConstantsLayoutForPacket = rootConstantsLayout;
                     rootConstants = RHI::ConstantsData(rootConstantsLayout);
-
                     const RHI::ShaderInputConstantIndex uvStreamTangentBitmaskIndex =
                         rootConstantsLayout->FindShaderInputIndex(Name(RPI::UvStreamTangentBitmask::RootConstantName));
                     if (uvStreamTangentBitmaskIndex.IsValid())
                     {
-                        rootConstants.SetConstant(
-                            uvStreamTangentBitmaskIndex,
-                            uvStreamTangentBitmask.GetFullTangentBitmask());
+                        rootConstants.SetConstant(uvStreamTangentBitmaskIndex, uvStreamTangentBitmask.GetFullTangentBitmask());
                     }
-
                     drawPacketBuilder.SetRootConstants(rootConstants.GetConstantData());
                 }
-
                 isFirstShaderItem = false;
             }
             else
@@ -267,14 +271,49 @@ namespace AZ::Render
                 AZ_Error(
                     "EditorStateMeshDrawPacket",
                     (!rootConstantsLayoutForPacket && !HasRootConstants(rootConstantsLayout)) ||
-                        (rootConstantsLayoutForPacket &&
-                         rootConstantsLayout &&
+                        (rootConstantsLayoutForPacket && rootConstantsLayout &&
                          rootConstantsLayoutForPacket->GetHash() == rootConstantsLayout->GetHash()),
                     "Shader %s has a mis-matched root constant layout in material %s. "
                     "All draw items in a draw packet need to share the same root constants layout.",
                     shaderItem.GetShaderAsset()->GetName().GetCStr(),
                     m_material->GetAsset().ToString<AZStd::string>().c_str());
             }
+#else
+            auto drawSrgLayout = shader->GetAsset()->GetDrawSrgLayout(shader->GetSupervariantIndex());
+            Data::Instance<RPI::ShaderResourceGroup> drawSrg;
+            if (drawSrgLayout)
+            {
+                // If the DrawSrg exists we must create and bind it, otherwise the CommandList will fail validation for SRG being null
+                drawSrg = RPI::ShaderResourceGroup::Create(shader->GetAsset(), shader->GetSupervariantIndex(), drawSrgLayout->GetName());
+                if (variant.UseKeyFallback() && drawSrgLayout->HasShaderVariantKeyFallbackEntry())
+                {
+                    drawSrg->SetShaderVariantKeyFallbackValue(shaderOptions.GetShaderVariantKeyFallbackValue());
+                }
+                // Pass UvStreamTangentBitmask to the shader if the draw SRG has it.
+                {
+                    AZ::Name shaderUvStreamTangentBitmask = AZ::Name(RPI::UvStreamTangentBitmask::SrgName);
+                    auto index = drawSrg->FindShaderInputConstantIndex(shaderUvStreamTangentBitmask);
+                    if (index.IsValid())
+                    {
+                        drawSrg->SetConstant(index, uvStreamTangentBitmask.GetFullTangentBitmask());
+                    }
+                }
+                drawSrg->Compile();
+            }
+
+            parentScene.ConfigurePipelineState(m_drawListTag, pipelineStateDescriptor);
+
+            const RHI::PipelineState* pipelineState = shader->AcquirePipelineState(pipelineStateDescriptor);
+            if (!pipelineState)
+            {
+                AZ_Error(
+                    "EditorStateMeshDrawPacket",
+                    false,
+                    "Shader '%s'. Failed to acquire default pipeline state",
+                    shaderItem.GetShaderAsset()->GetName().GetCStr());
+                return false;
+            }
+#endif
 
             RHI::DrawPacketBuilder::DrawRequest drawRequest;
             drawRequest.m_listTag = m_drawListTag;

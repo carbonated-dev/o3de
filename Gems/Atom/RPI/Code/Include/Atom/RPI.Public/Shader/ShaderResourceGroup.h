@@ -50,7 +50,9 @@ namespace AZ
             : public AZ::Data::InstanceData
         {
             friend class ShaderSystem;
+#if defined(CARBONATED)
             friend class Shader;
+#endif
             friend class ShaderResourceGroupPool;
 
         public:
@@ -341,16 +343,22 @@ namespace AZ
             static Data::InstanceId MakeSrgPoolInstanceId(const Data::Asset<ShaderAsset>& shaderAsset, const SupervariantIndex& supervariantIndex, const AZ::Name& srgName);
 
             RHI::ResultCode Init(ShaderAsset& shaderAsset, const SupervariantIndex& supervariantIndex, const AZ::Name& srgName);
+#if defined(CARBONATED)
             RHI::ResultCode Init(
                 ShaderAsset& shaderAsset,
                 const RHI::Ptr<RHI::ShaderResourceGroupLayout>& layout,
                 const Data::Instance<ShaderResourceGroupPool>& pool);
+#endif
 
             static AZ::Data::Instance<ShaderResourceGroup> CreateInternal(ShaderAsset& shaderAsset, const AZStd::any* srgInitParams);
+#if defined(CARBONATED)
+            // Fast path for creating non reusable SRGs. Doesn't insert new SRGs into the database (no mutex contention).
+            // Useful for cases like the DrawSRGs which are unique and disposables.
             static AZ::Data::Instance<ShaderResourceGroup> CreateTransient(
                 ShaderAsset& shaderAsset,
                 const RHI::Ptr<RHI::ShaderResourceGroupLayout>& layout,
                 const Data::Instance<ShaderResourceGroupPool>& pool);
+#endif
 
             /// A name to be used in error messages
             static const char* s_traceCategoryName;

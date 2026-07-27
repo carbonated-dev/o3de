@@ -7,8 +7,6 @@
  */
 #include <Atom/RHI.Reflect/ShaderResourceGroupLayoutDescriptor.h>
 #include <Atom/RHI.Reflect/ShaderResourceGroupLayout.h>
-#include <Atom/RHI.Reflect/Bits.h>
-#include <Atom/RHI/BufferPool.h>
 #include <AzCore/Utils/TypeHash.h>
 #include <AzCore/std/parallel/lock.h>
 #include <Atom/RHI.Reflect/Vulkan/Conversion.h>
@@ -16,9 +14,14 @@
 #include <RHI/DescriptorSet.h>
 #include <RHI/DescriptorSetLayout.h>
 #include <RHI/Device.h>
+#include <Atom/RHI.Reflect/VkAllocator.h>
+
+#if defined(CARBONATED)
+#include <Atom/RHI.Reflect/Bits.h>
+#include <Atom/RHI/BufferPool.h>
 #include <RHI/Buffer.h>
 #include <RHI/BufferPool.h>
-#include <Atom/RHI.Reflect/VkAllocator.h>
+#endif
 
 namespace AZ
 {
@@ -124,6 +127,7 @@ namespace AZ
             return m_nativeDescriptorPool;
         }
 
+#if defined(CARBONATED)
         AZStd::mutex& DescriptorPool::GetMutex() const
         {
             return m_mutex;
@@ -246,6 +250,26 @@ namespace AZ
             }
             return { VK_SUCCESS, AZStd::move(descriptorSets) };
         }
+
+#else
+        DescriptorPool::AllocResult DescriptorPool::Allocate(const DescriptorSetLayout& descriptorSetLayout)
+        {
+            auto descriptorSets = DescriptorSet::Create();
+            DescriptorSet::Descriptor descSetDesc;
+            descSetDesc.m_device = static_cast<Device*>(&GetDevice());
+            descSetDesc.m_descriptorPool = this;
+            descSetDesc.m_descriptorSetLayout = &descriptorSetLayout;
+            VkResult vkResult = descriptorSets->Init(descSetDesc);
+            if (vkResult != VK_SUCCESS)
+            {
+                return AZStd::make_pair(vkResult, nullptr);
+            }
+
+            m_objects.insert(descriptorSets);
+            return AZStd::make_pair(vkResult, descriptorSets);
+        }
+
+#endif
 
         void DescriptorPool::DeAllocate(RHI::Ptr<ObjectType> object)
         {

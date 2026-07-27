@@ -6,7 +6,9 @@
  *
  */
 #include <AzCore/std/algorithm.h>
+#if defined(CARBONATED)
 #include <AzCore/std/containers/unordered_map.h>
+#endif
 #include <AzCore/std/parallel/lock.h>
 #include <Atom/RHI.Reflect/ShaderResourceGroupLayout.h>
 #include <RHI/DescriptorSetAllocator.h>
@@ -61,6 +63,7 @@ namespace AZ
                 return m_descriptor;
             }    
             
+#if defined(CARBONATED)
             void DescriptorSetSubAllocator::Init(
                 DescriptorPoolAllocator& descriptorPoolAllocator,
                 const DescriptorPool::Descriptor& poolDescriptor)
@@ -120,6 +123,53 @@ namespace AZ
                 return AZStd::move(result.second);
             }
 
+#else
+            void DescriptorSetSubAllocator::Init(DescriptorPoolAllocator& descriptorPoolAllocator, Device& device, const DescriptorPool::Descriptor& poolDescriptor)
+            {
+                m_device = &device;
+                m_descriptorPoolAllocator = &descriptorPoolAllocator;
+                m_poolDescriptor = poolDescriptor;
+            }
+
+            RHI::Ptr<DescriptorSetSubAllocator::ObjectType> DescriptorSetSubAllocator::Allocate(DescriptorSetLayout& layout)
+            {
+                // Look for a pool that can allocate the descriptor set
+                for (DescriptorPool* pool : m_pools)
+                {
+                    // Check that we don't get over the max descriptor sets count.
+                    // In theory the pool would return a VK_ERROR_OUT_OF_POOL_MEMORY result but that would
+                    // trigger a validation layer error that we want to avoid.
+                    if ((pool->GetTotalObjectCount() + 1) > m_poolDescriptor.m_maxSets)
+                    {
+                        continue;
+                    }
+
+                    auto result = pool->Allocate(layout);
+                    VkResult vkResult = result.first;
+                    if (vkResult == VK_SUCCESS)
+                    {
+                        return result.second;
+                    }
+                    else if (vkResult != VK_ERROR_FRAGMENTED_POOL && vkResult != VK_ERROR_OUT_OF_POOL_MEMORY)
+                    {
+                        AZ_Assert(false, "Failed to Allocate descriptor set");
+                        return nullptr;
+                    }
+                }
+
+                DescriptorPool* newPool = m_descriptorPoolAllocator->Allocate(m_poolDescriptor);
+                auto result = newPool->Allocate(layout);
+                if (result.first != VK_SUCCESS)
+                {
+                    AZ_Assert(false, "Failed to Allocate descriptor set");
+                    return nullptr;
+                }
+                m_pools.push_front(newPool);
+                return result.second;
+            }
+
+#endif
+
             void DescriptorSetSubAllocator::DeAllocate(RHI::Ptr<ObjectType> descriptorSet)
             {
                 DescriptorPool* descriptorPool = const_cast<DescriptorPool*>(descriptorSet->GetDescriptor().m_descriptorPool);
@@ -162,22 +212,41 @@ namespace AZ
             m_descriptor = descriptor;
             Base::Init(*m_descriptor.m_device);
 
+#if defined(CARBONATED)
             m_poolDescriptor = {};
             m_poolDescriptor.m_device = m_descriptor.m_device;
             m_poolDescriptor.m_maxSets = m_descriptor.m_poolSize;
             m_poolDescriptor.m_constantDataPool = m_descriptor.m_constantDataPool;
             m_poolDescriptor.m_collectLatency = descriptor.m_frameCountMax;
+#else
+            Internal::DescriptorPoolAllocator::Descriptor poolAllocatorDescriptor;
+            poolAllocatorDescriptor.m_device = m_descriptor.m_device;
+            poolAllocatorDescriptor.m_collectLatency = descriptor.m_frameCountMax;
+            m_poolAllocator.Init(poolAllocatorDescriptor);
+
+            DescriptorPool::Descriptor poolDescriptor;
+            poolDescriptor.m_device = m_descriptor.m_device;
+            poolDescriptor.m_maxSets = m_descriptor.m_poolSize;
+            poolDescriptor.m_constantDataPool = m_descriptor.m_constantDataPool;
+            poolDescriptor.m_collectLatency = descriptor.m_frameCountMax;
+#endif
             AZStd::unordered_map<VkDescriptorType, VkDescriptorPoolSize> sizesByType;
             for (const auto& layoutBinding : descriptor.m_layout->GetNativeLayoutBindings())
             {
                 sizesByType[layoutBinding.descriptorType].descriptorCount += layoutBinding.descriptorCount * m_descriptor.m_poolSize;
             }
+#if defined(CARBONATED)
             m_poolDescriptor.m_descriptorPoolSizes.reserve(sizesByType.size());
             AZStd::transform(sizesByType.begin(), sizesByType.end(), AZStd::back_inserter(m_poolDescriptor.m_descriptorPoolSizes), [](auto &it)
+#else
+            poolDescriptor.m_descriptorPoolSizes.reserve(sizesByType.size());
+            AZStd::transform(sizesByType.begin(), sizesByType.end(), AZStd::back_inserter(poolDescriptor.m_descriptorPoolSizes), [](auto &it)
+#endif
             {
                 it.second.type = it.first;
                 return it.second; 
             });
+#if defined(CARBONATED)
 
             m_threadAllocationLaneContext.SetInitFunction(
                 [this](AllocationLane*& threadLane)
@@ -200,11 +269,15 @@ namespace AZ
                     threadLane = lane.get();
                     m_allocationLanes.push_back(AZStd::move(lane));
                 });
+#else
+            m_subAllocator.Init(m_poolAllocator, *m_descriptor.m_device, poolDescriptor);
+#endif
             
             m_isInitialized = true;
             return RHI::ResultCode::Success;
         }
 
+#if defined(CARBONATED)
         DescriptorSetAllocator::AllocationLane& DescriptorSetAllocator::GetOrCreateThreadAllocationLane()
         {
             AllocationLane* lane = m_threadAllocationLaneContext.GetStorage();
@@ -232,9 +305,18 @@ namespace AZ
             AZStd::lock_guard<AZStd::mutex> laneLock(lane.m_mutex);
             return lane.m_subAllocator.AllocateBatch(layout, count);
         }
+#else
+        RHI::Ptr<DescriptorSetAllocator::ObjectType> DescriptorSetAllocator::Allocate(
+            DescriptorSetLayout& layout)
+        {
+            AZStd::lock_guard<AZStd::mutex> lock(m_subAllocatorMutex);
+            return m_subAllocator.Allocate(layout);
+        }
+#endif
 
         void DescriptorSetAllocator::DeAllocate(RHI::Ptr<ObjectType> descriptorSet)
         {
+#if defined(CARBONATED)
             const DescriptorPool* descriptorPool = descriptorSet->GetDescriptor().m_descriptorPool;
             AZ_Assert(descriptorPool, "Descriptor set has no owning descriptor pool.");
             AllocationLane* lane = GetAllocationLane(descriptorPool->GetDescriptor().m_allocatorLaneIndex);
@@ -244,10 +326,15 @@ namespace AZ
                 AZStd::lock_guard<AZStd::mutex> laneLock(lane->m_mutex);
                 lane->m_subAllocator.DeAllocate(AZStd::move(descriptorSet));
             }
+#else
+            AZStd::lock_guard<AZStd::mutex> lock(m_subAllocatorMutex);
+            m_subAllocator.DeAllocate(descriptorSet);
+#endif
         }
 
         void DescriptorSetAllocator::Collect()
         {
+#if defined(CARBONATED)
             AZStd::lock_guard<AZStd::mutex> registryLock(m_allocationLaneRegistryMutex);
             for (const AZStd::unique_ptr<AllocationLane>& lane : m_allocationLanes)
             {
@@ -255,12 +342,17 @@ namespace AZ
                 lane->m_subAllocator.Collect();
                 lane->m_poolAllocator.Collect();
             }
+#else
+            m_subAllocator.Collect();
+            m_poolAllocator.Collect();
+#endif
         }
 
         void DescriptorSetAllocator::Shutdown()
         {
             if (m_isInitialized)
             {
+#if defined(CARBONATED)
                 m_threadAllocationLaneContext.Clear();
                 AZStd::lock_guard<AZStd::mutex> registryLock(m_allocationLaneRegistryMutex);
                 for (const AZStd::unique_ptr<AllocationLane>& lane : m_allocationLanes)
@@ -270,6 +362,10 @@ namespace AZ
                     lane->m_poolAllocator.Shutdown();
                 }
                 m_allocationLanes.clear();
+#else
+                m_subAllocator.Reset();
+                m_poolAllocator.Shutdown();
+#endif
                 m_isInitialized = false;
             }
         }    

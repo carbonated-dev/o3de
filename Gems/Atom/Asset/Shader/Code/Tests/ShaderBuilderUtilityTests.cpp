@@ -91,6 +91,7 @@ namespace UnitTest
         ExpectHasIncludeFile(fileList, true, R"(D:\o3de\Gems\Atom\Feature\Common\Assets\Materials\Pipelines\LowEndPipeline\ForwardPass_BaseLighting.azsli)");
     }
 
+#if defined(CARBONATED)
     TEST_F(ShaderBuilderUtilityTests, GetSupervariantList_NoDeclaredSupervariants_AddsDefaultAndNoSpecialization)
     {
         RPI::ShaderSourceData shaderSourceData;
@@ -205,6 +206,7 @@ namespace UnitTest
         EXPECT_TRUE(supervariants.empty());
     }
 
+#endif
 } //namespace UnitTest
 
 //AZ_UNIT_TEST_HOOK(DEFAULT_UNIT_TEST_ENV);
