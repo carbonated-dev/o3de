@@ -45,7 +45,7 @@ namespace RecastNavigation
         AZStd::vector<AZ::Vector3> FindPathBetweenEntities(
             AZ::EntityId fromEntity, AZ::EntityId toEntity, bool addCrossings, bool& partial) override;
         AZStd::vector<AZ::Vector3> FindPathBetweenPositions(
-            const AZ::Vector3& fromWorldPosition, const AZ::Vector3& toWorldPosition, bool addCrossings, bool& partial) override;        
+            const AZ::Vector3& fromWorldPosition, const AZ::Vector3& toWorldPosition, bool addCrossings, bool& partial, bool polyCheck) override;
         //! @}
 #endif
 

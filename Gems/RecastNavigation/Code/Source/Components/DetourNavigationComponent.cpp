@@ -58,7 +58,7 @@ namespace RecastNavigation
             AZ::TransformBus::EventResult(start, fromEntity, &AZ::TransformBus::Events::GetWorldTranslation);
             AZ::TransformBus::EventResult(end, toEntity, &AZ::TransformBus::Events::GetWorldTranslation);
 
-            return FindPathBetweenPositions(start, end, addCrossings, partial);
+            return FindPathBetweenPositions(start, end, addCrossings, partial, false);
         }
 
         return {};
@@ -81,7 +81,7 @@ namespace RecastNavigation
 
 #if defined(CARBONATED) && defined(CARBONATED_RECAST_UPDATES)
     AZStd::vector<AZ::Vector3> DetourNavigationComponent::FindPathBetweenPositions(
-        const AZ::Vector3& fromWorldPosition, const AZ::Vector3& toWorldPosition, bool addCrossings, bool& partial)
+        const AZ::Vector3& fromWorldPosition, const AZ::Vector3& toWorldPosition, bool addCrossings, bool& partial, [[maybe_unused]] bool polyCheck)
 #else
     AZStd::vector<AZ::Vector3> DetourNavigationComponent::FindPathBetweenPositions(const AZ::Vector3& fromWorldPosition, const AZ::Vector3& toWorldPosition)
 #endif
