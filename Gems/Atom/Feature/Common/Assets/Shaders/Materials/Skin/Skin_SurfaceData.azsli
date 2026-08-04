@@ -28,6 +28,15 @@ class SurfaceData_Skin
     
     float3 position;            //!< Position in world-space
     real3 normal;              //!< Normal in world-space
+    // Begin Carbonated
+#if ENABLE_SEPARATE_SPECULAR_NORMAL
+    real3 specularNormal;      //!< Optional coating/specular normal in world-space
+#endif
+#ifdef MATERIAL_SURFACE_EXTENSION_TYPE
+    //! Optional typed payload owned and interpreted by the material.
+    MATERIAL_SURFACE_EXTENSION_TYPE materialExtension;
+#endif
+    // End Carbonated
     real3 vertexNormal;        //!< Vertex normal in world-space
     real3 albedo;              //!< Albedo color of the non-metallic material, will be multiplied against the diffuse lighting value
     real specularF0;           //!< Fresnel f0 spectral value of the surface (only one float vs float3 since skin is non-metallic)
@@ -62,7 +71,15 @@ class SurfaceData_Skin
     void SetAlbedoAndSpecularF0(real3 newBaseColor, real specularF0Factor);
 
     real3 GetDiffuseNormal() { return normal; }       // Returns the normal used for diffuse  lighting calculations
-    real3 GetSpecularNormal() { return normal; }            // Returns the normal used for specular lighting calculations
+    // Begin Carbonated
+#if ENABLE_SEPARATE_SPECULAR_NORMAL
+    real3 GetSpecularNormal() { return specularNormal; }
+    void ApplyCoatingSpecularF0(real coatingF0, real coatingWeight) { specularF0 = lerp(specularF0, coatingF0, coatingWeight); }
+    void AttenuateSecondarySpecular(real attenuation) { dualSpecFactor *= attenuation; }
+#else
+    real3 GetSpecularNormal() { return normal; }
+#endif
+    // End Carbonated
     real3 GetDefaultNormal() { return normal; }             // Returns the normal used for calculations that are common to both diffuse and specular calculations
                                                             // If you're doing something unusual with one of the normals, you probably want to return the other one here
                                                             // Search the code for 'GetDefaultNormal' to see how/where this is applied
@@ -72,7 +89,9 @@ class SurfaceData_Skin
 
 void SurfaceData_Skin::CalculateRoughnessA()
 {
-    CalculateRoughnessValues(normal, roughnessLinear, roughnessA, roughnessA2);
+    // Begin Carbonated
+    CalculateRoughnessValues(GetSpecularNormal(), roughnessLinear, roughnessA, roughnessA2);
+    // End Carbonated
 }
 
 void SurfaceData_Skin::SetAlbedoAndSpecularF0(real3 newBaseColor, real specularF0Factor)

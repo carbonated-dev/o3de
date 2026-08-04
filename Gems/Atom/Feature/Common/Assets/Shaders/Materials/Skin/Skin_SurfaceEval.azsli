@@ -178,6 +178,13 @@ Surface EvaluateSurface_Skin(
         surface.normal = GetWorldSpaceNormal(normalMapSample, vertexNormal, tangents[MaterialSrg::m_normalMapUvIndex], bitangents[MaterialSrg::m_normalMapUvIndex], uvMatrix, real(MaterialSrg::m_normalFactor));
     }
 
+    // Begin Carbonated
+#if ENABLE_SEPARATE_SPECULAR_NORMAL
+    surface.specularNormal = surface.normal;
+#endif
+    INITIALIZE_MATERIAL_SURFACE_EXTENSION(surface)
+    // End Carbonated
+
 
     //--------------------- Base Color ----------------------
         

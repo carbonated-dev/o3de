@@ -18,6 +18,13 @@
 #include <Atom/Features/PBR/MaterialUtils.azsli>
 #include <Atom/Features/PBR/SpecularAA.azsli>
 
+// Begin Carbonated
+// Materials may provide a typed surface extension without making Atom aware of its layout.
+#ifndef INITIALIZE_MATERIAL_SURFACE_EXTENSION
+#define INITIALIZE_MATERIAL_SURFACE_EXTENSION(surface)
+#endif
+// End Carbonated
+
 class SurfaceData_BasePBR
 {   
     precise float3 position;   //!< Position in world-space

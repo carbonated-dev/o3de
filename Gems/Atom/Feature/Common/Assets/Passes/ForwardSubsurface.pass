@@ -115,6 +115,11 @@
                         },
                         "LoadAction": "Clear"
                     }
+                },
+                {
+                    "Name": "SpecularNormalOutput",
+                    "SlotType": "InputOutput",
+                    "ScopeAttachmentUsage": "RenderTarget"
                 }
             ],
             "ImageAttachments": [

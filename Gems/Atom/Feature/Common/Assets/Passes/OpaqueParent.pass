@@ -220,6 +220,13 @@
                                 "Pass": "Forward",
                                 "Attachment": "NormalOutput"
                             }
+                        },
+                        {
+                            "LocalSlot": "SpecularNormalOutput",
+                            "AttachmentRef": {
+                                "Pass": "Forward",
+                                "Attachment": "SpecularNormalOutput"
+                            }
                         }
                     ],
                     "PassData": {
@@ -281,7 +288,7 @@
                             "LocalSlot": "NormalInput",
                             "AttachmentRef": {
                                 "Pass": "Forward",
-                                "Attachment": "NormalOutput"
+                                "Attachment": "SpecularNormalOutput"
                             }
                         },
                         {
