@@ -146,7 +146,6 @@ namespace AZ
             RHI::PipelineStateBuildRequestPtr QueuePipelineStateBuild(
                 RHI::PipelineStateBuildGroupId groupId,
                 const RHI::PipelineStateDescriptor& descriptor) const;
-
 #endif
             //! Finds and returns the shader resource group asset with the requested name. Returns an empty handle if no matching group was found.
             const RHI::Ptr<RHI::ShaderResourceGroupLayout>& FindShaderResourceGroupLayout(const Name& shaderResourceGroupName) const;
@@ -219,7 +218,6 @@ namespace AZ
             //! Cached creation context for this shader's DrawSrg.
             RHI::Ptr<RHI::ShaderResourceGroupLayout> m_drawSrgLayout;
             Data::Instance<ShaderResourceGroupPool> m_drawSrgPool;
-
 #endif
             /////////////////////////////////////////////////////////////////////////////////////
             //! The following variables are necessary to reliably reload the Shader
@@ -265,7 +263,6 @@ namespace AZ
 #if defined(CARBONATED)
             //! Compiled DrawSrg shared by fully specialized PSOs when the DrawSrg layout has no inputs.
             Data::Instance<ShaderResourceGroup> m_dummyDrawSrg;
-
 #endif
             //! PipelineLibrary file name
             char m_pipelineLibraryPath[AZ_MAX_PATH_LEN] = { 0 };

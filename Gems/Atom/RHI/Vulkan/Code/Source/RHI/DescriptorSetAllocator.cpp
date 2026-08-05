@@ -247,7 +247,6 @@ namespace AZ
                 return it.second; 
             });
 #if defined(CARBONATED)
-
             m_threadAllocationLaneContext.SetInitFunction(
                 [this](AllocationLane*& threadLane)
                 {

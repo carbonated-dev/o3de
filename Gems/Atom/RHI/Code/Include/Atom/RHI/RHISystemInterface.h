@@ -59,7 +59,6 @@ namespace AZ::RHI
 
 #if defined(CARBONATED)
         virtual RHI::PipelineStateBuildQueue* GetPipelineStateBuildQueue() = 0;
-
 #endif
         virtual void ModifyFrameSchedulerStatisticsFlags(RHI::FrameSchedulerStatisticsFlags statisticsFlags, bool enableFlags) = 0;
 

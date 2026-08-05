@@ -82,7 +82,6 @@ namespace AZ
 
 #if defined(CARBONATED)
             bool IsRayTracingEnabled() const { return m_rayTracingEnabled; }
-
 #endif
             struct Mesh;
 

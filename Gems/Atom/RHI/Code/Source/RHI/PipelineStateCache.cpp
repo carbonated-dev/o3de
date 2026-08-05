@@ -7,6 +7,7 @@
  */
 
 #include <Atom/RHI/PipelineStateCache.h>
+#include <Atom/RHI/PipelineLibraryNotificationBus.h>
 #include <Atom/RHI/Factory.h>
 
 #include <AzCore/Debug/Profiler.h>
@@ -327,6 +328,9 @@ namespace AZ::RHI
             AZStd::unique_lock<AZStd::shared_mutex> lock(m_mutex);
             AZ_Assert(m_globalLibraryActiveBits[handle.GetIndex()], "Releasing a library that is no longer valid.");
 
+            PipelineLibraryNotificationBus::Broadcast(
+                &PipelineLibraryNotificationBus::Events::OnPipelineLibraryRelease, this, handle);
+
             ResetLibraryImpl(handle);
 
             GlobalLibraryEntry& libraryEntry = m_globalLibrarySet[handle.GetIndex()];
@@ -425,14 +429,68 @@ namespace AZ::RHI
         return nullptr;
     }
 
+#if defined(CARBONATED)
     void PipelineStateCache::Compact()
     {
         AZ_PROFILE_SCOPE(RHI, "PipelineStateCache: Compact");
         AZStd::unique_lock<AZStd::shared_mutex> lock(m_mutex);
-#if defined(CARBONATED)
         CompactInternal();
     }
+#else
+    void PipelineStateCache::Compact()
+    {
+        AZ_PROFILE_SCOPE(RHI, "PipelineStateCache: Compact");
+        AZStd::unique_lock<AZStd::shared_mutex> lock(m_mutex);
+        // Merge the pending cache into the read-only cache.
+        bool hasCompiledPipelineStates = false;
+        for (size_t i = 0; i < m_globalLibrarySet.size(); ++i)
+        {
+            GlobalLibraryEntry& globalLibraryEntry = m_globalLibrarySet[i];
 
+            // Skip inactive libraries and ones that didn't compile anything this cycle.
+            if (m_globalLibraryActiveBits[i] && !globalLibraryEntry.m_pendingCache.empty())
+            {
+                hasCompiledPipelineStates = true;
+
+                // Allocate a temporary staging set, perform the merge, and then move it back into the read-only cache.
+                PipelineStateSet mergeResult;
+                mergeResult.reserve(globalLibraryEntry.m_readOnlyCache.size() + globalLibraryEntry.m_pendingCache.size());
+
+                AZStd::merge(
+                    globalLibraryEntry.m_readOnlyCache.begin(),
+                    globalLibraryEntry.m_readOnlyCache.end(),
+                    globalLibraryEntry.m_pendingCache.begin(),
+                    globalLibraryEntry.m_pendingCache.end(),
+                    AZStd::inserter(mergeResult, mergeResult.begin()));
+
+                globalLibraryEntry.m_readOnlyCache.swap(mergeResult);
+                globalLibraryEntry.m_pendingCache.clear();
+            }
+        }
+
+        // If we had compilation events, then the thread-local caches are not empty and need to be cleared.
+        if (hasCompiledPipelineStates)
+        {
+            const size_t libraryCount = m_globalLibrarySet.size();
+
+            m_threadLibrarySet.ForEach(
+                [this, libraryCount](ThreadLibrarySet& threadLibrarySet)
+                {
+                    for (size_t i = 0; i < libraryCount; ++i)
+                    {
+                        if (m_globalLibraryActiveBits[i])
+                        {
+                            threadLibrarySet[i].m_threadLocalCache.clear();
+                        }
+                    }
+                });
+        }
+
+        ValidateCacheIntegrity();
+    }
+#endif
+
+#if defined(CARBONATED)
     bool PipelineStateCache::TryCompact()
     {
         AZ_PROFILE_SCOPE(RHI, "PipelineStateCache: TryCompact");
@@ -448,7 +506,6 @@ namespace AZ::RHI
 
     void PipelineStateCache::CompactInternal()
     {
-#endif
         // Merge the pending cache into the read-only cache.
         bool hasCompiledPipelineStates = false;
         for (size_t i = 0; i < m_globalLibrarySet.size(); ++i)
@@ -493,6 +550,7 @@ namespace AZ::RHI
 
         ValidateCacheIntegrity();
     }
+#endif
 
     const PipelineState* PipelineStateCache::FindPipelineState(const PipelineStateSet& pipelineStateSet, const PipelineStateDescriptor& descriptor)
     {
@@ -538,12 +596,15 @@ namespace AZ::RHI
         {
             return nullptr;
         }
-#if defined(CARBONATED)
         MEMORY_TAG(Shader);
-#endif
 
         AZStd::shared_lock<AZStd::shared_mutex> lock(m_mutex);
 
+        if (!m_globalLibraryActiveBits[handle.GetIndex()])
+        {
+            AZ_Error("PipelineStateCache", false, "PipelineLibrary %d is not in used (maybe released)", handle.GetIndex());
+            return nullptr;
+        }
         GlobalLibraryEntry& globalLibraryEntry = m_globalLibrarySet[handle.GetIndex()];
         PipelineStateHash pipelineStateHash = descriptor.GetHash();
         const bool noCompile = CheckBitsAny(acquireFlags, PipelineStateAcquireFlags::NoCompile);
@@ -741,9 +802,6 @@ namespace AZ::RHI
         {
             return nullptr;
         }
-#if defined(CARBONATED)
-        MEMORY_TAG(Shader);
-#endif
 
         AZStd::shared_lock<AZStd::shared_mutex> lock(m_mutex);
 
@@ -872,7 +930,6 @@ namespace AZ::RHI
         AZ_Error("PipelineStateCache", resultCode == ResultCode::Success, "Failed to compile pipeline state. It will remain in an initialized state.");
         return AZStd::move(pipelineState);
     }
-
 #endif
 
     PipelineStateCache::PipelineStateEntry::PipelineStateEntry(PipelineStateHash hash, ConstPtr<PipelineState> pipelineState, const PipelineStateDescriptor& descriptor)

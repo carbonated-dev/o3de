@@ -320,12 +320,7 @@ namespace AZ::RHI
         using ThreadLibrarySet = AZStd::array<ThreadLibraryEntry, LibraryCountMax>;
 
         //! Helper function which binary searches a pipeline state set looking for an entry which matches the requested descriptor.
-#if defined(CARBONATED)
-        static const PipelineState* FindPipelineState(
-            const PipelineStateSet& pipelineStateSet, const PipelineStateDescriptor& descriptor);
-#else
         static const PipelineState* FindPipelineState(const PipelineStateSet& pipelineStateSet, const PipelineStateDescriptor& descriptor);
-#endif
 
         //! Helper function which inserts an entry into the set. Returns true if the entry was inserted, or false is a duplicate entry existed.
         static bool InsertPipelineState(PipelineStateSet& pipelineStateSet, PipelineStateEntry pipelineStateEntry);
@@ -339,18 +334,19 @@ namespace AZ::RHI
 
         //! Finds a pending entry or performs pipeline state compilation using the selected pipeline library.
         ConstPtr<PipelineState> AcquirePendingPipelineState(
-#else
-        //! Performs a pipeline state compilation on the global cache using the thread-local pipeline library.
-        ConstPtr<PipelineState> CompilePipelineState(
-#endif
             GlobalLibraryEntry& globalLibraryEntry,
             ThreadLibraryEntry& threadLibraryEntry,
             const PipelineStateDescriptor& pipelineStateDescriptor,
             PipelineStateHash pipelineStateHash,
-#if defined(CARBONATED)
             const AZ::Name& name,
             PipelineStateAcquireFlags acquireFlags);
 #else
+        //! Performs a pipeline state compilation on the global cache using the thread-local pipeline library.
+        ConstPtr<PipelineState> CompilePipelineState(
+            GlobalLibraryEntry& globalLibraryEntry,
+            ThreadLibraryEntry& threadLibraryEntry,
+            const PipelineStateDescriptor& pipelineStateDescriptor,
+            PipelineStateHash pipelineStateHash,
             const AZ::Name& name);
 #endif
 

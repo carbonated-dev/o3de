@@ -92,6 +92,7 @@ namespace AZ::RHI
         }
 
         m_pipelineStateCache = AZStd::move(pipelineStateCache);
+        PipelineLibraryNotificationBus::Handler::BusConnect();
         m_isShutdown = false;
         AZStd::thread_desc threadDesc{ "PipelineStateBuildQueue" };
         m_serviceThread = AZStd::thread(threadDesc, [this]()
@@ -103,6 +104,8 @@ namespace AZ::RHI
 
     void PipelineStateBuildQueue::Shutdown()
     {
+        PipelineLibraryNotificationBus::Handler::BusDisconnect();
+
         {
             AZStd::lock_guard<AZStd::mutex> lock(m_mutex);
             if (!m_isInitialized)
@@ -217,7 +220,6 @@ namespace AZ::RHI
             AZStd::lock_guard<AZStd::mutex> lock(m_mutex);
             if (!m_isInitialized || m_isShutdown || !m_activeGroups.contains(groupId))
             {
-                AZStd::lock_guard<AZStd::mutex> requestLock(request->m_mutex);
                 request->m_cancelRequested = true;
                 request->m_state = PipelineStateBuildRequest::State::Cancelled;
                 return request;
@@ -243,7 +245,6 @@ namespace AZ::RHI
             return;
         }
 
-        AZStd::lock_guard<AZStd::mutex> lock(m_mutex);
         {
             AZStd::lock_guard<AZStd::mutex> requestLock(request->m_mutex);
             if (request->m_state == PipelineStateBuildRequest::State::Succeeded ||
@@ -258,6 +259,7 @@ namespace AZ::RHI
             request->m_pipelineState = nullptr;
         }
 
+        AZStd::lock_guard<AZStd::mutex> lock(m_mutex);
         for (auto pendingIt = m_pendingRequests.begin(); pendingIt != m_pendingRequests.end(); ++pendingIt)
         {
             if (*pendingIt == request)
@@ -298,6 +300,33 @@ namespace AZ::RHI
         PipelineStateBuildRequestList completedRequests = AZStd::move(completedGroupIt->second);
         m_completedRequestsByGroup.erase(completedGroupIt);
         return completedRequests;
+    }
+
+    void PipelineStateBuildQueue::OnPipelineLibraryRelease(
+        const PipelineStateCache* pipelineStateCache, PipelineLibraryHandle pipelineLibraryHandle)
+    {
+        if (pipelineStateCache != m_pipelineStateCache.get())
+        {
+            return;
+        }
+
+        AZStd::lock_guard<AZStd::mutex> lock(m_mutex);
+        for (auto pendingIt = m_pendingRequests.begin(); pendingIt != m_pendingRequests.end();)
+        {
+            const PipelineStateBuildRequestPtr& request = *pendingIt;
+            if (request->m_pipelineLibraryHandle == pipelineLibraryHandle)
+            {
+                AZStd::lock_guard<AZStd::mutex> requestLock(request->m_mutex);
+                request->m_cancelRequested = true;
+                request->m_state = PipelineStateBuildRequest::State::Cancelled;
+                request->m_pipelineState = nullptr;
+                pendingIt = m_pendingRequests.erase(pendingIt);
+            }
+            else
+            {
+                ++pendingIt;
+            }
+        }
     }
 
     void PipelineStateBuildQueue::ThreadServiceLoop()
@@ -348,11 +377,16 @@ namespace AZ::RHI
                 }
                 else
                 {
-                    const bool compilationSucceeded = pipelineState != nullptr;
-                    request->m_pipelineState = AZStd::move(pipelineState);
-                    request->m_state = compilationSucceeded
-                        ? PipelineStateBuildRequest::State::Succeeded
-                        : PipelineStateBuildRequest::State::Failed;
+                    if (pipelineState)
+                    {
+                        request->m_pipelineState = AZStd::move(pipelineState);
+                        request->m_state = PipelineStateBuildRequest::State::Succeeded;
+                    }
+                    else
+                    {
+                        request->m_pipelineState = nullptr;
+                        request->m_state = PipelineStateBuildRequest::State::Failed;
+                    }
                     m_completedRequestsByGroup[request->m_groupId].push_back(request);
                 }
                 m_activeRequest.reset();

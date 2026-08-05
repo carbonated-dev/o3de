@@ -157,6 +157,7 @@ set(FILES
     Include/Atom/RHI/PhysicalDevice.h
     Source/RHI/PhysicalDevice.cpp
     Include/Atom/RHI/PipelineLibrary.h
+    Include/Atom/RHI/PipelineLibraryNotificationBus.h
     Include/Atom/RHI/MultiDevicePipelineLibrary.h
     Include/Atom/RHI/PipelineState.h
     Include/Atom/RHI/MultiDevicePipelineState.h

@@ -66,11 +66,9 @@ namespace AZ::Render
         uint32_t m_shaderOptionFlagMask = 0;
 
         // Update mesh draw packet
-#if defined(CARBONATED)
-        // Associated instance notifications can be deferred by the caller when multiple packets are updated in parallel.
-#endif
         // Return true if DrawPacket was rebuilt
 #if defined(CARBONATED)
+        // Associated instance notifications can be deferred by the caller when multiple packets are updated in parallel.
         bool UpdateDrawPacket(const RPI::Scene& parentScene, bool forceUpdate, bool notifyAssociatedInstances = true);
 #else
         bool UpdateDrawPacket(const RPI::Scene& parentScene, bool forceUpdate);

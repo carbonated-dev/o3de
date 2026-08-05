@@ -393,8 +393,7 @@ namespace AZ
                     }
 #if defined(CARBONATED)
                     const AZStd::string_view supervariantName = supervariantInfo.m_name.GetStringView();
-                    if (supervariantName.size() >= noSpecializationSuffix.size() &&
-                        supervariantName.substr(supervariantName.size() - noSpecializationSuffix.size()) == noSpecializationSuffix)
+                    if (AZ::StringFunc::EndsWith(supervariantName, noSpecializationSuffix))
                     {
                         AZ_Error(
                             ShaderBuilderUtilityName,
@@ -428,8 +427,10 @@ namespace AZ
                     AZStd::swap(supervariants.front(), supervariants.back());
 #if defined(CARBONATED)
                     uniqueSuperVariants.emplace(supervariants.front().m_name);
+#endif
                 }
 
+#if defined(CARBONATED)
                 if (!baseBuildArguments)
                 {
                     return supervariants;
@@ -493,8 +494,8 @@ namespace AZ
                 for (auto& noSpecializationSupervariant : noSpecializationSupervariants)
                 {
                     supervariants.push_back(AZStd::move(noSpecializationSupervariant));
-#endif
                 }
+#endif
 
                 return supervariants;
             }

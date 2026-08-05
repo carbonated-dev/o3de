@@ -9,6 +9,7 @@
 
 #include <Atom/RHI.Reflect/Handle.h>
 #include <Atom/RHI/PipelineLibrary.h>
+#include <Atom/RHI/PipelineLibraryNotificationBus.h>
 #include <Atom/RHI/PipelineState.h>
 #include <Atom/RHI/PipelineStateDescriptor.h>
 
@@ -84,6 +85,7 @@ namespace AZ::RHI
 
     //! Compiles pipeline states in FIFO order on one persistent worker thread.
     class PipelineStateBuildQueue final
+        : private PipelineLibraryNotificationBus::Handler
     {
     public:
         AZ_CLASS_ALLOCATOR(PipelineStateBuildQueue, SystemAllocator);
@@ -115,6 +117,10 @@ namespace AZ::RHI
         PipelineStateBuildRequestList TakeCompletedRequests(PipelineStateBuildGroupId groupId);
 
     private:
+        // PipelineLibraryNotificationBus::Handler
+        void OnPipelineLibraryRelease(
+            const PipelineStateCache* pipelineStateCache, PipelineLibraryHandle pipelineLibraryHandle) override;
+
         void ThreadServiceLoop();
 
         Ptr<PipelineStateCache> m_pipelineStateCache;
