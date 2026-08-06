@@ -184,7 +184,7 @@ namespace AzToolsFramework
         , m_isDuringUndoRedo(false)
         , m_isInIsolationMode(false)
 #if defined(CARBONATED)
-        , m_enableUndoRedo(false)
+        , m_undoRedoEnabled(false)
 #endif
     {
         ToolsApplicationRequests::Bus::Handler::BusConnect();
@@ -1241,7 +1241,7 @@ namespace AzToolsFramework
     UndoSystem::URSequencePoint* ToolsApplication::BeginUndoBatch(const char* label)
     {
 #if defined(CARBONATED)
-        if (!m_enableUndoRedo)
+        if (!m_undoRedoEnabled)
         {
             return nullptr;
         }
@@ -1271,7 +1271,7 @@ namespace AzToolsFramework
     UndoSystem::URSequencePoint* ToolsApplication::ResumeUndoBatch(UndoSystem::URSequencePoint* expected, const char* label)
     {
 #if defined(CARBONATED)
-        if (!m_enableUndoRedo)
+        if (!m_undoRedoEnabled)
         {
             return nullptr;
         }
@@ -1327,7 +1327,7 @@ namespace AzToolsFramework
     void ToolsApplication::EndUndoBatch()
     {
 #if defined(CARBONATED)
-        if (!m_enableUndoRedo)
+        if (!m_undoRedoEnabled)
         {
             return;
         }
@@ -1373,11 +1373,11 @@ namespace AzToolsFramework
 
 
 #if defined(CARBONATED)
-    void ToolsApplication::EnableUndoRedo(bool enable)
+    void ToolsApplication::SetEnableUndoRedo(bool enable)
     {
-        m_enableUndoRedo = enable;
+        m_undoRedoEnabled = enable;
 
-        if (!m_enableUndoRedo)
+        if (!m_undoRedoEnabled)
         {
             m_dirtyEntities.clear();
 

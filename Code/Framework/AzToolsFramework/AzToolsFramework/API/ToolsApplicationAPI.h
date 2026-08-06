@@ -611,7 +611,7 @@ namespace AzToolsFramework
         /*
          * Enable or disable the undo/redo system.
         */
-        virtual void EnableUndoRedo(bool enable) = 0;
+        virtual void SetEnableUndoRedo(bool enable) = 0;
         virtual bool GetEnableUndoRedo() const = 0;
 #endif
     };

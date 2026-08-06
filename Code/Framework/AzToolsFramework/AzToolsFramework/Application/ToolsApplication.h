@@ -146,8 +146,8 @@ namespace AzToolsFramework
         void RunRedoSeparately(UndoSystem::URSequencePoint* redoCommand) override;
 
 #if defined(CARBONATED)
-        void EnableUndoRedo(bool enable) override;
-        bool GetEnableUndoRedo() const override { return m_enableUndoRedo; }
+        void SetEnableUndoRedo(bool enable) override;
+        bool GetEnableUndoRedo() const override { return m_undoRedoEnabled; }
 #endif
         //////////////////////////////////////////////////////////////////////////
 
@@ -184,7 +184,7 @@ namespace AzToolsFramework
         EntityIdSet                         m_isolatedEntityIdSet;
         bool                                m_freezeSelectionUpdates = false;
 #if defined(CARBONATED)
-        bool                                m_enableUndoRedo = false;
+        bool                                m_undoRedoEnabled;
 #endif
 
         EditorEntityAPI* m_editorEntityAPI = nullptr;
