@@ -184,7 +184,7 @@ namespace AzToolsFramework
         EntityIdSet                         m_isolatedEntityIdSet;
         bool                                m_freezeSelectionUpdates = false;
 #if defined(CARBONATED)
-        bool                                m_enableUndoRedo = true;
+        bool                                m_enableUndoRedo = false;
 #endif
 
         EditorEntityAPI* m_editorEntityAPI = nullptr;

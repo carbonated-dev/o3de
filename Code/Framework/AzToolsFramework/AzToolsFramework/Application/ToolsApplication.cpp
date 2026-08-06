@@ -184,7 +184,7 @@ namespace AzToolsFramework
         , m_isDuringUndoRedo(false)
         , m_isInIsolationMode(false)
 #if defined(CARBONATED)
-        , m_enableUndoRedo(true)
+        , m_enableUndoRedo(false)
 #endif
     {
         ToolsApplicationRequests::Bus::Handler::BusConnect();
