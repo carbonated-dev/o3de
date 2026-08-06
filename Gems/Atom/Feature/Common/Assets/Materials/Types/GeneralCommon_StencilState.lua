@@ -38,12 +38,8 @@ function Process(context)
             end
 
             if(blockColorGrading) then
-                Debug.Log("blockColorGrading es true")
                 stencilMask = stencilMask | 0x20
-            else
-                Debug.Log("blockColorGrading es false")
             end
-            Debug.Log("stencilMask es " .. stencilMask)
             shaderItem:SetStencilRefOverride(stencilMask)
         end
     end
