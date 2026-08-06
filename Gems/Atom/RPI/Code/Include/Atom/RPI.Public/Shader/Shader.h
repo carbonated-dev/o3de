@@ -19,6 +19,7 @@
 #if defined(CARBONATED)
 #include <Atom/RHI/PipelineStateBuildQueue.h>
 #include <Atom/RHI/PipelineStateCache.h>
+#include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
 #endif
 
 #include <AtomCore/Instance/InstanceData.h>
