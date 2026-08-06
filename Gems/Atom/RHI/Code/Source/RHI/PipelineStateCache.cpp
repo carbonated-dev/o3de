@@ -706,7 +706,7 @@ namespace AZ::RHI
             // Another thread may have started compiling this pipeline state. Check the pending cache.
             if (const PipelineState* cachedPipelineState = FindPipelineState(globalLibraryEntry.m_pendingCache, descriptor))
             {
-                pipelineState = cachedPipelineState;
+                return cachedPipelineState;
             }
             else
             {
@@ -727,12 +727,8 @@ namespace AZ::RHI
             pipelineState = pipelineStateToCompile;
         }
 
-        if (!pipelineStateToCompile)
-        {
-            return pipelineState;
-        }
-
-        [[maybe_unused]] ResultCode resultCode = ResultCode::InvalidArgument;
+        AZ_Assert(pipelineStateToCompile, "Failed to create pipeline to compile");
+        ResultCode resultCode = ResultCode::InvalidArgument;
 
         // Increment the pending compile count on the global entry, which tracks how many pipeline states
         // are currently being compiled across all threads.

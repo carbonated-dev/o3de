@@ -125,18 +125,12 @@ namespace AZ
         {
 #if defined(CARBONATED)
             MEMORY_TAG(Shader);
-            RHI::Ptr<RHI::ShaderResourceGroupLayout> layout =
-                shaderAsset.FindShaderResourceGroupLayout(srgName, supervariantIndex);
-#else
-            const auto& lay = shaderAsset.FindShaderResourceGroupLayout(srgName, supervariantIndex);
-            m_layout = lay.get();
 #endif
-
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> layout = shaderAsset.FindShaderResourceGroupLayout(srgName, supervariantIndex);
 #if defined(CARBONATED)
-            if (!layout)
-#else
-            if (!m_layout)
+            m_layout = layout.get();
 #endif
+            if (!layout)
             {
                 AZ_Assert(false, "ShaderResourceGroup cannot be initialized due to invalid ShaderResourceGroupLayout");
                 return RHI::ResultCode::Fail;

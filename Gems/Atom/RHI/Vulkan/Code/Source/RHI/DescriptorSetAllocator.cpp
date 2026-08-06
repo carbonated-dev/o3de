@@ -305,8 +305,7 @@ namespace AZ
             return lane.m_subAllocator.AllocateBatch(layout, count);
         }
 #else
-        RHI::Ptr<DescriptorSetAllocator::ObjectType> DescriptorSetAllocator::Allocate(
-            DescriptorSetLayout& layout)
+        RHI::Ptr<DescriptorSetAllocator::ObjectType> DescriptorSetAllocator::Allocate(DescriptorSetLayout& layout)
         {
             AZStd::lock_guard<AZStd::mutex> lock(m_subAllocatorMutex);
             return m_subAllocator.Allocate(layout);
@@ -317,7 +316,12 @@ namespace AZ
         {
 #if defined(CARBONATED)
             const DescriptorPool* descriptorPool = descriptorSet->GetDescriptor().m_descriptorPool;
-            AZ_Assert(descriptorPool, "Descriptor set has no owning descriptor pool.");
+            if (!descriptorPool)
+            {
+                AZ_Assert(false, "Descriptor set has no owning descriptor pool.");
+                return;
+            }
+
             AllocationLane* lane = GetAllocationLane(descriptorPool->GetDescriptor().m_allocatorLaneIndex);
             AZ_Assert(lane, "Descriptor set has an invalid allocator lane.");
             if (lane)

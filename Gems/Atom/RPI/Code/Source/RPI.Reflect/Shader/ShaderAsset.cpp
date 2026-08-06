@@ -80,10 +80,7 @@ namespace AZ
 #if defined(CARBONATED)
         bool ShaderAsset::Supervariant::IsShaderOptionFallback() const
         {
-            const AZStd::string_view name = m_name.GetStringView();
-            const AZStd::string_view suffix = NoSpecializationSupervariantName;
-            return name.size() >= suffix.size() &&
-                name.substr(name.size() - suffix.size()) == suffix;
+            return AZ::StringFunc::EndsWith(m_name.GetStringView(), NoSpecializationSupervariantName);
         }
 
 #endif

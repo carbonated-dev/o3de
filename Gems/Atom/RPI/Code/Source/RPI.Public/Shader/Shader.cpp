@@ -174,11 +174,6 @@ namespace AZ
             RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get();
             RHI::DrawListTagRegistry* drawListTagRegistry = rhiSystem->GetDrawListTagRegistry();
 
-#if defined(CARBONATED)
-            m_dummyDrawSrg = nullptr;
-            m_drawSrgPool = nullptr;
-            m_drawSrgLayout = nullptr;
-#endif
             m_asset = { &shaderAsset, AZ::Data::AssetLoadBehavior::PreLoad };
             m_pipelineStateType = shaderAsset.GetPipelineStateType();
 
@@ -192,6 +187,8 @@ namespace AZ
             m_rootVariant.Init(m_asset, rootShaderVariantAsset, m_supervariantIndex);
 
 #if defined(CARBONATED)
+            m_dummyDrawSrg = nullptr;
+            m_drawSrgPool = nullptr;
             m_drawSrgLayout = shaderAsset.GetDrawSrgLayout(m_supervariantIndex);
             if (m_drawSrgLayout)
             {
@@ -667,22 +664,18 @@ namespace AZ
         {
 #if defined(CARBONATED)
             MEMORY_TAG(Shader);
-#endif
-#if defined(CARBONATED)
             if (m_dummyDrawSrg)
             {
                 return m_dummyDrawSrg;
             }
-
+#endif
+#if defined(CARBONATED)
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout = m_drawSrgLayout;
 #else
             RHI::Ptr<RHI::ShaderResourceGroupLayout> drawSrgLayout = m_asset->GetDrawSrgLayout(GetSupervariantIndex());
 #endif
             Data::Instance<ShaderResourceGroup> drawSrg;
-#if defined(CARBONATED)
-            if (m_drawSrgLayout)
-#else
             if (drawSrgLayout)
-#endif
             {
 #if defined(CARBONATED)
                 {

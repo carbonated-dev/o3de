@@ -586,14 +586,13 @@ namespace AZ
                     if (index.IsValid())
                     {
                         drawSrg->SetConstant(index, uvStreamTangentBitmask.GetFullTangentBitmask());
-                        drawSrg->Compile();
                     }
+
+                    drawSrg->Compile();
                 }
 #endif
-
-#if defined(CARBONATED)
                 parentScene.ConfigurePipelineState(drawListTag, pipelineStateDescriptor);
-
+#if defined(CARBONATED)
                 const uint8_t drawItemIndex = aznumeric_cast<uint8_t>(shaderList.size());
                 const HashValue64 specializedDescriptorHash = pipelineStateDescriptor.GetHash();
                 HashValue64 fallbackDescriptorHash = specializedDescriptorHash;
@@ -674,7 +673,6 @@ namespace AZ
                     }
                 }
 #else
-                parentScene.ConfigurePipelineState(drawListTag, pipelineStateDescriptor);
                 const RHI::PipelineState* pipelineState = shader->AcquirePipelineState(pipelineStateDescriptor);
 #endif
                 if (!pipelineState)
