@@ -1177,6 +1177,12 @@ namespace AzToolsFramework
 
     void ToolsApplication::UndoPressed()
     {
+#if defined(CARBONATED)
+        if (!m_undoRedoEnabled)
+        {
+            return;
+        }
+#endif
         if (m_undoStack)
         {
             if (m_undoStack->CanUndo())
@@ -1196,6 +1202,12 @@ namespace AzToolsFramework
 
     void ToolsApplication::RedoPressed()
     {
+#if defined(CARBONATED)
+        if (!m_undoRedoEnabled)
+        {
+            return;
+        }
+#endif
         if (m_undoStack)
         {
             if (m_undoStack->CanRedo())
@@ -1240,12 +1252,6 @@ namespace AzToolsFramework
 
     UndoSystem::URSequencePoint* ToolsApplication::BeginUndoBatch(const char* label)
     {
-#if defined(CARBONATED)
-        if (!m_undoRedoEnabled)
-        {
-            return nullptr;
-        }
-#endif
         AZ_Error("Tools Application", !m_isDuringUndoRedo, "Can not create a new Undo/Redo bach while an Undo or Redo operation is running.");
 
         if (!m_currentBatchUndo)
@@ -1270,12 +1276,6 @@ namespace AzToolsFramework
 
     UndoSystem::URSequencePoint* ToolsApplication::ResumeUndoBatch(UndoSystem::URSequencePoint* expected, const char* label)
     {
-#if defined(CARBONATED)
-        if (!m_undoRedoEnabled)
-        {
-            return nullptr;
-        }
-#endif
         if (m_currentBatchUndo)
         {
             if (m_undoStack->GetTop() == m_currentBatchUndo)
@@ -1326,12 +1326,6 @@ namespace AzToolsFramework
 
     void ToolsApplication::EndUndoBatch()
     {
-#if defined(CARBONATED)
-        if (!m_undoRedoEnabled)
-        {
-            return;
-        }
-#endif
         AZ_Assert(m_currentBatchUndo, "Cannot end batch - no batch current");
 
         if (m_currentBatchUndo->GetParent())
@@ -1371,24 +1365,10 @@ namespace AzToolsFramework
         }
     }
 
-
 #if defined(CARBONATED)
     void ToolsApplication::SetEnableUndoRedo(bool enable)
     {
-        if (m_undoRedoEnabled == enable) return;
-
         m_undoRedoEnabled = enable;
-
-        if (!m_undoRedoEnabled)
-        {
-            m_dirtyEntities.clear();
-
-            if (m_currentBatchUndo)
-            {
-                delete m_currentBatchUndo;
-                m_currentBatchUndo = nullptr;
-            }
-        }
     }
 #endif
 
