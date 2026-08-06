@@ -19,6 +19,8 @@ set(FILES
     Source/Integration/Editor/Components/EditorAnimAudioComponent.cpp
     Source/Integration/Editor/Components/EditorAnimGraphComponent.h
     Source/Integration/Editor/Components/EditorAnimGraphComponent.cpp
+    Source/Integration/Editor/Components/EditorAnimMeshComponent.h
+    Source/Integration/Editor/Components/EditorAnimMeshComponent.cpp
     Source/Integration/Editor/Components/EditorApplyMotionSetComponent.h
     Source/Integration/Editor/Components/EditorApplyMotionSetComponent.cpp
     Source/Integration/Editor/Components/EditorSimpleMotionComponent.h

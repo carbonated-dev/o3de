@@ -31,6 +31,8 @@ set(FILES
     Source/Integration/Components/AnimAudioComponent.cpp
     Source/Integration/Components/AnimGraphComponent.h
     Source/Integration/Components/AnimGraphComponent.cpp
+    Source/Integration/Components/AnimMeshComponent.h
+    Source/Integration/Components/AnimMeshComponent.cpp
     Source/Integration/Components/ApplyMotionSetComponent.h
     Source/Integration/Components/ApplyMotionSetComponent.cpp
     Source/Integration/Components/SimpleMotionComponent.h

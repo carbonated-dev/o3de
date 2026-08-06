@@ -12,6 +12,9 @@
 #include <Integration/Components/AnimGraphComponent.h>
 #if defined(CARBONATED)
 #include <Integration/Components/ApplyMotionSetComponent.h>
+#   if defined(CARBONATED_ANIMATION_MESH)
+#   include <Integration/Components/AnimMeshComponent.h>
+#   endif
 #endif
 #include <Integration/Components/SimpleMotionComponent.h>
 #include <Integration/Components/SimpleLODComponent.h>
@@ -26,6 +29,9 @@
 #   include <Integration/Editor/Components/EditorAnimGraphComponent.h>
 #if defined(CARBONATED)
 #   include <Integration/Editor/Components/EditorApplyMotionSetComponent.h>
+#   if defined(CARBONATED_ANIMATION_MESH)
+#   include <Integration/Editor/Components/EditorAnimMeshComponent.h>
+#   endif
 #endif
 #   include <Integration/Editor/Components/EditorSimpleMotionComponent.h>
 #   include <Integration/Editor/Components/EditorSimpleLODComponent.h>
@@ -73,6 +79,9 @@ namespace EMotionFX
                     AnimAudioComponent::CreateDescriptor(),
                     AnimGraphComponent::CreateDescriptor(),
 #if defined(CARBONATED)
+    #if defined(CARBONATED_ANIMATION_MESH)
+                    AnimMeshComponent::CreateDescriptor(),
+    #endif
                     ApplyMotionSetComponent::CreateDescriptor(),
 #endif
                     SimpleMotionComponent::CreateDescriptor(),
@@ -87,6 +96,9 @@ namespace EMotionFX
                     EditorAnimAudioComponent::CreateDescriptor(),
                     EditorAnimGraphComponent::CreateDescriptor(),
 #if defined(CARBONATED)
+    #if defined(CARBONATED_ANIMATION_MESH)
+                    EditorAnimMeshComponent::CreateDescriptor(),
+    #endif
                     EditorApplyMotionSetComponent::CreateDescriptor(),
 #endif
                     EditorSimpleMotionComponent::CreateDescriptor(),
