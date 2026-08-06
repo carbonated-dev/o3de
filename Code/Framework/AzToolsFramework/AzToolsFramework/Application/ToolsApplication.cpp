@@ -1375,6 +1375,8 @@ namespace AzToolsFramework
 #if defined(CARBONATED)
     void ToolsApplication::SetEnableUndoRedo(bool enable)
     {
+        if (m_undoRedoEnabled == enable) return;
+
         m_undoRedoEnabled = enable;
 
         if (!m_undoRedoEnabled)
