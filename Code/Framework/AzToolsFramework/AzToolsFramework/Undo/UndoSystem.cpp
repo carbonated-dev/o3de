@@ -113,7 +113,14 @@ namespace AzToolsFramework
             }
 
             m_parent = parent;
+#if defined(CARBONATED)
+            if (m_parent != nullptr)
+            {
+                m_parent->AddChild(this);
+            }
+#else
             m_parent->AddChild(this);
+#endif
         }
 
         void URSequencePoint::SetName(const AZStd::string& friendlyName)

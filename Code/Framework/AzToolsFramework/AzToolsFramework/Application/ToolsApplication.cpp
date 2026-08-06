@@ -183,6 +183,9 @@ namespace AzToolsFramework
         , m_currentBatchUndo(nullptr)
         , m_isDuringUndoRedo(false)
         , m_isInIsolationMode(false)
+#if defined(CARBONATED)
+        , m_enableUndoRedo(true)
+#endif
     {
         ToolsApplicationRequests::Bus::Handler::BusConnect();
         AzToolsFramework::Prefab::PrefabPublicNotificationBus::Handler::BusConnect();
@@ -1237,6 +1240,12 @@ namespace AzToolsFramework
 
     UndoSystem::URSequencePoint* ToolsApplication::BeginUndoBatch(const char* label)
     {
+#if defined(CARBONATED)
+        if (!m_enableUndoRedo)
+        {
+            return nullptr;
+        }
+#endif
         AZ_Error("Tools Application", !m_isDuringUndoRedo, "Can not create a new Undo/Redo bach while an Undo or Redo operation is running.");
 
         if (!m_currentBatchUndo)
@@ -1261,6 +1270,12 @@ namespace AzToolsFramework
 
     UndoSystem::URSequencePoint* ToolsApplication::ResumeUndoBatch(UndoSystem::URSequencePoint* expected, const char* label)
     {
+#if defined(CARBONATED)
+        if (!m_enableUndoRedo)
+        {
+            return nullptr;
+        }
+#endif
         if (m_currentBatchUndo)
         {
             if (m_undoStack->GetTop() == m_currentBatchUndo)
@@ -1311,6 +1326,12 @@ namespace AzToolsFramework
 
     void ToolsApplication::EndUndoBatch()
     {
+#if defined(CARBONATED)
+        if (!m_enableUndoRedo)
+        {
+            return;
+        }
+#endif
         AZ_Assert(m_currentBatchUndo, "Cannot end batch - no batch current");
 
         if (m_currentBatchUndo->GetParent())
@@ -1349,6 +1370,25 @@ namespace AzToolsFramework
             m_currentBatchUndo = nullptr;
         }
     }
+
+
+#if defined(CARBONATED)
+    void ToolsApplication::EnableUndoRedo(bool enable)
+    {
+        m_enableUndoRedo = enable;
+
+        if (!m_enableUndoRedo)
+        {
+            m_dirtyEntities.clear();
+
+            if (m_currentBatchUndo)
+            {
+                delete m_currentBatchUndo;
+                m_currentBatchUndo = nullptr;
+            }
+        }
+    }
+#endif
 
     void ToolsApplication::OnPrefabInstancePropagationBegin()
     {
