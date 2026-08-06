@@ -440,6 +440,13 @@
                             }
                         },
                         {
+                            "LocalSlot": "DepthStencilMSAA",
+                            "AttachmentRef": {
+                                "Pass": "DepthPrePass",
+                                "Attachment": "DepthMSAA"
+                            }
+                        },
+                        {
                             "LocalSlot": "MotionVectors",
                             "AttachmentRef": {
                                 "Pass": "MotionVectorPass",

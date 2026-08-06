@@ -205,6 +205,15 @@ namespace AZ
                             ->EnumAttribute(ShaperPresetType::Log2_4000Nits, "Log2 4000 nits")
                             ->EnumAttribute(ShaperPresetType::Log2CustomRange, "Log2 Custom Range")
                             ->EnumAttribute(ShaperPresetType::PqSmpteSt2084, "PQ (SMPTE ST 2084)")
+#if defined(CARBONATED)
+                        ->ClassElement(AZ::Edit::ClassElements::Group, "Mask Blocking")
+                        ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
+                        ->DataElement(
+                            Edit::UIHandlers::CheckBox,
+                            &HDRColorGradingComponentConfig::m_enableBlocking,
+                            "Enable Blocking",
+                            "Enables blocking of color grading based on stencil buffer.")
+#endif
                         ;
                 }
             }

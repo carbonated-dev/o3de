@@ -43,6 +43,9 @@ namespace AZ
 
             const HDRColorGradingSettings* GetHDRColorGradingSettings() const;
             virtual void SetSrgConstants();
+#if defined(CARBONATED)
+            void UpdateShaderOptions();
+#endif
         private:
             RHI::ShaderInputNameIndex m_colorAdjustmentWeightIndex = "m_colorAdjustmentWeight";
             RHI::ShaderInputNameIndex m_colorGradingExposureIndex = "m_colorGradingExposure";

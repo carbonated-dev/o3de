@@ -12,11 +12,17 @@
 
 #include <Atom/Features/PostProcessing/FullscreenPixelInfo.azsli>
 #include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
+// Begin Carbonated
+#include <Atom/Features/StencilUtility.azsli>
+// End Carbonated
 
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
     // get the framebuffer
     Texture2D<float4> m_framebuffer;
+    // Begin Carbonated
+    Texture2DMS<uint2> m_stencilTex;
+    // End Carbonated
 
     // framebuffer sampler
     Sampler LinearSampler
@@ -67,14 +73,29 @@ ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 
 #include <Atom/Features/PostProcessing/HDRColorGradingCommon.azsl>
 
-PSOutput MainPS(VSOutput IN)
+// Begin Carbonated
+option bool o_enableColorBlocking = false;
+// End Carbonated
+
+PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
 {
     PSOutput OUT;
 
     // Fetch the pixel color from the input texture
     float3 frameColor = PassSrg::m_framebuffer.Sample(PassSrg::LinearSampler, IN.m_texCoord).rgb;
 
-    OUT.m_color.rgb = ColorGrade(frameColor);
+    // Begin Carbonated
+    bool blockColorGrading = false;
+    if (o_enableColorBlocking)
+    {
+        static const uint ColorGradingBlockMask = 0x20;
+        uint stencilValue = ReadStencil(PassSrg::m_stencilTex.Load(IN.m_position.xy, sampleIndex));
+        blockColorGrading = stencilValue & ColorGradingBlockMask;
+    }
+
+    OUT.m_color.rgb = blockColorGrading ? frameColor : ColorGrade(frameColor);
+    // was: OUT.m_color.rgb = ColorGrade(frameColor);
+    // End Carbonated
     OUT.m_color.w = 1;
 
     return OUT;
