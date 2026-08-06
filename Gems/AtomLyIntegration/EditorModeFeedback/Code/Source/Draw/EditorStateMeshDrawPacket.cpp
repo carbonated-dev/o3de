@@ -241,11 +241,7 @@ namespace AZ::Render
             const RHI::PipelineState* pipelineState = shader->AcquirePipelineState(pipelineStateDescriptor);
             if (!pipelineState)
             {
-                AZ_Error(
-                    "EditorStateMeshDrawPacket",
-                    false,
-                    "Shader '%s'. Failed to acquire default pipeline state",
-                    shaderItem.GetShaderAsset()->GetName().GetCStr());
+                AZ_Error("EditorStateMeshDrawPacket", false, "Shader '%s'. Failed to acquire default pipeline state", shaderItem.GetShaderAsset()->GetName().GetCStr());
                 return false;
             }
 
