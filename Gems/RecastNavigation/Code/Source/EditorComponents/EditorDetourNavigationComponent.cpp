@@ -96,13 +96,14 @@ namespace RecastNavigation
             AZ::TransformBus::EventResult(start, fromEntity, &AZ::TransformBus::Events::GetWorldTranslation);
             AZ::TransformBus::EventResult(end, toEntity, &AZ::TransformBus::Events::GetWorldTranslation);
 
-            return FindPathBetweenPositions(start, end, addCrossings, partial);
+            return FindPathBetweenPositions(start, end, addCrossings, partial, false);
         }
 
         return {};
     }
+//#define RECAST_COVERPOINT_LOG
     AZStd::vector<AZ::Vector3> EditorDetourNavigationComponent::FindPathBetweenPositions(
-        const AZ::Vector3& fromWorldPosition, const AZ::Vector3& toWorldPosition, bool addCrossings, bool& partial)
+        const AZ::Vector3& fromWorldPosition, const AZ::Vector3& toWorldPosition, bool addCrossings, bool& partial, bool polyCheck)
     {
         AZStd::shared_ptr<NavMeshQuery> navMeshQuery;
         RecastNavigationMeshRequestBus::EventResult(navMeshQuery, m_navQueryEntityId, &RecastNavigationMeshRequests::GetNavigationObject);
@@ -185,6 +186,131 @@ namespace RecastNavigation
         for (int i = 0; i < detailedPathCount; ++i)
         {
             pathPoints.push_back(detailedPath[i].AsVector3WithZup());
+        }
+
+        // check polygon height continuity
+        if (polyCheck)
+        {
+            AZStd::vector<dtPolyRef> pathPolys;
+            pathPoints.reserve(detailedPathCount + 1);
+            for (int i = 0; i < detailedPathCount; i++)
+            {
+                if (detailedPolyPathRefs[i] != 0)
+                {
+                    pathPolys.push_back(detailedPolyPathRefs[i]);
+                }
+            }
+            if (pathPolys.size() == 0)
+            {
+                pathPolys.push_back(startPoly);
+            }
+            if (pathPolys[pathPolys.size() - 1] != endPoly)
+            {
+                pathPolys.push_back(endPoly);
+            }
+
+            float thisMin = 0.0f;
+            float thisMax = 0.0f;
+            int segmentCount = 0;
+#if defined(RECAST_COVERPOINT_LOG)
+            AZ_Info("NavCheck", "check path with %d polys, start %d, end %d", pathPolys.size(), int(startPoly), int(endPoly));
+#endif
+            for (int i = 0; i < pathPolys.size(); i++)
+            {
+                dtPolyRef thisPoly = pathPolys[i];
+
+                const int prevSegmentCount = segmentCount;
+                constexpr int MAX_SEGS_PER_POLY = 6 * 3; // from detour sources
+                float verts[MAX_SEGS_PER_POLY * 6];
+                dtPolyRef segmentRefs[MAX_SEGS_PER_POLY];
+                result = lock.GetNavQuery()->getPolyWallSegments(thisPoly, &filter, verts, segmentRefs, &segmentCount, MAX_SEGS_PER_POLY);
+                if (dtStatusFailed(result))
+                {
+#if defined(RECAST_COVERPOINT_LOG)
+                    AZ_Error("NavCheck", false, "  cannot get data on poly N%d %d", i, int(thisPoly));
+#endif
+                    continue;
+                }
+#if defined(RECAST_COVERPOINT_LOG)
+                AZ_Info("NavCheck", "  poly N%d %d, %d segments", i, int(thisPoly), segmentCount);
+#endif
+                const float prevMin = thisMin;
+                const float prevMax = thisMax;
+                if (segmentCount == 1)
+                {
+                    thisPoly = segmentRefs[0];
+                    result = lock.GetNavQuery()->getPolyWallSegments(thisPoly, &filter, verts, segmentRefs, &segmentCount, MAX_SEGS_PER_POLY);
+                    if (dtStatusFailed(result))
+                    {
+#if defined(RECAST_COVERPOINT_LOG)
+                        AZ_Error("NavCheck", false, "  cannot get data on neightbor poly N%d %d", i, int(thisPoly));
+#endif
+                        continue;
+                    }
+#if defined(RECAST_COVERPOINT_LOG)
+                    AZ_Info("NavCheck", "  poly N%d %d, %d segments", i, int(thisPoly), segmentCount);
+#endif
+                }
+                for (int iv = 0; iv < segmentCount; iv++)
+                {
+                    const float* v = &verts[iv * 6];
+#if defined(RECAST_COVERPOINT_LOG)
+                    AZ_Info("NavCheck", "    segment %d: (%.1f,%.1f,%.1f)-(%.1f,%.1f,%.1f)", iv, v[0], v[2], v[1], v[3], v[5], v[4]);
+#endif
+                    if (iv == 0)
+                    {
+                        thisMin = thisMax = v[1];
+                    }
+                    else
+                    {
+                        if (v[1] < thisMin)
+                        {
+                            thisMin = v[1];
+                        }
+                        if (v[1] > thisMax)
+                        {
+                            thisMax = v[1];
+                        }
+                    }
+                    if (v[4] < thisMin)
+                    {
+                        thisMin = v[4];
+                    }
+                    if (v[4] > thisMax)
+                    {
+                        thisMax = v[4];
+                    }
+                }
+                if (i > 0)
+                {
+                    constexpr float maxClimb = 0.3f; // see Agent Max Climb option in recast component
+
+                    const float d1 = thisMin - prevMax;
+                    const float d2 = prevMin - thisMax;
+                    const float maxD = AZStd::max(d1, d2);
+
+                    if (segmentCount > 1 && prevSegmentCount > 1) // the wall-poly has just 1 segment, we cannot check continuity with it
+                    {
+                        if (maxD > maxClimb)
+                        {
+#if defined(RECAST_COVERPOINT_LOG)
+                            AZ_Info("NavCheck", "  continuity is broken at poly %d: (%.3f,%.3f)..(%.3f,%.3f), d=%.3f > %.3f",
+                                i, prevMin, prevMax, thisMin, thisMax, maxD, maxClimb);
+#endif
+                            return {};
+                        }
+                    }
+#if defined(RECAST_COVERPOINT_LOG)
+                    else
+                    {
+                        AZ_Error("NavCheck", false, "  still bad wall-poly with 1 edge");
+                    }
+#endif
+                }
+            }
+#if defined(RECAST_COVERPOINT_LOG)
+            AZ_Info("NavCheck", "  continuity OK");
+#endif
         }
 
         return pathPoints;

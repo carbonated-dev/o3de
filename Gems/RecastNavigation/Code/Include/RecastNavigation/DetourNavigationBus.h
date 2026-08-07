@@ -44,7 +44,7 @@ namespace RecastNavigation
         //! @return If a path is found, returns a vector of waypoints. An empty vector is returned if a path was not found.
 #if defined(CARBONATED) && defined(CARBONATED_RECAST_UPDATES)        
         virtual AZStd::vector<AZ::Vector3> FindPathBetweenPositions(const AZ::Vector3& fromWorldPosition, const AZ::Vector3& toWorldPosition,
-            bool addCrossings, bool& partial) = 0;
+            bool addCrossings, bool& partial, bool polyCheck) = 0;
 #else
         virtual AZStd::vector<AZ::Vector3> FindPathBetweenPositions(const AZ::Vector3& fromWorldPosition, const AZ::Vector3& toWorldPosition) = 0;
 #endif
