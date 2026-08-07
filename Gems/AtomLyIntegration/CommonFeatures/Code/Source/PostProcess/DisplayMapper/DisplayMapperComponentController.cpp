@@ -366,6 +366,8 @@ namespace AZ
             // Register the configuration with the  AcesDisplayMapperFeatureProcessor for this scene.
             DisplayMapperFeatureProcessorInterface* fp = AZ::RPI::Scene::GetFeatureProcessorForEntity<DisplayMapperFeatureProcessorInterface>(m_entityId);
 #if defined(CARBONATED)
+            // Headless server builds have no render pipeline/scene, so there is no feature processor to
+            // register with here; skip silently instead of dereferencing a null fp below.
             if (!fp)
             {
                 return;
