@@ -49,7 +49,11 @@
 
     bool NeedsTangentFrame()
     {
-        return ShouldHandleParallax() || o_normal_useTexture || (o_clearCoat_enabled && o_clearCoat_normal_useTexture);
+        return ShouldHandleParallax() || o_normal_useTexture || (o_clearCoat_enabled && o_clearCoat_normal_useTexture)
+#if CARBONATED_ENABLE_SNOW_OVERLAY
+            || (o_snow_enabled && o_snow_normal_useTexture)
+#endif
+            ;
     }
     
 #if ENABLE_PARALLAX    

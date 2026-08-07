@@ -8,6 +8,8 @@
     
 // StandardMultilayerPBR does not support transparency, so do not include OIT shader options for it.
 #define ENABLE_OIT 0
+#define CARBONATED_ENABLE_WETNESS 1
+#define CARBONATED_ENABLE_SNOW_OVERLAY 1
 
 #include <scenesrg.srgi>
 #include <viewsrg.srgi>
@@ -201,9 +203,12 @@ option enum class OpacityMode {Opaque, Cutout, Blended, TintedTransparent} o_opa
     COMMON_OPTIONS_NORMAL(prefix)        \
     COMMON_OPTIONS_CLEAR_COAT(prefix)    \
     COMMON_OPTIONS_OCCLUSION(prefix)     \
-    COMMON_OPTIONS_EMISSIVE(prefix)      \
-    COMMON_OPTIONS_WET(prefix)           \
-    COMMON_OPTIONS_SNOW(prefix) // CARBONATED additions: WET & SNOW, currently not used in this shader
+    COMMON_OPTIONS_EMISSIVE(prefix)
+
+    // Begin Carbonated
+    COMMON_OPTIONS_WET()
+    COMMON_OPTIONS_SNOW()
+    // End Carbonated
 
     DEFINE_LAYER_OPTIONS(o_layer1_)
     DEFINE_LAYER_OPTIONS(o_layer2_)
@@ -220,6 +225,9 @@ option enum class OpacityMode {Opaque, Cutout, Blended, TintedTransparent} o_opa
             || o_layer1_o_normal_useTexture
             || o_layer2_o_normal_useTexture
             || o_layer3_o_normal_useTexture
+#if CARBONATED_ENABLE_SNOW_OVERLAY
+            || (o_snow_enabled && o_snow_normal_useTexture)
+#endif
     #if ENABLE_CLEAR_COAT
             || o_layer1_o_clearCoat_normal_useTexture
             || o_layer2_o_clearCoat_normal_useTexture
@@ -239,8 +247,6 @@ option enum class OpacityMode {Opaque, Cutout, Blended, TintedTransparent} o_opa
         COMMON_SRG_INPUTS_CLEAR_COAT()
         COMMON_SRG_INPUTS_OCCLUSION()
         COMMON_SRG_INPUTS_EMISSIVE()
-        COMMON_SRG_INPUTS_WET()     // CARBONATED Addition
-        COMMON_SRG_INPUTS_SNOW()    // CARBONATED Addition
         // Note parallax is omitted here because that requires special handling.
 
         bool m_normal_useTexture;
@@ -426,6 +432,9 @@ option enum class OpacityMode {Opaque, Cutout, Blended, TintedTransparent} o_opa
     #endif
 
     #include <Atom/Feature/Common/Assets/Shaders/Materials/StandardPBR/StandardPBR_SurfaceData.azsli>
+#if CARBONATED_ENABLE_WETNESS || CARBONATED_ENABLE_SNOW_OVERLAY
+    #include <Atom/Feature/Common/Assets/Shaders/Materials/MaterialFunctions/WeatherSurfaceEffects.azsli>
+#endif
 
     Surface EvaluateSurface_StandardMultilayerPBR(
         float3 positionWS,
@@ -572,9 +581,57 @@ option enum class OpacityMode {Opaque, Cutout, Blended, TintedTransparent} o_opa
             ApplyParallaxClippingHighlight(baseColor);
         }
     #endif
-        surface.SetAlbedoAndSpecularF0(baseColor, specularF0Factor, metallic);
 
+    #if !(CARBONATED_ENABLE_WETNESS || CARBONATED_ENABLE_SNOW_OVERLAY)
+        surface.SetAlbedoAndSpecularF0(baseColor, specularF0Factor, metallic);
+    #endif
         surface.roughnessLinear = BlendLayers(lightingInputLayer1.m_roughness, lightingInputLayer2.m_roughness, lightingInputLayer3.m_roughness, blendWeights);
+
+    #if CARBONATED_ENABLE_WETNESS
+        // Apply one global overlay to the final visible substrate. This mirrors StandardPBR's
+        // ordering: wetness first, then snow cover.
+        if (o_wet_enabled)
+        {
+            real wetFactor = saturate(MaterialSrg::m_wetFactor);
+            if (o_wet_factor_useTexture)
+            {F
+                const float2 wetFactorMapUv = uvs[MaterialSrg::m_wetFactorMapUvIndex] * MaterialSrg::m_wetFactorMapUvScale;
+                wetFactor = GetWetInput(MaterialSrg::m_wetFactorMap, MaterialSrg::m_sampler, wetFactorMapUv);
+            }
+            ApplyWetSurfaceEffect(positionWS, uvs, wetFactor, surface, baseColor, specularF0Factor, metallic);
+        }
+    #endif
+
+    #if CARBONATED_ENABLE_SNOW_OVERLAY
+        if (o_snow_enabled)
+        {
+            real snowFactor = saturate(MaterialSrg::m_snowFactor);
+            if (o_snow_factor_useTexture)
+            {
+                const float2 snowFactorMapUv = uvs[MaterialSrg::m_snowFactorMapUvIndex] * MaterialSrg::m_snowFactorMapUvScale;
+                snowFactor = GetSnowFactorInput(MaterialSrg::m_snowFactorMap, MaterialSrg::m_sampler, snowFactorMapUv);
+            }
+            const real3x3 snowNormalUvMatrix = MaterialSrg::m_snowNormalMapUvIndex == 0
+                ? real3x3(MaterialSrg::m_uvMatrix)
+                : real3x3(CreateIdentity3x3());
+            ApplySnowSurfaceEffect(
+                positionWS,
+                normalWS,
+                tangents,
+                bitangents,
+                uvs,
+                isFrontFace,
+                snowNormalUvMatrix,
+                snowFactor,
+                surface,
+                baseColor,
+                specularF0Factor,
+                metallic);
+        }
+    #endif
+    #if CARBONATED_ENABLE_WETNESS || CARBONATED_ENABLE_SNOW_OVERLAY
+        surface.SetAlbedoAndSpecularF0(baseColor, specularF0Factor, metallic);
+    #endif
         surface.CalculateRoughnessA();
     
         // ------- Init and Combine Lighting Data -------

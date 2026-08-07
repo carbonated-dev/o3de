@@ -410,6 +410,9 @@ set(FILES
     Shaders/Materials/MaterialFunctions/ParallaxShadowUtil.azsli
     Shaders/Materials/MaterialFunctions/StandardGetAlphaAndClip.azsli
     Shaders/Materials/MaterialFunctions/StandardTransformDetailUvs.azsli
+# Begin Carbonated
+    Shaders/Materials/MaterialFunctions/WeatherSurfaceEffects.azsli
+# End Carbonated
     Shaders/Materials/MaterialInputs/AlphaInput.azsli
     Shaders/Materials/MaterialInputs/BaseColorInput.azsli
     Shaders/Materials/MaterialInputs/ClearCoatInput.azsli
