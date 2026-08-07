@@ -16,6 +16,11 @@
 
 #include <Atom/RHI/DrawListTagRegistry.h>
 #include <Atom/RHI/PipelineLibrary.h>
+#if defined(CARBONATED)
+#include <Atom/RHI/PipelineStateBuildQueue.h>
+#include <Atom/RHI/PipelineStateCache.h>
+#include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
+#endif
 
 #include <AtomCore/Instance/InstanceData.h>
 #include <AzCore/IO/SystemFile.h>
@@ -31,6 +36,9 @@ namespace AZ
     namespace RPI
     {
         class ShaderResourceGroup;
+#if defined(CARBONATED)
+        class ShaderResourceGroupPool;
+#endif
 
         //! Shader is effectively an 'uber-shader' containing a collection of 'variants'. Variants are
         //! designed to be 'variations' on the same core shader technique. To enforce this, every variant
@@ -66,6 +74,11 @@ namespace AZ
             //! Same as above, but uses the default supervariant 
             static Data::Instance<Shader> FindOrCreate(const Data::Asset<ShaderAsset>& shaderAsset);
 
+#if defined(CARBONATED)
+            //! Finds or creates the generated Fallback companion for this Specialized shader.
+            //! Returns null when this shader does not use specialization constants.
+            Data::Instance<Shader> FindOrCreateShaderOptionFallback() const;
+#endif
             ~Shader();
             AZ_DISABLE_COPY_MOVE(Shader);
 
@@ -124,6 +137,17 @@ namespace AZ
             //! Acquires a pipeline state directly from a descriptor.
             const RHI::PipelineState* AcquirePipelineState(const RHI::PipelineStateDescriptor& descriptor) const;
 
+#if defined(CARBONATED)
+            //! Acquires a pipeline state with an explicit sharing policy and returns a strong reference.
+            RHI::ConstPtr<RHI::PipelineState> AcquirePipelineState(
+                const RHI::PipelineStateDescriptor& descriptor,
+                RHI::PipelineStateAcquireFlags acquireFlags) const;
+
+            //! Queues a pipeline-state compilation using this shader's pipeline library.
+            RHI::PipelineStateBuildRequestPtr QueuePipelineStateBuild(
+                RHI::PipelineStateBuildGroupId groupId,
+                const RHI::PipelineStateDescriptor& descriptor) const;
+#endif
             //! Finds and returns the shader resource group asset with the requested name. Returns an empty handle if no matching group was found.
             const RHI::Ptr<RHI::ShaderResourceGroupLayout>& FindShaderResourceGroupLayout(const Name& shaderResourceGroupName) const;
 
@@ -137,10 +161,18 @@ namespace AZ
             AZStd::span<const RHI::Ptr<RHI::ShaderResourceGroupLayout>> GetShaderResourceGroupLayouts() const;
 
             //! Creates a DrawSrg that contains the shader variant fallback key.
+#if defined(CARBONATED)
+            //! Returns a shared, compiled dummy DrawSrg when this Shader is fully specialized and its DrawSrg layout is empty.
+#endif
             //! This SRG must be included in the DrawPacket for any shader that has shader options,
             //! otherwise the CommandList will fail validation for SRG being null.
             //! @param shaderOptions The shader option values will be stored in the SRG's shader variant fallback key (if there is one).
+#if defined(CARBONATED)
+            //! @param compileTheSrg If you need to set other values in a non-empty SRG, set this to false, then call Compile() when done.
+            //! This parameter has no effect when the shared dummy DrawSrg is returned because it is already compiled.
+#else
             //! @param compileTheSrg If you need to set other values in the SRG, set this to false, and the call Compile() when you are done.
+#endif
             //! @return The DrawSrg instance, or null if the shader does not include a DrawSrg.
             Data::Instance<ShaderResourceGroup> CreateDrawSrgForShaderVariant(const ShaderOptionGroup& shaderOptions, bool compileTheSrg);
 
@@ -183,6 +215,11 @@ namespace AZ
             //! A strong reference to the shader asset.
             Data::Asset<ShaderAsset> m_asset;
 
+#if defined(CARBONATED)
+            //! Cached creation context for this shader's DrawSrg.
+            RHI::Ptr<RHI::ShaderResourceGroupLayout> m_drawSrgLayout;
+            Data::Instance<ShaderResourceGroupPool> m_drawSrgPool;
+#endif
             /////////////////////////////////////////////////////////////////////////////////////
             //! The following variables are necessary to reliably reload the Shader
             //! whenever the Shader source assets and dependencies change.
@@ -224,6 +261,10 @@ namespace AZ
             //! DrawListTag associated with this shader.
             RHI::DrawListTag m_drawListTag;
 
+#if defined(CARBONATED)
+            //! Compiled DrawSrg shared by fully specialized PSOs when the DrawSrg layout has no inputs.
+            Data::Instance<ShaderResourceGroup> m_dummyDrawSrg;
+#endif
             //! PipelineLibrary file name
             char m_pipelineLibraryPath[AZ_MAX_PATH_LEN] = { 0 };
 

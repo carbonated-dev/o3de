@@ -16,6 +16,11 @@
 #include <RHI/DescriptorSet.h>
 #include <RHI/ReleaseQueue.h>
 
+#if defined(CARBONATED)
+#include <Atom/RHI.Reflect/Limits.h>
+#include <AzCore/std/containers/fixed_vector.h>
+#endif
+
 namespace AZ
 {
     namespace RHI
@@ -38,6 +43,9 @@ namespace AZ
         {
             using Base = RHI::DeviceObject;
             using ObjectType = DescriptorSet;
+#if defined(CARBONATED)
+            friend class DescriptorSet;
+#endif
             friend class Internal::DescriptorPoolFactory;
             friend class BindlessDescriptorPool;
 
@@ -51,15 +59,28 @@ namespace AZ
                 AZStd::vector<VkDescriptorPoolSize> m_descriptorPoolSizes;
                 uint32_t m_maxSets = 0;
                 uint32_t m_collectLatency = 0;
+#if defined(CARBONATED)
+                uint32_t m_allocatorLaneIndex = 0;
+#endif
                 BufferPool* m_constantDataPool = nullptr;
                 bool m_updateAfterBind = false;
             };
 
             ~DescriptorPool();
 
+#if defined(CARBONATED)
+            using DescriptorSetList =
+                AZStd::fixed_vector<RHI::Ptr<ObjectType>, RHI::Limits::Device::FrameCountMax>;
+            using BatchAllocResult = AZStd::pair<VkResult, DescriptorSetList>;
+#else
             using AllocResult = AZStd::pair<VkResult, RHI::Ptr<ObjectType>>;
+#endif
 
+#if defined(CARBONATED)
+            BatchAllocResult AllocateBatch(const DescriptorSetLayout& descriptorSetLayout, uint32_t count);
+#else
             AllocResult Allocate(const DescriptorSetLayout& descriptorSetLayout);
+#endif
             void DeAllocate(RHI::Ptr<ObjectType> object);
             const Descriptor& GetDescriptor() const;
             VkDescriptorPool GetNativeDescriptorPool() const;
@@ -76,6 +97,9 @@ namespace AZ
             void Reset();
 
             RHI::ResultCode BuildNativeDescriptorPool();
+#if defined(CARBONATED)
+            AZStd::mutex& GetMutex() const;
+#endif
 
             //////////////////////////////////////////////////////////////////////////
             // RHI::Object
@@ -91,6 +115,9 @@ namespace AZ
             VkDescriptorPool m_nativeDescriptorPool = VK_NULL_HANDLE;
             ReleaseQueue m_collector;
             AZStd::unordered_set<RHI::Ptr<ObjectType>> m_objects;
+#if defined(CARBONATED)
+            mutable AZStd::mutex m_mutex;
+#endif
         };
     }
 }

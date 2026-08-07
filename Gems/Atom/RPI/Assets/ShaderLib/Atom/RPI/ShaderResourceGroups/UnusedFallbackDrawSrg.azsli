@@ -16,6 +16,10 @@
 // your shader from changes made to that file.
 
 #include <Atom/Features/SrgSemantics.azsli>
+// Begin Carbonated
+// Needs to add the root constants because the layout must match for all DrawItem in the DrawPacket
+#include <Atom/RPI/ShaderResourceGroups/DefaultDrawSrgRootConstants.azsli>
+// End Carbonated
 ShaderResourceGroup UnusedFallbackDrawSrg : SRG_PerDraw
 {
 }

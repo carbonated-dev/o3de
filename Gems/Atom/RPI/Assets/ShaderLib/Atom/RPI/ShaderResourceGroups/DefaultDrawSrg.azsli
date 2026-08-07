@@ -9,6 +9,9 @@
 #pragma once
 
 #include <Atom/Features/SrgSemantics.azsli>
+// Begin Carbonated
+#include <Atom/RPI/ShaderResourceGroups/DefaultDrawSrgRootConstants.azsli>
+// End Carbonated
 
 #ifndef USE_CUSTOM_DRAW_SRG
 #define USE_CUSTOM_DRAW_SRG 0
@@ -19,7 +22,9 @@
 ShaderResourceGroup DrawSrg : SRG_PerDraw
 {
     // This SRG is unique per draw packet
-    uint m_uvStreamTangentBitmask;
+    // Begin Carbonated
+    // was: uint m_uvStreamTangentBitmask;
+    // End Carbonated
 
     uint GetTangentAtUv(uint uvIndex)
     {

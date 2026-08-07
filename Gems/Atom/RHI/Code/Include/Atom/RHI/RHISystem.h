@@ -11,6 +11,9 @@
 #include <Atom/RHI/Device.h>
 #include <Atom/RHI/DrawListTagRegistry.h>
 #include <Atom/RHI/FrameScheduler.h>
+#if defined(CARBONATED)
+#include <Atom/RHI/PipelineStateBuildQueue.h>
+#endif
 #include <Atom/RHI/PipelineStateCache.h>
 #include <Atom/RHI/RHISystemInterface.h>
 #include <Atom/RHI/RHIMemoryStatisticsInterface.h>
@@ -69,6 +72,9 @@ namespace AZ::RHI
         int GetDeviceCount() override;
         RHI::DrawListTagRegistry* GetDrawListTagRegistry() override;
         RHI::PipelineStateCache* GetPipelineStateCache() override;
+#if defined(CARBONATED)
+        RHI::PipelineStateBuildQueue* GetPipelineStateBuildQueue() override;
+#endif
         void ModifyFrameSchedulerStatisticsFlags(RHI::FrameSchedulerStatisticsFlags statisticsFlags, bool enableFlags) override;
         double GetCpuFrameTime() const override;
         const RHI::TransientAttachmentPoolDescriptor* GetTransientAttachmentPoolDescriptor() const override;
@@ -106,6 +112,9 @@ namespace AZ::RHI
         RHI::FrameSchedulerCompileRequest m_compileRequest;
         RHI::Ptr<RHI::DrawListTagRegistry> m_drawListTagRegistry;
         RHI::Ptr<RHI::PipelineStateCache> m_pipelineStateCache;
+#if defined(CARBONATED)
+        RHI::PipelineStateBuildQueue m_pipelineStateBuildQueue;
+#endif
         XRRenderingInterface* m_xrSystem = nullptr;
 
         //Used for better verbosity related to gpu markers

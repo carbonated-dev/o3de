@@ -67,7 +67,12 @@ namespace AZ::Render
 
         // Update mesh draw packet
         // Return true if DrawPacket was rebuilt
+#if defined(CARBONATED)
+        // Associated instance notifications can be deferred by the caller when multiple packets are updated in parallel.
+        bool UpdateDrawPacket(const RPI::Scene& parentScene, bool forceUpdate, bool notifyAssociatedInstances = true);
+#else
         bool UpdateDrawPacket(const RPI::Scene& parentScene, bool forceUpdate);
+#endif
 
         // Update shader option flags for the instance group
         // It goes through the cullable's m_shaderOptionFlags of each associated ModelDataInstance and get combined m_shaderOptionFlags and m_shaderOptionFlagMask

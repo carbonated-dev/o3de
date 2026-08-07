@@ -133,12 +133,24 @@ namespace AZ
             AZStd::vector<RHI::ShaderPlatformInterface*> DiscoverEnabledShaderPlatformInterfaces(
                 const AssetBuilderSDK::PlatformInfo& info, const RPI::ShaderSourceData& shaderSourceData);
 
+#if defined(CARBONATED)
+            // The idea is that the "Supervariants" json property is optional in .shader files.
+            // This function makes sure the first supervariant is the default, nameless supervariant. When
+            // baseBuildArguments is provided, each base supervariant whose full effective AZSLc arguments contain
+            // --sc-options gets an auto-generated NoSpecialization companion.
+#else
             // The idea is that the "Supervariants" json property is optional in .shader files,
             // For cases when it is not specified, this function will return a vector with one item, the default, nameless, supervariant.
             // If "Supervariants" is not empty, then this function will make sure the first supervariant in the list
             // is the default, nameless, supervariant.
+#endif
             AZStd::vector<RPI::ShaderSourceData::SupervariantInfo> GetSupervariantListFromShaderSourceData(
+#if defined(CARBONATED)
+                const RPI::ShaderSourceData& shaderSourceData,
+                const RHI::ShaderBuildArguments* baseBuildArguments = nullptr);
+#else
                 const RPI::ShaderSourceData& shaderSourceData);
+#endif
 
             void LogProfilingData(const char* builderName, AZStd::string_view shaderPath);
 

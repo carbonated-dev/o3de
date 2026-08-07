@@ -17,7 +17,12 @@
 
 namespace AZ::Render
 {
+#if defined(CARBONATED)
+    bool MeshInstanceGroupData::UpdateDrawPacket(
+        const RPI::Scene& parentScene, bool forceUpdate, bool notifyAssociatedInstances)
+#else
     bool MeshInstanceGroupData::UpdateDrawPacket(const RPI::Scene& parentScene, bool forceUpdate)
+#endif
     {
 #if defined(CARBONATED)
         MEMORY_TAG(Mesh);
@@ -27,9 +32,14 @@ namespace AZ::Render
         {
             // Clear any cached draw packets, since they need to be re-created
             m_perViewDrawPackets.clear();
-            for (auto modelDataInstance : m_associatedInstances)
+#if defined(CARBONATED)
+            if (notifyAssociatedInstances)
+#endif
             {
-                modelDataInstance->HandleDrawPacketUpdate();
+                for (ModelDataInstance* modelDataInstance : m_associatedInstances)
+                {
+                    modelDataInstance->HandleDrawPacketUpdate();
+                }
             }
             return true;
         }

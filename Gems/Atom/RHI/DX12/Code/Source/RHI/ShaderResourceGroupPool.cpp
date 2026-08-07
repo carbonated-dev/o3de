@@ -105,6 +105,9 @@ namespace AZ
         {
             if (m_constantBufferSize)
             {
+#if defined(CARBONATED)
+                AZStd::lock_guard<AZStd::mutex> lock(m_constantAllocatorMutex);
+#endif
                 m_constantAllocator.Shutdown();
             }
             Base::ShutdownInternal();
@@ -118,7 +121,12 @@ namespace AZ
 
             if (m_constantBufferSize)
             {
-                group.m_constantMemoryView = MemoryView(m_constantAllocator.Allocate(m_constantBufferRingSize, RHI::Alignment::Constant), MemoryViewType::Buffer);
+                {
+#if defined(CARBONATED)
+                    AZStd::lock_guard<AZStd::mutex> lock(m_constantAllocatorMutex);
+#endif
+                    group.m_constantMemoryView = MemoryView(m_constantAllocator.Allocate(m_constantBufferRingSize, RHI::Alignment::Constant), MemoryViewType::Buffer);
+                }
                 CpuVirtualAddress cpuAddress = group.m_constantMemoryView.Map(RHI::HostMemoryAccess::Write);
                 GpuVirtualAddress gpuAddress = group.m_constantMemoryView.GetGpuAddress();
 
@@ -162,6 +170,9 @@ namespace AZ
             if (m_constantBufferSize)
             {
                 group.m_constantMemoryView.Unmap(RHI::HostMemoryAccess::Write);
+#if defined(CARBONATED)
+                AZStd::lock_guard<AZStd::mutex> lock(m_constantAllocatorMutex);
+#endif
                 m_constantAllocator.DeAllocate(group.m_constantMemoryView.m_memoryAllocation);
             }
 
@@ -554,7 +565,12 @@ namespace AZ
 
         void ShaderResourceGroupPool::OnFrameEnd()
         {
-            m_constantAllocator.GarbageCollect();
+            {
+#if defined(CARBONATED)
+                AZStd::lock_guard<AZStd::mutex> lock(m_constantAllocatorMutex);
+#endif
+                m_constantAllocator.GarbageCollect();
+            }
             Base::OnFrameEnd();
         }
 
