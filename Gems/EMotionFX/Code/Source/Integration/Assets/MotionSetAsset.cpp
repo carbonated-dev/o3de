@@ -10,6 +10,7 @@
 #include <AzCore/Component/TickBus.h>
 #include <AzCore/StringFunc/StringFunc.h>
 #include <AzCore/Utils/Utils.h>
+#include <AzCore/Time/ITime.h>
 
 #include <Integration/Assets/MotionSetAsset.h>
 #include <EMotionFX/Source/MotionSet.h>
@@ -117,6 +118,18 @@ namespace EMotionFX
             }
         }
 
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOADING)
+        void MotionSetAsset::OnAssetReady(AZ::Data::Asset<AZ::Data::AssetData> asset)
+        {
+            AZStd::string path;
+            AZ::Data::AssetCatalogRequestBus::BroadcastResult(path, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetPathById, GetId());
+            AZ_Info("aaa", "MotionSetAsset::OnAssetReady '%s' for '%s' at %d", path.c_str(), asset.GetHint().c_str(),  int(AZ::GetRealElapsedTimeMs()));
+
+            AZ::Data::Asset<MotionAsset> motionAssetData = asset;
+            m_motionAssets.push_back(motionAssetData);
+        }
+#endif
+
         //////////////////////////////////////////////////////////////////////////
         void MotionSetAsset::NotifyMotionSetModified(const AZ::Data::Asset<MotionSetAsset>& asset)
         {
@@ -219,17 +232,35 @@ namespace EMotionFX
 
                 if (motionAssetId.IsValid())
                 {
+                    {
+                        AZStd::string motionPath;
+                        AZ::Data::AssetCatalogRequestBus::BroadcastResult(motionPath, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetPathById, motionAssetId);
+                        AZ_Info("aaa", "motion set '%s' before load motion '%s' at %d", asset.GetHint().c_str(), motionPath.c_str(), int(AZ::GetRealElapsedTimeMs()));
+                    }
+
                     AZ::Data::Asset<MotionAsset> motionAsset = AZ::Data::AssetManager::Instance().GetAsset<MotionAsset>(motionAssetId, AZ::Data::AssetLoadBehavior::Default);
+
+                    {
+                        AZStd::string motionPath;
+                        AZ::Data::AssetCatalogRequestBus::BroadcastResult(motionPath, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetPathById, motionAssetId);
+                        AZ_Info("aaa", "motion set '%s' after load motion '%s' at %d", asset.GetHint().c_str(), motionPath.c_str(), int(AZ::GetRealElapsedTimeMs()));
+                    }
 
                     if (motionAsset)
                     {
-#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOADING)
+                        // no blocking call
+#elif defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
                         motionAsset.BlockUntilLoadComplete(10000);
 #else
                         motionAsset.BlockUntilLoadComplete();
 #endif
                         assetData->BusConnect(motionAssetId);
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOADING)
+                        // processed in OnAssetReady
+#else                         
                         assetData->m_motionAssets.push_back(motionAsset);
+#endif
                     }
                     else
                     {
