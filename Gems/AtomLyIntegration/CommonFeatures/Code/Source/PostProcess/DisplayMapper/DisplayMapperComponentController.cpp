@@ -365,10 +365,12 @@ namespace AZ
         {
             // Register the configuration with the  AcesDisplayMapperFeatureProcessor for this scene.
             DisplayMapperFeatureProcessorInterface* fp = AZ::RPI::Scene::GetFeatureProcessorForEntity<DisplayMapperFeatureProcessorInterface>(m_entityId);
+#if defined(CARBONATED)
             if (!fp)
             {
                 return;
             }
+#endif
             DisplayMapperConfigurationDescriptor desc;
             desc.m_operationType = m_configuration.m_displayMapperOperation;
             desc.m_ldrGradingLutEnabled = m_configuration.m_ldrColorGradingLutEnabled;
