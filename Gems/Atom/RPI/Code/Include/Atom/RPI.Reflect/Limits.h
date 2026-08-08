@@ -17,7 +17,11 @@ namespace AZ
         {
             namespace Material
             {
+#if defined(CARBONATED)
+                constexpr uint32_t PropertyCountMax = 288;
+#else
                 constexpr uint32_t PropertyCountMax = 256;
+#endif
             }
         }
     }
