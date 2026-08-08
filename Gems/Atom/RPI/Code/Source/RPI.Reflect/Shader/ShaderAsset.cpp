@@ -77,6 +77,13 @@ namespace AZ
             }
         }
 
+#if defined(CARBONATED)
+        bool ShaderAsset::Supervariant::IsShaderOptionFallback() const
+        {
+            return AZ::StringFunc::EndsWith(m_name.GetStringView(), NoSpecializationSupervariantName);
+        }
+
+#endif
         void ShaderAsset::ShaderApiDataContainer::Reflect(AZ::ReflectContext* context)
         {
             if (auto* serializeContext = azrtti_cast<SerializeContext*>(context))
@@ -186,6 +193,15 @@ namespace AZ
             return supervariants[supervariantIndex.GetIndex()].m_name;
         }
 
+#if defined(CARBONATED)
+        AZ::Name ShaderAsset::MakeShaderOptionFallbackSupervariantName(const AZ::Name& supervariantName)
+        {
+            AZStd::string fallbackName(supervariantName.GetStringView());
+            fallbackName += NoSpecializationSupervariantName;
+            return AZ::Name(fallbackName);
+        }
+
+#endif
         Data::Asset<ShaderVariantAsset> ShaderAsset::GetVariantAsset(
             const ShaderVariantId& shaderVariantId, SupervariantIndex supervariantIndex)
         {
@@ -582,6 +598,13 @@ namespace AZ
                 const auto& supervariants = shaderApiData.m_supervariants;
                 for (const auto& supervariant : supervariants)
                 {
+#if defined(CARBONATED)
+                    if (supervariant.IsShaderOptionFallback())
+                    {
+                        continue;
+                    }
+
+#endif
                     m_isFullySpecialized &= supervariant.m_useSpecializationConstants;
                     bool beTrue = supervariant.m_attributeMaps.size() == RHI::ShaderStageCount;
                     if (!beTrue)

@@ -195,6 +195,12 @@
                 "$import": "MaterialInputs/UvPropertyGroup.json"
             },
             {
+                "$import": "MaterialInputs/WetPropertyGroup.json"
+            },
+            {
+                "$import": "MaterialInputs/SnowPropertyGroup.json"
+            },
+            {
                 // TODO: this should probably be updated to import IrradiancePropertyGroup.json
                 // Note: this property group is used in the DiffuseGlobalIllumination pass, it is not read by the StandardPBR shader
                 "name": "irradiance",

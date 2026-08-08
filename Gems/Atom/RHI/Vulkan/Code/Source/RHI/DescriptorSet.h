@@ -54,7 +54,9 @@ namespace AZ
             ~DescriptorSet() = default;
 
             static RHI::Ptr<DescriptorSet> Create();
+#if !defined(CARBONATED)
             VkResult Init(const Descriptor& descriptor);
+#endif
             const Descriptor& GetDescriptor() const;
             VkDescriptorSet GetNativeDescriptorSet() const;
 
@@ -65,9 +67,22 @@ namespace AZ
             void UpdateSamplers(uint32_t index, const AZStd::span<const RHI::SamplerState>& samplers);
             void UpdateConstantData(AZStd::span<const uint8_t> data);
 
+#if defined(CARBONATED)
+            //! Creates a buffer view for the constant-data buffer when it is needed by a merged SRG.
+            RHI::Ptr<BufferView> CreateConstantDataBufferView() const;
+#else
             RHI::Ptr<BufferView> GetConstantDataBufferView() const;
+#endif
 
         private:
+#if defined(CARBONATED)
+            VkResult Init(
+                const Descriptor& descriptor,
+                VkDescriptorSet nativeDescriptorSet,
+                const RHI::Ptr<Buffer>& constantDataBuffer,
+                size_t constantDataOffset);
+
+#endif
             struct WriteDescriptorData
             {
                 uint32_t m_layoutIndex = 0;
@@ -104,7 +119,11 @@ namespace AZ
             VkDescriptorSet m_nativeDescriptorSet = VK_NULL_HANDLE;
             AZStd::vector<WriteDescriptorData> m_updateData;
             RHI::Ptr<Buffer> m_constantDataBuffer;
+#if defined(CARBONATED)
+            size_t m_constantDataOffset = 0;
+#else
             RHI::Ptr<BufferView> m_constantDataBufferView;
+#endif
             bool m_nullDescriptorSupported = false;
             uint32_t m_currentUnboundedArrayAllocation = 0;
         };

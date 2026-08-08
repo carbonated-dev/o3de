@@ -358,10 +358,23 @@ namespace AZ
             }
 
             AZStd::vector<RPI::ShaderSourceData::SupervariantInfo> GetSupervariantListFromShaderSourceData(
+#if defined(CARBONATED)
+                const RPI::ShaderSourceData& shaderSourceData,
+                const RHI::ShaderBuildArguments* baseBuildArguments)
+#else
                 const RPI::ShaderSourceData& shaderSourceData)
+#endif
             {
+#if defined(CARBONATED)
+                const AZStd::string_view noSpecializationSuffix{ RPI::NoSpecializationSupervariantName };
+
+#endif
                 AZStd::vector<RPI::ShaderSourceData::SupervariantInfo> supervariants;
+#if defined(CARBONATED)
+                supervariants.reserve((shaderSourceData.m_supervariants.size() + 1) * 2);
+#else
                 supervariants.reserve(shaderSourceData.m_supervariants.size() + 1);
+#endif
 
                 // Add the supervariants, always making sure that:
                 //  1- The default, nameless, supervariant goes to the front.
@@ -378,6 +391,19 @@ namespace AZ
                             supervariantInfo.m_name.GetCStr());
                         return {}; // Return an empty vector.
                     }
+#if defined(CARBONATED)
+                    const AZStd::string_view supervariantName = supervariantInfo.m_name.GetStringView();
+                    if (AZ::StringFunc::EndsWith(supervariantName, noSpecializationSuffix))
+                    {
+                        AZ_Error(
+                            ShaderBuilderUtilityName,
+                            false,
+                            "The supervariant name [%s] uses the reserved suffix [%s].",
+                            supervariantInfo.m_name.GetCStr(),
+                            RPI::NoSpecializationSupervariantName);
+                        return {};
+                    }
+#endif
                     if (uniqueSuperVariants.count(supervariantInfo.m_name))
                     {
                         AZ_Error(
@@ -399,7 +425,77 @@ namespace AZ
                     supervariants.push_back({});
                     // Always move the default, nameless, variant to the begining of the list.
                     AZStd::swap(supervariants.front(), supervariants.back());
+#if defined(CARBONATED)
+                    uniqueSuperVariants.emplace(supervariants.front().m_name);
+#endif
                 }
+
+#if defined(CARBONATED)
+                if (!baseBuildArguments)
+                {
+                    return supervariants;
+                }
+
+                static constexpr const char* SpecializationConstantsAzslcArgument = "--sc-options";
+
+                // Each NoSpecialization companion inherits its base supervariant configuration. Base supervariants stay
+                // at their existing indices and generated companions are appended in the same order as their bases.
+                AZStd::vector<RPI::ShaderSourceData::SupervariantInfo> noSpecializationSupervariants;
+                noSpecializationSupervariants.reserve(supervariants.size());
+                const size_t baseSupervariantCount = supervariants.size();
+                for (size_t supervariantIndex = 0; supervariantIndex < baseSupervariantCount; ++supervariantIndex)
+                {
+                    const auto& baseSupervariant = supervariants[supervariantIndex];
+                    const RHI::ShaderBuildArguments effectiveBuildArguments =
+                        (*baseBuildArguments - baseSupervariant.m_removeBuildArguments) + baseSupervariant.m_addBuildArguments;
+                    if (!RHI::ShaderBuildArguments::HasArgument(
+                            effectiveBuildArguments.m_azslcArguments, SpecializationConstantsAzslcArgument))
+                    {
+                        continue;
+                    }
+
+                    RPI::ShaderSourceData::SupervariantInfo noSpecializationSupervariant = baseSupervariant;
+                    AZStd::string generatedName{ noSpecializationSupervariant.m_name.GetStringView() };
+                    generatedName += RPI::NoSpecializationSupervariantName;
+                    noSpecializationSupervariant.m_name = AZ::Name{ generatedName };
+
+                    if (!uniqueSuperVariants.emplace(noSpecializationSupervariant.m_name).second)
+                    {
+                        AZ_Error(
+                            ShaderBuilderUtilityName,
+                            false,
+                            "The automatically generated supervariant name [%s] collides with another supervariant.",
+                            noSpecializationSupervariant.m_name.GetCStr());
+                        return {};
+                    }
+
+                    // Supervariant argument scopes apply removals before additions, so remove --sc-options from both
+                    // sides to prevent an explicit base-supervariant addition from re-enabling it in the companion.
+                    RHI::ShaderBuildArguments::RemoveArguments(
+                        noSpecializationSupervariant.m_addBuildArguments.m_azslcArguments,
+                        { SpecializationConstantsAzslcArgument });
+                    RHI::ShaderBuildArguments::AppendArguments(
+                        noSpecializationSupervariant.m_removeBuildArguments.m_azslcArguments,
+                        { SpecializationConstantsAzslcArgument });
+                    noSpecializationSupervariants.push_back(AZStd::move(noSpecializationSupervariant));
+                }
+
+                if (supervariants.size() + noSpecializationSupervariants.size() > RPI::SupervariantIndexMaxValue + 1)
+                {
+                    AZ_Error(
+                        ShaderBuilderUtilityName,
+                        false,
+                        "Generating NoSpecialization supervariants would exceed the maximum of %u supervariants.",
+                        RPI::SupervariantIndexMaxValue + 1);
+                    return {};
+                }
+
+                supervariants.reserve(supervariants.size() + noSpecializationSupervariants.size());
+                for (auto& noSpecializationSupervariant : noSpecializationSupervariants)
+                {
+                    supervariants.push_back(AZStd::move(noSpecializationSupervariant));
+                }
+#endif
 
                 return supervariants;
             }

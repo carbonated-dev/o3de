@@ -23,6 +23,9 @@ namespace AZ::RHI
     class Device;
     class FrameGraphBuilder;
     class PipelineState;
+#if defined(CARBONATED)
+    class PipelineStateBuildQueue;
+#endif
     class PipelineStateCache;
     class PlatformLimitsDescriptor;
     class PhysicalDeviceDescriptor;
@@ -54,6 +57,9 @@ namespace AZ::RHI
 
         virtual RHI::PipelineStateCache* GetPipelineStateCache() = 0;
 
+#if defined(CARBONATED)
+        virtual RHI::PipelineStateBuildQueue* GetPipelineStateBuildQueue() = 0;
+#endif
         virtual void ModifyFrameSchedulerStatisticsFlags(RHI::FrameSchedulerStatisticsFlags statisticsFlags, bool enableFlags) = 0;
 
         virtual double GetCpuFrameTime() const = 0;

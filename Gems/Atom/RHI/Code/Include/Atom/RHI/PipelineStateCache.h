@@ -7,6 +7,9 @@
  */
 #pragma once
 
+#if defined(CARBONATED)
+#include <Atom/RHI.Reflect/Base.h>
+#endif
 #include <Atom/RHI/PipelineState.h>
 #include <Atom/RHI/PipelineLibrary.h>
 #include <Atom/RHI/ThreadLocalContext.h>
@@ -20,6 +23,33 @@ namespace UnitTest
 
 namespace AZ::RHI
 {
+#if defined(CARBONATED)
+    enum class PipelineLibraryStrategy : uint32_t
+    {
+        Shader = 0,
+        Global = 1
+    };
+
+    enum class PipelineStateAcquireFlags : uint8_t
+    {
+        //! By default, pending pipeline states are shared. The caller guarantees that all participating compilation work
+        //! completes before any returned pipeline state is used.
+        None = 0,
+
+        //! Compile an independent pipeline state when no completed cache entry is available. The independent pipeline
+        //! state is published only after compilation succeeds and is returned as a strong reference even if another
+        //! compilation wins the cache insertion race.
+        NoShare = AZ_BIT(0),
+
+        //! Search only the compacted global read-only cache without starting compilation.
+        NoCompile = AZ_BIT(1),
+
+        //! Allow lookup in the calling thread's local cache even when other flags would normally skip it.
+        ThreadLocalCache = AZ_BIT(2)
+    };
+    AZ_DEFINE_ENUM_BITWISE_OPERATORS(AZ::RHI::PipelineStateAcquireFlags)
+
+#endif
     //! Problem: High-level rendering code works in 'materials', 'shaders', and 'models', but the RHI works in
     //! 'pipeline states'. Therefore, a translation process must exist to resolve a shader variation (plus runtime
     //! state) into a pipeline state suitable for consumption by the RHI. These resolve operations can number in the
@@ -47,8 +77,14 @@ namespace AZ::RHI
     //!
     //! Each library has global and thread-local caches. Initially, the global cache is checked, if that fails, the
     //! thread-local cache is checked (no locks taken). Finally, the pending cache is checked under a lock and if
+#if defined(CARBONATED)
+    //! the entry still doesn't exist, it is allocated and added to the pending cache. Depending on the selected
+    //! PipelineLibraryStrategy, compilation uses either a thread-local PipelineLibrary or one PipelineLibrary shared
+    //! by all shaders and threads using this cache.
+#else
     //! the entry still doesn't exist, it is allocated and added to the pending cache. A thread-local PipelineLibrary
     //! is used to compile the pipeline state, which eliminates all locking for compilation.
+#endif
     //!
     //! Pipeline states can be acquired at any time and from any thread. The cache will take a reader lock. During
     //! AcquirePipelineState, the global read-only cache is not updated, but the thread-local cache and pending
@@ -63,7 +99,11 @@ namespace AZ::RHI
     //!      Both the global read-only cache and thread-local caches miss, one thread wins the race to take a lock
     //!      on the global pending cache. It allocates but does not compile the pipeline state. All other threads wait on the
     //!      lock (which should be quick) and then find and return the uninitialized pipeline state. The compiling
+#if defined(CARBONATED)
+    //!      thread uses the selected PipelineLibrary instance to compile the pipeline state. Non-compiling threads
+#else
     //!      thread uses the thread-local PipelineLibrary instance to compile the pipeline state. Non-compiling threads
+#endif
     //!      will enter the uninitialized pipeline state into their thread-local cache (as does the compiling thread once it
     //!      completes). Note that the compiling thread is now busy, but all remaining threads are now unblocked to compile other
     //!      pipeline states.
@@ -110,48 +150,107 @@ namespace AZ::RHI
 
         static Ptr<PipelineStateCache> Create(Device& device);
 
+#if defined(CARBONATED)
+        ~PipelineStateCache();
+
+        //! Returns the pipeline library strategy captured when this cache was created.
+        PipelineLibraryStrategy GetPipelineLibraryStrategy() const;
+
+        //! Saves the cache-owned PipelineLibrary used by the Global strategy.
+        //! Returns false when Global mode is unavailable or the library could not be saved.
+        bool SaveGlobalPipelineLibrary() const;
+
+#endif
         //! Resets the caches of all pipeline libraries back to empty. All internal references to pipeline states are released.
         void Reset();
 
+#if defined(CARBONATED)
+        //! Creates a per-shader library entry in Thread mode. In Global mode, returns the cache-owned global handle.
+#else
         //! Creates an internal pipeline library instance and returns its handle.
+#endif
         PipelineLibraryHandle CreateLibrary(const PipelineLibraryData* serializedData, const AZStd::string& filePath = "");
 
+#if defined(CARBONATED)
+        //! Releases a Thread library and its pipeline-state references. This is a no-op in Global mode.
+#else
         //! Releases the pipeline library and purges it from the cache. Releases all held references to pipeline states for the library.
+#endif
         void ReleaseLibrary(PipelineLibraryHandle handle);
 
         //! Resets cache contents in the library. Releases all held references to pipeline states for the library.
         void ResetLibrary(PipelineLibraryHandle handle);
 
+#if defined(CARBONATED)
+        //! Returns the shared library in Global mode or the resulting merged thread libraries in Thread mode.
+        //! The returned library can be used to write out serialized data.
+#else
         //! Returns the resulting merged library from all the threadLibraries related to the passed in handle.
         //! The merged library can be used to write out the serialized data.
+#endif
         Ptr<PipelineLibrary> GetMergedLibrary(PipelineLibraryHandle handle) const;
 
         //! Acquires a pipeline state (either draw or dispatch variants) from the cache. Pipeline states are associated
+#if defined(CARBONATED)
+        //! to a specific library handle. Shared calls with the same descriptor return the same pipeline state, even across
+        //! threads. The default behavior may return an entry whose compilation is still pending. Callers using
+        //! that overload must ensure all participating compilation work finishes before use.
+#else
         //! to a specific library handle. Successive calls with the same pipeline state descriptor hash will return the same
         //! pipeline state, even across threads. If the library handle is invalid or the acquire operation fails, a null pointer
         //! is returned. Otherwise, a valid pipeline state pointer is returned (regardless of whether pipeline state compilation succeeds).
+#endif
         //!
         //! It is permitted to take a strong reference to the returned pointer, but is not necessary as long as the reference
         //! is discarded on a library reset / release event. The cache will store a reference internally. If a strong reference
         //! is held externally, the instance will remain valid even after the cache is reset / destroyed.
         const PipelineState* AcquirePipelineState(
+#if defined(CARBONATED)
+            PipelineLibraryHandle library,
+            const PipelineStateDescriptor& descriptor,
+            const AZ::Name& name = AZ::Name());
+
+        //! Acquires a pipeline state using an explicit sharing policy and returns a strong reference. NoShare requests
+        //! compile privately after a global-cache miss. NoCompile searches only the compacted global read-only cache.
+        ConstPtr<PipelineState> AcquirePipelineState(
+            PipelineLibraryHandle library,
+            const PipelineStateDescriptor& descriptor,
+            PipelineStateAcquireFlags acquireFlags,
+            const AZ::Name& name = AZ::Name());
+#else
             PipelineLibraryHandle library, const PipelineStateDescriptor& descriptor, const AZ::Name& name = AZ::Name());
+#endif
 
         //! This method merges the global pending cache into the global read-only cache and clears all thread-local caches.
         //! This reduces the total memory footprint of the caches and optimizes subsequent fetches. This method should be called
         //! once per frame.
         void Compact();
 
+#if defined(CARBONATED)
+        //! Attempts to compact without waiting for active cache users. Returns false when compaction is deferred.
+        bool TryCompact();
+
+#endif
     private:
         PipelineStateCache(Device& device);
 
+#if defined(CARBONATED)
+        void CompactInternal();
+#endif
         void ValidateCacheIntegrity() const;
 
         using PipelineStateHash = HashValue64;
 
         struct PipelineStateEntry
         {
+#if defined(CARBONATED)
+            PipelineStateEntry(
+                PipelineStateHash hash,
+                ConstPtr<PipelineState> pipelineState,
+                const PipelineStateDescriptor& descriptor);
+#else
             PipelineStateEntry(PipelineStateHash hash, ConstPtr<PipelineState> pipelineState, const PipelineStateDescriptor& descriptor);
+#endif
 
             bool operator < (const PipelineStateEntry& rhs) const
             {
@@ -203,10 +302,15 @@ namespace AZ::RHI
             // A thread-local cache used to reduce contention on the global pending cache.
             PipelineStateSet m_threadLocalCache;
 
+#if defined(CARBONATED)
+            //! In Thread mode, each thread owns a pipeline library. In Global mode, each thread keeps
+            //! a reference to the cache-owned global library.
+#else
             //! Each thread has its own pipeline library. This allows threads to cache disjoint
             //! pipeline states without locking. The libraries are coalesced into a single library
             //! during GetMergedLibrary. The library is lazily initialized on the thread
             //! and uses the initial serialized data passed in at creation time.
+#endif
             Ptr<PipelineLibrary> m_library;
         };
 
@@ -221,6 +325,22 @@ namespace AZ::RHI
         //! Helper function which inserts an entry into the set. Returns true if the entry was inserted, or false is a duplicate entry existed.
         static bool InsertPipelineState(PipelineStateSet& pipelineStateSet, PipelineStateEntry pipelineStateEntry);
 
+#if defined(CARBONATED)
+        ConstPtr<PipelineState> AcquirePipelineStateInternal(
+            PipelineLibraryHandle library,
+            const PipelineStateDescriptor& descriptor,
+            const AZ::Name& name,
+            PipelineStateAcquireFlags acquireFlags);
+
+        //! Finds a pending entry or performs pipeline state compilation using the selected pipeline library.
+        ConstPtr<PipelineState> AcquirePendingPipelineState(
+            GlobalLibraryEntry& globalLibraryEntry,
+            ThreadLibraryEntry& threadLibraryEntry,
+            const PipelineStateDescriptor& pipelineStateDescriptor,
+            PipelineStateHash pipelineStateHash,
+            const AZ::Name& name,
+            PipelineStateAcquireFlags acquireFlags);
+#else
         //! Performs a pipeline state compilation on the global cache using the thread-local pipeline library.
         ConstPtr<PipelineState> CompilePipelineState(
             GlobalLibraryEntry& globalLibraryEntry,
@@ -228,12 +348,21 @@ namespace AZ::RHI
             const PipelineStateDescriptor& pipelineStateDescriptor,
             PipelineStateHash pipelineStateHash,
             const AZ::Name& name);
+#endif
 
         //! Resets the library without validating the handle or taking a lock.
         void ResetLibraryImpl(PipelineLibraryHandle handle);
 
         Ptr<Device> m_device;
 
+#if defined(CARBONATED)
+        //! Captured at construction and fixed for the lifetime of the cache.
+        const PipelineLibraryStrategy m_pipelineLibraryStrategy;
+
+        //! The single PipelineLibrary shared by every shader and thread in Global mode.
+        Ptr<PipelineLibrary> m_globalPipelineLibrary;
+
+#endif
         /// Each thread owns a set of ThreadLibraryEntry elements. RHI::PipelineLibraryHandle is an
         /// index into the array.
         ThreadLocalContext<ThreadLibrarySet> m_threadLibrarySet;

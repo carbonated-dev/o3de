@@ -1,0 +1,134 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ */
+
+#pragma once
+
+// Shared wet and snow overlay evaluation for PBR materials. The caller evaluates the
+// substrate-specific factor so single- and multi-layer materials can share the overlay math.
+
+#if CARBONATED_ENABLE_WETNESS
+void ApplyWetSurfaceEffect(
+    float3 positionWS,
+    float2 uvs[UvSetCount],
+    real wetFactor,
+    inout Surface surface,
+    inout real3 baseColor,
+    inout real specularF0Factor,
+    real metallic)
+{
+    real wetAmount = saturate(MaterialSrg::m_wetAmount);
+
+    // The wet factor describes the moistening properties of the visible substrate.
+    // Metals are at the low end, smooth dielectrics in the middle, and porous
+    // dielectrics at the high end.
+    wetFactor = saturate(wetFactor);
+    const float porosity = saturate(pow(1.15f, wetFactor) - 0.1f);
+    const float maxDarken = pow(1.25f, wetFactor) * 0.95f;
+
+    const float rainRadius = clamp(SceneSrg::m_weatherRadius, 10.0f, 10000.0f);
+    const float relativeDistance = length(positionWS.xy - SceneSrg::m_weatherCenter) / rainRadius;
+    wetAmount *= clamp((1.0f - relativeDistance) * 4.0f, 0.0f, 1.0f);
+
+    const float effectiveWetness = saturate(wetFactor + 0.1f) * wetAmount * saturate(surface.normal.z + 0.25f);
+    const float darkening = 1.0f - effectiveWetness * porosity * maxDarken;
+    const float3 waterTint = float3(0.96f, 0.98f, 1.0f);
+    baseColor = baseColor * darkening * lerp(1.0, waterTint, effectiveWetness * 0.3f);
+
+    real wetRoughness = saturate(MaterialSrg::m_wetRoughness);
+    if (o_wet_roughness_useTexture)
+    {
+        const float2 wetRoughnessMapUv = uvs[MaterialSrg::m_wetRoughnessMapUvIndex] * MaterialSrg::m_wetRoughnessMapUvScale;
+        wetRoughness = GetWetInput(MaterialSrg::m_wetRoughnessMap, MaterialSrg::m_sampler, wetRoughnessMapUv);
+    }
+    wetRoughness *= saturate(MaterialSrg::m_wetRoughnessAmount);
+    surface.roughnessLinear = lerp(surface.roughnessLinear, wetRoughness, effectiveWetness);
+
+    const float waterF0 = 0.5f;
+    if (metallic > 0.5f)
+    {
+        specularF0Factor = lerp(specularF0Factor, max(specularF0Factor, waterF0), effectiveWetness * 0.5f);
+    }
+    else
+    {
+        specularF0Factor = lerp(specularF0Factor, waterF0, effectiveWetness * (1.0f - porosity * 0.5f));
+    }
+}
+#endif
+
+#if CARBONATED_ENABLE_SNOW_OVERLAY
+void ApplySnowSurfaceEffect(
+    float3 positionWS,
+    real3 vertexNormal,
+    float3 tangents[UvSetCount],
+    float3 bitangents[UvSetCount],
+    float2 uvs[UvSetCount],
+    bool isFrontFace,
+    real3x3 snowNormalUvMatrix,
+    real snowFactor,
+    inout Surface surface,
+    inout real3 baseColor,
+    inout real specularF0Factor,
+    inout real metallic)
+{
+    real snowAmount = saturate(MaterialSrg::m_snowAmount);
+    if (o_snow_opacity_useTexture)
+    {
+        const float2 snowOpacityMapUv = uvs[MaterialSrg::m_snowOpacityMapUvIndex] * MaterialSrg::m_snowOpacityMapUvScale;
+        const float snowOpacity = GetSnowOpacityInput(MaterialSrg::m_snowOpacityMap, MaterialSrg::m_sampler, snowOpacityMapUv);
+        snowAmount = saturate(snowAmount + snowAmount * snowOpacity * 2.0f);
+    }
+
+    const float snowRadius = clamp(SceneSrg::m_weatherRadius, 10.0f, 10000.0f);
+    const float relativeDistance = length(positionWS.xy - SceneSrg::m_weatherCenter) / snowRadius;
+    snowAmount *= clamp((1.0f - relativeDistance) * 4.0f, 0.0f, 1.0f);
+    snowAmount *= saturate(snowFactor) * sqrt(saturate(surface.normal.z));
+
+    real3 snowColor = MaterialSrg::m_snowTintColor;
+    if (o_snow_albedo_useTexture)
+    {
+        const float2 snowAlbedoMapUv = uvs[MaterialSrg::m_snowAlbedoMapUvIndex] * MaterialSrg::m_snowAlbedoMapUvScale;
+        real4 snowAlbedo = GetSnowAlbedoInput(MaterialSrg::m_snowAlbedoMap, MaterialSrg::m_sampler, snowAlbedoMapUv);
+        snowColor = saturate(snowColor * 0.1 + snowAlbedo.xyz * 0.1 + snowColor * snowAlbedo.xyz);
+        snowAmount *= snowAlbedo.w;
+    }
+
+    real3 snowNormal = vertexNormal;
+    if (o_snow_normal_useTexture)
+    {
+        const float2 snowNormalMapUv = uvs[MaterialSrg::m_snowNormalMapUvIndex] * MaterialSrg::m_snowNormalMapUvScale;
+        snowNormal = GetNormalInputWS(
+            MaterialSrg::m_snowNormalMap,
+            MaterialSrg::m_sampler,
+            snowNormalMapUv,
+            false,
+            false,
+            isFrontFace,
+            vertexNormal,
+            tangents[MaterialSrg::m_snowNormalMapUvIndex],
+            bitangents[MaterialSrg::m_snowNormalMapUvIndex],
+            snowNormalUvMatrix,
+            o_snow_normal_useTexture,
+            real(MaterialSrg::m_snowNormalStrength),
+            float4(0.0f, 0.0f, 0.0f, 0.0f),
+            false);
+    }
+
+    real snowRoughness = saturate(MaterialSrg::m_snowRoughness);
+    if (o_snow_roughness_useTexture)
+    {
+        const float2 snowRoughnessMapUv = uvs[MaterialSrg::m_snowRoughnessMapUvIndex] * MaterialSrg::m_snowRoughnessMapUvScale;
+        snowRoughness = GetSnowRoughnessInput(MaterialSrg::m_snowRoughnessMap, MaterialSrg::m_sampler, snowRoughnessMapUv);
+    }
+    snowRoughness *= saturate(MaterialSrg::m_snowRoughnessAmount);
+
+    baseColor = lerp(baseColor, snowColor, snowAmount);
+    surface.normal = lerp(surface.normal, snowNormal, snowAmount);
+    specularF0Factor = lerp(specularF0Factor, 0.98f, snowAmount);
+    surface.roughnessLinear = lerp(surface.roughnessLinear, snowRoughness, snowAmount);
+    metallic = lerp(metallic, 0.01f, snowAmount);
+}
+#endif

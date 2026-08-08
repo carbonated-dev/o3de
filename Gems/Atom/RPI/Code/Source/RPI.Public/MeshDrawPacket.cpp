@@ -17,17 +17,28 @@
 #include <AzCore/Console/Console.h>
 #include <Atom/RPI.Public/Shader/ShaderReloadDebugTracker.h>
 
-#if defined(CARBONATED) && defined(CARBONATED_SHADER_LOADING_TIME)
+#if defined(CARBONATED)
+#include <Atom/RHI/ConstantsData.h>
+#include <AzCore/Memory/MemoryMarker.h>
+#if defined(CARBONATED_SHADER_LOADING_TIME)
 #include <AzCore/Time/ITime.h>
 #endif
-#if defined(CARBONATED)
-#include <AzCore/Memory/MemoryMarker.h>
 #endif
 
 namespace AZ
 {
     namespace RPI
     {
+#if defined(CARBONATED)
+        AZ_CVAR(bool,
+            r_forceRootShaderVariantUsage,
+            true,
+            [](const bool&) { AZ::Interface<AZ::IConsole>::Get()->PerformCommand("MeshFeatureProcessor.ForceRebuildDrawPackets"); },
+            ConsoleFunctorFlags::Null,
+            "Forces usage of root shader variant in the mesh draw packet level, ignoring any other shader variants that may exist.\
+             When using specialization constants for shader options, turn on this CVAR to avoid any lookup (since there's no variants)"
+        );
+#else
         AZ_CVAR(bool,
             r_forceRootShaderVariantUsage,
             false,
@@ -35,7 +46,56 @@ namespace AZ
             ConsoleFunctorFlags::Null,
             "(For Testing) Forces usage of root shader variant in the mesh draw packet level, ignoring any other shader variants that may exist."
         );
+#endif
 
+#if defined(CARBONATED)
+        AZ_CVAR(
+            bool,
+            r_meshDrawPacketAsyncPSO,
+            true,
+            nullptr,
+            ConsoleFunctorFlags::NeedsReload,
+            "Enables asynchronous compilation of Specialized mesh pipeline states while compatible Fallback states are used. "
+            "Changes require a level reload.");
+
+        MeshDrawPacket::PendingPipelineStateBuild::RequestOwner::RequestOwner(
+            RHI::PipelineStateBuildRequestPtr request)
+            : m_request(AZStd::move(request))
+        {
+        }
+
+        MeshDrawPacket::PendingPipelineStateBuild::RequestOwner::~RequestOwner()
+        {
+            if (m_request)
+            {
+                if (RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get())
+                {
+                    rhiSystem->GetPipelineStateBuildQueue()->Cancel(m_request);
+                }
+            }
+        }
+
+        MeshDrawPacket::PendingPipelineStateBuild::PendingPipelineStateBuild(
+            RHI::PipelineStateBuildRequestPtr request,
+            uint8_t drawItemIndex,
+            HashValue64 descriptorHash)
+            : m_requestOwner(AZStd::make_shared<RequestOwner>(AZStd::move(request)))
+            , m_drawItemIndex(drawItemIndex)
+            , m_descriptorHash(descriptorHash)
+        {
+        }
+
+        const RHI::PipelineStateBuildRequestPtr& MeshDrawPacket::PendingPipelineStateBuild::GetRequest() const
+        {
+            return m_requestOwner->m_request;
+        }
+
+        void MeshDrawPacket::PendingPipelineStateBuild::ReleaseRequest()
+        {
+            m_requestOwner.reset();
+        }
+
+#endif
         MeshDrawPacket::MeshDrawPacket(
             ModelLod& modelLod,
             size_t modelLodMeshIndex,
@@ -58,6 +118,83 @@ namespace AZ
             m_drawListFilter.set();
         }
 
+#if defined(CARBONATED)
+        void MeshDrawPacket::SetPipelineStateBuildGroup(RHI::PipelineStateBuildGroupId groupId)
+        {
+            if (m_pipelineStateBuildGroupId != groupId)
+            {
+                m_pendingPipelineStateBuilds.clear();
+                m_pipelineStateBuildGroupId = groupId;
+                m_needUpdate = true;
+            }
+        }
+
+        bool MeshDrawPacket::PublishPipelineStateBuildResults(
+            const RHI::PipelineStateBuildRequestSet& completedRequests)
+        {
+            bool specializedPipelineStatePublished = false;
+
+            for (auto buildIt = m_pendingPipelineStateBuilds.begin(); buildIt != m_pendingPipelineStateBuilds.end();)
+            {
+                const RHI::PipelineStateBuildRequestPtr& request = buildIt->GetRequest();
+                if (!completedRequests.contains(request.get()))
+                {
+                    ++buildIt;
+                    continue;
+                }
+
+                RHI::ConstPtr<RHI::PipelineState> pipelineState = request->GetPipelineState();
+                const bool usesSpecializationConstants = request->UsesSpecializationConstants();
+                DrawItemPipelineState* drawItemPipelineState = buildIt->m_drawItemIndex < m_drawItemPipelineStates.size()
+                    ? &m_drawItemPipelineStates[buildIt->m_drawItemIndex]
+                    : nullptr;
+                const HashValue64 expectedDescriptorHash = drawItemPipelineState
+                    ? (usesSpecializationConstants
+                        ? drawItemPipelineState->m_specializedDescriptorHash
+                        : drawItemPipelineState->m_fallbackDescriptorHash)
+                    : HashValue64{};
+                const bool isCompatible = drawItemPipelineState && buildIt->m_descriptorHash == expectedDescriptorHash;
+
+                if (pipelineState && isCompatible)
+                {
+                    if (usesSpecializationConstants)
+                    {
+                        if (m_drawPacket &&
+                            buildIt->m_drawItemIndex < m_drawPacket->GetDrawItemCount())
+                        {
+                            drawItemPipelineState->m_currentPipelineState = pipelineState;
+                            m_drawPacket->GetDrawItem(buildIt->m_drawItemIndex)->m_pipelineState = pipelineState.get();
+                            specializedPipelineStatePublished = true;
+                        }
+                    }
+                    else
+                    {
+                        auto fallbackIt = AZStd::find_if(
+                            m_fallbackPipelineStates.begin(),
+                            m_fallbackPipelineStates.end(),
+                            [descriptorHash = buildIt->m_descriptorHash](const PipelineStateReference& entry)
+                            {
+                                return entry.m_descriptorHash == descriptorHash;
+                            });
+                        if (fallbackIt != m_fallbackPipelineStates.end())
+                        {
+                            fallbackIt->m_pipelineState = pipelineState;
+                        }
+                        else
+                        {
+                            m_fallbackPipelineStates.push_back({ buildIt->m_descriptorHash, pipelineState });
+                        }
+                    }
+                }
+
+                buildIt->ReleaseRequest();
+                buildIt = m_pendingPipelineStateBuilds.erase(buildIt);
+            }
+
+            return specializedPipelineStatePublished;
+        }
+
+#endif
         Data::Instance<Material> MeshDrawPacket::GetMaterial() const
         {
             return m_material;
@@ -187,12 +324,25 @@ namespace AZ
             m_needUpdate = true;
         }
 
+#if defined(CARBONATED)
+        bool MeshDrawPacket::NeedsUpdate() const
+        {
+            return !m_shaderVariantHandler.IsConnected()
+                || (!m_material->NeedsCompile() && m_materialChangeId != m_material->GetCurrentChangeId())
+                || m_needUpdate;
+        }
+
+#endif
         bool MeshDrawPacket::Update(const Scene& parentScene, bool forceUpdate /*= false*/)
         {
             // Setup the Shader variant handler when update this MeshDrawPacket the first time .
             // This is because the MeshDrawPacket data can be copied or moved right after it's created.
+#if defined(CARBONATED)
+            // The m_shaderVariantHandler would retain a capture of the old 'this' pointer across that operation.
+#else
             // The m_shaderVariantHandler won't be copied correctly due to the capture of 'this' pointer.
             // Instead of override all the copy and move operators, this might be a better solution.
+#endif
             if (!m_shaderVariantHandler.IsConnected())
             {
                 m_shaderVariantHandler = Material::OnMaterialShaderVariantReadyEvent::Handler(
@@ -217,8 +367,12 @@ namespace AZ
             //      - MeshDrawPacket::Update() is called. But since the GetCurrentChangeId() hasn't changed since last time, DoUpdate() is not called.
             //      - The mesh continues rendering with only the "foo" change applied, indefinitely.
 
+#if defined(CARBONATED)
+            if (forceUpdate || NeedsUpdate())
+#else
             if (forceUpdate || (!m_material->NeedsCompile() && m_materialChangeId != m_material->GetCurrentChangeId())
                 || m_needUpdate)
+#endif
             {
                 DoUpdate(parentScene);
                 m_materialChangeId = m_material->GetCurrentChangeId();
@@ -277,6 +431,14 @@ namespace AZ
             // if DoUpdate() fails it won't modify any member data.
             MeshDrawPacket::ShaderList shaderList;
             shaderList.reserve(m_activeShaders.size());
+#if defined(CARBONATED)
+            const bool asyncPipelineStateCompilationEnabled = r_meshDrawPacketAsyncPSO;
+
+            AZStd::vector<DrawItemPipelineState> drawItemPipelineStates;
+            AZStd::fixed_vector<PipelineStateReference, RHI::DrawPacketBuilder::DrawItemCountMax> fallbackPipelineStates;
+            AZStd::vector<PendingPipelineStateBuild> pendingPipelineStateBuilds;
+            drawItemPipelineStates.reserve(m_activeShaders.size());
+#endif
 
             // We have to keep a list of these outside the loops that collect all the shaders because the DrawPacketBuilder
             // keeps pointers to StreamBufferViews until DrawPacketBuilder::End() is called. And we use a fixed_vector to guarantee
@@ -286,7 +448,12 @@ namespace AZ
             // The root constants are shared by all draw items in the draw packet. We must populate them with default values.
             // The draw packet builder needs to know where the data is coming from during appendShader, but it's not actually read
             // until drawPacketBuilder.End(), so store the default data out here.
+#if defined(CARBONATED)
+            RHI::ConstantsData rootConstants;
+            RHI::ConstPtr<RHI::ConstantsLayout> rootConstantsLayoutForPacket;
+#else
             AZStd::vector<uint8_t> rootConstants;
+#endif
             bool isFirstShaderItem = true;
 
             m_perDrawSrgs.clear();
@@ -409,14 +576,13 @@ namespace AZ
                     return false;
                 }
 
+#if !defined(CARBONATED)
                 Data::Instance<ShaderResourceGroup> drawSrg = shader->CreateDrawSrgForShaderVariant(shaderOptions, false);
                 if (drawSrg)
                 {
                     // Pass UvStreamTangentBitmask to the shader if the draw SRG has it.
-
                     AZ::Name shaderUvStreamTangentBitmask = AZ::Name(UvStreamTangentBitmask::SrgName);
                     auto index = drawSrg->FindShaderInputConstantIndex(shaderUvStreamTangentBitmask);
-
                     if (index.IsValid())
                     {
                         drawSrg->SetConstant(index, uvStreamTangentBitmask.GetFullTangentBitmask());
@@ -424,31 +590,153 @@ namespace AZ
 
                     drawSrg->Compile();
                 }
-
+#endif
                 parentScene.ConfigurePipelineState(drawListTag, pipelineStateDescriptor);
+#if defined(CARBONATED)
+                const uint8_t drawItemIndex = aznumeric_cast<uint8_t>(shaderList.size());
+                const HashValue64 specializedDescriptorHash = pipelineStateDescriptor.GetHash();
+                HashValue64 fallbackDescriptorHash = specializedDescriptorHash;
+                Data::Instance<Shader> fallbackShader;
+                RHI::ConstPtr<RHI::PipelineState> pipelineState;
+                bool isUsingFallbackPipelineState = false;
 
+                if (!asyncPipelineStateCompilationEnabled)
+                {
+                    pipelineState = shader->AcquirePipelineState(
+                        pipelineStateDescriptor, RHI::PipelineStateAcquireFlags::None);
+                }
+                else
+                {
+                    fallbackShader = shader->FindOrCreateShaderOptionFallback();
+                    if (!fallbackShader)
+                    {
+                        // A shader that does not use specialization constants is already a Fallback shader.
+                        pipelineState = shader->AcquirePipelineState(pipelineStateDescriptor, RHI::PipelineStateAcquireFlags::None);
+                        if (pipelineState)
+                        {
+                            fallbackPipelineStates.push_back({ fallbackDescriptorHash, pipelineState });
+                        }
+                    }
+                    else
+                    {
+                        RHI::PipelineStateDescriptorForDraw fallbackPipelineStateDescriptor;
+                        const ShaderVariant& fallbackVariant = r_forceRootShaderVariantUsage
+                            ? fallbackShader->GetRootVariant()
+                            : fallbackShader->GetVariant(requestedVariantId);
+                        fallbackVariant.ConfigurePipelineState(fallbackPipelineStateDescriptor, shaderOptions);
+                        fallbackPipelineStateDescriptor.m_inputStreamLayout = pipelineStateDescriptor.m_inputStreamLayout;
+                        RHI::MergeStateInto(renderStatesOverlay, fallbackPipelineStateDescriptor.m_renderStates);
+                        parentScene.ConfigurePipelineState(drawListTag, fallbackPipelineStateDescriptor);
+
+                        fallbackDescriptorHash = fallbackPipelineStateDescriptor.GetHash();
+                        auto existingFallbackIt = AZStd::find_if(
+                            m_fallbackPipelineStates.begin(),
+                            m_fallbackPipelineStates.end(),
+                            [fallbackDescriptorHash](const PipelineStateReference& entry)
+                            {
+                                return entry.m_descriptorHash == fallbackDescriptorHash;
+                            });
+                        RHI::ConstPtr<RHI::PipelineState> fallbackPipelineState = existingFallbackIt != m_fallbackPipelineStates.end()
+                            ? existingFallbackIt->m_pipelineState
+                            : fallbackShader->AcquirePipelineState(
+                                  fallbackPipelineStateDescriptor, RHI::PipelineStateAcquireFlags::NoCompile);
+
+                        pipelineState = shader->AcquirePipelineState(pipelineStateDescriptor, RHI::PipelineStateAcquireFlags::NoCompile);
+                        if (!pipelineState)
+                        {
+                            if (!fallbackPipelineState)
+                            {
+                                fallbackPipelineState = fallbackShader->AcquirePipelineState(
+                                    fallbackPipelineStateDescriptor, RHI::PipelineStateAcquireFlags::None);
+                            }
+                            pipelineState = fallbackPipelineState;
+                            isUsingFallbackPipelineState = true;
+                            pendingPipelineStateBuilds.emplace_back(
+                                shader->QueuePipelineStateBuild(m_pipelineStateBuildGroupId, pipelineStateDescriptor),
+                                drawItemIndex,
+                                specializedDescriptorHash);
+                        }
+                        else
+                        {
+                            if (!fallbackPipelineState)
+                            {
+                                pendingPipelineStateBuilds.emplace_back(
+                                    fallbackShader->QueuePipelineStateBuild(m_pipelineStateBuildGroupId, fallbackPipelineStateDescriptor),
+                                    drawItemIndex,
+                                    fallbackDescriptorHash);
+                            }
+                        }
+                        if (fallbackPipelineState)
+                        {
+                            fallbackPipelineStates.push_back({ fallbackDescriptorHash, fallbackPipelineState });
+                        }
+                    }
+                }
+#else
                 const RHI::PipelineState* pipelineState = shader->AcquirePipelineState(pipelineStateDescriptor);
+#endif
                 if (!pipelineState)
                 {
                     AZ_Error("MeshDrawPacket", false, "Shader '%s'. Failed to acquire default pipeline state", shaderItem.GetShaderAsset()->GetName().GetCStr());
                     return false;
                 }
 
+#if defined(CARBONATED)
+                // A fallback PSO needs the fallback shader's DrawSrg so its fallback key is populated.
+                // Shader::CreateDrawSrgForShaderVariant returns the shared dummy when the active shader is fully specialized.
+                const Data::Instance<Shader>& drawSrgShader =
+                    isUsingFallbackPipelineState ? fallbackShader : shader;
+                Data::Instance<ShaderResourceGroup> drawSrg =
+                    drawSrgShader->CreateDrawSrgForShaderVariant(shaderOptions, true);
+
+                drawItemPipelineStates.push_back(
+                    { pipelineState, specializedDescriptorHash, fallbackDescriptorHash });
+
+#endif
                 const RHI::ConstantsLayout* rootConstantsLayout =
                     pipelineStateDescriptor.m_pipelineLayoutDescriptor->GetRootConstantsLayout();
                 if(isFirstShaderItem)
                 {
                     if (HasRootConstants(rootConstantsLayout))
                     {
+#if defined(CARBONATED)
+                        rootConstantsLayoutForPacket = rootConstantsLayout;
+                        rootConstants = RHI::ConstantsData(rootConstantsLayout);
+
+                        const RHI::ShaderInputConstantIndex uvStreamTangentBitmaskIndex =
+                            rootConstantsLayout->FindShaderInputIndex(Name(UvStreamTangentBitmask::RootConstantName));
+                        if (uvStreamTangentBitmaskIndex.IsValid())
+                        {
+                            rootConstants.SetConstant(
+                                uvStreamTangentBitmaskIndex,
+                                uvStreamTangentBitmask.GetFullTangentBitmask());
+                        }
+
+                        drawPacketBuilder.SetRootConstants(rootConstants.GetConstantData());
+#else
                         m_rootConstantsLayout = rootConstantsLayout;
                         rootConstants.resize(m_rootConstantsLayout->GetDataSize());
                         drawPacketBuilder.SetRootConstants(rootConstants);
+#endif
                     }
 
                     isFirstShaderItem = false;
                 }
                 else
                 {
+#if defined(CARBONATED)
+                    AZ_Error(
+                        "MeshDrawPacket",
+                        (!rootConstantsLayoutForPacket && !HasRootConstants(rootConstantsLayout)) ||
+                        (rootConstantsLayoutForPacket &&
+                         rootConstantsLayout &&
+                         rootConstantsLayoutForPacket->GetHash() == rootConstantsLayout->GetHash()),
+                        "Shader %s has mis-matched root constant layout in material %s. "
+                        "All draw items in a draw packet need to share the same root constants layout. This means that each pass "
+                        "(e.g. Depth, Shadows, Forward, MotionVectors) for a given materialtype should use the same layout.",
+                        shaderItem.GetShaderAsset()->GetName().GetCStr(),
+                        m_material->GetAsset().ToString<AZStd::string>().c_str());
+#else
                     AZ_Error(
                         "MeshDrawPacket",
                         (!m_rootConstantsLayout && !HasRootConstants(rootConstantsLayout)) ||
@@ -458,11 +746,16 @@ namespace AZ
                         "(e.g. Depth, Shadows, Forward, MotionVectors) for a given materialtype should use the same layout.",
                         shaderItem.GetShaderAsset()->GetName().GetCStr(),
                         m_material->GetAsset().ToString<AZStd::string>().c_str());
+#endif
                 }
 
                 RHI::DrawPacketBuilder::DrawRequest drawRequest;
                 drawRequest.m_listTag = drawListTag;
+#if defined(CARBONATED)
+                drawRequest.m_pipelineState = pipelineState.get();
+#else
                 drawRequest.m_pipelineState = pipelineState;
+#endif
                 drawRequest.m_streamBufferViews = streamBufferViews;
                 drawRequest.m_stencilRef = m_stencilRef;
                 drawRequest.m_sortKey = m_sortKey;
@@ -487,6 +780,9 @@ namespace AZ
 
                 ShaderData shaderData;
                 shaderData.m_shader = AZStd::move(shader);
+#if defined(CARBONATED)
+                shaderData.m_fallbackShader = AZStd::move(fallbackShader);
+#endif
                 shaderData.m_materialPipelineName = materialPipelineName;
                 shaderData.m_shaderTag = shaderItem.GetShaderTag();
                 shaderData.m_requestedShaderVariantId = requestedVariantId;
@@ -538,7 +834,15 @@ namespace AZ
             if (m_drawPacket)
             {
                 m_activeShaders = shaderList;
+#if defined(CARBONATED)
+                m_drawItemPipelineStates = AZStd::move(drawItemPipelineStates);
+                m_fallbackPipelineStates = AZStd::move(fallbackPipelineStates);
+                m_pendingPipelineStateBuilds = AZStd::move(pendingPipelineStateBuilds);
+#endif
                 m_materialSrg = m_material->GetRHIShaderResourceGroup();
+#if defined(CARBONATED)
+                m_rootConstantsLayout = rootConstantsLayoutForPacket;
+#endif
                 return true;
             }
             else
