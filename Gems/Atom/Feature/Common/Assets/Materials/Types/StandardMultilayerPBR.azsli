@@ -594,7 +594,7 @@ option enum class OpacityMode {Opaque, Cutout, Blended, TintedTransparent} o_opa
         {
             real wetFactor = saturate(MaterialSrg::m_wetFactor);
             if (o_wet_factor_useTexture)
-            {F
+            {
                 const float2 wetFactorMapUv = uvs[MaterialSrg::m_wetFactorMapUvIndex] * MaterialSrg::m_wetFactorMapUvScale;
                 wetFactor = GetWetInput(MaterialSrg::m_wetFactorMap, MaterialSrg::m_sampler, wetFactorMapUv);
             }
