@@ -108,6 +108,7 @@
     void SurfaceData_StandardPBR::CalculateRoughnessA()
     {
         // Begin Carbonated
+        // was: CalculateRoughnessValues(normal, roughnessLinear, roughnessA, roughnessA2);
         CalculateRoughnessValues(GetSpecularNormal(), roughnessLinear, roughnessA, roughnessA2);
         // End Carbonated
     }

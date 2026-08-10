@@ -1,0 +1,21 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ */
+
+#pragma once
+
+//! Applies the Weather Gem's world-space area mask to a material wetness amount.
+//! Kept separate from the substrate response so materials can share weather coverage
+//! without sharing the same visual wetness model.
+real EvaluateWeatherWetnessAmount(real wetAmount, float3 positionWS)
+{
+    const float weatherRadius = clamp(SceneSrg::m_weatherRadius, 10.0f, 10000.0f);
+    const float relativeDistance =
+        length(positionWS.xy - SceneSrg::m_weatherCenter) / weatherRadius;
+    const real weatherAreaMask =
+        real(clamp((1.0f - relativeDistance) * 4.0f, 0.0f, 1.0f));
+    return saturate(wetAmount) * weatherAreaMask;
+}

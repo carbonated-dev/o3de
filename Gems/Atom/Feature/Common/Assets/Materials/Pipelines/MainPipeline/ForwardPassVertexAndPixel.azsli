@@ -83,6 +83,7 @@ ForwardPassOutput PixelShader(VsOutput IN, bool isFrontFace : SV_IsFrontFace)
     // --- Normal ---
 
     // Begin Carbonated
+    // was: OUT.m_normal.rgb = EncodeNormalSignedOctahedron(surface.GetDefaultNormal());
     OUT.m_normal.rgb = EncodeNormalSignedOctahedron(surface.GetDiffuseNormal());
     OUT.m_specularNormal.rgb = EncodeNormalSignedOctahedron(surface.GetSpecularNormal());
     // End Carbonated
