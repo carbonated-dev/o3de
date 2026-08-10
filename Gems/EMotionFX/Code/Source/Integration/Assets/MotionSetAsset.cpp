@@ -17,6 +17,10 @@
 #include <EMotionFX/Source/EMotionFXManager.h>
 #include <EMotionFX/Source/Importer/Importer.h>
 
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOADING)
+#define CARBONATED_ASYNC_MOTION_LOADING_LOG  // uncomment to log motion loading events
+#endif
+
 namespace EMotionFX
 {
     namespace Integration
@@ -123,8 +127,9 @@ namespace EMotionFX
         {
             AZStd::string path;
             AZ::Data::AssetCatalogRequestBus::BroadcastResult(path, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetPathById, GetId());
-            AZ_Info("aaa", "MotionSetAsset::OnAssetReady '%s' for '%s' at %d", path.c_str(), asset.GetHint().c_str(),  int(AZ::GetRealElapsedTimeMs()));
-
+#if defined(CARBONATED_ASYNC_MOTION_LOADING_LOG)
+            AZ_Info("motionload", "MotionSetAsset::OnAssetReady '%s' for '%s' at %d", path.c_str(), asset.GetHint().c_str(),  int(AZ::GetRealElapsedTimeMs()));
+#endif
             AZ::Data::Asset<MotionAsset> motionAssetData = asset;
             m_motionAssets.push_back(motionAssetData);
         }
@@ -232,32 +237,26 @@ namespace EMotionFX
 
                 if (motionAssetId.IsValid())
                 {
-                    {
-                        AZStd::string motionPath;
-                        AZ::Data::AssetCatalogRequestBus::BroadcastResult(motionPath, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetPathById, motionAssetId);
-                        AZ_Info("aaa", "motion set '%s' before load motion '%s' at %d", asset.GetHint().c_str(), motionPath.c_str(), int(AZ::GetRealElapsedTimeMs()));
-                    }
-
                     AZ::Data::Asset<MotionAsset> motionAsset = AZ::Data::AssetManager::Instance().GetAsset<MotionAsset>(motionAssetId, AZ::Data::AssetLoadBehavior::Default);
-
+#if defined(CARBONATED_ASYNC_MOTION_LOADING_LOG)
                     {
                         AZStd::string motionPath;
                         AZ::Data::AssetCatalogRequestBus::BroadcastResult(motionPath, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetPathById, motionAssetId);
-                        AZ_Info("aaa", "motion set '%s' after load motion '%s' at %d", asset.GetHint().c_str(), motionPath.c_str(), int(AZ::GetRealElapsedTimeMs()));
+                        AZ_Info("motionload", "motion set '%s' after load motion '%s' at %d", asset.GetHint().c_str(), motionPath.c_str(), int(AZ::GetRealElapsedTimeMs()));
                     }
-
+#endif
                     if (motionAsset)
                     {
 #if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOADING)
                         // no blocking call
 #elif defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
-                        motionAsset.BlockUntilLoadComplete(10000);
+                        motionAsset.BlockUntilLoadComplete(10000);  // synchronous loading with the timeout
 #else
                         motionAsset.BlockUntilLoadComplete();
 #endif
                         assetData->BusConnect(motionAssetId);
 #if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOADING)
-                        // processed in OnAssetReady
+                        // processed later in OnAssetReady callback
 #else                         
                         assetData->m_motionAssets.push_back(motionAsset);
 #endif
