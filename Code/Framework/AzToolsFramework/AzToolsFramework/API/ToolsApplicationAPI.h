@@ -606,6 +606,14 @@ namespace AzToolsFramework
          * system simulates its execution, and avoids some code duplication.
          */
         virtual void RunRedoSeparately(UndoSystem::URSequencePoint* redoCommand) = 0;
+
+#if defined(CARBONATED)
+        /*
+         * Enable or disable the undo/redo system.
+        */
+        virtual void SetEnableUndoRedo(bool enable) = 0;
+        virtual bool GetEnableUndoRedo() const = 0;
+#endif
     };
 
     using ToolsApplicationRequestBus = AZ::EBus<ToolsApplicationRequests>;
