@@ -66,6 +66,9 @@ namespace AZ
             // The draw list tag used to fetch the draw list from the views
             RHI::DrawListTag m_drawListTag;
 
+            // Command-level shading rate applied to draw items submitted by this pass.
+            RHI::ShadingRate m_shadingRate = RHI::ShadingRate::Rate1x1;
+
             // Multiple passes with the same drawListTag can have different pipeline state data (see Scene.h)
             // This is the index of the pipeline state data that corresponds to this pass in the array of pipeline state data
             RHI::Handle<> m_pipelineStateDataIndex;

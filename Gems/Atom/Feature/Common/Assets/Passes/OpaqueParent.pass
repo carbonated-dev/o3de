@@ -125,6 +125,7 @@
                     "PassData": {
                         "$type": "RasterPassData",
                         "DrawListTag": "forward",
+                        "ShadingRate": 8, // RHI::ShadingRate::Rate4x4
                         "BindViewSrg": true,
                         "PassSrgShaderAsset": {
                             "FilePath": "Shaders/ForwardPassSrg.shader"

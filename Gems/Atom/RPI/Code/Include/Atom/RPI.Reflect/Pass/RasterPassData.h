@@ -9,6 +9,7 @@
 
 #include <Atom/RHI.Reflect/Base.h>
 #include <Atom/RHI.Reflect/Scissor.h>
+#include <Atom/RHI.Reflect/VariableRateShadingEnums.h>
 #include <Atom/RHI.Reflect/Viewport.h>
 
 #include <Atom/RPI.Reflect/Asset/AssetReference.h>
@@ -39,6 +40,10 @@ namespace AZ
             RHI::Scissor m_overrideScissor = RHI::Scissor::CreateNull();
 
             RHI::DrawListSortType m_drawListSortType = RHI::DrawListSortType::KeyThenDepth;
+
+            //! Sets the command-level shading rate for all draw items submitted by this pass.
+            //! Rate1x1 disables variable rate shading for the pass.
+            RHI::ShadingRate m_shadingRate = RHI::ShadingRate::Rate1x1;
 
             // Forces viewport and scissor to match width/height of output image at specified index.
             // Does nothing if index is negative.

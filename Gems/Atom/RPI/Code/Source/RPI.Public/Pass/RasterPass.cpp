@@ -47,6 +47,29 @@ namespace AZ
             SetDrawListTag(rasterData->m_drawListTag);
             m_drawListSortType = rasterData->m_drawListSortType;
 
+            if (rasterData->m_shadingRate != RHI::ShadingRate::Rate1x1)
+            {
+                const RHI::DeviceFeatures& deviceFeatures = RHI::RHISystemInterface::Get()->GetDevice()->GetFeatures();
+                const RHI::ShadingRateFlags requestedRateFlag = static_cast<RHI::ShadingRateFlags>(
+                    AZ_BIT(static_cast<uint32_t>(rasterData->m_shadingRate)));
+                const bool supportsPerDrawShadingRate = RHI::CheckBitsAll(
+                    deviceFeatures.m_shadingRateTypeMask, RHI::ShadingRateTypeFlags::PerDraw);
+                const bool supportsRequestedRate = RHI::CheckBitsAll(deviceFeatures.m_shadingRateMask, requestedRateFlag);
+
+                if (supportsPerDrawShadingRate && supportsRequestedRate)
+                {
+                    m_shadingRate = rasterData->m_shadingRate;
+                }
+                else
+                {
+                    AZ_Warning(
+                        "RasterPass",
+                        false,
+                        "RasterPass [%s] requested an unsupported command-level shading rate; falling back to Rate1x1.",
+                        GetPathName().GetCStr());
+                }
+            }
+
             RHI::RHISystemInterface::Get()->SetDrawListTagEnabledByDefault(m_drawListTag, rasterData->m_enableDrawItemsByDefault);
 
             // Get the shader asset that contains the SRG Layout.
@@ -282,7 +305,18 @@ namespace AZ
                 commandList->SetViewport(m_viewportState);
                 commandList->SetScissor(m_scissorState);
                 SetSrgsForDraw(commandList);
+
+                if (m_shadingRate != RHI::ShadingRate::Rate1x1)
+                {
+                    commandList->SetFragmentShadingRate(m_shadingRate);
+                }
+
                 SubmitDrawItems(context, context.GetSubmitRange().m_startIndex, context.GetSubmitRange().m_endIndex, 0);
+
+                if (m_shadingRate != RHI::ShadingRate::Rate1x1)
+                {
+                    commandList->SetFragmentShadingRate(RHI::ShadingRate::Rate1x1);
+                }
             }
         }
 
