@@ -183,6 +183,9 @@ namespace AzToolsFramework
         , m_currentBatchUndo(nullptr)
         , m_isDuringUndoRedo(false)
         , m_isInIsolationMode(false)
+#if defined(CARBONATED)
+        , m_undoRedoEnabled(false)
+#endif
     {
         ToolsApplicationRequests::Bus::Handler::BusConnect();
         AzToolsFramework::Prefab::PrefabPublicNotificationBus::Handler::BusConnect();
@@ -1174,6 +1177,12 @@ namespace AzToolsFramework
 
     void ToolsApplication::UndoPressed()
     {
+#if defined(CARBONATED)
+        if (!m_undoRedoEnabled)
+        {
+            return;
+        }
+#endif
         if (m_undoStack)
         {
             if (m_undoStack->CanUndo())
@@ -1193,6 +1202,12 @@ namespace AzToolsFramework
 
     void ToolsApplication::RedoPressed()
     {
+#if defined(CARBONATED)
+        if (!m_undoRedoEnabled)
+        {
+            return;
+        }
+#endif
         if (m_undoStack)
         {
             if (m_undoStack->CanRedo())
@@ -1349,6 +1364,13 @@ namespace AzToolsFramework
             m_currentBatchUndo = nullptr;
         }
     }
+
+#if defined(CARBONATED)
+    void ToolsApplication::SetEnableUndoRedo(bool enable)
+    {
+        m_undoRedoEnabled = enable;
+    }
+#endif
 
     void ToolsApplication::OnPrefabInstancePropagationBegin()
     {

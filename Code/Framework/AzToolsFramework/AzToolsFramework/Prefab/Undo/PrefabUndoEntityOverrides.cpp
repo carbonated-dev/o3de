@@ -13,6 +13,9 @@
 #include <AzToolsFramework/Prefab/PrefabSystemComponentInterface.h>
 #include <AzToolsFramework/Prefab/Undo/PrefabUndoEntityOverrides.h>
 #include <AzToolsFramework/Prefab/Undo/PrefabUndoUtils.h>
+#if defined(CARBONATED)
+#include <AzToolsFramework/API/ToolsApplicationAPI.h>
+#endif
 
 namespace AzToolsFramework
 {
@@ -129,7 +132,18 @@ namespace AzToolsFramework
             // Redo - Update target template of the link.
             link->get().UpdateTarget();
             m_prefabSystemComponentInterface->SetTemplateDirtyFlag(link->get().GetTargetTemplateId(), true);
+#if defined(CARBONATED) // Temporary fix for undo/redo
+            bool enableUndoRedo = true;
+            AzToolsFramework::ToolsApplicationRequestBus::BroadcastResult(
+                enableUndoRedo, &AzToolsFramework::ToolsApplicationRequestBus::Events::GetEnableUndoRedo);
+
+            if (enableUndoRedo)
+            {
+                m_prefabSystemComponentInterface->PropagateTemplateChanges(link->get().GetTargetTemplateId());
+            }
+#else
             m_prefabSystemComponentInterface->PropagateTemplateChanges(link->get().GetTargetTemplateId());
+#endif
         }
 
         void PrefabUndoEntityOverrides::Undo()

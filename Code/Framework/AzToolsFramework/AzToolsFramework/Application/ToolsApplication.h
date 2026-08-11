@@ -145,6 +145,10 @@ namespace AzToolsFramework
         /* Open 3D Engine INTERNAL USE ONLY. */
         void RunRedoSeparately(UndoSystem::URSequencePoint* redoCommand) override;
 
+#if defined(CARBONATED)
+        void SetEnableUndoRedo(bool enable) override;
+        bool GetEnableUndoRedo() const override { return m_undoRedoEnabled; }
+#endif
         //////////////////////////////////////////////////////////////////////////
 
         //////////////////////////////////////////////////////////////////////////
@@ -179,6 +183,9 @@ namespace AzToolsFramework
         bool                                m_isInIsolationMode;
         EntityIdSet                         m_isolatedEntityIdSet;
         bool                                m_freezeSelectionUpdates = false;
+#if defined(CARBONATED)
+        bool                                m_undoRedoEnabled;
+#endif
 
         EditorEntityAPI* m_editorEntityAPI = nullptr;
 
