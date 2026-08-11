@@ -1277,6 +1277,7 @@ namespace AZ
                     GetContext().GetPhysicalDeviceFragmentShadingRatesKHR(nativeDevice, &rateCount, rates.data());
                     for (const auto& vkRate : rates)
                     {
+                        AZ_Printf("Vulkan VRS", "Rate (%d, %d) supported\n", vkRate.fragmentSize.width, vkRate.fragmentSize.height);
                         m_features.m_shadingRateMask |= static_cast<RHI::ShadingRateFlags>(
                             AZ_BIT(static_cast<uint32_t>(ConvertFragmentShadingRate(vkRate.fragmentSize))));
                     }
