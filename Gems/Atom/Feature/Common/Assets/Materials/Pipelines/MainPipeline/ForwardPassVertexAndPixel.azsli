@@ -13,6 +13,10 @@
 #define ENABLE_DEBUG_MODIFY_OUTPUT 1
 #endif 
 
+// Begin Carbonated
+#define OUTPUT_SPECULAR_NORMAL 1
+// End Carbonated
+
 #include <Atom/Features/Pipeline/Forward/ForwardPassOutput.azsli>
 
 // --- Vertex Shader ---
@@ -78,7 +82,11 @@ ForwardPassOutput PixelShader(VsOutput IN, bool isFrontFace : SV_IsFrontFace)
 
     // --- Normal ---
 
-    OUT.m_normal.rgb = EncodeNormalSignedOctahedron(surface.GetDefaultNormal());
+    // Begin Carbonated
+    // was: OUT.m_normal.rgb = EncodeNormalSignedOctahedron(surface.GetDefaultNormal());
+    OUT.m_normal.rgb = EncodeNormalSignedOctahedron(surface.GetDiffuseNormal());
+    OUT.m_specularNormal.rgb = EncodeNormalSignedOctahedron(surface.GetSpecularNormal());
+    // End Carbonated
 
     // --- Fullscreen Passes IBL & Multiscatter ---
 
@@ -88,6 +96,9 @@ ForwardPassOutput PixelShader(VsOutput IN, bool isFrontFace : SV_IsFrontFace)
 #endif
 
     OUT.m_normal.a = EncodeUnorm2BitFlags(applyIblInFullscreenPasses, o_specularF0_enableMultiScatterCompensation);
+    // Begin Carbonated
+    OUT.m_specularNormal.a = OUT.m_normal.a;
+    // End Carbonated
 
     // --- Emissive ---
     // Sending to specular output for historical reasons until sending to diffuse can be validated

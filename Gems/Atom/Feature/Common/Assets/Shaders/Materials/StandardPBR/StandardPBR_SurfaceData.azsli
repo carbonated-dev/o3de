@@ -54,6 +54,15 @@
     
         precise float3 position;    //!< Position in world-space
         real3 normal;              //!< Normal in world-space
+        // Begin Carbonated
+#if ENABLE_SEPARATE_SPECULAR_NORMAL
+        real3 specularNormal;      //!< Optional coating/specular normal in world-space
+#endif
+#ifdef MATERIAL_SURFACE_EXTENSION_TYPE
+        //! Optional typed payload owned and interpreted by the material.
+        MATERIAL_SURFACE_EXTENSION_TYPE materialExtension;
+#endif
+        // End Carbonated
         real3 vertexNormal;        //!< Vertex normal in world-space
         real3 baseColor;           //!< Surface base color
         real metallic;             //!< Surface metallic property
@@ -82,7 +91,15 @@
         void SetAlbedoAndSpecularF0(real3 baseColor, real specularF0Factor, real metallic);
 
         real3 GetDiffuseNormal() { return normal; }
+        // Begin Carbonated
+#if ENABLE_SEPARATE_SPECULAR_NORMAL
+        real3 GetSpecularNormal() { return specularNormal; }
+        void ApplyCoatingSpecularF0(real coatingF0, real coatingWeight) { specularF0 = lerp(specularF0, coatingF0.xxx, coatingWeight); }
+        void AttenuateSecondarySpecular(real attenuation) {}
+#else
         real3 GetSpecularNormal() { return normal; }
+#endif
+        // End Carbonated
         real3 GetDefaultNormal() { return normal; }
         real3 GetVertexNormal() { return vertexNormal; }
         real3 GetSpecularF0() { return specularF0; }
@@ -90,7 +107,10 @@
 
     void SurfaceData_StandardPBR::CalculateRoughnessA()
     {
-        CalculateRoughnessValues(normal, roughnessLinear, roughnessA, roughnessA2);
+        // Begin Carbonated
+        // was: CalculateRoughnessValues(normal, roughnessLinear, roughnessA, roughnessA2);
+        CalculateRoughnessValues(GetSpecularNormal(), roughnessLinear, roughnessA, roughnessA2);
+        // End Carbonated
     }
 
     void SurfaceData_StandardPBR::SetAlbedoAndSpecularF0(real3 newBaseColor, real specularF0Factor, real newMetallic)
@@ -107,6 +127,12 @@
         SurfaceData_StandardPBR output;
         output.position = position;
         output.normal = normal;
+        // Begin Carbonated
+#if ENABLE_SEPARATE_SPECULAR_NORMAL
+        output.specularNormal = normal;
+#endif
+        INITIALIZE_MATERIAL_SURFACE_EXTENSION(output)
+        // End Carbonated
         output.vertexNormal = normal;
         output.baseColor = real3(0,0,0);
         output.metallic = 0;

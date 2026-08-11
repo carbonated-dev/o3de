@@ -19,6 +19,12 @@
 #define OUTPUT_SUBSURFACE 0
 #endif
 
+// Begin Carbonated
+#ifndef OUTPUT_SPECULAR_NORMAL
+#define OUTPUT_SPECULAR_NORMAL 0
+#endif
+// End Carbonated
+
 
 #if UNIFIED_FORWARD_OUTPUT
 
@@ -44,6 +50,16 @@ struct ForwardPassOutput
 #if OUTPUT_SUBSURFACE
     float3 m_scatterDistance : SV_Target5;
 #endif
+
+// Begin Carbonated
+#if OUTPUT_SPECULAR_NORMAL
+#if OUTPUT_SUBSURFACE
+    float4 m_specularNormal : SV_Target6;    //!< RGB10 = EncodeNormalSignedOctahedron(specularNormal), A2 = same flags as m_normal
+#else
+    float4 m_specularNormal : SV_Target5;    //!< RGB10 = EncodeNormalSignedOctahedron(specularNormal), A2 = same flags as m_normal
+#endif
+#endif
+// End Carbonated
 
 #if OUTPUT_DEPTH
     float m_depth : SV_Depth;

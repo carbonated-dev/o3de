@@ -154,6 +154,22 @@
                         },
                         "LoadAction": "Clear"
                     }
+                },
+                {
+                    "Name": "SpecularNormalOutput",
+                    "SlotType": "Output",
+                    "ScopeAttachmentUsage": "RenderTarget",
+                    "LoadStoreAction": {
+                        "ClearValue": {
+                            "Value": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ]
+                        },
+                        "LoadAction": "Clear"
+                    }
                 }
             ],
             "ImageAttachments": [
@@ -243,6 +259,26 @@
                     }
                 },
                 {
+                    "Name": "SpecularNormalImage",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "Parent",
+                            "Attachment": "PipelineOutput"
+                        }
+                    },
+                    "MultisampleSource": {
+                        "Pass": "This",
+                        "Attachment": "DepthStencilInputOutput"
+                    },
+                    "FormatSource": {
+                        "Pass": "This",
+                        "Attachment": "NormalOutput"
+                    },
+                    "ImageDescriptor": {
+                        "SharedQueueMask": "Graphics"
+                    }
+                },
+                {
                     "Name": "BRDFTexture",
                     "Lifetime": "Imported",
                     "AssetRef": {
@@ -284,6 +320,13 @@
                     "AttachmentRef": {
                         "Pass": "This",
                         "Attachment": "NormalImage"
+                    }
+                },
+                {
+                    "LocalSlot": "SpecularNormalOutput",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "SpecularNormalImage"
                     }
                 },
                 {

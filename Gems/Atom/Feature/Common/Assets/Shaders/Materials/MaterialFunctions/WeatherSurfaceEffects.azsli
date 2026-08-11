@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <Atom/Feature/Common/Assets/Shaders/Materials/MaterialFunctions/WeatherWetnessAmount.azsli>
+
 // Shared wet and snow overlay evaluation for PBR materials. The caller evaluates the
 // substrate-specific factor so single- and multi-layer materials can share the overlay math.
 
@@ -20,7 +22,7 @@ void ApplyWetSurfaceEffect(
     inout real specularF0Factor,
     real metallic)
 {
-    real wetAmount = saturate(MaterialSrg::m_wetAmount);
+    real wetAmount = EvaluateWeatherWetnessAmount(MaterialSrg::m_wetAmount, positionWS);
 
     // The wet factor describes the moistening properties of the visible substrate.
     // Metals are at the low end, smooth dielectrics in the middle, and porous
@@ -28,10 +30,6 @@ void ApplyWetSurfaceEffect(
     wetFactor = saturate(wetFactor);
     const float porosity = saturate(pow(1.15f, wetFactor) - 0.1f);
     const float maxDarken = pow(1.25f, wetFactor) * 0.95f;
-
-    const float rainRadius = clamp(SceneSrg::m_weatherRadius, 10.0f, 10000.0f);
-    const float relativeDistance = length(positionWS.xy - SceneSrg::m_weatherCenter) / rainRadius;
-    wetAmount *= clamp((1.0f - relativeDistance) * 4.0f, 0.0f, 1.0f);
 
     const float effectiveWetness = saturate(wetFactor + 0.1f) * wetAmount * saturate(surface.normal.z + 0.25f);
     const float darkening = 1.0f - effectiveWetness * porosity * maxDarken;

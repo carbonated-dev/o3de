@@ -412,6 +412,7 @@ set(FILES
     Shaders/Materials/MaterialFunctions/StandardTransformDetailUvs.azsli
 # Begin Carbonated
     Shaders/Materials/MaterialFunctions/WeatherSurfaceEffects.azsli
+    Shaders/Materials/MaterialFunctions/WeatherWetnessAmount.azsli
 # End Carbonated
     Shaders/Materials/MaterialInputs/AlphaInput.azsli
     Shaders/Materials/MaterialInputs/BaseColorInput.azsli

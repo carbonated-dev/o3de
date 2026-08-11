@@ -75,6 +75,12 @@ Surface EvaluateSurface_BasePBR(
         surface.normal = GetNormalInputWS(MaterialSrg::m_normalMap, MaterialSrg::m_sampler, normalUv, MaterialSrg::m_flipNormalX, MaterialSrg::m_flipNormalY, isFrontFace, vertexNormal,
                                            tangents[MaterialSrg::m_normalMapUvIndex], bitangents[MaterialSrg::m_normalMapUvIndex], uvMatrix, o_normal_useTexture, real(MaterialSrg::m_normalFactor), float4(0.0f, 0.0f, 0.0f, 0.0f), false);
     }
+    // Begin Carbonated
+#if ENABLE_SEPARATE_SPECULAR_NORMAL
+    surface.specularNormal = surface.normal;
+#endif
+    INITIALIZE_MATERIAL_SURFACE_EXTENSION(surface)
+    // End Carbonated
 
     // ------- Base Color -------
 
