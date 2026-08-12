@@ -46,6 +46,10 @@ namespace EMotionFX
     } // namespace Integration
 } // namespace EMotionFX
 
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOADING)
+//#define CARBONATED_ASYNC_MOTION_LOADING_LOG  // uncomment to log motion loading events
+#endif
+
 namespace AZ
 {
     AZ_TYPE_INFO_SPECIALIZE(EMotionFX::Integration::EMotionFXPtr<EMotionFX::Integration::MotionAsset>, "{B51E66B5-B576-432A-9D01-9C8DA4757CE9}");

@@ -17,10 +17,6 @@
 #include <EMotionFX/Source/EMotionFXManager.h>
 #include <EMotionFX/Source/Importer/Importer.h>
 
-#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOADING)
-#define CARBONATED_ASYNC_MOTION_LOADING_LOG  // uncomment to log motion loading events
-#endif
-
 namespace EMotionFX
 {
     namespace Integration
@@ -123,7 +119,7 @@ namespace EMotionFX
         }
 
 #if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOADING)
-        void MotionSetAsset::OnAssetReady(AZ::Data::Asset<AZ::Data::AssetData> asset)
+        void MotionSetAsset::OnAssetReady([[maybe_unused]] AZ::Data::Asset<AZ::Data::AssetData> asset)
         {
             AZStd::string path;
             AZ::Data::AssetCatalogRequestBus::BroadcastResult(path, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetPathById, GetId());
