@@ -48,7 +48,13 @@ PSOutput MainPS(VSOutput IN)
             {
                 real2 deltaPixels = (uv - seed.xy) * textureSize;
                 real distSq = dot(deltaPixels, deltaPixels);
-                if (distSq < bestDistSq)
+                // Use the source position as a stable final tie-breaker. This
+                // prevents equal-distance owner boundaries from changing with
+                // JFA propagation order.
+                bool isCloser = distSq < bestDistSq;
+                bool isTie = abs(distSq - bestDistSq) <= 0.0001;
+                bool hasLowerSource = seed.w < best.w || (seed.w == best.w && seed.z < best.z);
+                if (isCloser || (isTie && hasLowerSource))
                 {
                     bestDistSq = distSq;
                     best = seed;
