@@ -135,6 +135,8 @@ namespace AZ::Render
         void OnAssetReloaded(AZ::Data::Asset<AZ::Data::AssetData> asset) override;
 
         void OnSettingsChanged();
+        //! Returns whether volumetric fog is enabled by both its settings and the global console variable.
+        bool IsVolumetricFogEnabled() const;
         void UpdatePasses(AZ::RPI::RenderPipeline* renderPipeline);
         void UpdateSceneSrgConstants();
         void UpdateFroxelSize();
@@ -150,13 +152,14 @@ namespace AZ::Render
         void ResetShaderResources();
         //! Generates the Halton low-discrepancy jitter sequence for temporal anti-aliasing.
         void SetupSubPixelOffsets(uint32_t haltonX, uint32_t haltonY, uint32_t haltonZ, uint32_t length);
-        //! Enables or disables child passes based on the current Enable setting.
-        void SetPassesEnabled();
+        //! Enables or disables child passes based on the effective enabled state.
+        void SetPassesEnabled(bool enabled);
 
         VolumetricFogSettings m_settings;
 
         bool m_needUpdate = true; // set to true when SRG index cache must be rebuilt.
         bool m_buildDrawPackets = false; // set when froxel size changes and draw packets must be rebuilt.
+        bool m_wasEnabled = false; // tracks CVar/settings transitions so GPU state is refreshed when re-enabled.
         RPI::ParentPass* m_froxelParentPass = nullptr;
         FroxelPass* m_injectPass = nullptr;
         RPI::Pass* m_froxelCompositePass = nullptr;

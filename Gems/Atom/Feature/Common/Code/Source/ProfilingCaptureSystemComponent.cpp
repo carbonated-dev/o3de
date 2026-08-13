@@ -23,6 +23,7 @@
 #include <AzCore/RTTI/BehaviorContext.h>
 #include <AzCore/Serialization/Json/JsonSerializationSettings.h>
 #include <AzCore/Serialization/SerializeContext.h>
+#include <AzCore/std/algorithm.h>
 #include <AzCore/std/parallel/thread.h>
 
 namespace AZ
@@ -416,6 +417,139 @@ namespace AZ
             }
 
             return captureStarted;
+        }
+
+        void ProfilingCaptureSystemComponent::DumpGpuPassTimestamps(const AZ::ConsoleCommandContainer& arguments)
+        {
+            if (!arguments.empty())
+            {
+                AZ_Warning("GpuProfiler", false, "Usage: ProfilingCaptureSystemComponent.DumpGpuPassTimestamps");
+                return;
+            }
+
+            RPI::PassSystemInterface* passSystem = RPI::PassSystemInterface::Get();
+            if (!passSystem)
+            {
+                AZ_Warning("GpuProfiler", false, "The pass system is not available.");
+                return;
+            }
+
+            RHI::Ptr<RPI::ParentPass> rootPass = passSystem->GetRootPass();
+            if (!rootPass)
+            {
+                AZ_Warning("GpuProfiler", false, "The root pass is not available.");
+                return;
+            }
+
+            const bool enableTimestampQueries = !rootPass->IsTimestampQueryEnabled();
+            const bool captureStarted = m_timestampCapture.StartCapture([rootPass, enableTimestampQueries]()
+            {
+                struct TimestampEntry
+                {
+                    Name m_name;
+                    RPI::TimestampResult m_timestamp;
+                };
+
+                AZStd::vector<TimestampEntry> flatEntries;
+                AZStd::vector<RPI::TimestampResult> nonZeroTimestamps;
+
+                AZStd::function<void(const RPI::Pass*)> collectTimestamps =
+                    [&flatEntries, &nonZeroTimestamps, &collectTimestamps](const RPI::Pass* pass)
+                {
+                    if (!pass->IsEnabled())
+                    {
+                        return;
+                    }
+
+                    const RPI::TimestampResult timestamp = pass->GetLatestTimestampResult();
+                    if (timestamp.GetDurationInTicks() > 0)
+                    {
+                        nonZeroTimestamps.push_back(timestamp);
+                    }
+
+                    if (const RPI::ParentPass* parentPass = pass->AsParent())
+                    {
+                        for (const RHI::Ptr<RPI::Pass>& childPass : parentPass->GetChildren())
+                        {
+                            collectTimestamps(childPass.get());
+                        }
+                    }
+                    else
+                    {
+                        flatEntries.push_back({ pass->GetName(), timestamp });
+                    }
+                };
+                collectTimestamps(rootPass.get());
+
+                AZStd::sort(flatEntries.begin(), flatEntries.end(), [](const TimestampEntry& left, const TimestampEntry& right)
+                {
+                    const uint64_t leftDuration = left.m_timestamp.GetDurationInNanoseconds();
+                    const uint64_t rightDuration = right.m_timestamp.GetDurationInNanoseconds();
+                    return leftDuration != rightDuration
+                        ? leftDuration > rightDuration
+                        : left.m_name.GetStringView() < right.m_name.GetStringView();
+                });
+
+                AZStd::sort(nonZeroTimestamps.begin(), nonZeroTimestamps.end(),
+                    [](const RPI::TimestampResult& left, const RPI::TimestampResult& right)
+                {
+                    if (left.GetTimestampBeginInTicks() == right.GetTimestampBeginInTicks())
+                    {
+                        return left.GetDurationInTicks() < right.GetDurationInTicks();
+                    }
+                    return left.GetTimestampBeginInTicks() < right.GetTimestampBeginInTicks();
+                });
+
+                RPI::TimestampResult gpuTimestamp;
+                if (!nonZeroTimestamps.empty())
+                {
+                    gpuTimestamp = nonZeroTimestamps.front();
+                    gpuTimestamp.Add(nonZeroTimestamps.back());
+                }
+
+                constexpr double NanosecondsToMilliseconds = 0.000001;
+                constexpr double ThirtyFpsFrameNanoseconds = 33000000.0;
+
+                AZ_Printf(
+                    "GpuProfiler", "Total frame duration (GPU): %.4f ms\n",
+                    static_cast<double>(gpuTimestamp.GetDurationInNanoseconds()) * NanosecondsToMilliseconds);
+                AZ_Printf("GpuProfiler", "%-48s %12s %28s\n", "Pass Names", "Time in ms", "Frame workload in 30 FPS");
+
+                for (const TimestampEntry& entry : flatEntries)
+                {
+                    const uint64_t durationInNanoseconds = entry.m_timestamp.GetDurationInNanoseconds();
+                    const double durationInMilliseconds =
+                        static_cast<double>(durationInNanoseconds) * NanosecondsToMilliseconds;
+                    const double workloadPercent = AZStd::clamp(
+                        static_cast<double>(durationInNanoseconds) / ThirtyFpsFrameNanoseconds, 0.0, 1.0) * 100.0;
+                    AZ_Printf(
+                        "GpuProfiler", "%-48s %12.4f %27.1f%%\n",
+                        entry.m_name.GetCStr(), durationInMilliseconds, workloadPercent);
+                }
+
+                if (enableTimestampQueries)
+                {
+                    rootPass->SetTimestampQueryEnabled(false);
+                }
+            });
+
+            if (!captureStarted)
+            {
+                AZ_Warning("GpuProfiler", false, "A GPU timestamp capture is already in progress.");
+                return;
+            }
+
+            if (enableTimestampQueries)
+            {
+                rootPass->SetTimestampQueryEnabled(true);
+            }
+
+            if (!TickBus::Handler::BusIsConnected())
+            {
+                TickBus::Handler::BusConnect();
+            }
+
+            AZ_Printf("GpuProfiler", "GPU timestamp capture started; results will be printed after six frames.\n");
         }
 
         bool ProfilingCaptureSystemComponent::CaptureCpuFrameTime(const AZStd::string& outputFilePath)

@@ -10,6 +10,7 @@
 #include <VolumetricFog/FroxelPass.h>
 #include <VolumetricFog/VolumetricFogUtils.h>
 
+#include <AzCore/Console/IConsole.h>
 #include <AzCore/Name/NameDictionary.h>
 #include <AzCore/Math/Random.h>
 
@@ -25,6 +26,14 @@
 
 namespace AZ::Render
 {
+    AZ_CVAR(
+        bool,
+        r_enableVolumetricFog,
+        true,
+        nullptr,
+        AZ::ConsoleFunctorFlags::Null,
+        "Enable volumetric fog rendering. The Volumetric Fog component must also be enabled.");
+
     void VolumetricFogFeatureProcessor::Reflect(ReflectContext* context)
     {
         if (auto* serializeContext = azrtti_cast<SerializeContext*>(context))
@@ -127,7 +136,7 @@ namespace AZ::Render
     void VolumetricFogFeatureProcessor::Render([[maybe_unused]] const FeatureProcessor::RenderPacket& packet)
     {
         AZ_PROFILE_SCOPE(RPI, "VolumetricFogFeatureProcessor: Render");
-        if (!m_settings.m_enabled || !m_renderPipeline)
+        if (!IsVolumetricFogEnabled() || !m_renderPipeline)
         {
             return;
         }
@@ -180,8 +189,15 @@ namespace AZ::Render
     void VolumetricFogFeatureProcessor::Simulate([[maybe_unused]] const FeatureProcessor::SimulatePacket& packet)
     {
         AZ_PROFILE_SCOPE(RPI, "VolumetricFogFeatureProcessor: Simulate");
-        SetPassesEnabled();
-        if (m_settings.m_enabled)
+        const bool enabled = IsVolumetricFogEnabled();
+        if (enabled != m_wasEnabled)
+        {
+            m_needUpdate = true;
+            m_wasEnabled = enabled;
+        }
+
+        SetPassesEnabled(enabled);
+        if (enabled)
         {
             if (m_buildDrawPackets)
             {
@@ -235,12 +251,17 @@ namespace AZ::Render
         m_needUpdate = true; // even if disabled, mark it for when it'll become enabled
         if (m_froxelParentPass)
         {
-            if (m_settings.m_enabled != m_froxelParentPass->IsEnabled() ||
+            if (IsVolumetricFogEnabled() != m_froxelParentPass->IsEnabled() ||
                 VolumetricFog::ToFroxelSize(m_settings.m_quality).m_width != m_sceneSrgGlobalConstants.m_tileSize)
             {
                 m_froxelParentPass->QueueForBuildAndInitialization();
             }
         }
+    }
+
+    bool VolumetricFogFeatureProcessor::IsVolumetricFogEnabled() const
+    {
+        return r_enableVolumetricFog && m_settings.m_enabled;
     }
 
     void VolumetricFogFeatureProcessor::UpdatePasses(AZ::RPI::RenderPipeline* renderPipeline)
@@ -290,7 +311,7 @@ namespace AZ::Render
     void VolumetricFogFeatureProcessor::UpdateSceneSrgConstants()
     {
         RHI::Size tileSize = VolumetricFog::ToFroxelSize(m_settings.m_quality);
-        m_sceneSrgGlobalConstants.m_enabled = static_cast<uint32_t>(m_settings.m_enabled);
+        m_sceneSrgGlobalConstants.m_enabled = static_cast<uint32_t>(IsVolumetricFogEnabled());
         m_sceneSrgGlobalConstants.m_tileSize = tileSize.m_width;
         m_sceneSrgGlobalConstants.m_lightingChannelMask = m_settings.m_lightingChannelConfig.GetLightingChannelMask();
 
@@ -484,16 +505,16 @@ namespace AZ::Render
             });
     }
 
-    void VolumetricFogFeatureProcessor::SetPassesEnabled()
+    void VolumetricFogFeatureProcessor::SetPassesEnabled(bool enabled)
     {
         if (m_froxelParentPass)
         {
-            m_froxelParentPass->SetEnabled(m_settings.m_enabled);
+            m_froxelParentPass->SetEnabled(enabled);
         }
 
         if (m_froxelCompositePass)
         {
-            m_froxelCompositePass->SetEnabled(m_settings.m_enabled);
+            m_froxelCompositePass->SetEnabled(enabled);
         }
     }
 }

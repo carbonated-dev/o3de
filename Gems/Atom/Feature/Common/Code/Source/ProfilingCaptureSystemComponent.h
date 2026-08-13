@@ -10,6 +10,7 @@
 
 #include <AzCore/Component/Component.h>
 #include <AzCore/Component/TickBus.h>
+#include <AzCore/Console/IConsole.h>
 
 #include <Atom/Feature/Utils/ProfilingCaptureBus.h>
 
@@ -75,8 +76,17 @@ namespace AZ
         private:
             void OnTick(float deltaTime, ScriptTimePoint time) override;
 
+            //! Captures one frame of per-pass GPU timestamps and prints the flat GPU profiler view to the console.
+            void DumpGpuPassTimestamps(const AZ::ConsoleCommandContainer& arguments);
+
             // Recursively collect all the passes from the root pass.
             AZStd::vector<const RPI::Pass*> CollectPassesRecursively(const RPI::Pass* root) const;
+
+            AZ_CONSOLEFUNC(
+                ProfilingCaptureSystemComponent,
+                DumpGpuPassTimestamps,
+                AZ::ConsoleFunctorFlags::DontReplicate,
+                "Dump the GPU Profiler flat timestamp view to the console.");
 
             DelayedQueryCaptureHelper m_timestampCapture;
             DelayedQueryCaptureHelper m_cpuFrameTimeStatisticsCapture;
