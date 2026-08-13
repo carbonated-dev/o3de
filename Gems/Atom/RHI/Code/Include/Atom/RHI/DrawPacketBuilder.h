@@ -48,6 +48,9 @@ namespace AZ::RHI
             //! We use a mask because the same item could be reused in multiple pipelines. For example, a simple
             //! depth pre-pass could be present in multiple pipelines.
             DrawFilterMask m_drawFilterMask = DrawFilterMaskDefaultValue;
+
+            //! Optional per-draw shading-rate override. Count means no override.
+            ShadingRate m_overwriteShadingWrite = ShadingRate::Count;
         };
 
         // NOTE: This is configurable; just used to control the amount of memory held by the builder.

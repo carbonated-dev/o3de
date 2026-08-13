@@ -69,7 +69,7 @@ namespace AZ
                 VkImageLayout m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
                 VkImageAspectFlags m_imageAspectFlags = VK_IMAGE_ASPECT_NONE;
 
-                bool IsValid() const { return m_attachmentIndex < RHI::Limits::Pipeline::AttachmentColorCountMax; }
+                bool IsValid() const { return m_attachmentIndex < RHI::Limits::Pipeline::RenderAttachmentCountMax; }
             };
 
             //! Describes the used attachments in one subpass.

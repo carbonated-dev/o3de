@@ -242,6 +242,7 @@ namespace AZ::RHI
 
             DrawItem& drawItem = drawItems[i];
             drawItem.m_enabled = !drawListTagDisabled;
+            drawItem.m_overwriteShadingWrite = drawRequest.m_overwriteShadingWrite;
             drawItem.m_arguments = m_drawArguments;
             drawItem.m_stencilRef = drawRequest.m_stencilRef;
             drawItem.m_streamBufferViewCount = 0;
@@ -325,6 +326,7 @@ namespace AZ::RHI
             drawRequest.m_stencilRef = drawItem->m_stencilRef;
             drawRequest.m_streamBufferViews = AZStd::span(drawItem->m_streamBufferViews, drawItem->m_streamBufferViewCount);
             drawRequest.m_uniqueShaderResourceGroup = drawItem->m_uniqueShaderResourceGroup;
+            drawRequest.m_overwriteShadingWrite = drawItem->m_overwriteShadingWrite;
             AddDrawItem(drawRequest);
         }
         return End();

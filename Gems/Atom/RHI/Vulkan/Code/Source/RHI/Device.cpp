@@ -253,7 +253,6 @@ namespace AZ
             }
 #endif
 
-            auto fragmenDensityMapFeatures = physicalDevice.GetPhysicalDeviceFragmentDensityMapFeatures();
             auto fragmenShadingRateFeatures = physicalDevice.GetPhysicalDeviceFragmentShadingRateFeatures();
 
             if (fragmenShadingRateFeatures.attachmentFragmentShadingRate)
@@ -263,13 +262,12 @@ namespace AZ
                 fragmenShadingRateFeatures.pNext = nullptr;
                 AppendVkStruct(chainInit, &fragmenShadingRateFeatures);
             }
-            else if (fragmenDensityMapFeatures.fragmentDensityMap && fragmenDensityMapFeatures.fragmentDensityMapNonSubsampledImages)
+            else
             {
-                // We only support NonSubsampledImages when using fragment density map
-                // Must disable the "FragmentShadingRate" usage if "fragmentDensityMap" is enabled.
-                physicalDevice.DisableOptionalDeviceExtension(OptionalDeviceExtension::FragmentShadingRate);
-                fragmenDensityMapFeatures.pNext = nullptr;
-                AppendVkStruct(chainInit, &fragmenDensityMapFeatures);
+                // Content-adaptive VRS uses an R8_UINT attachment and requires
+                // VK_KHR_fragment_shading_rate. Do not expose fragment-density maps
+                // through the generic PerRegion RHI capability.
+                physicalDevice.DisableOptionalDeviceExtension(OptionalDeviceExtension::FragmentDensityMap);
             }
 
             VkPhysicalDeviceVulkan12Features vulkan12Features = {};
@@ -1011,12 +1009,6 @@ namespace AZ
                     flags |= RHI::FormatCapabilities::ShadingRate;
                 }
 
-                if (RHI::CheckBitsAll(
-                        properties.optimalTilingFeatures,
-                        static_cast<VkFormatFeatureFlags>(VK_FORMAT_FEATURE_FRAGMENT_DENSITY_MAP_BIT_EXT)))
-                {
-                    flags |= RHI::FormatCapabilities::ShadingRate;
-                }
             }
         }
 
@@ -1279,20 +1271,6 @@ namespace AZ
                     {
                         m_features.m_shadingRateMask |= static_cast<RHI::ShadingRateFlags>(
                             AZ_BIT(static_cast<uint32_t>(ConvertFragmentShadingRate(vkRate.fragmentSize))));
-                    }
-                }
-            }
-            else if (physicalDevice.IsOptionalDeviceExtensionSupported(OptionalDeviceExtension::FragmentDensityMap))
-            {
-                const auto& densityFeatures = physicalDevice.GetPhysicalDeviceFragmentDensityMapFeatures();
-                if (densityFeatures.fragmentDensityMap && densityFeatures.fragmentDensityMapNonSubsampledImages)
-                {
-                    m_features.m_shadingRateTypeMask |= RHI::ShadingRateTypeFlags::PerRegion;
-                    m_imageShadingRateMode = ShadingRateImageMode::DensityMap;
-                    m_features.m_dynamicShadingRateImage = densityFeatures.fragmentDensityMapDynamic;
-                    for (uint32_t i = 0; i < static_cast<uint32_t>(RHI::ShadingRate::Count); ++i)
-                    {
-                        m_features.m_shadingRateMask |= static_cast<RHI::ShadingRateFlags>(AZ_BIT(i));
                     }
                 }
             }

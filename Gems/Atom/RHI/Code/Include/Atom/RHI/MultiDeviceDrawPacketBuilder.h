@@ -55,6 +55,9 @@ namespace AZ::RHI
             //! depth pre-pass could be present in multiple pipelines.
             DrawFilterMask m_drawFilterMask = DrawFilterMaskDefaultValue;
 
+            //! Optional per-draw shading-rate override. Count means no override.
+            ShadingRate m_overwriteShadingWrite = ShadingRate::Count;
+
             //! A map of all device-specific StreamBufferViews, indexed by the device index
             //! This additional cache is needed since device-specific StreamBufferViews are returned as objects
             //! and the device-specific DrawItem holds a pointer to it.

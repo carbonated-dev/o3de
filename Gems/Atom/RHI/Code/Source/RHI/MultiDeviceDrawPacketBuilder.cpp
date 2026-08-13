@@ -36,7 +36,8 @@ namespace AZ::RHI
                 m_uniqueShaderResourceGroup ? m_uniqueShaderResourceGroup->GetDeviceShaderResourceGroup(deviceIndex).get() : nullptr,
                 m_pipelineState ? m_pipelineState->GetDevicePipelineState(deviceIndex).get() : nullptr,
                 m_sortKey,
-                m_drawFilterMask };
+                m_drawFilterMask,
+                m_overwriteShadingWrite };
     }
 
     MultiDeviceDrawPacketBuilder::MultiDeviceDrawPacketBuilder(const MultiDeviceDrawPacketBuilder& other)

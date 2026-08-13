@@ -262,12 +262,43 @@ namespace AZ
         {
             RHI::CommandList* commandList = context.GetCommandList();
 
+            const PassAttachmentBinding* shadingRateBinding = FindAttachmentBinding(Name("ShadingRate"));
+            const RHI::Device* device = RHI::RHISystemInterface::Get()->GetDevice();
+            const RHI::ShadingRateTypeFlags requiredTypes =
+                RHI::ShadingRateTypeFlags::PerDraw | RHI::ShadingRateTypeFlags::PerRegion;
+            const bool useVrs =
+                shadingRateBinding && shadingRateBinding->GetAttachment() && device &&
+                RHI::CheckBitsAll(device->GetFeatures().m_shadingRateTypeMask, requiredTypes);
+            const RHI::ShadingRateCombinators attachmentCombinators{
+                RHI::ShadingRateCombinerOp::Passthrough,
+                RHI::ShadingRateCombinerOp::Override };
+            const RHI::ShadingRateCombinators overwriteCombinators{
+                RHI::ShadingRateCombinerOp::Passthrough,
+                RHI::ShadingRateCombinerOp::Min };
+            RHI::ShadingRate currentRate = RHI::ShadingRate::Count;
+            bool currentDrawOverwritesRate = false;
+
             uint32_t clampedEndIndex = AZStd::GetMin<uint32_t>(endIndex, static_cast<uint32_t>(m_drawListView.size()));
             for (uint32_t index = startIndex; index < clampedEndIndex; ++index)
             {
                 const RHI::DrawItemProperties& drawItemProperties = m_drawListView[index];
                 if (drawItemProperties.m_drawFilterMask & m_pipeline->GetDrawFilterMask())
                 {
+                    if (useVrs)
+                    {
+                        const bool overwriteRate =
+                            drawItemProperties.m_item->m_overwriteShadingWrite != RHI::ShadingRate::Count;
+                        const RHI::ShadingRate desiredRate = overwriteRate
+                            ? drawItemProperties.m_item->m_overwriteShadingWrite
+                            : RHI::ShadingRate::Rate1x1;
+                        if (desiredRate != currentRate || overwriteRate != currentDrawOverwritesRate)
+                        {
+                            commandList->SetFragmentShadingRate(
+                                desiredRate, overwriteRate ? overwriteCombinators : attachmentCombinators);
+                            currentRate = desiredRate;
+                            currentDrawOverwritesRate = overwriteRate;
+                        }
+                    }
                     commandList->Submit(*drawItemProperties.m_item, index + indexOffset);
                 }
             }

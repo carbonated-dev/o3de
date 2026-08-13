@@ -29,6 +29,10 @@ namespace AZ
 {
     namespace RPI
     {
+        namespace
+        {
+            constexpr uint32_t CutoutOpacityMode = 1;
+        }
 #if defined(CARBONATED)
         AZ_CVAR(bool,
             r_forceRootShaderVariantUsage,
@@ -417,6 +421,16 @@ namespace AZ
                 return false;
             }
 
+            RHI::ShadingRate overwriteShadingWrite = RHI::ShadingRate::Count;
+            const MaterialPropertyIndex opacityModeIndex = m_material->FindPropertyIndex(Name("opacity.mode"));
+            if (opacityModeIndex.IsValid())
+            {
+                if (m_material->GetPropertyValue<uint32_t>(opacityModeIndex) == CutoutOpacityMode)
+                {
+                    overwriteShadingWrite = RHI::ShadingRate::Rate1x1;
+                }
+            }
+
             ShaderReloadDebugTracker::ScopedSection reloadSection("MeshDrawPacket::DoUpdate");
 
             RHI::DrawPacketBuilder drawPacketBuilder;
@@ -759,6 +773,7 @@ namespace AZ
                 drawRequest.m_streamBufferViews = streamBufferViews;
                 drawRequest.m_stencilRef = m_stencilRef;
                 drawRequest.m_sortKey = m_sortKey;
+                drawRequest.m_overwriteShadingWrite = overwriteShadingWrite;
 #if defined(CARBONATED) 
                 drawRequest.m_stencilRef |= shaderItem.GetStencilRefOverride();
 #endif

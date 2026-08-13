@@ -8,6 +8,7 @@
 #pragma once
 
 #include <Atom/RHI.Reflect/Limits.h>
+#include <Atom/RHI.Reflect/VariableRateShadingEnums.h>
 #include <Atom/RHI/StreamBufferView.h>
 #include <Atom/RHI/IndexBufferView.h>
 #include <Atom/RHI/IndirectBufferView.h>
@@ -140,6 +141,9 @@ namespace AZ::RHI
             };
             uint8_t m_allFlags = 1;     //< Update default value if you add flags. Also update in DrawPacketBuilder::End()
         };
+
+        //! Optional per-draw shading-rate override. Count means no override.
+        ShadingRate m_overwriteShadingWrite = ShadingRate::Count;
 
         const PipelineState* m_pipelineState = nullptr;
 
