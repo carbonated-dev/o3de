@@ -25,6 +25,7 @@ struct PSOutput
 PSOutput MainPS(VSOutput IN)
 {
     PSOutput OUT;
+    OUT.m_color = float4(-1.0, -1.0, -1.0, -1.0);
 
     uint width;
     uint height;
@@ -35,8 +36,14 @@ PSOutput MainPS(VSOutput IN)
 
     uint centerData = PassSrg::m_outlineData.Load(int3(pixelPosition, 0));
     uint centerOwner = DecodeSilhouetteOwner(centerData);
+    if (centerOwner == SilhouetteBackgroundOwner)
+    {
+        return OUT;
+    }
+
     float centerDepth = PassSrg::m_silhouetteDepth.Load(int3(pixelPosition, 0));
     real retainedRegion[3][3];
+    retainedRegion[1][1] = 1.0;
     bool isBoundary = false;
     const float ownerDepthEpsilon = 0.000001;
     [unroll]
@@ -45,6 +52,11 @@ PSOutput MainPS(VSOutput IN)
         [unroll]
         for (int x = -1; x <= 1; ++x)
         {
+            if (x == 0 && y == 0)
+            {
+                continue;
+            }
+
             int2 samplePosition = clamp(pixelPosition + int2(x, y), int2(0, 0), textureMax);
             uint sampleData = PassSrg::m_outlineData.Load(int3(samplePosition, 0));
             uint sampleOwner = DecodeSilhouetteOwner(sampleData);
@@ -66,10 +78,7 @@ PSOutput MainPS(VSOutput IN)
         }
     }
 
-    const bool isInside = centerOwner != SilhouetteBackgroundOwner;
-
-    OUT.m_color = float4(-1.0, -1.0, -1.0, -1.0);
-    if (isInside && isBoundary)
+    if (isBoundary)
     {
         // Estimate the outward silhouette normal from the binary coverage mask.
         // Diagonal taps are required to keep sharp corners from becoming rounded.

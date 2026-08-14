@@ -20,7 +20,7 @@
                                 -1.0
                             ]
                         },
-                        "LoadAction": "Clear"
+                        "LoadAction": "DontCare"
                     }
                 },
                 {
@@ -46,7 +46,7 @@
                 "ShaderAsset": {
                     "FilePath": "Shaders/Silhouette/SilhouetteSeed.shader"
                 },
-                "BindViewSrg": true
+                "BindViewSrg": false
             },
             "ImageAttachments": [
                 {
