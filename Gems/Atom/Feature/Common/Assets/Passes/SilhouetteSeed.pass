@@ -20,14 +20,25 @@
                                 -1.0
                             ]
                         },
-                        "LoadAction": "Clear"
+                        "LoadAction": "DontCare"
                     }
                 },
                 {
-                    "Name": "SilhouetteColor",
+                    "Name": "SilhouetteData",
                     "SlotType": "Input",
-                    "ShaderInputName": "m_silhouettes",
+                    "ShaderInputName": "m_outlineData",
                     "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "SilhouetteDepth",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_silhouetteDepth",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Depth"
+                        ]
+                    }
                 }
             ],
             "PassData": {
@@ -35,7 +46,7 @@
                 "ShaderAsset": {
                     "FilePath": "Shaders/Silhouette/SilhouetteSeed.shader"
                 },
-                "BindViewSrg": true
+                "BindViewSrg": false
             },
             "ImageAttachments": [
                 {

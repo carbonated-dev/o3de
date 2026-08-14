@@ -25,16 +25,7 @@
                 {
                     "Name": "SilhouetteGatherPass",
                     "TemplateName": "SilhouetteGatherPassTemplate",
-                    "Enabled": true,
-                    "Connections": [
-                        {
-                            "LocalSlot": "DepthStencilInput",
-                            "AttachmentRef": {
-                                "Pass": "Parent",
-                                "Attachment": "DepthStencilResolvedInputOutput"
-                            }
-                        }
-                    ]
+                    "Enabled": true
                 },
                 {
                     "Name": "SilhouetteJFAParentPass",
@@ -80,7 +71,7 @@
                             "LocalSlot": "SilhouetteDepth",
                             "AttachmentRef": {
                                 "Pass": "SilhouetteGatherPass",
-                                "Attachment": "OutlineDepth"
+                                "Attachment": "SilhouetteDepth"
                             }
                         }                        
                     ]

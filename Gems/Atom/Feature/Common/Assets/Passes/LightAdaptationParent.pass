@@ -12,6 +12,10 @@
                     "Name": "LightingInput",
                     "SlotType": "Input"
                 },
+                {
+                    "Name": "StencilInput",
+                    "SlotType": "Input"
+                },
                 // SwapChain here is only used to reference the frame height and format
                 {
                     "Name": "PipelineOutput",
@@ -82,6 +86,13 @@
                             "AttachmentRef": {
                                 "Pass": "Parent",
                                 "Attachment": "LightingInput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "StencilInput",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "StencilInput"
                             }
                         }
                     ]
