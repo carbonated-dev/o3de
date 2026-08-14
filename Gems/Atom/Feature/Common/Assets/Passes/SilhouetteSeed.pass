@@ -24,10 +24,21 @@
                     }
                 },
                 {
-                    "Name": "SilhouetteColor",
+                    "Name": "SilhouetteData",
                     "SlotType": "Input",
-                    "ShaderInputName": "m_silhouettes",
+                    "ShaderInputName": "m_outlineData",
                     "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "SilhouetteDepth",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_silhouetteDepth",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Depth"
+                        ]
+                    }
                 }
             ],
             "PassData": {

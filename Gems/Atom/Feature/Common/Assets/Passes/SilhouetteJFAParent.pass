@@ -41,10 +41,17 @@
                     "Enabled": true,
                     "Connections": [
                         {
-                            "LocalSlot": "SilhouetteColor",
+                            "LocalSlot": "SilhouetteData",
                             "AttachmentRef": {
                                 "Pass": "Parent",
-                                "Attachment": "SilhouetteColor"
+                                "Attachment": "SilhouetteData"
+                            }
+                        },
+                        {
+                            "LocalSlot": "SilhouetteDepth",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "SilhouetteDepth"
                             }
                         }
                     ]

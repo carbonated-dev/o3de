@@ -22,18 +22,36 @@ static const uint OutlineOnlyPos = 7;
 static const uint OutlineTypePos = 5;
 static const uint OutlineBlockMask = 0x40;
 static const uint OutlineInvalidData = 0xFF;
+static const uint SilhouetteStyleMask = 0x00FF;
+static const uint SilhouetteOwnerMask = 0x00FFFFFF;
+static const uint SilhouetteOwnerShift = 8;
+static const uint SilhouetteBackgroundOwner = 0;
 
 uint EncodeOutlineData(in OutlineData data)
 {
-    uint lineThickness = min(data.m_outlineSize, MaxOutlineThickness);
-    uint outlineOnly = (uint)data.m_outlineOnly;
-    uint type = (uint)data.m_type;
-    uint encodedData = lineThickness | (outlineOnly << OutlineOnlyPos) | (type << OutlineTypePos);
+    uint lineThickness =
+        (uint)clamp(data.m_outlineSize, 0.0, (float)MaxOutlineThickness) & MaxOutlineThickness;
+    uint outlineOnly = ((uint)data.m_outlineOnly << OutlineOnlyPos) & 0x80;
+    uint type = ((uint)data.m_type << OutlineTypePos) & 0x60;
+    uint encodedData = lineThickness | outlineOnly | type;
     return encodedData;
+}
+
+// Packs the existing eight-bit outline style together with a non-zero, 24-bit
+// owner key. Owner zero is reserved for the cleared/background value.
+uint EncodeSilhouetteData(in OutlineData data, uint owner)
+{
+    return EncodeOutlineData(data) | ((owner & SilhouetteOwnerMask) << SilhouetteOwnerShift);
+}
+
+uint DecodeSilhouetteOwner(uint encodedData)
+{
+    return (encodedData >> SilhouetteOwnerShift) & SilhouetteOwnerMask;
 }
 
 OutlineData DecodeOutlineData(uint encodedData)
 {
+    encodedData &= SilhouetteStyleMask;
     OutlineData data;
     data.m_outlineSize = encodedData & MaxOutlineThickness;
     data.m_outlineOnly = (encodedData >> OutlineOnlyPos) & 0x1;

@@ -44,7 +44,6 @@ struct PSOutput
     float4 m_color : SV_Target0;
 // Begin CARBONATED
     uint m_outlineData : SV_Target1;
-    float m_outlineDepth : SV_Target2;
 // End CARBONATED
 };
 
@@ -61,8 +60,14 @@ PSOutput MainPS(VsOutput IN, in uint sampleIndex : SV_SampleIndex)
     data.m_outlineOnly = MaterialSrg::m_silhouetteOutlineOnly;
     data.m_type = o_silhouetteType;
 
-    OUT.m_outlineData = EncodeOutlineData(data);
-    OUT.m_outlineDepth = IN.position.z;
+    // Preserve zero for the background and map the transform-service object ID
+    // deterministically into the packed 24-bit owner range.
+    uint objectId = o_meshInstancingIsEnabled
+        ? ViewSrg::m_instanceData[m_rootConstantInstanceDataOffset + IN.m_instanceId]
+        : ObjectSrg::m_objectId;
+    uint silhouetteOwner = (objectId % SilhouetteOwnerMask) + 1;
+
+    OUT.m_outlineData = EncodeSilhouetteData(data, silhouetteOwner);
 // End CARBONATED
     return OUT;
 }

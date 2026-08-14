@@ -9,10 +9,12 @@
 #include <viewsrg.srgi>
 
 #include <Atom/Features/PostProcessing/FullscreenVertex.azsli>
+#include <Atom/Feature/Common/Assets/Shaders/Silhouette/Silhouette.azsli>
 
 ShaderResourceGroup PassSrg : SRG_PerPass
 {
-    Texture2D<float4> m_silhouettes;
+    Texture2D<uint> m_outlineData;
+    Texture2D<float> m_silhouetteDepth;
 }
 
 struct PSOutput
@@ -26,13 +28,17 @@ PSOutput MainPS(VSOutput IN)
 
     uint width;
     uint height;
-    PassSrg::m_silhouettes.GetDimensions(width, height);
+    PassSrg::m_outlineData.GetDimensions(width, height);
 
     int2 textureMax = int2(width, height) - 1;
     int2 pixelPosition = clamp(int2(IN.m_position.xy), int2(0, 0), textureMax);
 
-    real occupancy[3][3];
+    uint centerData = PassSrg::m_outlineData.Load(int3(pixelPosition, 0));
+    uint centerOwner = DecodeSilhouetteOwner(centerData);
+    float centerDepth = PassSrg::m_silhouetteDepth.Load(int3(pixelPosition, 0));
+    real retainedRegion[3][3];
     bool isBoundary = false;
+    const float ownerDepthEpsilon = 0.000001;
     [unroll]
     for (int y = -1; y <= 1; ++y)
     {
@@ -40,14 +46,27 @@ PSOutput MainPS(VSOutput IN)
         for (int x = -1; x <= 1; ++x)
         {
             int2 samplePosition = clamp(pixelPosition + int2(x, y), int2(0, 0), textureMax);
-            real sampleOccupancy =
-                PassSrg::m_silhouettes.Load(int3(samplePosition, 0)).a > 0.0 ? 1.0 : 0.0;
-            occupancy[y + 1][x + 1] = sampleOccupancy;
-            isBoundary = isBoundary || sampleOccupancy == 0.0;
+            uint sampleData = PassSrg::m_outlineData.Load(int3(samplePosition, 0));
+            uint sampleOwner = DecodeSilhouetteOwner(sampleData);
+
+            bool leavesRetainedRegion = sampleOwner == SilhouetteBackgroundOwner;
+            if (sampleOwner != centerOwner && !leavesRetainedRegion)
+            {
+                // The gather pass has already retained the nearest silhouette at
+                // each pixel. At a transition between owners, only the nearer
+                // side emits a seed. O3DE uses reversed depth, so larger is near.
+                float sampleDepth = PassSrg::m_silhouetteDepth.Load(int3(samplePosition, 0));
+                bool depthTie = abs(centerDepth - sampleDepth) <= ownerDepthEpsilon;
+                leavesRetainedRegion = centerDepth > sampleDepth + ownerDepthEpsilon
+                    || (depthTie && centerOwner < sampleOwner);
+            }
+
+            retainedRegion[y + 1][x + 1] = leavesRetainedRegion ? 0.0 : 1.0;
+            isBoundary = isBoundary || leavesRetainedRegion;
         }
     }
 
-    const bool isInside = occupancy[1][1] > 0.0;
+    const bool isInside = centerOwner != SilhouetteBackgroundOwner;
 
     OUT.m_color = float4(-1.0, -1.0, -1.0, -1.0);
     if (isInside && isBoundary)
@@ -56,11 +75,11 @@ PSOutput MainPS(VSOutput IN)
         // Diagonal taps are required to keep sharp corners from becoming rounded.
         real2 outwardGradient;
         outwardGradient.x =
-            occupancy[0][0] + 2.0 * occupancy[1][0] + occupancy[2][0]
-            - occupancy[0][2] - 2.0 * occupancy[1][2] - occupancy[2][2];
+            retainedRegion[0][0] + 2.0 * retainedRegion[1][0] + retainedRegion[2][0]
+            - retainedRegion[0][2] - 2.0 * retainedRegion[1][2] - retainedRegion[2][2];
         outwardGradient.y =
-            occupancy[0][0] + 2.0 * occupancy[0][1] + occupancy[0][2]
-            - occupancy[2][0] - 2.0 * occupancy[2][1] - occupancy[2][2];
+            retainedRegion[0][0] + 2.0 * retainedRegion[0][1] + retainedRegion[0][2]
+            - retainedRegion[2][0] - 2.0 * retainedRegion[2][1] - retainedRegion[2][2];
 
         real gradientLengthSq = dot(outwardGradient, outwardGradient);
         real2 outwardNormal = gradientLengthSq > 0.0001
