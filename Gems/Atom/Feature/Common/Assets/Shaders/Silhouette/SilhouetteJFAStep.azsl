@@ -12,7 +12,7 @@
 
 ShaderResourceGroup PassSrg : SRG_PerPass
 {
-    float m_stepSize;
+    uint m_stepSize;
     Texture2D<float4> m_prevJFA;
 }
 
@@ -25,25 +25,34 @@ PSOutput MainPS(VSOutput IN)
 {
     PSOutput OUT;
 
-    real2 position = IN.m_position.xy;
     real2 uv = IN.m_texCoord;
-    real2 step  = PassSrg::m_stepSize;
     real4 best  = float4(-1.0, -1.0, -1.0, -1.0);
     uint width;
     uint height;
     PassSrg::m_prevJFA.GetDimensions(width, height);
     real2 textureSize = real2(width, height);
     real bestDistSq = dot(textureSize, textureSize) + 1.0;
+    int2 pixelPosition = int2(IN.m_position.xy);
     int2 textureMax = int2(width, height) - 1;
+    int stepSize = int(PassSrg::m_stepSize);
+    int3 sampleX = int3(
+        max(pixelPosition.x - stepSize, 0),
+        pixelPosition.x,
+        min(pixelPosition.x + stepSize, textureMax.x));
+    int3 sampleY = int3(
+        max(pixelPosition.y - stepSize, 0),
+        pixelPosition.y,
+        min(pixelPosition.y + stepSize, textureMax.y));
 
     // 3x3 neighbourhood at current step size
-    int2 start = max(int2(position - step), int2(0, 0));
-    int2 end = min(int2(position + step), textureMax);
-    for (int y = start.y; y <= end.y; ++y)
+    [unroll]
+    for (int y = 0; y < 3; ++y)
     {
-        for (int x = start.x; x <= end.x; ++x)
+        [unroll]
+        for (int x = 0; x < 3; ++x)
         {
-            real4 seed = PassSrg::m_prevJFA.Load(int3(x, y, 0));
+            int2 samplePosition = int2(sampleX[x], sampleY[y]);
+            real4 seed = PassSrg::m_prevJFA.Load(int3(samplePosition, 0));
             if (seed.x >= 0.0 && seed.y >= 0.0)
             {
                 real2 deltaPixels = (uv - seed.xy) * textureSize;

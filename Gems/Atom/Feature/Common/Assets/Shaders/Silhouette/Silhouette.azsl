@@ -103,11 +103,17 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
     int2 currentPosition = clamp(int2(IN.m_position.xy), int2(0, 0), textureMax);
     real2 textureSize = real2(width, height);
 
-    real4 localSample = PassSrg::m_silhouettes.Load(int3(currentPosition, 0));
-    const bool hasLocalCoverage = localSample.a > 0.0;
+    uint localOutlineData = PassSrg::m_outlineData.Load(int3(currentPosition, 0));
+    uint localOwner = DecodeSilhouetteOwner(localOutlineData);
+    const bool hasLocalCoverage = localOwner != SilhouetteBackgroundOwner;
 
     real4 closestSeed = PassSrg::m_jfaResult.Load(int3(currentPosition, 0));
     const bool hasValidSeed = closestSeed.x >= 0.0 && closestSeed.y >= 0.0;
+
+    if (!hasLocalCoverage && !hasValidSeed)
+    {
+        return OUT;
+    }
 
     int2 seedSourcePosition = currentPosition;
     if (hasValidSeed)
@@ -115,7 +121,6 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
         seedSourcePosition = clamp(int2(closestSeed.zw * textureSize), int2(0, 0), textureMax);
     }
 
-    uint localOwner = DecodeSilhouetteOwner(PassSrg::m_outlineData.Load(int3(currentPosition, 0)));
     uint seedOwner = hasValidSeed
         ? DecodeSilhouetteOwner(PassSrg::m_outlineData.Load(int3(seedSourcePosition, 0)))
         : localOwner;
@@ -124,10 +129,6 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
     // the propagated contour. Treat it as exterior so the seed owner's outline
     // remains independent instead of merging with the local silhouette.
     const bool isInside = hasLocalCoverage && (!hasValidSeed || localOwner == seedOwner);
-    if (!isInside && !hasValidSeed)
-    {
-        return OUT;
-    }
 
     int2 sourcePosition = currentPosition;
     if (!isInside)
@@ -137,7 +138,10 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
 
     float outlineDepth = PassSrg::m_silhouetteDepth.Load(int3(sourcePosition, 0));
     float sceneDepth = PassSrg::m_depthTex.Load(int3(IN.m_position.xy, 0));
-    OutlineData outlineData = DecodeOutlineData(PassSrg::m_outlineData.Load(int3(sourcePosition, 0)));
+    uint sourceOutlineData = isInside
+        ? localOutlineData
+        : PassSrg::m_outlineData.Load(int3(sourcePosition, 0));
+    OutlineData outlineData = DecodeOutlineData(sourceOutlineData);
 
     const bool sceneOccludesSilhouette = sceneDepth > outlineDepth;
 
@@ -147,11 +151,7 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
         return OUT;
     }
 
-    real4 pixelSample = localSample;
-    if (!isInside)
-    {
-        pixelSample = PassSrg::m_silhouettes.Load(int3(sourcePosition, 0));
-    }
+    real4 pixelSample = PassSrg::m_silhouettes.Load(int3(sourcePosition, 0));
 
     real edgeDistance = 0.0;
     if (hasValidSeed)
