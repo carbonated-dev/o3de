@@ -25,7 +25,6 @@
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
     RWTexture3D<float4> m_froxelScatterResult;
-    Texture3D<float4> m_froxelMedium;
 
     Texture2D<uint4> m_tileLightData;
     StructuredBuffer<uint> m_lightListRemapped;
@@ -85,11 +84,6 @@ real3 GetSpecularLighting(Surface surface, LightingData lightingData, const real
 #include <Atom/Features/PBR/Lights/Lights.azsli>
 
 static const float3 FogNormal = float3(0, 0, 1);
-
-// The ambient cubemap directions are constant for the entire dispatch. Cache
-// their samples once per workgroup instead of issuing two samples per froxel.
-groupshared float3 SharedAmbientSky;
-groupshared float3 SharedAmbientGround;
 
 float HenyeyGreenstein(float cosTheta)
 {
@@ -226,14 +220,6 @@ float3 ApplyLightsByType(
                 break;
         }
 
-        // Light helpers leave intensity at zero when the light is disabled,
-        // channel-masked, outside its range, or outside a spot cone. Avoid the
-        // normalization, phase pow, and extinction exp for those lights.
-        if (all(outInfo.m_intensity == 0.0f))
-        {
-            continue;
-        }
-
         float phase, lightAttenuation;
         CalculatePhaseAndAttenuation(lightPosWS, surface.position, viewDirection, extinction, phase, lightAttenuation);
         
@@ -250,19 +236,12 @@ float3 SampleIBL(float3 dir)
     return SceneSrg::m_diffuseEnvMap.SampleLevel(SceneSrg::m_samplerEnv, iblCubemapCoords, 0).rgb;
 }
 
-float3 EvaluateAmbientFog(float3 positionWS, float3 skyColor, float3 groundColor)
+float3 EvaluateAmbientFog()
 {
-    // froxelWS.z is world height (assuming Z-up, adjust for your convention)
-    float groundHeight = 0.0;
-    float heightAboveGround = max(positionWS.z - groundHeight, 0.0);
-
-    // At ground level: 50/50 sky/ground. At height: sky dominates.
-    // Exponential blend. 5m above ground is already ~80% sky
-    float groundFactor = exp(-heightAboveGround * 0.2);
-    float skyFactor    = 1.0 - groundFactor * 0.5;       // sky never below 0.5
-
-    float3 ambientFog = skyColor * skyFactor + groundColor * groundFactor * 0.5;
-    return ambientFog;
+    // Use one representative upper-hemisphere sample for fog ambient lighting.
+    float3 ambientFog = SampleIBL(FogNormal);
+    float iblExposureScale = exp2(SceneSrg::m_iblExposure);
+    return ambientFog * iblExposureScale;
 }
 
 void SkipLightGroup(inout LightCullingTileIterator tileIterator)
@@ -274,31 +253,15 @@ void SkipLightGroup(inout LightCullingTileIterator tileIterator)
     }
 }
 
-[numthreads(8, 8, 1)]
-void MainCS(uint3 froxelId : SV_DispatchThreadID, uint groupThreadIndex : SV_GroupIndex)
+[numthreads(NUM_THREADS_PER_GROUP, NUM_THREADS_PER_GROUP, 1)]
+void MainCS(uint3 froxelId : SV_DispatchThreadID)
 {
-    // This condition is uniform for the workgroup, so every lane reaches the
-    // barrier. Do this before the bounds check because edge groups contain
-    // inactive lanes that must still participate in group synchronization.
-    if (SceneSrg::m_volumetricFogVolumeData.m_ambientIntensity > 0)
-    {
-        if (groupThreadIndex == 0)
-        {
-            const float iblExposureScale = exp2(SceneSrg::m_iblExposure);
-            SharedAmbientSky = SampleIBL(float3(0, 0, 1)) * iblExposureScale;
-            SharedAmbientGround = SampleIBL(float3(0, 0, -1)) * iblExposureScale;
-        }
-        GroupMemoryBarrierWithGroupSync();
-    }
-
     if (any(froxelId >= SceneSrg::m_volumetricFogData.m_froxelCount))
     {
         return;
     }
 
-    // Use the final injected medium rather than the global density. This
-    // accounts for height/noise/local volumes and avoids lighting empty cells.
-    float extinction = PassSrg::m_froxelMedium[froxelId].a;
+    float extinction = SceneSrg::m_volumetricFogVolumeData.m_fogDensity;
 
     if (extinction < 1e-6)
     {
@@ -340,9 +303,8 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID, uint groupThreadIndex : SV_Gro
 
     LightingData lightingData;
     lightingData.tileIterator.Init(svPosition, PassSrg::m_lightListRemapped, PassSrg::m_tileLightData);
-    lightingData.Init(surface.position, surface.normal, surface.roughnessLinear, ViewSrg::m_worldPosition.xyz);
     lightingData.lightingChannels = SceneSrg::m_volumetricFogData.m_lightingChannelMask;
-    float3 viewDirection = -lightingData.dirToCamera;
+    float3 viewDirection = normalize(surface.position - ViewSrg::m_worldPosition.xyz);
 
     // Ambient / directional (not in light list, always evaluated)
     inScatter += ApplyFogDirectionalLights(surface, lightingData, extinction, viewDirection, svPosition);
@@ -350,12 +312,13 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID, uint groupThreadIndex : SV_Gro
     if (SceneSrg::m_volumetricFogVolumeData.m_ambientIntensity > 0)
     {
         // Ambient IBL contribution; scatteringCoeff is applied in FroxelIntegrate, not here
-        float3 ambientIBL = EvaluateAmbientFog(surface.position, SharedAmbientSky, SharedAmbientGround);
+        float3 ambientIBL = EvaluateAmbientFog();
         inScatter += ambientIBL * SceneSrg::m_volumetricFogVolumeData.m_ambientIntensity;
     }
 
     // Skip Decals group
     SkipLightGroup(lightingData.tileIterator);
+    lightingData.Init(surface.position, surface.normal, surface.roughnessLinear, ViewSrg::m_worldPosition.xyz);
     inScatter += ApplyLightsByType(FogCullLightType::SimplePointLight, surface, lightingData, extinction, viewDirection);
     inScatter += ApplyLightsByType(FogCullLightType::SimpleSpot, surface, lightingData, extinction, viewDirection);
     inScatter += ApplyLightsByType(FogCullLightType::PointLight, surface, lightingData, extinction, viewDirection);
