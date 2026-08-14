@@ -93,6 +93,13 @@
                             }
                         },
                         {
+                            "LocalSlot": "FroxelMedium",
+                            "AttachmentRef": {
+                                "Pass": "FroxelLocalVolumePass",
+                                "Attachment": "FroxelMedium"
+                            }
+                        },
+                        {
                             "LocalSlot": "DirectionalShadowmap",
                             "AttachmentRef": {
                                 "Pass": "Parent",

@@ -26,6 +26,12 @@
                     "ScopeAttachmentUsage": "Shader"
                 },
                 {
+                    "Name": "FroxelMedium",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_froxelMedium",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
                     "Name": "DirectionalShadowmap",
                     "ShaderInputName": "m_directionalLightShadowmap",
                     "SlotType": "Input",
