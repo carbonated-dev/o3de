@@ -110,9 +110,7 @@ namespace AZ
         static AZ::Name s_o_meshInstancingIsEnabled_Name =
             AZ::Name::FromStringLiteral("o_meshInstancingIsEnabled", AZ::Interface<AZ::NameDictionary>::Get());
         static AZ::Name s_transparent_Name = AZ::Name::FromStringLiteral("transparent", AZ::Interface<AZ::NameDictionary>::Get());
-#if defined(CARBONATED)
-        static AZ::Name s_block_silhouette_Name = AZ::Name::FromStringLiteral("general.blockSilhouette", AZ::Interface<AZ::NameDictionary>::Get());
-#else
+#if !defined(CARBONATED)
         static AZ::Name s_block_silhouette_Name = AZ::Name::FromStringLiteral("silhouette.blockSilhouette", AZ::Interface<AZ::NameDictionary>::Get());
 #endif
         static void CacheRootConstantInterval(MeshInstanceGroupData& meshInstanceGroupData)
@@ -2552,19 +2550,22 @@ namespace AZ
                         drawPacket.SetShaderOption(s_o_meshInstancingIsEnabled_Name, AZ::RPI::ShaderOptionValue{ true });
                     }
 
+#if !defined(CARBONATED)
                     bool blockSilhouettes = false;
                     if (auto index = material->FindPropertyIndex(s_block_silhouette_Name); index.IsValid())
                     {
                         blockSilhouettes = material->GetPropertyValue<bool>(index);
                     }
+#endif
 
                     // stencil bits
                     uint8_t stencilRef = m_descriptor.m_useForwardPassIblSpecular || materialRequiresForwardPassIblSpecular
                         ? Render::StencilRefs::None
                         : Render::StencilRefs::UseIBLSpecularPass;
                     stencilRef |= Render::StencilRefs::UseDiffuseGIPass;
+#if !defined(CARBONATED)
                     stencilRef |= blockSilhouettes ? Render::StencilRefs::BlockSilhouettes : 0;
-
+#endif
                     drawPacket.SetStencilRef(stencilRef);
                     drawPacket.SetSortKey(m_sortKey);
                     drawPacket.SetEnableDraw(meshMotionDrawListTag, m_flags.m_isDrawMotion);

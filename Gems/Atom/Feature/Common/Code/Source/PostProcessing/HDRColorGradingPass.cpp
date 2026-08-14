@@ -71,7 +71,9 @@
         void HDRColorGradingPass::FrameBeginInternal(FramePrepareParams params)
         {
             SetSrgConstants();
-
+#if defined(CARBONATED)
+            UpdateShaderOptions();
+#endif
             FullscreenTrianglePass::FrameBeginInternal(params);
         }
 
@@ -121,6 +123,25 @@
                 m_shaderResourceGroup->SetConstant(m_colorGradingHueShiftIndex, settings->GetColorGradingHueShift());
             }
         }
+
+#if defined(CARBONATED)
+        void HDRColorGradingPass::UpdateShaderOptions()
+        {
+            const HDRColorGradingSettings* settings = GetHDRColorGradingSettings();
+            if (settings)
+            {
+                RPI::ShaderOptionGroup shaderOptions = m_shader->CreateShaderOptionGroup();
+                shaderOptions.SetValue(
+                    AZ::Name("o_enableColorBlocking"), settings->GetEnableBlocking() ? AZ::Name("true") : AZ::Name("false"));
+
+                shaderOptions.SetUnspecifiedToDefaultValues();
+                if (m_pipelineStateForDraw.GetShaderVariantId() != shaderOptions.GetShaderVariantId())
+                {
+                    FullscreenTrianglePass::UpdateShaderOptions(shaderOptions.GetShaderVariantId());
+                }
+            }
+        }
+#endif
 
         const AZ::Render::HDRColorGradingSettings* HDRColorGradingPass::GetHDRColorGradingSettings() const
         {

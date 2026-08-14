@@ -15,7 +15,7 @@
         "Stencil" :
         {
             "Enable" : true,
-            "ReadMask" : "0x3F",
+            "ReadMask" : "0x1F",
             "WriteMask" : "0x00",
             "BackFace" :
             {

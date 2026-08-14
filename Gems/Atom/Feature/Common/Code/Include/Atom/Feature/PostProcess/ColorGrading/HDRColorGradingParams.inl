@@ -50,3 +50,7 @@ AZ_GFX_COMMON_PARAM(float, CustomMaxExposure, m_customMaxExposure, 6.5)
 AZ_GFX_FLOAT_PARAM(FinalAdjustmentWeight, m_finalAdjustmentWeight, 1.0)
 AZ_GFX_FLOAT_PARAM(ColorGradingPostSaturation, m_colorGradingPostSaturation, 0.0)
 AZ_GFX_FLOAT_PARAM(ColorGradingHueShift, m_colorGradingHueShift, 0.0)
+
+// Begin Carbonated
+AZ_GFX_BOOL_PARAM(EnableBlocking, m_enableBlocking, false)
+// End Carbonated

@@ -108,7 +108,20 @@
             "displayName": "Block Silhouette",
             "description": "Whether to block rendering of silhouettes.",
             "type": "Bool",
-            "defaultValue":  false
+            "connection": {
+                "type": "InternalProperty",
+                "name": "blockSilhouette"
+            }
+        },
+        {
+            "name": "blockColorGrading",
+            "displayName": "Block Color Grading",
+            "description": "Whether to block HDR color grading post process.",
+            "type": "Bool",
+            "connection": {
+                "type": "InternalProperty",
+                "name": "blockColorGrading"
+            }
         }
     ]
 }
