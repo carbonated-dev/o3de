@@ -29,10 +29,11 @@ static const uint SilhouetteBackgroundOwner = 0;
 
 uint EncodeOutlineData(in OutlineData data)
 {
-    uint lineThickness = min(data.m_outlineSize, MaxOutlineThickness);
-    uint outlineOnly = (uint)data.m_outlineOnly;
-    uint type = (uint)data.m_type;
-    uint encodedData = lineThickness | (outlineOnly << OutlineOnlyPos) | (type << OutlineTypePos);
+    uint lineThickness =
+        (uint)clamp(data.m_outlineSize, 0.0, (float)MaxOutlineThickness) & MaxOutlineThickness;
+    uint outlineOnly = ((uint)data.m_outlineOnly << OutlineOnlyPos) & 0x80;
+    uint type = ((uint)data.m_type << OutlineTypePos) & 0x60;
+    uint encodedData = lineThickness | outlineOnly | type;
     return encodedData;
 }
 
