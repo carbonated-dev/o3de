@@ -15,11 +15,18 @@
 #include <Atom/RPI.Public/RenderPipeline.h>
 
 #include <AzCore/Console/IConsole.h>
+#include <AzCore/std/algorithm.h>
 
 #include <Silhouette/SilhouetteJFAStepParentPass.h>
 
 namespace AZ::Render
 {
+    namespace
+    {
+        constexpr uint32_t MinOutlineSize = 1;
+        constexpr uint32_t MaxOutlineSize = 0x1F;
+    }
+
     RPI::Ptr<SilhouetteJFAStepParentPass> SilhouetteJFAStepParentPass::Create(const RPI::PassDescriptor& descriptor)
     {
         RPI::Ptr<SilhouetteJFAStepParentPass> pass = aznew SilhouetteJFAStepParentPass(descriptor);
@@ -71,6 +78,8 @@ namespace AZ::Render
         {
             console->GetCvarValue("r_silhouetteMaxOutlineSize", maxOutline);
         }
+        maxOutline = AZStd::clamp(maxOutline, MinOutlineSize, MaxOutlineSize);
+
         // First calculates how many passes we are going to need based on the max size of the outline
         int numMips = aznumeric_cast<int>(AZStd::ceil(log2(static_cast<float>(maxOutline) + 1.0f)));
         int jfaIter = numMips - 1;
@@ -97,12 +106,12 @@ namespace AZ::Render
                 break;
             }
 
-            float stepUV = static_cast<float>(pow(2, i)) + 0.5f;
+            uint32_t stepSize = 1u << i;
             RPI::RenderPass* renderPass = static_cast<AZ::RPI::RenderPass*>(childPass.get());
             auto srg = renderPass->GetShaderResourceGroup();
             if (srg)
             {
-                srg->SetConstant(stepInputIndex, stepUV);
+                srg->SetConstant(stepInputIndex, stepSize);
             }
 
             AddChild(childPass);

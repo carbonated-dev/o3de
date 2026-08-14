@@ -54,6 +54,8 @@ function Process(context)
             shaderItem:SetEnabled(true)
             shaderItem:SetStencilRefOverride(0xFF)
         -- CARBONATED End
+        -- CARBONATED Begin
+            --[[ Depth comparisson now is done in the Silhouette Composite pass 
             if(silhouetteType == SilhouetteType_AlwaysDraw) then
                 -- Always draws in ignores depth check, but won't draw where silhouettes are blocked
                 shaderItem:GetRenderStatesOverride():SetDepthEnabled(false)
@@ -74,6 +76,7 @@ function Process(context)
                 shaderItem:GetRenderStatesOverride():SetDepthEnabled(true)
                 shaderItem:GetRenderStatesOverride():SetDepthComparisonFunc(ComparisonFunc_Never)
             end
+            ]]
         end
     end
 end

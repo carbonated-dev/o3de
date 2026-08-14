@@ -55,8 +55,13 @@
                 {
                     "Name": "SilhouetteDepth",
                     "SlotType": "Input",
-                    "ShaderInputName": "m_outlineDepth",
-                    "ScopeAttachmentUsage": "Shader"
+                    "ShaderInputName": "m_silhouetteDepth",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Depth"
+                        ]
+                    }
                 }         
             ],
             "PassData": {

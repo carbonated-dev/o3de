@@ -4,8 +4,8 @@
         "Depth": 
         {
             "Enable": true, 
-            "WriteMask" : "Zero",   // Avoid writing the depth
-            "CompareFunc" : "Less"
+            "WriteMask" : "All",
+            "CompareFunc" : "GreaterEqual"
         }
     },
     "DrawList": "silhouette",

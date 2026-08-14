@@ -60,7 +60,7 @@ AZ_CVAR(
     14,
     &OnSilhouetteMaxOutlineSizeChanged,
     AZ::ConsoleFunctorFlags::Null,
-    "Controls the max size of the outline in pixels");
+    "Controls the max size of the outline in pixels. Effective range is 1-31.");
 #endif
 
 AZ_CVAR(

@@ -33,7 +33,7 @@ ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 
     Texture2D<float4> m_silhouettes;
     Texture2D<uint> m_outlineData;
-    Texture2D<float> m_outlineDepth;
+    Texture2D<float> m_silhouetteDepth;
     Texture2D<float4> m_jfaResult;
     Texture2DMS<uint2> m_stencilTex;
     Texture2D<float> m_depthTex;
@@ -103,42 +103,55 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
     int2 currentPosition = clamp(int2(IN.m_position.xy), int2(0, 0), textureMax);
     real2 textureSize = real2(width, height);
 
-    real4 localSample = PassSrg::m_silhouettes.Load(int3(currentPosition, 0));
-    const bool isInside = localSample.a > 0.0;
+    uint localOutlineData = PassSrg::m_outlineData.Load(int3(currentPosition, 0));
+    uint localOwner = DecodeSilhouetteOwner(localOutlineData);
+    const bool hasLocalCoverage = localOwner != SilhouetteBackgroundOwner;
 
     real4 closestSeed = PassSrg::m_jfaResult.Load(int3(currentPosition, 0));
     const bool hasValidSeed = closestSeed.x >= 0.0 && closestSeed.y >= 0.0;
-    if (!isInside && !hasValidSeed)
+
+    if (!hasLocalCoverage && !hasValidSeed)
     {
         return OUT;
     }
 
+    int2 seedSourcePosition = currentPosition;
+    if (hasValidSeed)
+    {
+        seedSourcePosition = clamp(int2(closestSeed.zw * textureSize), int2(0, 0), textureMax);
+    }
+
+    uint seedOwner = hasValidSeed
+        ? DecodeSilhouetteOwner(PassSrg::m_outlineData.Load(int3(seedSourcePosition, 0)))
+        : localOwner;
+
+    // Coverage from a different silhouette does not make this pixel interior to
+    // the propagated contour. Treat it as exterior so the seed owner's outline
+    // remains independent instead of merging with the local silhouette.
+    const bool isInside = hasLocalCoverage && (!hasValidSeed || localOwner == seedOwner);
+
     int2 sourcePosition = currentPosition;
     if (!isInside)
     {
-        sourcePosition = clamp(int2(closestSeed.zw * textureSize), int2(0, 0), textureMax);
+        sourcePosition = seedSourcePosition;
     }
 
-    float outlineDepth = PassSrg::m_outlineDepth.Load(int3(sourcePosition, 0));
+    float outlineDepth = PassSrg::m_silhouetteDepth.Load(int3(sourcePosition, 0));
     float sceneDepth = PassSrg::m_depthTex.Load(int3(IN.m_position.xy, 0));
-    OutlineData outlineData = DecodeOutlineData(PassSrg::m_outlineData.Load(int3(sourcePosition, 0)));
+    uint sourceOutlineData = isInside
+        ? localOutlineData
+        : PassSrg::m_outlineData.Load(int3(sourcePosition, 0));
+    OutlineData outlineData = DecodeOutlineData(sourceOutlineData);
 
-    const real bias = 0.001;
+    const bool sceneOccludesSilhouette = sceneDepth > outlineDepth;
+
     uint sceneStencilVal = ReadStencil(PassSrg::m_stencilTex.Load(IN.m_position.xy, sampleIndex));
-    if (sceneStencilVal & OutlineBlockMask)
+    if ((sceneStencilVal & OutlineBlockMask) && sceneOccludesSilhouette)
     {
-        bool occluded = sceneDepth + bias > outlineDepth;
-        if (occluded)
-        {
-            return OUT;
-        }
+        return OUT;
     }
 
-    real4 pixelSample = localSample;
-    if (!isInside)
-    {
-        pixelSample = PassSrg::m_silhouettes.Load(int3(sourcePosition, 0));
-    }
+    real4 pixelSample = PassSrg::m_silhouettes.Load(int3(sourcePosition, 0));
 
     real edgeDistance = 0.0;
     if (hasValidSeed)
@@ -174,10 +187,10 @@ PSOutput MainPS(VSOutput IN, in uint sampleIndex : SV_SampleIndex)
         case SilhouetteType::AlwaysDraw:
             break;
         case SilhouetteType::Visible:
-            pixelSample.a = sceneDepth + bias > outlineDepth ? 0 : pixelSample.a;
+            pixelSample.a = sceneOccludesSilhouette ? 0.0 : pixelSample.a;
             break;
         case SilhouetteType::XRay:
-            pixelSample.a = sceneDepth + bias < outlineDepth ? 0 : pixelSample.a;
+            pixelSample.a = sceneOccludesSilhouette ? pixelSample.a : 0.0;
             break;
         case SilhouetteType::NeverDraw:
             pixelSample.a = 0;
