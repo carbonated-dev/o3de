@@ -246,6 +246,13 @@ namespace AZ::Render
             return;
         }
 
+        Name skinningPassName = Name("SkinningPass");
+        if (renderPipeline->FindFirstPass(skinningPassName) == nullptr)
+        {
+            AZ_Warning("SilhouetteFeatureProcessor", false, "Can't find %s in the render pipeline.", skinningPassName.GetCStr());
+            return;
+        }
+
         RPI::PassRequest compositePassRequest;
         compositePassRequest.m_passName = Name("SilhouetteParentPass");
         compositePassRequest.m_templateName = Name("SilhouetteParentPassTemplate");
@@ -255,6 +262,8 @@ namespace AZ::Render
             RPI::PassConnection{ Name("DepthStencilResolvedInputOutput"), RPI::PassAttachmentRef{ depthPrePassName, Name("Depth") } });
         compositePassRequest.AddInputConnection(
             RPI::PassConnection{ Name("DepthStencilInputOutput"), RPI::PassAttachmentRef{ opaquePassName, Name("DepthStencil") } });
+        compositePassRequest.AddInputConnection(
+            RPI::PassConnection{ Name("SkinnedMeshes"), RPI::PassAttachmentRef{ skinningPassName, Name("SkinnedMeshOutputStream") } });
 
         if (auto pass = RPI::PassSystemInterface::Get()->CreatePassFromRequest(&compositePassRequest); pass != nullptr)
         {

@@ -7,6 +7,10 @@
             "Name": "SilhouetteParentPassTemplate",
             "PassClass": "ParentPass",
             "Slots": [
+                {
+                    "Name": "SkinnedMeshes",
+                    "SlotType": "Input"
+                },
                 // Input/Outputs...
                 {
                     "Name": "DepthStencilInputOutput",
@@ -25,7 +29,16 @@
                 {
                     "Name": "SilhouetteGatherPass",
                     "TemplateName": "SilhouetteGatherPassTemplate",
-                    "Enabled": true
+                    "Enabled": true,
+                    "Connections": [
+                        {
+                            "LocalSlot": "SkinnedMeshes",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "SkinnedMeshes"
+                            }
+                        }
+                    ]
                 },
                 {
                     "Name": "SilhouetteJFAParentPass",
