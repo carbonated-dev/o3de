@@ -33,6 +33,14 @@ namespace AZ
                 RHI::Ptr<RHI::Buffer> m_tlasBuffer;
                 RHI::Ptr<RHI::Buffer> m_scratchBuffer;
                 RHI::Ptr<RHI::Buffer> m_tlasInstancesBuffer;
+#if defined(CARBONATED)
+                AZStd::vector<uint64_t> m_uploadedInstanceVersions;
+                uint32_t m_instanceCapacity = 0;
+                uint32_t m_instanceCount = 0;
+                uint64_t m_topologyRevision = 0;
+                mutable RHI::RayTracingTlasBuildMode m_buildMode = RHI::RayTracingTlasBuildMode::None;
+                bool m_hasBeenBuilt = false;
+#endif
             };
 
 #ifdef AZ_DX12_DXR_SUPPORT

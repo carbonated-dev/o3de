@@ -777,7 +777,18 @@ namespace AZ
             tlasDesc.ScratchAccelerationStructureData = static_cast<Buffer*>(tlasBuffers.m_scratchBuffer.get())->GetMemoryView().GetGpuAddress();
             tlasDesc.DestAccelerationStructureData = static_cast<Buffer*>(tlasBuffers.m_tlasBuffer.get())->GetMemoryView().GetGpuAddress();
 
+#if defined(CARBONATED)
+            if (tlasBuffers.m_buildMode == RHI::RayTracingTlasBuildMode::Update)
+            {
+                tlasDesc.Inputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+                tlasDesc.SourceAccelerationStructureData = tlasDesc.DestAccelerationStructureData;
+            }
+#endif
+
             commandList->BuildRaytracingAccelerationStructure(&tlasDesc, 0, nullptr);
+#if defined(CARBONATED)
+            tlasBuffers.m_buildMode = RHI::RayTracingTlasBuildMode::Update;
+#endif
 #endif
         }
 

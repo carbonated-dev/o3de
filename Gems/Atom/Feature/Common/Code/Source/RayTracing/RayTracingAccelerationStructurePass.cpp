@@ -121,6 +121,10 @@ namespace AZ
 
         void RayTracingAccelerationStructurePass::SetupFrameGraphDependencies(RHI::FrameGraphInterface frameGraph)
         {
+#if defined(CARBONATED)
+            AZ_PROFILE_FUNCTION(RPI);
+#endif
+
             RHI::Ptr<RHI::Device> device = RHI::RHISystemInterface::Get()->GetDevice();
 
             RPI::Scene* scene = m_pipeline->GetScene();
@@ -131,6 +135,16 @@ namespace AZ
                 if (rayTracingFeatureProcessor->GetRevision() != m_rayTracingRevision)
                 {
                     RHI::RayTracingBufferPools& rayTracingBufferPools = rayTracingFeatureProcessor->GetBufferPools();
+#if defined(CARBONATED)
+
+                    // create the TLAS buffers based on the descriptor
+                    RHI::Ptr<RHI::RayTracingTlas>& rayTracingTlas = rayTracingFeatureProcessor->GetTlas();
+                    {
+                        AZ_PROFILE_SCOPE(RPI, "RayTracingAccelerationStructurePass: CreateBuffers");
+                        rayTracingTlas->CreateBuffers(
+                            *device, &rayTracingFeatureProcessor->GetTlasDescriptor(), rayTracingBufferPools);
+                    }
+#else
                     RayTracingFeatureProcessor::SubMeshVector& subMeshes = rayTracingFeatureProcessor->GetSubMeshes();
 
                     // create the TLAS descriptor
@@ -178,6 +192,7 @@ namespace AZ
                     // create the TLAS buffers based on the descriptor
                     RHI::Ptr<RHI::RayTracingTlas>& rayTracingTlas = rayTracingFeatureProcessor->GetTlas();
                     rayTracingTlas->CreateBuffers(*device, &tlasDescriptor, rayTracingBufferPools);
+#endif
 
                     // import and attach the TLAS buffer
                     const RHI::Ptr<RHI::Buffer>& rayTracingTlasBuffer = rayTracingTlas->GetTlasBuffer();
