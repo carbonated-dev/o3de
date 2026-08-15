@@ -12,6 +12,7 @@
 #include <EMotionFX/Source/Motion.h>
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_CONCURRENCY)
 #include <EMotionFX/Source/MotionManager.h>
+#include <AzCore/Time/ITime.h>
 #endif
 
 namespace EMotionFX
@@ -36,6 +37,9 @@ namespace EMotionFX
         bool MotionAssetHandler::OnInitAsset(const AZ::Data::Asset<AZ::Data::AssetData>& asset)
         {
             MotionAsset* assetData = asset.GetAs<MotionAsset>();
+#if defined(CARBONATED_ASYNC_MOTION_LOADING_LOG)
+            AZ_Info("motionload", "MotionAssetHandler::OnInitAsset '%s' at %d", asset.GetHint().c_str(), int(AZ::GetRealElapsedTimeMs()));
+#endif
             assetData->m_emfxMotion = EMotionFXPtr<EMotionFX::Motion>::MakeFromNew(EMotionFX::GetImporter().LoadMotion(
                 assetData->m_emfxNativeData.data(),
                 assetData->m_emfxNativeData.size(),

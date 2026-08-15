@@ -48,6 +48,9 @@ namespace EMotionFX
             // AZ::Data::AssetBus::MultiHandler
             void OnAssetReloaded(AZ::Data::Asset<AZ::Data::AssetData> asset) override;
 
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOADING)
+            void OnAssetReady(AZ::Data::Asset<AZ::Data::AssetData> asset) override;
+#endif
             static void NotifyMotionSetModified(const AZ::Data::Asset<MotionSetAsset>& asset);
 
             void SetData(EMotionFX::MotionSet* motionSet);
