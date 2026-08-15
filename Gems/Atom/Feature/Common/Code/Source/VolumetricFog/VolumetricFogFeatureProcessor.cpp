@@ -10,6 +10,7 @@
 #include <VolumetricFog/FroxelPass.h>
 #include <VolumetricFog/VolumetricFogUtils.h>
 
+#include <AzCore/Console/IConsole.h>
 #include <AzCore/Name/NameDictionary.h>
 #include <AzCore/Math/Random.h>
 
@@ -18,6 +19,7 @@
 #include <Atom/RPI.Public/Pass/PassSystem.h>
 #include <Atom/RPI.Public/Pass/PassFilter.h>
 #include <Atom/RPI.Public/Scene.h>
+#include <Atom/RPI.Public/Shader/ShaderSystemInterface.h>
 #include <Atom/RPI.Public/View.h>
 #include <Atom/RPI.Public/RPIUtils.h>
 #include <Atom/RHI/DrawPacketBuilder.h>
@@ -25,6 +27,14 @@
 
 namespace AZ::Render
 {
+    AZ_CVAR(
+        bool,
+        r_enableVolumetricFog,
+        true,
+        nullptr,
+        AZ::ConsoleFunctorFlags::Null,
+        "Enable volumetric fog rendering. The Volumetric Fog component must also be enabled.");
+
     void VolumetricFogFeatureProcessor::Reflect(ReflectContext* context)
     {
         if (auto* serializeContext = azrtti_cast<SerializeContext*>(context))
@@ -127,13 +137,17 @@ namespace AZ::Render
     void VolumetricFogFeatureProcessor::Render([[maybe_unused]] const FeatureProcessor::RenderPacket& packet)
     {
         AZ_PROFILE_SCOPE(RPI, "VolumetricFogFeatureProcessor: Render");
-        if (!m_settings.m_enabled || !m_renderPipeline)
+        if (!IsVolumetricFogEnabled() || !m_renderPipeline)
         {
             return;
         }
 
         // Update the froxel size every frame in case the pipeline output size changed.
         UpdateFroxelSize();
+        if (m_scatterPass)
+        {
+            UpdateScatterPassShaderOptions();
+        }
         m_sceneSrg->SetConstant(m_shaderConstantsIndex, m_sceneSrgGlobalConstants);
         m_sceneSrg->SetConstant(m_shaderConstantsVolumeIndex, m_sceneSrgVolumeConstants);
 
@@ -180,8 +194,15 @@ namespace AZ::Render
     void VolumetricFogFeatureProcessor::Simulate([[maybe_unused]] const FeatureProcessor::SimulatePacket& packet)
     {
         AZ_PROFILE_SCOPE(RPI, "VolumetricFogFeatureProcessor: Simulate");
-        SetPassesEnabled();
-        if (m_settings.m_enabled)
+        const bool enabled = IsVolumetricFogEnabled();
+        if (enabled != m_wasEnabled)
+        {
+            m_needUpdate = true;
+            m_wasEnabled = enabled;
+        }
+
+        SetPassesEnabled(enabled);
+        if (enabled)
         {
             if (m_buildDrawPackets)
             {
@@ -214,8 +235,10 @@ namespace AZ::Render
 
             if (m_injectPass)
             {
-                m_injectPass->SetShaderOption(Name("o_enableNoiseTexture"), m_noiseTextureImage ? Name("true") : Name("false"));
+                m_injectPass->SetShaderOption(
+                    Name("o_enableNoiseTexture"), m_noiseTextureImage ? Name("true") : Name("false"));
             }
+
         }
         else
         {
@@ -235,7 +258,7 @@ namespace AZ::Render
         m_needUpdate = true; // even if disabled, mark it for when it'll become enabled
         if (m_froxelParentPass)
         {
-            if (m_settings.m_enabled != m_froxelParentPass->IsEnabled() ||
+            if (IsVolumetricFogEnabled() != m_froxelParentPass->IsEnabled() ||
                 VolumetricFog::ToFroxelSize(m_settings.m_quality).m_width != m_sceneSrgGlobalConstants.m_tileSize)
             {
                 m_froxelParentPass->QueueForBuildAndInitialization();
@@ -243,9 +266,15 @@ namespace AZ::Render
         }
     }
 
+    bool VolumetricFogFeatureProcessor::IsVolumetricFogEnabled() const
+    {
+        return r_enableVolumetricFog && m_settings.m_enabled;
+    }
+
     void VolumetricFogFeatureProcessor::UpdatePasses(AZ::RPI::RenderPipeline* renderPipeline)
     {
         m_injectPass = nullptr;
+        m_scatterPass = nullptr;
         m_froxelParentPass = nullptr;
         m_froxelCompositePass = nullptr;
 
@@ -261,6 +290,15 @@ namespace AZ::Render
             if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(passFilter); foundPass)
             {
                 m_injectPass = static_cast<FroxelPass*>(foundPass);
+            }
+        }
+
+        {
+            const auto templateName = Name("FroxelScatterTemplate");
+            auto passFilter = AZ::RPI::PassFilter::CreateWithTemplateName(templateName, renderPipeline);
+            if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(passFilter); foundPass)
+            {
+                m_scatterPass = static_cast<FroxelPass*>(foundPass);
             }
         }
 
@@ -284,13 +322,14 @@ namespace AZ::Render
         
 
         // remember which render pipeline we found our passes on
-        m_renderPipeline = (m_injectPass && m_froxelParentPass && m_froxelCompositePass) ? renderPipeline : nullptr;
+        m_renderPipeline =
+            (m_injectPass && m_scatterPass && m_froxelParentPass && m_froxelCompositePass) ? renderPipeline : nullptr;
     }
 
     void VolumetricFogFeatureProcessor::UpdateSceneSrgConstants()
     {
         RHI::Size tileSize = VolumetricFog::ToFroxelSize(m_settings.m_quality);
-        m_sceneSrgGlobalConstants.m_enabled = static_cast<uint32_t>(m_settings.m_enabled);
+        m_sceneSrgGlobalConstants.m_enabled = static_cast<uint32_t>(IsVolumetricFogEnabled());
         m_sceneSrgGlobalConstants.m_tileSize = tileSize.m_width;
         m_sceneSrgGlobalConstants.m_lightingChannelMask = m_settings.m_lightingChannelConfig.GetLightingChannelMask();
 
@@ -461,6 +500,58 @@ namespace AZ::Render
         Data::AssetBus::MultiHandler::BusDisconnect();
     }
 
+    void VolumetricFogFeatureProcessor::UpdateScatterPassShaderOptions()
+    {
+        const Data::Instance<RPI::Shader> scatterShader = m_scatterPass->GetShader();
+        if (!scatterShader)
+        {
+            return;
+        }
+
+        RPI::ShaderOptionGroup shaderOptions = scatterShader->GetDefaultShaderOptions();
+        for (const auto& [optionName, optionValue] : RPI::ShaderSystemInterface::Get()->GetGlobalShaderOptions())
+        {
+            const RPI::ShaderOptionIndex optionIndex = shaderOptions.FindShaderOptionIndex(optionName);
+            if (optionIndex.IsValid())
+            {
+                shaderOptions.SetValue(optionIndex, optionValue);
+            }
+        }
+
+        ShadowFilterMethod shadowFilterMethod = m_settings.m_shadowFilterMethod;
+        const RPI::ShaderOptionValue directionalShadowFilterMethod =
+            RPI::ShaderSystemInterface::Get()->GetGlobalShaderOption(Name("o_directional_shadow_filtering_method"));
+        const bool directionalLightUsesEsm =
+            directionalShadowFilterMethod.IsValid() &&
+            (directionalShadowFilterMethod.GetIndex() == aznumeric_cast<uint32_t>(ShadowFilterMethod::Esm) ||
+             directionalShadowFilterMethod.GetIndex() == aznumeric_cast<uint32_t>(ShadowFilterMethod::EsmPcf));
+        const bool volumetricFogUsesEsm =
+            shadowFilterMethod == ShadowFilterMethod::Esm || shadowFilterMethod == ShadowFilterMethod::EsmPcf;
+        if (volumetricFogUsesEsm && !directionalLightUsesEsm)
+        {
+            shadowFilterMethod = ShadowFilterMethod::Pcf;
+        }
+
+        ShadowFilterSampleCount filteringSampleCount = ShadowFilterSampleCount::PcfTap16;
+        if (m_settings.m_filteringSampleCount <= 4)
+        {
+            filteringSampleCount = ShadowFilterSampleCount::PcfTap4;
+        }
+        else if (m_settings.m_filteringSampleCount <= 9)
+        {
+            filteringSampleCount = ShadowFilterSampleCount::PcfTap9;
+        }
+
+        shaderOptions.SetValue(
+            Name("o_directional_shadow_filtering_method"),
+            RPI::ShaderOptionValue{ aznumeric_cast<uint32_t>(shadowFilterMethod) });
+        shaderOptions.SetValue(
+            Name("o_directional_shadow_filtering_sample_count"),
+            RPI::ShaderOptionValue{ aznumeric_cast<uint32_t>(filteringSampleCount) });
+
+        m_scatterPass->SetShaderOptions(AZStd::move(shaderOptions));
+    }
+
     void VolumetricFogFeatureProcessor::SetupSubPixelOffsets(uint32_t haltonX, uint32_t haltonY, uint32_t haltonZ, uint32_t length)
     {
         HaltonSequence<3> sequence = HaltonSequence<3>({ haltonX, haltonY, haltonZ });
@@ -484,16 +575,16 @@ namespace AZ::Render
             });
     }
 
-    void VolumetricFogFeatureProcessor::SetPassesEnabled()
+    void VolumetricFogFeatureProcessor::SetPassesEnabled(bool enabled)
     {
         if (m_froxelParentPass)
         {
-            m_froxelParentPass->SetEnabled(m_settings.m_enabled);
+            m_froxelParentPass->SetEnabled(enabled);
         }
 
         if (m_froxelCompositePass)
         {
-            m_froxelCompositePass->SetEnabled(m_settings.m_enabled);
+            m_froxelCompositePass->SetEnabled(enabled);
         }
     }
 }

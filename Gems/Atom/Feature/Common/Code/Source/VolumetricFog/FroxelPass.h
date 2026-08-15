@@ -10,7 +10,6 @@
 #include <AzCore/Memory/SystemAllocator.h>
 
 #include <Atom/RPI.Public/Pass/ComputePass.h>
-#include <Atom/Feature/VolumetricFog/VolumetricFogSettings.h>
 
 namespace AZ::Render
 {
@@ -29,9 +28,11 @@ namespace AZ::Render
 
         static RPI::Ptr<FroxelPass> Create(const RPI::PassDescriptor& descriptor);
 
-        //! Writes a named option value into the persistent m_shaderOptions group (from the modified ComputePass base);
-        //! Call before the pass is compiled.
+        //! Writes a named option value into the persistent shader option group.
         void SetShaderOption(const Name& optionName, const Name& valueName);
+
+        //! Applies a fully configured shader option group to this pass.
+        void SetShaderOptions(RPI::ShaderOptionGroup shaderOptions);
 
     private:
         FroxelPass(const RPI::PassDescriptor& descriptor);

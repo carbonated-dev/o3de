@@ -33,16 +33,25 @@ namespace AZ::Render
 
     void FroxelPass::SetShaderOption(const Name& optionName, const Name& valueName)
     {
-        auto layout = m_shaderOptions.GetShaderOptionLayout();
+        const auto layout = m_shaderOptions.GetShaderOptionLayout();
         if (!layout)
         {
             return;
         }
 
-        auto value = layout->FindValue(optionName, valueName);
+        const auto value = layout->FindValue(optionName, valueName);
         if (value != m_shaderOptions.GetValue(optionName))
         {
             m_shaderOptions.SetValue(optionName, valueName);
+            LoadShader();
+        }
+    }
+
+    void FroxelPass::SetShaderOptions(RPI::ShaderOptionGroup shaderOptions)
+    {
+        if (shaderOptions.GetShaderVariantId() != m_shaderOptions.GetShaderVariantId())
+        {
+            m_shaderOptions = AZStd::move(shaderOptions);
             LoadShader();
         }
     }

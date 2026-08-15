@@ -91,6 +91,30 @@ namespace AZ::Render
                         AZ::Edit::UIHandlers::Default, &VolumetricFogComponentConfig::m_lightingChannelConfig, "Lighting Channels", "")
                         ->Attribute(AZ::Edit::Attributes::ChangeNotify, AZ::Edit::PropertyRefreshLevels::AttributesAndValues)
 
+                    ->ClassElement(Edit::ClassElements::Group, "Shadows")
+                        ->Attribute(Edit::Attributes::AutoExpand, false)
+
+                    ->DataElement(
+                        Edit::UIHandlers::ComboBox,
+                        &VolumetricFogComponentConfig::m_shadowFilterMethod,
+                        "Shadow Filter Method",
+                        "Filtering method used when sampling directional-light shadows for volumetric fog.")
+                        ->EnumAttribute(ShadowFilterMethod::None, "None")
+                        ->EnumAttribute(ShadowFilterMethod::Pcf, "PCF")
+                        ->EnumAttribute(ShadowFilterMethod::Esm, "ESM")
+                        ->EnumAttribute(ShadowFilterMethod::EsmPcf, "ESM+PCF")
+                        ->Attribute(Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::AttributesAndValues)
+
+                    ->DataElement(
+                        Edit::UIHandlers::Slider,
+                        &VolumetricFogComponentConfig::m_filteringSampleCount,
+                        "Filtering Sample Count",
+                        "PCF sample count. The value is mapped to the supported 4, 9, or 16-tap kernel.")
+                        ->Attribute(Edit::Attributes::Min, 4)
+                        ->Attribute(Edit::Attributes::Max, Shadow::MaxPcfSamplingCount)
+                        ->Attribute(Edit::Attributes::ChangeNotify, Edit::PropertyRefreshLevels::ValuesOnly)
+                        ->Attribute(Edit::Attributes::ReadOnly, &VolumetricFogComponentConfig::IsFilteringSampleCountDisabled)
+
                     ->ClassElement(Edit::ClassElements::Group, "Temporal Reprojection")
                         ->Attribute(Edit::Attributes::AutoExpand, false)
 

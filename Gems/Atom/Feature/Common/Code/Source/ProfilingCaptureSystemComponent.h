@@ -10,6 +10,9 @@
 
 #include <AzCore/Component/Component.h>
 #include <AzCore/Component/TickBus.h>
+#if defined(CARBONATED)
+#include <AzCore/Console/IConsole.h>
+#endif
 
 #include <Atom/Feature/Utils/ProfilingCaptureBus.h>
 
@@ -77,6 +80,17 @@ namespace AZ
 
             // Recursively collect all the passes from the root pass.
             AZStd::vector<const RPI::Pass*> CollectPassesRecursively(const RPI::Pass* root) const;
+
+#if defined(CARBONATED)
+            //! Captures one frame of per-pass GPU timestamps and prints the flat GPU profiler view to the console.
+            void DumpGpuPassTimestamps(const AZ::ConsoleCommandContainer& arguments);
+
+            AZ_CONSOLEFUNC(
+                ProfilingCaptureSystemComponent,
+                DumpGpuPassTimestamps,
+                AZ::ConsoleFunctorFlags::DontReplicate,
+                "Dump the GPU Profiler flat timestamp view to the console.");
+#endif
 
             DelayedQueryCaptureHelper m_timestampCapture;
             DelayedQueryCaptureHelper m_cpuFrameTimeStatisticsCapture;

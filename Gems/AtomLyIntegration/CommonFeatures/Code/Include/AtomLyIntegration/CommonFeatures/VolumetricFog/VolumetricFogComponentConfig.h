@@ -39,6 +39,9 @@ namespace AZ::Render
         //! Pushes config values into a live feature processor.
         void CopySettingsTo(VolumetricFogFeatureProcessorInterface* settings);
 
+        //! The sample count is only used by filtering modes that include PCF.
+        bool IsFilteringSampleCountDisabled() const;
+
         // Generate Get / Set methods
 #define AZ_GFX_COMMON_PARAM(ValueType, Name, MemberName, DefaultValue)                                  \
         virtual ValueType Get##Name() const { return MemberName; }                                      \
