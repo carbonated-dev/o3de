@@ -339,7 +339,7 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID)
 #if ENABLE_CAPSULE_LIGHTS
     inScatter += ApplyLightsByType(FogCullLightType::CapsuleLight, surface, lightingData, extinction, viewDirection);
 #endif
-#if #if ENABLE_QUAD_LIGHTS
+#if ENABLE_QUAD_LIGHTS
     inScatter += ApplyLightsByType(FogCullLightType::QuadLight, surface, lightingData, extinction, viewDirection);
 #endif
 #if ENABLE_POLYGON_LTC_LIGHTS
