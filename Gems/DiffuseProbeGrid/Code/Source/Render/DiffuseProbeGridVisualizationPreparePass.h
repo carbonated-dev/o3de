@@ -47,6 +47,11 @@ namespace AZ
             const RHI::PipelineState* m_pipelineState = nullptr;
             RHI::Ptr<RHI::ShaderResourceGroupLayout> m_srgLayout;
             RHI::DispatchDirect m_dispatchArgs;
+
+#if defined(CARBONATED)
+            //! Transient TLAS descriptors must never reuse instance or topology versions from an earlier frame.
+            uint64_t m_tlasDescriptorVersion = 1;
+#endif
         };
     }   // namespace RPI
 }   // namespace AZ

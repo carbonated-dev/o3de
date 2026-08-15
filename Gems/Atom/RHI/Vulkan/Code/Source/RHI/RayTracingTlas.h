@@ -38,7 +38,16 @@ namespace AZ
                 VkAccelerationStructureGeometryKHR m_geometry = {};
                 VkAccelerationStructureBuildRangeInfoKHR m_offsetInfo = {};
                 VkAccelerationStructureBuildGeometryInfoKHR m_buildInfo = {};
+#if defined(CARBONATED)
+                AZStd::vector<uint64_t> m_uploadedInstanceVersions;
+                uint32_t m_instanceCapacity = 0;
+#endif
                 uint32_t m_instanceCount = 0;
+#if defined(CARBONATED)
+                uint64_t m_topologyRevision = 0;
+                mutable RHI::RayTracingTlasBuildMode m_buildMode = RHI::RayTracingTlasBuildMode::None;
+                bool m_hasBeenBuilt = false;
+#endif
             };
 
             const TlasBuffers& GetBuffers() const { return m_buffers.GetCurrentElement(); }

@@ -158,8 +158,22 @@ namespace AZ::RHI
         AZ::Vector3 m_nonUniformScale = AZ::Vector3::CreateOne();
         bool m_transparent = false;
         RHI::Ptr<RHI::RayTracingBlas> m_blas;
+
+#if defined(CARBONATED)
+        //! Incremented whenever this instance changes. RHI backends use it to upload only stale native descriptors.
+        uint64_t m_version = 0;
+#endif
     };
     using RayTracingTlasInstanceVector = AZStd::vector<RayTracingTlasInstance>;
+
+#if defined(CARBONATED)
+    enum class RayTracingTlasBuildMode : uint8_t
+    {
+        None,
+        Build,
+        Update
+    };
+#endif
 
     //! RayTracingTlasDescriptor
     //!
@@ -183,6 +197,12 @@ namespace AZ::RHI
     {
     public:
         RayTracingTlasDescriptor() = default;
+#if defined(CARBONATED)
+        explicit RayTracingTlasDescriptor(uint64_t initialVersion)
+            : m_topologyRevision(initialVersion)
+            , m_nextInstanceVersion(initialVersion)
+        {}
+#endif
         ~RayTracingTlasDescriptor() = default;
 
         // accessors
@@ -193,10 +213,28 @@ namespace AZ::RHI
         RHI::Ptr<RHI::Buffer>& GetInstancesBuffer() { return  m_instancesBuffer; }
 
         uint32_t GetNumInstancesInBuffer() const { return m_numInstancesInBuffer; }
+#if defined(CARBONATED)
+        uint32_t GetInstanceCapacity() const { return aznumeric_caster(m_instances.capacity()); }
+        uint64_t GetTopologyRevision() const { return m_topologyRevision; }
+
+        //! Inserts an instance at an arbitrary position and selects it as the builder context.
+        RayTracingTlasDescriptor* InsertInstance(uint32_t instanceIndex);
+
+        //! Removes an instance by moving replacementIndex into its slot, then erasing replacementIndex.
+        //! replacementIndex defaults to the last instance for ordinary swap-removal.
+        void RemoveInstance(uint32_t instanceIndex);
+        void RemoveInstance(uint32_t instanceIndex, uint32_t replacementIndex);
+
+        //! Applies the delayed under-utilization policy and shrinks storage geometrically when appropriate.
+        bool CompactInstancesIfNeeded();
+#endif
 
         // build operations
         RayTracingTlasDescriptor* Build();
         RayTracingTlasDescriptor* Instance();
+#if defined(CARBONATED)
+        RayTracingTlasDescriptor* Instance(uint32_t instanceIndex);
+#endif
         RayTracingTlasDescriptor* InstanceID(uint32_t instanceID);
         RayTracingTlasDescriptor* InstanceMask(uint32_t instanceMask);
         RayTracingTlasDescriptor* HitGroupIndex(uint32_t hitGroupIndex);
@@ -213,7 +251,20 @@ namespace AZ::RHI
 
         // externally created Instances buffer, cannot be combined with other Instances
         RHI::Ptr<RHI::Buffer> m_instancesBuffer;
+#if defined(CARBONATED)
+        uint32_t m_numInstancesInBuffer = 0;
+
+        //! Changes whenever instances are added, removed, or reordered. Transform-only changes do not modify it.
+        uint64_t m_topologyRevision = 0;
+        uint64_t m_nextInstanceVersion = 1;
+        uint32_t m_underutilizedFrameCount = 0;
+
+        void AssignNewVersion(RayTracingTlasInstance& instance);
+
+        static constexpr uint32_t CompactionDelayFrames = 120;
+#else
         uint32_t m_numInstancesInBuffer;
+#endif
     };
 
     //! RayTracingTlas
@@ -234,6 +285,11 @@ namespace AZ::RHI
         //! Returns the TLAS RHI buffer
         virtual const RHI::Ptr<RHI::Buffer> GetTlasBuffer() const = 0;
         virtual const RHI::Ptr<RHI::Buffer> GetTlasInstancesBuffer() const = 0;
+
+#if defined(CARBONATED)
+    protected:
+        static constexpr uint32_t MaxTlasInstanceUploadRanges = 128;
+#endif
 
     private:
         // Platform API
