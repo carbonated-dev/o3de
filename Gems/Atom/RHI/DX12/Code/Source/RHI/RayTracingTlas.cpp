@@ -340,8 +340,8 @@ namespace AZ
             
             MemoryView& tlasMemoryView = static_cast<Buffer*>(buffers.m_tlasBuffer.get())->GetMemoryView();
             tlasMemoryView.SetName(L"TLAS");
-#endif // AZ_DX12_DXR_SUPPORT
 #endif // defined(CARBONATED)
+#endif // AZ_DX12_DXR_SUPPORT
             return RHI::ResultCode::Success;
         }
     }
