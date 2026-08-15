@@ -144,9 +144,9 @@ namespace AZ::Render
 
         // Update the froxel size every frame in case the pipeline output size changed.
         UpdateFroxelSize();
-        if (m_injectPass)
+        if (m_scatterPass)
         {
-            UpdateInjectPassShaderOptions();
+            UpdateScatterPassShaderOptions();
         }
         m_sceneSrg->SetConstant(m_shaderConstantsIndex, m_sceneSrgGlobalConstants);
         m_sceneSrg->SetConstant(m_shaderConstantsVolumeIndex, m_sceneSrgVolumeConstants);
@@ -233,6 +233,12 @@ namespace AZ::Render
 #include <Atom/Feature/VolumetricFog/VolumetricFogParams.inl>
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 
+            if (m_injectPass)
+            {
+                m_injectPass->SetShaderOption(
+                    Name("o_enableNoiseTexture"), m_noiseTextureImage ? Name("true") : Name("false"));
+            }
+
         }
         else
         {
@@ -268,6 +274,7 @@ namespace AZ::Render
     void VolumetricFogFeatureProcessor::UpdatePasses(AZ::RPI::RenderPipeline* renderPipeline)
     {
         m_injectPass = nullptr;
+        m_scatterPass = nullptr;
         m_froxelParentPass = nullptr;
         m_froxelCompositePass = nullptr;
 
@@ -283,6 +290,15 @@ namespace AZ::Render
             if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(passFilter); foundPass)
             {
                 m_injectPass = static_cast<FroxelPass*>(foundPass);
+            }
+        }
+
+        {
+            const auto templateName = Name("FroxelScatterTemplate");
+            auto passFilter = AZ::RPI::PassFilter::CreateWithTemplateName(templateName, renderPipeline);
+            if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(passFilter); foundPass)
+            {
+                m_scatterPass = static_cast<FroxelPass*>(foundPass);
             }
         }
 
@@ -306,7 +322,8 @@ namespace AZ::Render
         
 
         // remember which render pipeline we found our passes on
-        m_renderPipeline = (m_injectPass && m_froxelParentPass && m_froxelCompositePass) ? renderPipeline : nullptr;
+        m_renderPipeline =
+            (m_injectPass && m_scatterPass && m_froxelParentPass && m_froxelCompositePass) ? renderPipeline : nullptr;
     }
 
     void VolumetricFogFeatureProcessor::UpdateSceneSrgConstants()
@@ -483,8 +500,24 @@ namespace AZ::Render
         Data::AssetBus::MultiHandler::BusDisconnect();
     }
 
-    void VolumetricFogFeatureProcessor::UpdateInjectPassShaderOptions()
+    void VolumetricFogFeatureProcessor::UpdateScatterPassShaderOptions()
     {
+        const Data::Instance<RPI::Shader> scatterShader = m_scatterPass->GetShader();
+        if (!scatterShader)
+        {
+            return;
+        }
+
+        RPI::ShaderOptionGroup shaderOptions = scatterShader->GetDefaultShaderOptions();
+        for (const auto& [optionName, optionValue] : RPI::ShaderSystemInterface::Get()->GetGlobalShaderOptions())
+        {
+            const RPI::ShaderOptionIndex optionIndex = shaderOptions.FindShaderOptionIndex(optionName);
+            if (optionIndex.IsValid())
+            {
+                shaderOptions.SetValue(optionIndex, optionValue);
+            }
+        }
+
         ShadowFilterMethod shadowFilterMethod = m_settings.m_shadowFilterMethod;
         const RPI::ShaderOptionValue directionalShadowFilterMethod =
             RPI::ShaderSystemInterface::Get()->GetGlobalShaderOption(Name("o_directional_shadow_filtering_method"));
@@ -509,7 +542,14 @@ namespace AZ::Render
             filteringSampleCount = ShadowFilterSampleCount::PcfTap9;
         }
 
-        m_injectPass->SetShaderOptions(m_noiseTextureImage != nullptr, shadowFilterMethod, filteringSampleCount);
+        shaderOptions.SetValue(
+            Name("o_directional_shadow_filtering_method"),
+            RPI::ShaderOptionValue{ aznumeric_cast<uint32_t>(shadowFilterMethod) });
+        shaderOptions.SetValue(
+            Name("o_directional_shadow_filtering_sample_count"),
+            RPI::ShaderOptionValue{ aznumeric_cast<uint32_t>(filteringSampleCount) });
+
+        m_scatterPass->SetShaderOptions(AZStd::move(shaderOptions));
     }
 
     void VolumetricFogFeatureProcessor::SetupSubPixelOffsets(uint32_t haltonX, uint32_t haltonY, uint32_t haltonZ, uint32_t length)

@@ -11,7 +11,6 @@
 #include <VolumetricFog/VolumetricFogFeatureProcessor.h>
 #include <Atom/RPI.Public/RenderPipeline.h>
 #include <Atom/RPI.Public/Scene.h>
-#include <Atom/RPI.Public/Shader/ShaderSystemInterface.h>
 #include <Atom/RPI.Public/View.h>
 #include <Atom/RPI.Reflect/Shader/ShaderOptionGroup.h>
 #include <Atom/RHI.Reflect/ShaderResourceGroupLayout.h>
@@ -32,34 +31,24 @@ namespace AZ::Render
     {
     }
 
-    void FroxelPass::SetShaderOptions(
-        bool noiseTextureEnabled,
-        ShadowFilterMethod shadowFilterMethod,
-        ShadowFilterSampleCount filteringSampleCount)
+    void FroxelPass::SetShaderOption(const Name& optionName, const Name& valueName)
     {
-        if (!m_shader)
+        const auto layout = m_shaderOptions.GetShaderOptionLayout();
+        if (!layout)
         {
             return;
         }
 
-        RPI::ShaderOptionGroup shaderOptions = m_shader->GetDefaultShaderOptions();
-        for (const auto& [optionName, optionValue] : RPI::ShaderSystemInterface::Get()->GetGlobalShaderOptions())
+        const auto value = layout->FindValue(optionName, valueName);
+        if (value != m_shaderOptions.GetValue(optionName))
         {
-            const RPI::ShaderOptionIndex optionIndex = shaderOptions.FindShaderOptionIndex(optionName);
-            if (optionIndex.IsValid())
-            {
-                shaderOptions.SetValue(optionIndex, optionValue);
-            }
+            m_shaderOptions.SetValue(optionName, valueName);
+            LoadShader();
         }
+    }
 
-        shaderOptions.SetValue(Name("o_enableNoiseTexture"), noiseTextureEnabled ? Name("true") : Name("false"));
-        shaderOptions.SetValue(
-            Name("o_directional_shadow_filtering_method"),
-            RPI::ShaderOptionValue{ aznumeric_cast<uint32_t>(shadowFilterMethod) });
-        shaderOptions.SetValue(
-            Name("o_directional_shadow_filtering_sample_count"),
-            RPI::ShaderOptionValue{ aznumeric_cast<uint32_t>(filteringSampleCount) });
-
+    void FroxelPass::SetShaderOptions(RPI::ShaderOptionGroup shaderOptions)
+    {
         if (shaderOptions.GetShaderVariantId() != m_shaderOptions.GetShaderVariantId())
         {
             m_shaderOptions = AZStd::move(shaderOptions);

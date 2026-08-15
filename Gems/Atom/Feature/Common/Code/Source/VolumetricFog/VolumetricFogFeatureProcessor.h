@@ -150,7 +150,7 @@ namespace AZ::Render
         void BuildPipelines();
         bool LoadShaders();
         void ResetShaderResources();
-        void UpdateInjectPassShaderOptions();
+        void UpdateScatterPassShaderOptions();
         //! Generates the Halton low-discrepancy jitter sequence for temporal anti-aliasing.
         void SetupSubPixelOffsets(uint32_t haltonX, uint32_t haltonY, uint32_t haltonZ, uint32_t length);
         //! Enables or disables child passes based on the effective enabled state.
@@ -163,6 +163,7 @@ namespace AZ::Render
         bool m_wasEnabled = false; // tracks CVar/settings transitions so GPU state is refreshed when re-enabled.
         RPI::ParentPass* m_froxelParentPass = nullptr;
         FroxelPass* m_injectPass = nullptr;
+        FroxelPass* m_scatterPass = nullptr;
         RPI::Pass* m_froxelCompositePass = nullptr;
         AZ::RPI::RenderPipeline* m_renderPipeline = nullptr;
         Data::Instance<RPI::ShaderResourceGroup> m_sceneSrg;
