@@ -16,6 +16,11 @@
 #define ENABLE_FULLSCREEN_SHADOW 0
 #define ENABLE_BRDF_MAP 0
 
+#define ENABLE_AREA_LIGHT_VALIDATION 0
+#define ENABLE_CAPSULE_LIGHTS 0
+#define ENABLE_QUAD_LIGHTS 0
+#define ENABLE_POLYGON_LTC_LIGHTS 0
+
 #include <scenesrg.srgi>
 #include <viewsrg.srgi>
 #include <Atom/Features/LightCulling/LightCullingTileIterator.azsli>
@@ -191,6 +196,7 @@ float3 ApplyLightsByType(
                 ApplyDiskLightInternal(lightIndex, surface, lightingData, outInfo);
                 break;
             }
+#if ENABLE_CAPSULE_LIGHTS
             case FogCullLightType::CapsuleLight:
             {
                 ViewSrg::CapsuleLight light = ViewSrg::m_capsuleLights[lightIndex];
@@ -206,6 +212,8 @@ float3 ApplyLightsByType(
                 ApplyCapsuleLightInternal(lightIndex, surface, lightingData, outInfo);
                 break;
             }
+#endif
+#if ENABLE_QUAD_LIGHTS
             case FogCullLightType::QuadLight:
             {
                 ViewSrg::QuadLight light = ViewSrg::m_quadLights[lightIndex];
@@ -213,10 +221,15 @@ float3 ApplyLightsByType(
                 ApplyQuadLightInternal(lightIndex, surface, lightingData, outInfo);
                 break;
             }
+#endif
+#if ENABLE_POLYGON_LTC_LIGHTS
             case FogCullLightType::PolygonLight:
                 // Just use the light position as the light source. Calculating a "proper" source point is too expensive.
                 lightPosWS = ViewSrg::m_polygonLights[lightIndex].m_position;
                 ApplyPoylgonLight(ViewSrg::m_polygonLights[lightIndex], surface, lightingData, outInfo);
+                break;
+#endif
+            default:
                 break;
         }
 
@@ -323,9 +336,14 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID)
     inScatter += ApplyLightsByType(FogCullLightType::SimpleSpot, surface, lightingData, extinction, viewDirection);
     inScatter += ApplyLightsByType(FogCullLightType::PointLight, surface, lightingData, extinction, viewDirection);
     inScatter += ApplyLightsByType(FogCullLightType::DiskLight, surface, lightingData, extinction, viewDirection);
+#if ENABLE_CAPSULE_LIGHTS
     inScatter += ApplyLightsByType(FogCullLightType::CapsuleLight, surface, lightingData, extinction, viewDirection);
+#endif
+#if #if ENABLE_QUAD_LIGHTS
     inScatter += ApplyLightsByType(FogCullLightType::QuadLight, surface, lightingData, extinction, viewDirection);
+#endif
+#if ENABLE_POLYGON_LTC_LIGHTS
     inScatter += ApplyLightsByType(FogCullLightType::PolygonLight, surface, lightingData, extinction, viewDirection);
-
+#endif
     PassSrg::m_froxelScatterResult[froxelId] = float4(inScatter, 0);
 }

@@ -23,7 +23,9 @@
 #include <AzCore/RTTI/BehaviorContext.h>
 #include <AzCore/Serialization/Json/JsonSerializationSettings.h>
 #include <AzCore/Serialization/SerializeContext.h>
+#if defined(CARBONATED)
 #include <AzCore/std/algorithm.h>
+#endif
 #include <AzCore/std/parallel/thread.h>
 
 namespace AZ
@@ -418,7 +420,7 @@ namespace AZ
 
             return captureStarted;
         }
-
+#if defined(CARBONATED)
         void ProfilingCaptureSystemComponent::DumpGpuPassTimestamps(const AZ::ConsoleCommandContainer& arguments)
         {
             if (!arguments.empty())
@@ -551,6 +553,7 @@ namespace AZ
 
             AZ_Printf("GpuProfiler", "GPU timestamp capture started; results will be printed after six frames.\n");
         }
+#endif
 
         bool ProfilingCaptureSystemComponent::CaptureCpuFrameTime(const AZStd::string& outputFilePath)
         {

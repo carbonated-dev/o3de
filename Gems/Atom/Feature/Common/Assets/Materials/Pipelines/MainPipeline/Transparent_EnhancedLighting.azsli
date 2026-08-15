@@ -16,11 +16,13 @@
 #define ENABLE_SHADER_DEBUGGING 1
 #ifndef ENABLE_CLEAR_COAT
 #define ENABLE_CLEAR_COAT 1
+#endif
+// Begin Carbonated
 #define ENABLE_AREA_LIGHT_VALIDATION 0
 #define ENABLE_CAPSULE_LIGHTS 0
 #define ENABLE_QUAD_LIGHTS 0
 #define ENABLE_POLYGON_LTC_LIGHTS 0
-#endif
+// End Carbonated
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include MATERIAL_TYPE_AZSLI_FILE_PATH
