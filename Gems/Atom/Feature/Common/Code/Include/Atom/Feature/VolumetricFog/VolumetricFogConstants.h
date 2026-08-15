@@ -10,6 +10,7 @@
 
 #include <AzCore/base.h>
 #include <AzCore/Preprocessor/Enum.h>
+#include <Atom/Feature/CoreLights/ShadowConstants.h>
 
 namespace AZ::Render
 {

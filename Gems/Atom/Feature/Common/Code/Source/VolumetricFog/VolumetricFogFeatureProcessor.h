@@ -150,6 +150,7 @@ namespace AZ::Render
         void BuildPipelines();
         bool LoadShaders();
         void ResetShaderResources();
+        void UpdateInjectPassShaderOptions();
         //! Generates the Halton low-discrepancy jitter sequence for temporal anti-aliasing.
         void SetupSubPixelOffsets(uint32_t haltonX, uint32_t haltonY, uint32_t haltonZ, uint32_t length);
         //! Enables or disables child passes based on the effective enabled state.

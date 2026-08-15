@@ -29,9 +29,11 @@ namespace AZ::Render
 
         static RPI::Ptr<FroxelPass> Create(const RPI::PassDescriptor& descriptor);
 
-        //! Writes a named option value into the persistent m_shaderOptions group (from the modified ComputePass base);
-        //! Call before the pass is compiled.
-        void SetShaderOption(const Name& optionName, const Name& valueName);
+        //! Applies all matching global shader options, then overrides the options owned by volumetric fog.
+        void SetShaderOptions(
+            bool noiseTextureEnabled,
+            ShadowFilterMethod shadowFilterMethod,
+            ShadowFilterSampleCount filteringSampleCount);
 
     private:
         FroxelPass(const RPI::PassDescriptor& descriptor);

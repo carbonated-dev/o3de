@@ -19,6 +19,7 @@
 #include <Atom/RPI.Public/Pass/PassSystem.h>
 #include <Atom/RPI.Public/Pass/PassFilter.h>
 #include <Atom/RPI.Public/Scene.h>
+#include <Atom/RPI.Public/Shader/ShaderSystemInterface.h>
 #include <Atom/RPI.Public/View.h>
 #include <Atom/RPI.Public/RPIUtils.h>
 #include <Atom/RHI/DrawPacketBuilder.h>
@@ -143,6 +144,10 @@ namespace AZ::Render
 
         // Update the froxel size every frame in case the pipeline output size changed.
         UpdateFroxelSize();
+        if (m_injectPass)
+        {
+            UpdateInjectPassShaderOptions();
+        }
         m_sceneSrg->SetConstant(m_shaderConstantsIndex, m_sceneSrgGlobalConstants);
         m_sceneSrg->SetConstant(m_shaderConstantsVolumeIndex, m_sceneSrgVolumeConstants);
 
@@ -228,10 +233,6 @@ namespace AZ::Render
 #include <Atom/Feature/VolumetricFog/VolumetricFogParams.inl>
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 
-            if (m_injectPass)
-            {
-                m_injectPass->SetShaderOption(Name("o_enableNoiseTexture"), m_noiseTextureImage ? Name("true") : Name("false"));
-            }
         }
         else
         {
@@ -480,6 +481,35 @@ namespace AZ::Render
         m_meshPipelineStates.fill(nullptr);
         m_shaders.fill(nullptr);
         Data::AssetBus::MultiHandler::BusDisconnect();
+    }
+
+    void VolumetricFogFeatureProcessor::UpdateInjectPassShaderOptions()
+    {
+        ShadowFilterMethod shadowFilterMethod = m_settings.m_shadowFilterMethod;
+        const RPI::ShaderOptionValue directionalShadowFilterMethod =
+            RPI::ShaderSystemInterface::Get()->GetGlobalShaderOption(Name("o_directional_shadow_filtering_method"));
+        const bool directionalLightUsesEsm =
+            directionalShadowFilterMethod.IsValid() &&
+            (directionalShadowFilterMethod.GetIndex() == aznumeric_cast<uint32_t>(ShadowFilterMethod::Esm) ||
+             directionalShadowFilterMethod.GetIndex() == aznumeric_cast<uint32_t>(ShadowFilterMethod::EsmPcf));
+        const bool volumetricFogUsesEsm =
+            shadowFilterMethod == ShadowFilterMethod::Esm || shadowFilterMethod == ShadowFilterMethod::EsmPcf;
+        if (volumetricFogUsesEsm && !directionalLightUsesEsm)
+        {
+            shadowFilterMethod = ShadowFilterMethod::Pcf;
+        }
+
+        ShadowFilterSampleCount filteringSampleCount = ShadowFilterSampleCount::PcfTap16;
+        if (m_settings.m_filteringSampleCount <= 4)
+        {
+            filteringSampleCount = ShadowFilterSampleCount::PcfTap4;
+        }
+        else if (m_settings.m_filteringSampleCount <= 9)
+        {
+            filteringSampleCount = ShadowFilterSampleCount::PcfTap9;
+        }
+
+        m_injectPass->SetShaderOptions(m_noiseTextureImage != nullptr, shadowFilterMethod, filteringSampleCount);
     }
 
     void VolumetricFogFeatureProcessor::SetupSubPixelOffsets(uint32_t haltonX, uint32_t haltonY, uint32_t haltonZ, uint32_t length)

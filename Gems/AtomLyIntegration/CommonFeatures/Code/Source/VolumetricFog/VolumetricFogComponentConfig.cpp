@@ -18,7 +18,7 @@ namespace AZ::Render
     {
         if (auto serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
         {
-            serializeContext->Class<VolumetricFogComponentConfig, ComponentConfig>()->Version(0)
+            serializeContext->Class<VolumetricFogComponentConfig, ComponentConfig>()->Version(1)
             // Auto-gen serialize context code...
 #define SERIALIZE_CLASS VolumetricFogComponentConfig
 #define AZ_GFX_COMMON_PARAM(ValueType, Name, MemberName, DefaultValue)      \
@@ -31,6 +31,11 @@ namespace AZ::Render
                 ;
         }
     }   
+
+    bool VolumetricFogComponentConfig::IsFilteringSampleCountDisabled() const
+    {
+        return m_shadowFilterMethod != ShadowFilterMethod::Pcf && m_shadowFilterMethod != ShadowFilterMethod::EsmPcf;
+    }
 
     void VolumetricFogComponentConfig::CopySettingsFrom(VolumetricFogFeatureProcessorInterface * settings)
     {
