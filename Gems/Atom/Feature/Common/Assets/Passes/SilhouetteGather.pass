@@ -8,6 +8,11 @@
             "PassClass": "RasterPass",
             "Slots": [
                 {
+                    "Name": "SkinnedMeshes",
+                    "SlotType": "Input",
+                    "ScopeAttachmentUsage": "InputAssembly"
+                },
+                {
                     "Name": "Output",
                     "SlotType": "Output",
                     "ScopeAttachmentUsage": "RenderTarget",
