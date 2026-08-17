@@ -173,43 +173,47 @@ namespace EMotionFX
             }
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_CONCURRENCY_RW)
             {
-            AZStd::shared_lock<AZStd::shared_mutex> readLock(assetData->m_emfxMotionSet->GetMotionEntriesMutex());
+                AZStd::shared_lock<AZStd::shared_mutex> readLock(assetData->m_emfxMotionSet->GetMotionEntriesMutex());
 #endif
-            // now load them in:
-            const EMotionFX::MotionSet::MotionEntries& motionEntries = assetData->m_emfxMotionSet->GetMotionEntries();
-            // Get the motions in the motion set.  Escalate them to the top of the build queue first so that they can be done in parallel.
-            // This call is fire-and-forget and is very lightweight.
-            for (const auto& item : motionEntries)
-            {
-                const EMotionFX::MotionSet::MotionEntry* motionEntry = item.second;
-                const char* motionFilename = motionEntry->GetFilename();
-                AzFramework::AssetSystemRequestBus::Broadcast(&AzFramework::AssetSystem::AssetSystemRequests::EscalateAssetBySearchTerm, motionFilename);
-            }
-            // Motion references are serialized into the cooked motion set with PreLoad behavior. The AssetContainer
-            // guarantees that they are ready before this initialization stage is invoked.
-            {
-                AZ_PROFILE_SCOPE(
-                    Animation,
-                    "MotionSetAsset::ValidateAndConnectPreloads %s (%zu motions)",
-                    asset.GetHint().c_str(),
-                    assetData->m_motionAssets.size());
-                assetData->AZ::Data::AssetBus::MultiHandler::BusDisconnect();
-                for (const AZ::Data::Asset<MotionAsset>& motionAsset : assetData->m_motionAssets)
+                // now load them in:
+                const EMotionFX::MotionSet::MotionEntries& motionEntries = assetData->m_emfxMotionSet->GetMotionEntries();
+                // Get the motions in the motion set.  Escalate them to the top of the build queue first so that they can be done in
+                // parallel. This call is fire-and-forget and is very lightweight.
+                for (const auto& item : motionEntries)
                 {
-                    if (!motionAsset.IsReady())
-                    {
-                        AZ_Error(
-                            "EMotionFX",
-                            false,
-                            "Preloaded motion \"%s\" in motion set \"%s\" is not ready.",
-                            motionAsset.GetHint().c_str(),
-                            assetFilename.c_str());
-                        return false;
-                    }
-
-                    assetData->BusConnect(motionAsset.GetId());
+                    const EMotionFX::MotionSet::MotionEntry* motionEntry = item.second;
+                    const char* motionFilename = motionEntry->GetFilename();
+                    AzFramework::AssetSystemRequestBus::Broadcast(
+                        &AzFramework::AssetSystem::AssetSystemRequests::EscalateAssetBySearchTerm, motionFilename);
                 }
+                // Motion references are serialized into the cooked motion set with PreLoad behavior. The AssetContainer
+                // guarantees that they are ready before this initialization stage is invoked.
+                {
+                    AZ_PROFILE_SCOPE(
+                        Animation,
+                        "MotionSetAsset::ValidateAndConnectPreloads %s (%zu motions)",
+                        asset.GetHint().c_str(),
+                        assetData->m_motionAssets.size());
+                    assetData->AZ::Data::AssetBus::MultiHandler::BusDisconnect();
+                    for (const AZ::Data::Asset<MotionAsset>& motionAsset : assetData->m_motionAssets)
+                    {
+                        if (!motionAsset.IsReady())
+                        {
+                            AZ_Error(
+                                "EMotionFX",
+                                false,
+                                "Preloaded motion \"%s\" in motion set \"%s\" is not ready.",
+                                motionAsset.GetHint().c_str(),
+                                assetFilename.c_str());
+                            return false;
+                        }
+
+                        assetData->BusConnect(motionAsset.GetId());
+                    }
+                }
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_CONCURRENCY_RW)
             }
+#endif
 
             // Set motion set's motion load callback, so if EMotion FX queries back for a motion,
             // we can pull the one managed through an AZ::Asset.
