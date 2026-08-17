@@ -6,9 +6,10 @@
  *
  */
 
-#include <AzCore/Asset/AssetManager.h>
 #include <AzCore/Component/TickBus.h>
-#include <AzCore/StringFunc/StringFunc.h>
+#include <AzCore/Debug/Profiler.h>
+#include <AzCore/Serialization/SerializeContext.h>
+#include <AzCore/Serialization/Utils.h>
 #include <AzCore/Utils/Utils.h>
 
 #include <Integration/Assets/MotionSetAsset.h>
@@ -53,19 +54,6 @@ namespace EMotionFX
                     azrtti_typeid<MotionAsset>(),
                     false);
 
-                // if it failed to find it, it might be still compiling - try forcing an immediate compile:
-                if (!motionAssetId.IsValid())
-                {
-                    AZ_TracePrintf("EMotionFX", "Motion \"%s\" is missing, requesting the asset system to compile it now.\n", motionFile);
-                    AzFramework::AssetSystemRequestBus::Broadcast(&AzFramework::AssetSystem::AssetSystemRequests::CompileAssetSync, motionFile);
-                    // and then try again:
-                    AZ::Data::AssetCatalogRequestBus::BroadcastResult(motionAssetId, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetIdByPath, motionFile, azrtti_typeid<MotionAsset>(), false);
-                    if (motionAssetId.IsValid())
-                    {
-                        AZ_TracePrintf("EMotionFX", "Motion \"%s\" successfully compiled.\n", motionFile);
-                    }
-                }
-
                 if (motionAssetId.IsValid())
                 {
                     for (const auto& motionAsset : m_assetData->m_motionAssets)
@@ -93,6 +81,17 @@ namespace EMotionFX
         MotionSetAsset::~MotionSetAsset()
         {
             AZ::Data::AssetBus::MultiHandler::BusDisconnect();
+        }
+
+        void MotionSetAsset::Reflect(AZ::ReflectContext* context)
+        {
+            if (AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
+            {
+                serializeContext->Class<MotionSetAsset::SerializedData>()
+                    ->Version(1)
+                    ->Field("EMFXNativeData", &MotionSetAsset::SerializedData::m_emfxNativeData)
+                    ->Field("MotionAssets", &MotionSetAsset::SerializedData::m_motionAssets);
+            }
         }
 
         void MotionSetAsset::SetData(EMotionFX::MotionSet* motionSet)
@@ -186,70 +185,75 @@ namespace EMotionFX
                 const char* motionFilename = motionEntry->GetFilename();
                 AzFramework::AssetSystemRequestBus::Broadcast(&AzFramework::AssetSystem::AssetSystemRequests::EscalateAssetBySearchTerm, motionFilename);
             }
-
-            // now that they're all escalated, the asset processor will be processing them across all threads, and we can request them one by one:
-            for (const auto& item : motionEntries)
+            // Motion references are serialized into the cooked motion set with PreLoad behavior. The AssetContainer
+            // guarantees that they are ready before this initialization stage is invoked.
             {
-                const EMotionFX::MotionSet::MotionEntry* motionEntry = item.second;
-                const char* motionFilename = motionEntry->GetFilename();
-
-                // Find motion file in catalog and grab the asset.
-                // Jump on the AssetBus for the asset, and queue load.
-                AZ::Data::AssetId motionAssetId;
-                AZ::Data::AssetCatalogRequestBus::BroadcastResult(
-                    motionAssetId,
-                    &AZ::Data::AssetCatalogRequestBus::Events::GetAssetIdByPath,
-                    motionFilename,
-                    AZ::Data::s_invalidAssetType,
-                    false);
-
-                // if it failed to find it, it might be still compiling - try forcing an immediate compile.  CompileAssetSync
-                // will block until the compilation completes AND the catalog is up to date.
-                if (!motionAssetId.IsValid())
+                AZ_PROFILE_SCOPE(
+                    Animation,
+                    "MotionSetAsset::ValidateAndConnectPreloads %s (%zu motions)",
+                    asset.GetHint().c_str(),
+                    assetData->m_motionAssets.size());
+                assetData->AZ::Data::AssetBus::MultiHandler::BusDisconnect();
+                for (const AZ::Data::Asset<MotionAsset>& motionAsset : assetData->m_motionAssets)
                 {
-                    AZ_TracePrintf("EMotionFX", "Motion \"%s\" is missing, requesting the asset system to compile it now.\n", motionFilename);
-                    AzFramework::AssetSystemRequestBus::Broadcast(&AzFramework::AssetSystem::AssetSystemRequests::CompileAssetSync, motionFilename);
-                    // and then try again:
-                    AZ::Data::AssetCatalogRequestBus::BroadcastResult(motionAssetId, &AZ::Data::AssetCatalogRequestBus::Events::GetAssetIdByPath, motionFilename, azrtti_typeid<MotionAsset>(), false);
-                    if (motionAssetId.IsValid())
+                    if (!motionAsset.IsReady())
                     {
-                        AZ_TracePrintf("EMotionFX", "Motion \"%s\" successfully compiled.\n", motionFilename);
+                        AZ_Error(
+                            "EMotionFX",
+                            false,
+                            "Preloaded motion \"%s\" in motion set \"%s\" is not ready.",
+                            motionAsset.GetHint().c_str(),
+                            assetFilename.c_str());
+                        return false;
                     }
-                }
 
-                if (motionAssetId.IsValid())
-                {
-                    AZ::Data::Asset<MotionAsset> motionAsset = AZ::Data::AssetManager::Instance().GetAsset<MotionAsset>(motionAssetId, AZ::Data::AssetLoadBehavior::Default);
-
-                    if (motionAsset)
-                    {
-#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
-                        motionAsset.BlockUntilLoadComplete(10000);
-#else
-                        motionAsset.BlockUntilLoadComplete();
-#endif
-                        assetData->BusConnect(motionAssetId);
-                        assetData->m_motionAssets.push_back(motionAsset);
-                    }
-                    else
-                    {
-                        AZ_Warning("EMotionFX", false, "Motion \"%s\" in motion set \"%s\" could not be loaded.", motionFilename, assetFilename.c_str());
-                    }
-                }
-                else
-                {
-                    AZ_Warning("EMotionFX", false, "Motion \"%s\" in motion set \"%s\" could not be found in the asset catalog.", motionFilename, assetFilename.c_str());
+                    assetData->BusConnect(motionAsset.GetId());
                 }
             }
-#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_CONCURRENCY_RW)
-            }
-#endif
+
             // Set motion set's motion load callback, so if EMotion FX queries back for a motion,
             // we can pull the one managed through an AZ::Asset.
-            assetData->m_emfxMotionSet->SetCallback(aznew CustomMotionSetCallback(asset));
-            assetData->ReleaseEMotionFXData();
+            {
+                AZ_PROFILE_SCOPE(Animation, "MotionSetAsset::Finalize %s", asset.GetHint().c_str());
+                assetData->m_emfxMotionSet->SetCallback(aznew CustomMotionSetCallback(asset));
+                assetData->ReleaseEMotionFXData();
+            }
 
             return true;
+        }
+
+        AZ::Data::AssetHandler::LoadResult MotionSetAssetHandler::LoadAssetData(
+            const AZ::Data::Asset<AZ::Data::AssetData>& asset,
+            AZStd::shared_ptr<AZ::Data::AssetDataStream> stream,
+            const AZ::Data::AssetFilterCB& assetLoadFilterCB)
+        {
+            AZ_PROFILE_SCOPE(Animation, "MotionSetAsset::LoadAssetData %s", asset.GetHint().c_str());
+
+            MotionSetAsset* assetData = asset.GetAs<MotionSetAsset>();
+            if (!assetData)
+            {
+                return AZ::Data::AssetHandler::LoadResult::Error;
+            }
+
+            MotionSetAsset::SerializedData serializedData;
+            bool loadSuccess = false;
+            {
+                AZ_PROFILE_SCOPE(Animation, "MotionSetAsset::DeserializeCookedData %s", asset.GetHint().c_str());
+                loadSuccess = AZ::Utils::LoadObjectFromStreamInPlace(
+                    *stream,
+                    serializedData,
+                    nullptr,
+                    AZ::ObjectStream::FilterDescriptor(assetLoadFilterCB));
+            }
+
+            AZ_Error("EMotionFX", loadSuccess, "Failed to deserialize motion set asset %s", asset.GetHint().c_str());
+            if (loadSuccess)
+            {
+                AZ_PROFILE_SCOPE(Animation, "MotionSetAsset::StoreCookedData %s", asset.GetHint().c_str());
+                assetData->m_emfxNativeData = AZStd::move(serializedData.m_emfxNativeData);
+                assetData->m_motionAssets = AZStd::move(serializedData.m_motionAssets);
+            }
+            return loadSuccess ? AZ::Data::AssetHandler::LoadResult::LoadComplete : AZ::Data::AssetHandler::LoadResult::Error;
         }
 
         //////////////////////////////////////////////////////////////////////////

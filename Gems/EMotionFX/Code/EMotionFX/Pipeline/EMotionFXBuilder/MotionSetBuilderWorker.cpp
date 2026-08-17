@@ -12,6 +12,10 @@
 #include <EMotionFX/Source/EMotionFXManager.h>
 #include <Integration/Assets/MotionSetAsset.h>
 
+#include <AzCore/Asset/AssetManagerBus.h>
+#include <AzCore/Serialization/Utils.h>
+#include <AzCore/Utils/Utils.h>
+#include <AzCore/std/sort.h>
 #include <AzFramework/StringFunc/StringFunc.h>
 
 namespace EMotionFX
@@ -24,7 +28,9 @@ namespace EMotionFX
             motionSetBuilderDescriptor.m_name = "MotionSetBuilderWorker";
             motionSetBuilderDescriptor.m_patterns.emplace_back(AssetBuilderSDK::AssetBuilderPattern("*.motionset", AssetBuilderSDK::AssetBuilderPattern::PatternType::Wildcard));
             motionSetBuilderDescriptor.m_busId = azrtti_typeid<MotionSetBuilderWorker>();
-            motionSetBuilderDescriptor.m_version = 3;
+            // Version 5 introduced the cooked MotionSetAsset::SerializedData product format. Version 6 preserves
+            // the legacy behavior of tolerating motion-set entries whose products do not exist.
+            motionSetBuilderDescriptor.m_version = 6;
             motionSetBuilderDescriptor.m_createJobFunction =
                 AZStd::bind(&MotionSetBuilderWorker::CreateJobs, this, AZStd::placeholders::_1, AZStd::placeholders::_2);
             motionSetBuilderDescriptor.m_processJobFunction =
@@ -78,15 +84,87 @@ namespace EMotionFX
             // Do all work inside the tempDirPath.
             AzFramework::StringFunc::Path::ConstructFull(request.m_tempDirPath.c_str(), fileName.c_str(), destPath, true);
 
-            AssetBuilderSDK::JobProduct jobProduct(request.m_fullPath, azrtti_typeid<Integration::MotionSetAsset>(), 0);
-
-            if (!ParseProductDependencies(request.m_fullPath, request.m_sourceFile, jobProduct.m_pathDependencies))
+            AssetBuilderSDK::ProductPathDependencySet motionPathDependencies;
+            if (!ParseProductDependencies(request.m_fullPath, request.m_sourceFile, motionPathDependencies))
             {
-                AZ_Error(AssetBuilderSDK::ErrorWindow, false, "Error during outputing product dependencies for asset %s.\n", fileName.c_str());
+                AZ_Error(AssetBuilderSDK::ErrorWindow, false, "Error while parsing motion dependencies for asset %s.\n", fileName.c_str());
+                response.m_resultCode = AssetBuilderSDK::ProcessJobResult_Failed;
+                return;
             }
 
-            jobProduct.m_dependenciesHandled = true; // We've output the dependencies immediately above so it's OK to tell the AP we've handled dependencies
-            response.m_outputProducts.push_back(jobProduct);
+            auto nativeDataOutcome = AZ::Utils::ReadFile<AZStd::vector<AZ::u8>>(request.m_fullPath);
+            if (!nativeDataOutcome.IsSuccess())
+            {
+                AZ_Error(
+                    AssetBuilderSDK::ErrorWindow,
+                    false,
+                    "Failed to read motion set asset %s: %s\n",
+                    fileName.c_str(),
+                    nativeDataOutcome.GetError().c_str());
+                response.m_resultCode = AssetBuilderSDK::ProcessJobResult_Failed;
+                return;
+            }
+
+            Integration::MotionSetAsset::SerializedData motionSetAssetData;
+            motionSetAssetData.m_emfxNativeData = nativeDataOutcome.TakeValue();
+
+            AZStd::vector<AZStd::string> motionPaths;
+            motionPaths.reserve(motionPathDependencies.size());
+            for (const AssetBuilderSDK::ProductPathDependency& dependency : motionPathDependencies)
+            {
+                motionPaths.push_back(dependency.m_dependencyPath);
+            }
+            AZStd::sort(motionPaths.begin(), motionPaths.end());
+
+            AssetBuilderSDK::JobProduct jobProduct(destPath, azrtti_typeid<Integration::MotionSetAsset>(), 0);
+            for (const AZStd::string& motionPath : motionPaths)
+            {
+                AZ::Data::AssetId motionAssetId;
+                AZ::Data::AssetCatalogRequestBus::BroadcastResult(
+                    motionAssetId,
+                    &AZ::Data::AssetCatalogRequestBus::Events::GetAssetIdByPath,
+                    motionPath.c_str(),
+                    AZ::Data::s_invalidAssetType,
+                    false);
+
+                if (!motionAssetId.IsValid())
+                {
+                    AZ_Warning(
+                        AssetBuilderSDK::WarningWindow,
+                        false,
+                        "Motion product \"%s\" referenced by motion set %s could not be resolved and will not be preloaded.\n",
+                        motionPath.c_str(),
+                        fileName.c_str());
+                    continue;
+                }
+
+                AZ::Data::Asset<Integration::MotionAsset> motionAsset(
+                    motionAssetId,
+                    azrtti_typeid<Integration::MotionAsset>(),
+                    motionPath);
+                motionAsset.SetAutoLoadBehavior(AZ::Data::AssetLoadBehavior::PreLoad);
+                motionSetAssetData.m_motionAssets.push_back(AZStd::move(motionAsset));
+
+                jobProduct.m_dependencies.emplace_back(
+                    motionAssetId,
+                    AZ::Data::ProductDependencyInfo::CreateFlags(AZ::Data::AssetLoadBehavior::PreLoad));
+            }
+
+            if (!AZ::Utils::SaveObjectToFile(destPath, AZ::DataStream::ST_BINARY, &motionSetAssetData))
+            {
+                AZ_Error(AssetBuilderSDK::ErrorWindow, false, "Failed to save cooked motion set asset %s.\n", destPath.c_str());
+                response.m_resultCode = AssetBuilderSDK::ProcessJobResult_Failed;
+                return;
+            }
+
+            AZ_TracePrintf(
+                AssetBuilderSDK::InfoWindow,
+                "Saved cooked motion set %s with %zu preload motion dependencies.\n",
+                fileName.c_str(),
+                motionSetAssetData.m_motionAssets.size());
+
+            jobProduct.m_dependenciesHandled = true;
+            response.m_outputProducts.push_back(AZStd::move(jobProduct));
             response.m_resultCode = AssetBuilderSDK::ProcessJobResult_Success;
         }
 
