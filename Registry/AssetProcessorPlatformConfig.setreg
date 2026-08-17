@@ -357,6 +357,10 @@
                     "glob": "*.json",
                     "params": "copy"
                 },
+                "RC sequence": {
+                    "glob": "*.sequence",
+                    "params": "copy"
+                },
                 "RC lmg": {
                     "glob": "*.lmg",
                     "params": "copy"
