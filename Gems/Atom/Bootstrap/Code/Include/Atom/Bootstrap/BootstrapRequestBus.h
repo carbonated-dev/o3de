@@ -29,7 +29,7 @@ namespace AZ::Render::Bootstrap
         virtual void SwitchMultiSample(const uint16_t newSampleCount, AZ::RPI::ViewportContextPtr viewportContext) = 0;
         virtual void RefreshWindowResolution() = 0;
 #if defined(CARBONATED)
-        virtual void SetWindowResolutionDirectly(AzFramework::WindowSize resolution) = 0;
+        virtual void SetWindowResolutionDirectly(AzFramework::WindowSize resolution, bool minimalRebuild) = 0;
 #endif
 
     protected:

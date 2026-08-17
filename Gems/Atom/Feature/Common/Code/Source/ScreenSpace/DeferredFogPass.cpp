@@ -48,10 +48,24 @@ namespace AZ
             return AZStd::move(pass);
         }
 
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+        void DeferredFogPass::ResolutionPreChange()
+        {
+            m_resolutionChange = true;
+        }
+#endif
 
         void DeferredFogPass::InitializeInternal()
         {
             FullscreenTrianglePass::InitializeInternal();
+
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            if (m_resolutionChange)
+            {
+                m_resolutionChange = false;
+                return;  // settings manipulation below causes to a flash frame after resolution change
+            }
+#endif
 
             // The following will ensure that in the case of data driven pass, the settings will get
             // updated by the pass enable state.

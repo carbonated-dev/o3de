@@ -301,6 +301,10 @@ namespace AZ
             // RPI::SceneNotificationBus::Handler overrides...
             void OnRenderPipelineChanged(AZ::RPI::RenderPipeline* pipeline, RPI::SceneNotification::RenderPipelineChangeType changeType) override;
 
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            void OnRenderPipelineResolutionChanged(AZ::RPI::RenderPipeline*) override;
+#endif
+
             void CheckForInstancingCVarChange();
 #if defined(CARBONATED)
             void PublishPipelineStateBuildResults();
@@ -387,6 +391,9 @@ namespace AZ
             bool m_enablePerMeshShaderOptionFlags = false;
             bool m_enableMeshInstancing = false;
             bool m_enableMeshInstancingForTransparentObjects = false;
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            bool m_nextChangeIsResolution = false;
+#endif
         };
     } // namespace Render
 } // namespace AZ

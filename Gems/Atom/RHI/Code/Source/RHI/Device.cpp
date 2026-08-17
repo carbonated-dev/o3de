@@ -515,7 +515,15 @@ namespace AZ::RHI
         if (ValidateIsInitialized() && ValidateIsInFrame())
         {
             AZ_PROFILE_SCOPE(RHI, "Device: EndFrame");
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            const AZ::TimeMs begin = AZ::GetRealElapsedTimeMs();
+#endif
             EndFrameInternal();
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            const AZ::TimeMs end = AZ::GetRealElapsedTimeMs();
+            const int dt = int(end) - int(begin);
+            CPUWaitTimeBus::Broadcast(&CPUWaitTimeBus::Events::ReportWaitTime, dt);
+#endif
             m_isInFrame = false;
             return ResultCode::Success;
         }

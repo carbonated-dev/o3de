@@ -199,7 +199,16 @@ namespace AZ
 
             ParentPass::FrameBeginInternal(params);
         }
-        
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+        void SwapChainPass::OnSafeResolutionPrechange()
+        {
+            m_pipeline->SetNextChangeIsResolution();
+            if (Pass* pass = FindPass(Name("DeferredFogPass")))
+            {
+                pass->ResolutionPreChange();
+            }
+        }
+#endif
         void SwapChainPass::OnResolutionChanged([[maybe_unused]] uint32_t width, [[maybe_unused]] uint32_t height)
         {
             QueueForBuildAndInitialization();

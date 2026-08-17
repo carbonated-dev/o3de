@@ -154,7 +154,9 @@ namespace AzFramework
 
         //! This is called once when the window is Activated and also called if the user resizes the window.
         virtual void OnWindowResized(uint32_t width, uint32_t height) { AZ_UNUSED(width); AZ_UNUSED(height); };
-        
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+        virtual void OnSafeResolutionPrechange() { }
+#endif
         //! This is called when the window's desired render resolution is changed.
         virtual void OnResolutionChanged(uint32_t width, uint32_t height) { AZ_UNUSED(width); AZ_UNUSED(height); };
 

@@ -74,6 +74,10 @@ namespace AZ
             //! Notifies when a render pipeline was added, removed or changed
             //! @param pipeline The render pipeline which was added
             virtual void OnRenderPipelineChanged(RenderPipeline* , RenderPipelineChangeType) {};
+
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            virtual void OnRenderPipelineResolutionChanged(RenderPipeline*) {}
+#endif
             
             //! Notifies when a persistent view is set/changed (for a particular RenderPipeline + ViewTag)
             //! @param pipeline The render pipeline which was modified

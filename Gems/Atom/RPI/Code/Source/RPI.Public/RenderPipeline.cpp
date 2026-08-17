@@ -216,6 +216,13 @@ namespace AZ
             }
         }
 
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+        void RenderPipeline::SetNextChangeIsResolution()
+        {
+            m_nextChangeIsResolution = true;
+        }
+#endif
+
         void RenderPipeline::BuildPipelineViews()
         {
             if (m_passTree.m_rootPass == nullptr)
@@ -646,6 +653,13 @@ namespace AZ
                 if (m_scene)
                 {
                     SceneNotificationBus::Event(m_scene->GetId(), &SceneNotification::OnRenderPipelinePassesChanged, this);
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+                    if (m_nextChangeIsResolution)
+                    {
+                        m_nextChangeIsResolution = false;
+                        SceneNotificationBus::Event(m_scene->GetId(), &SceneNotification::OnRenderPipelineResolutionChanged, this);
+                    }
+#endif
                     SceneNotificationBus::Event(m_scene->GetId(), &SceneNotification::OnRenderPipelineChanged, this,
                         SceneNotification::RenderPipelineChangeType::PassChanged);
 

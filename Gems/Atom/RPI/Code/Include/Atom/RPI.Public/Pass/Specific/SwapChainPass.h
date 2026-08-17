@@ -57,7 +57,10 @@ namespace AZ
             // Pass behavior overrides
             void BuildInternal() override final;
             void FrameBeginInternal(FramePrepareParams params) override final;
-            
+
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            void OnSafeResolutionPrechange() override;
+#endif
             // WindowNotificationBus::Handler overrides ...
             // The m_pipelinOutputAttachment need to be recreated when render resolution changed
             void OnResolutionChanged(uint32_t width, uint32_t height) override;

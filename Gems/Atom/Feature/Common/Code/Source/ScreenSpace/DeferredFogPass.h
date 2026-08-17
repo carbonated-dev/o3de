@@ -51,6 +51,10 @@ namespace AZ
 
             virtual bool IsEnabled() const override;
 
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            void ResolutionPreChange() override;
+#endif
+
         protected:
             DeferredFogPass(const RPI::PassDescriptor& descriptor);
 
@@ -78,6 +82,10 @@ namespace AZ
 
             // Fog mode option name
             const AZ::Name m_fogModeOptionName;
+
+#if defined(CARBONATED) && defined(CARBONATED_DYNAMIC_RESOLUTION)
+            bool m_resolutionChange = false;
+#endif
         };       
     }   // namespace Render
 }   // namespace AZ

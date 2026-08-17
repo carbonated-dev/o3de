@@ -320,7 +320,11 @@ namespace AZ
             // Useful when inserting a new pass and wants to update all subsequent passes to use a PassAttachmentBinding
             // of the new inserted pass. 
             virtual bool UpdateConnectedBinding(PassAttachmentBinding* oldValue, PassAttachmentBinding* newValue);
+#if defined(CARBONATED_DYNAMIC_RESOLUTION)
+            // Notifies that next init is because resolution change, some init actions can be dropped
+            virtual void ResolutionPreChange() {}
 #endif
+#endif  // CARBONATED
 
         protected:
             explicit Pass(const PassDescriptor& descriptor);

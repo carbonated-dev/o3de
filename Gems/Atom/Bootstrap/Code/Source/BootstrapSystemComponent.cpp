@@ -50,7 +50,10 @@
 #include <AzCore/Settings/SettingsRegistry.h>
 #include <AzCore/Settings/SettingsRegistryVisitorUtils.h>
 #include <AzCore/std/string/regex.h>
+#if defined(CARBONATED_DYNAMIC_RESOLUTION)
+#include <AzFramework/Windowing/WindowBus.h>
 #endif
+#endif  // CARBONATED
 
 void cvar_r_renderPipelinePath_Changed(const AZ::CVarFixedString& newPipelinePath)
 {
@@ -916,10 +919,28 @@ namespace AZ
             }
         
 #if defined(CARBONATED)
-            void BootstrapSystemComponent::SetWindowResolutionDirectly(AzFramework::WindowSize resolution)
+            void BootstrapSystemComponent::SetWindowResolutionDirectly(AzFramework::WindowSize resolution, bool minimalRebuild)
             {
                 if (m_nativeWindow)
                 {
+#if defined(CARBONATED_DYNAMIC_RESOLUTION)
+                    if (minimalRebuild)
+                    {
+                        AZ::RPI::ViewportContextPtr viewportContext;
+                        AZ::Interface<AZ::RPI::ViewportContextRequestsInterface>::Get()->EnumerateViewportContexts(
+                            [&viewportContext](const AZ::RPI::ViewportContextPtr& context)
+                            {
+                                viewportContext = context;
+                                return false;
+                            });
+
+                        if (viewportContext)
+                        {
+                            const auto windowHandle = viewportContext->GetWindowContext()->GetWindowHandle();
+                            AzFramework::WindowNotificationBus::Event(windowHandle, &AzFramework::WindowNotificationBus::Events::OnSafeResolutionPrechange);
+                        }
+                    }
+#endif
                     m_nativeWindow->SetRenderResolution(resolution);
                     m_nativeWindow->SetFullScreenState(r_fullscreen);
                 }
