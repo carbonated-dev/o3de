@@ -1992,6 +1992,7 @@ namespace AZ::Data
     //=========================================================================
     void AssetManager::NotifyAssetReady(Asset<AssetData> asset)
     {
+        AZ_PROFILE_SCOPE(AzCore, "AssetManager::NotifyAssetReady %s", asset.GetHint().c_str());
 #if defined(CARBONATED)
         ASSET_TAG(asset.GetHint().c_str());
 #endif
@@ -1999,8 +2000,14 @@ namespace AZ::Data
         AZ_Assert(data, "NotifyAssetReady: asset is missing info!");
         data->m_status = AssetData::AssetStatus::Ready;
 
-        AssetLoadBus::Event(asset.GetId(), &AssetLoadBus::Events::OnAssetReady, asset); // Broadcast to any containers first
-        AssetBus::Event(asset.GetId(), &AssetBus::Events::OnAssetReady, asset);
+        {
+            AZ_PROFILE_SCOPE(AzCore, "AssetManager::NotifyAssetReady.AssetLoadBus %s", asset.GetHint().c_str());
+            AssetLoadBus::Event(asset.GetId(), &AssetLoadBus::Events::OnAssetReady, asset); // Broadcast to any containers first
+        }
+        {
+            AZ_PROFILE_SCOPE(AzCore, "AssetManager::NotifyAssetReady.AssetBus %s", asset.GetHint().c_str());
+            AssetBus::Event(asset.GetId(), &AssetBus::Events::OnAssetReady, asset);
+        }
     }
 
     //=========================================================================
@@ -2322,6 +2329,7 @@ namespace AZ::Data
 
         AssetBus::QueueFunction([this, assetContainer, asset = assetContainer->GetRootAsset()]()
         {
+            AZ_PROFILE_SCOPE(AzCore, "AssetManager::NotifyAssetContainerReady %s", asset.GetHint().c_str());
             ASSET_DEBUG_OUTPUT(AZStd::string::format(
                 "OnAssetContainerReady - Notify - %p - " AZ_STRING_FORMAT,
                 static_cast<void*>(assetContainer),

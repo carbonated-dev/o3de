@@ -191,10 +191,9 @@ namespace EMotionFX
                 {
                     AZ_PROFILE_SCOPE(
                         Animation,
-                        "MotionSetAsset::ValidateAndConnectPreloads %s (%zu motions)",
+                        "MotionSetAsset::ValidatePreloads %s (%zu motions)",
                         asset.GetHint().c_str(),
                         assetData->m_motionAssets.size());
-                    assetData->AZ::Data::AssetBus::MultiHandler::BusDisconnect();
                     for (const AZ::Data::Asset<MotionAsset>& motionAsset : assetData->m_motionAssets)
                     {
                         if (!motionAsset.IsReady())
@@ -207,8 +206,6 @@ namespace EMotionFX
                                 assetFilename.c_str());
                             return false;
                         }
-
-                        assetData->BusConnect(motionAsset.GetId());
                     }
                 }
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_CONCURRENCY_RW)
@@ -222,6 +219,21 @@ namespace EMotionFX
                 assetData->m_emfxMotionSet->SetCallback(aznew CustomMotionSetCallback(asset));
                 assetData->ReleaseEMotionFXData();
             }
+
+            // OnInitAsset can run while AssetLoadBus is dispatching on a worker. Connecting to AssetBus here creates a lock-order
+            // inversion with AssetBus callbacks that queue dependent assets (AssetBus -> AssetLoadBus). Defer the reload listeners
+            // until the main tick, after the AssetLoadBus callback has completely unwound.
+            const AZ::Data::Asset<MotionSetAsset> motionSetAsset(asset);
+            AZ::TickBus::QueueFunction(
+                [motionSetAsset]()
+                {
+                    MotionSetAsset* motionSetAssetData = motionSetAsset.Get();
+                    motionSetAssetData->AZ::Data::AssetBus::MultiHandler::BusDisconnect();
+                    for (const AZ::Data::Asset<MotionAsset>& motionAsset : motionSetAssetData->m_motionAssets)
+                    {
+                        motionSetAssetData->BusConnect(motionAsset.GetId());
+                    }
+                });
 
             return true;
         }

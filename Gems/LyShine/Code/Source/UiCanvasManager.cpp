@@ -18,6 +18,7 @@
 #include <AzCore/Memory/Memory.h>
 #include <AzCore/Component/ComponentApplicationBus.h>
 #include <AzCore/Component/TickBus.h>
+#include <AzCore/Debug/Profiler.h>
 #include <AzCore/Asset/AssetManagerBus.h>
 #include <AzFramework/API/ApplicationAPI.h>
 #include <AzFramework/Input/Channels/InputChannel.h>
@@ -175,6 +176,8 @@ AZ::EntityId UiCanvasManager::CreateCanvas()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 AZ::EntityId UiCanvasManager::LoadCanvas(const AZStd::string& assetIdPathname)
 {
+    AZ_PROFILE_SCOPE(AzCore, "UiCanvasManager::LoadCanvas %s", assetIdPathname.c_str());
+
 #if defined(CARBONATED) // Carbonated patch : porting 02_27, to match LY Log // TODO // FIXME : remove for release
     AZ_TracePrintf("UiCanvasManager", "Loading UI Canvas: %s", assetIdPathname.c_str());
 #endif // CARBONATED

@@ -409,6 +409,9 @@ namespace PhysX
 
     void EditorColliderComponent::Deactivate()
     {
+        AZ::Data::AssetBus::MultiHandler::BusDisconnect();
+        m_queueingMaterialAssets = false;
+        m_materialAssetNotificationReceived = false;
         AzPhysics::SimulatedBodyComponentRequestsBus::Handler::BusDisconnect();
         m_colliderDebugDraw.Disconnect();
         m_nonUniformScaleChangedHandler.Disconnect();
@@ -547,8 +550,133 @@ namespace PhysX
     void EditorColliderComponent::UpdateCollider()
     {
         UpdateShapeConfiguration();
+
+        // Creating the PhysX shape asks the material manager for every assigned material. The material manager intentionally blocks
+        // until those assets are loaded, which is appropriate for simulation but can stall the Editor main thread for seconds while a
+        // level is activating. Queue the editor collider's materials and defer creation of its editor-only body instead.
+        if (!QueueMaterialAssets())
+        {
+            return;
+        }
+
         CreateStaticEditorCollider();
         Physics::ColliderComponentEventBus::Event(GetEntityId(), &Physics::ColliderComponentEvents::OnColliderChanged);
+    }
+
+    bool EditorColliderComponent::QueueMaterialAssets()
+    {
+        // AssetBus::BusConnect can immediately call OnAssetReady/OnAssetError when the AssetManager already has the asset.
+        // Do not let that callback recursively scan and reconnect the same asset before this scan has finished.
+        if (m_queueingMaterialAssets)
+        {
+            m_materialAssetNotificationReceived = true;
+            return false;
+        }
+
+        m_queueingMaterialAssets = true;
+        m_materialAssetNotificationReceived = false;
+        bool allMaterialAssetsAvailable = true;
+
+        for (size_t slotIndex = 0; slotIndex < m_configuration.m_materialSlots.GetSlotsCount(); ++slotIndex)
+        {
+            AZ::Data::Asset<Physics::MaterialAsset> materialAsset =
+                m_configuration.m_materialSlots.GetMaterialAsset(slotIndex);
+
+            if (!materialAsset.GetId().IsValid() || materialAsset.IsReady() || materialAsset.IsError())
+            {
+                continue;
+            }
+
+            // Queue first and retain the resulting AssetData in the material slot. Connecting afterwards is safe because AssetBus's
+            // connection policy immediately reports an asset that completed between QueueLoad and BusConnect.
+            materialAsset.QueueLoad();
+            m_configuration.m_materialSlots.SetMaterialAsset(slotIndex, materialAsset);
+
+            if (materialAsset.IsReady() || materialAsset.IsError())
+            {
+                continue;
+            }
+
+            allMaterialAssetsAvailable = false;
+            if (!AZ::Data::AssetBus::MultiHandler::BusIsConnectedId(materialAsset.GetId()))
+            {
+                AZ::Data::AssetBus::MultiHandler::BusConnect(materialAsset.GetId());
+            }
+        }
+
+        m_queueingMaterialAssets = false;
+
+        // A callback received during BusConnect updated a slot while this scan was active. Re-evaluate availability without
+        // reconnecting anything. The outer scan already queued and connected every pending slot, so this deliberately cannot recurse.
+        if (m_materialAssetNotificationReceived)
+        {
+            m_materialAssetNotificationReceived = false;
+            allMaterialAssetsAvailable = true;
+            for (size_t slotIndex = 0; slotIndex < m_configuration.m_materialSlots.GetSlotsCount(); ++slotIndex)
+            {
+                const AZ::Data::Asset<Physics::MaterialAsset> materialAsset =
+                    m_configuration.m_materialSlots.GetMaterialAsset(slotIndex);
+                if (materialAsset.GetId().IsValid() && !materialAsset.IsReady() && !materialAsset.IsError())
+                {
+                    allMaterialAssetsAvailable = false;
+                    break;
+                }
+            }
+        }
+
+        return allMaterialAssetsAvailable;
+    }
+
+    void EditorColliderComponent::OnAssetReady(AZ::Data::Asset<AZ::Data::AssetData> asset)
+    {
+        const AZ::Data::Asset<Physics::MaterialAsset> materialAsset(asset);
+        for (size_t slotIndex = 0; slotIndex < m_configuration.m_materialSlots.GetSlotsCount(); ++slotIndex)
+        {
+            if (m_configuration.m_materialSlots.GetMaterialAsset(slotIndex).GetId() == asset.GetId())
+            {
+                m_configuration.m_materialSlots.SetMaterialAsset(slotIndex, materialAsset);
+            }
+        }
+
+        AZ::Data::AssetBus::MultiHandler::BusDisconnect(asset.GetId());
+
+        if (m_queueingMaterialAssets)
+        {
+            m_materialAssetNotificationReceived = true;
+            return;
+        }
+
+        if (QueueMaterialAssets() && GetEntity() && GetEntity()->GetState() == AZ::Entity::State::Active)
+        {
+            UpdateCollider();
+        }
+    }
+
+    void EditorColliderComponent::OnAssetError(AZ::Data::Asset<AZ::Data::AssetData> asset)
+    {
+        const AZ::Data::Asset<Physics::MaterialAsset> materialAsset(asset);
+        for (size_t slotIndex = 0; slotIndex < m_configuration.m_materialSlots.GetSlotsCount(); ++slotIndex)
+        {
+            if (m_configuration.m_materialSlots.GetMaterialAsset(slotIndex).GetId() == asset.GetId())
+            {
+                m_configuration.m_materialSlots.SetMaterialAsset(slotIndex, materialAsset);
+            }
+        }
+
+        AZ::Data::AssetBus::MultiHandler::BusDisconnect(asset.GetId());
+
+        if (m_queueingMaterialAssets)
+        {
+            m_materialAssetNotificationReceived = true;
+            return;
+        }
+
+        // Let collider creation continue after all outstanding material loads have completed. The physics material manager will use
+        // its normal error handling for the failed material rather than leaving the editor collider permanently unavailable.
+        if (QueueMaterialAssets() && GetEntity() && GetEntity()->GetState() == AZ::Entity::State::Active)
+        {
+            UpdateCollider();
+        }
     }
 
     void EditorColliderComponent::CreateStaticEditorCollider()

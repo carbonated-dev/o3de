@@ -11,6 +11,7 @@
 #include <AzCore/Asset/AssetManagerBus.h>
 #include <AzCore/Asset/AssetManager.h>
 #include <AzCore/Console/IConsole.h>
+#include <AzCore/Debug/Profiler.h>
 #include <AzCore/Interface/Interface.h>
 
 namespace AZ::Data
@@ -48,6 +49,12 @@ namespace AZ::Data
     AZStd::vector<AZStd::pair<AssetInfo, Asset<AssetData>>> AssetContainer::CreateAndQueueDependentAssets(
         const AZStd::vector<AssetInfo>& dependencyInfoList, const AssetLoadParameters& loadParamsCopyWithNoLoadingFilter)
     {
+        AZ_PROFILE_SCOPE(
+            AzCore,
+            "AssetContainer::CreateAndQueueDependencies %s (%zu)",
+            m_containerAssetId.ToFixedString().c_str(),
+            dependencyInfoList.size());
+
         AZStd::vector<AZStd::pair<AssetInfo, Asset<AssetData>>> dependencyAssets;
 
         for (auto& thisInfo : dependencyInfoList)
@@ -164,6 +171,8 @@ namespace AZ::Data
 
     void AssetContainer::AddDependentAssets(Asset<AssetData> rootAsset, const AssetLoadParameters& loadParams)
     {
+        AZ_PROFILE_SCOPE(AzCore, "AssetContainer::AddDependentAssets %s", rootAsset.GetHint().c_str());
+
         AssetId rootAssetId = rootAsset.GetId();
         AssetType rootAssetType = rootAsset.GetType();
 
@@ -685,6 +694,12 @@ namespace AZ::Data
         // notifications.
         if (allReady && m_initComplete && !m_finalNotificationSent)
         {
+            AZ_PROFILE_SCOPE(
+                AzCore,
+                "AssetContainer::FinalNotification %s (%zu dependencies, %d invalid)",
+                m_containerAssetId.ToFixedString().c_str(),
+                m_dependencies.size(),
+                m_invalidDependencies.load());
             m_finalNotificationSent = true;
             if (m_rootAsset)
             {

@@ -365,6 +365,30 @@ namespace AzToolsFramework
                 return InvalidTemplateId;
             }
 
+            const AZ::IO::Path relativePath = GenerateRelativePath(filePath);
+
+            // Check for cycles before returning a cached template. A template which is currently being loaded is already present in the
+            // prefab system, but returning it here would hide a cyclical dependency in the prefab hierarchy.
+            if (progressedFilePathsSet.contains(relativePath))
+            {
+                AZ_Error(
+                    "Prefab", false,
+                    "PrefabLoader::LoadTemplateFromFile - "
+                    "Prefab file '%.*s' has been detected to directly or indirectly depend on itself. "
+                    "Terminating any further loading of this branch of its prefab hierarchy.",
+                    AZ_STRING_ARG(filePath.Native())
+                );
+                return InvalidTemplateId;
+            }
+
+            // Nested prefab instances frequently reference the same source template. Avoid reading the source file again when the
+            // template is already loaded; LoadTemplateFromString performs the same check, but only after the file has been read.
+            if (const TemplateId loadedTemplateId = m_prefabSystemComponentInterface->GetTemplateIdFromFilePath(relativePath);
+                loadedTemplateId != InvalidTemplateId)
+            {
+                return loadedTemplateId;
+            }
+
             auto readResult = AZ::Utils::ReadFile(GetFullPath(filePath).Native(), AZStd::numeric_limits<size_t>::max());
             if (!readResult.IsSuccess())
             {

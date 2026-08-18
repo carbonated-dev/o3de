@@ -14,6 +14,7 @@
 
 #include <AzCore/Asset/AssetManager.h>
 #include <AzCore/Asset/AssetCommon.h>
+#include <AzCore/Debug/Profiler.h>
 #include <AzCore/Module/Environment.h>
 #include <AzCore/std/parallel/shared_mutex.h>
 
@@ -373,6 +374,7 @@ namespace AZ
 
                 if (assetLocal.IsLoading())
                 {
+                    AZ_PROFILE_SCOPE(AzCore, "InstanceDatabase::WaitForAsset %s", assetLocal.GetHint().c_str());
                     assetLocal.BlockUntilLoadComplete();
                 }
             }

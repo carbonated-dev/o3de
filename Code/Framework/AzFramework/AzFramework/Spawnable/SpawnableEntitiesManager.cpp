@@ -8,6 +8,7 @@
 
 #include <AzCore/Casting/numeric_cast.h>
 #include <AzCore/Component/ComponentApplicationBus.h>
+#include <AzCore/Debug/Profiler.h>
 #include <AzCore/Serialization/IdUtils.h>
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/Settings/SettingsRegistry.h>
@@ -591,6 +592,7 @@ namespace AzFramework
     auto SpawnableEntitiesManager::ProcessRequest(SpawnAllEntitiesCommand& request) -> CommandResult
     {
         Ticket& ticket = *request.m_ticket;
+        AZ_PROFILE_SCOPE(AzFramework, "Spawnable::SpawnAllEntities %s", ticket.m_spawnable.GetHint().c_str());
 
 // Gruber patch begin // VMED // Detect a level spawnable 
 #ifdef CARBONATED
@@ -652,6 +654,12 @@ namespace AzFramework
                 // previously-spawned entities from a previous SpawnEntities or SpawnAllEntities call.
 
 // Gruber patch begin // VMED // Support the same generated entity ids on all clients and on the server
+                AZ_PROFILE_INTERVAL_START(
+                    AzFramework,
+                    &ticket.m_entityIdReferenceMap,
+                    "Spawnable::InitializeEntityIds %s (%u entities)",
+                    ticket.m_spawnable.GetHint().c_str(),
+                    entitiesToSpawnSize);
 #ifdef CARBONATED
                 if (seedEntityId.IsValid())
                 {
@@ -665,7 +673,14 @@ namespace AzFramework
 #endif
 // Gruber patch end // VMED
                 InitializeEntityIdMappings(entitiesToSpawn, ticket.m_entityIdReferenceMap, ticket.m_previouslySpawned);
+                AZ_PROFILE_INTERVAL_END(AzFramework, &ticket.m_entityIdReferenceMap);
 
+                AZ_PROFILE_INTERVAL_START(
+                    AzFramework,
+                    &spawnedEntities,
+                    "Spawnable::CloneEntities %s (%u entities)",
+                    ticket.m_spawnable.GetHint().c_str(),
+                    entitiesToSpawnSize);
                 auto aliasIt = aliases.begin();
                 auto aliasEnd = aliases.end();
                 if (aliasIt == aliasEnd)
@@ -716,6 +731,7 @@ namespace AzFramework
                         }
                     }
                 }
+                AZ_PROFILE_INTERVAL_END(AzFramework, &spawnedEntities);
 
                 // There were no initial entities then the ticket now holds exactly all entities. If there were already entities then
                 // a new set are not added so it no longer holds exactly the number of entities.
@@ -748,6 +764,11 @@ namespace AzFramework
                 // Let other systems know about newly spawned entities for any pre-processing before adding to the scene/game context.
                 if (request.m_preInsertionCallback)
                 {
+                    AZ_PROFILE_SCOPE(
+                        AzFramework,
+                        "Spawnable::PreInsertionCallback %s (%zu entities)",
+                        ticket.m_spawnable.GetHint().c_str(),
+                        static_cast<size_t>(newEntitiesEnd - newEntitiesBegin));
                     request.m_preInsertionCallback(request.m_ticketId, SpawnableEntityContainerView(newEntitiesBegin, newEntitiesEnd));
                 }
 
@@ -760,6 +781,11 @@ namespace AzFramework
                         gameContext, &AzFramework::GameEntityContextRequestBus::Events::GetGameEntityContextInstance);
                     if (gameContext != nullptr)
                     {
+                        AZ_PROFILE_SCOPE(
+                            AzFramework,
+                            "Spawnable::PreprocessLevelEntities %s (%zu entities)",
+                            ticket.m_spawnable.GetHint().c_str(),
+                            ticket.m_spawnedEntities.size());
                         AzFramework::EntityContextEventBus::Event(
                             gameContext->GetContextId(),
                             &AzFramework::EntityContextEventBus::Events::OnEntityContextLoadedFromStream,
@@ -774,11 +800,18 @@ namespace AzFramework
 // Gruber patch end // VMED // Preprocess netbinding entity components for level
 
                 // Add to the game context, now the entities are active
-                for (auto it = newEntitiesBegin; it != newEntitiesEnd; ++it)
                 {
-                    AZ::Entity* clone = (*it);
-                    clone->SetEntitySpawnTicketId(request.m_ticketId);
-                    GameEntityContextRequestBus::Broadcast(&GameEntityContextRequestBus::Events::AddGameEntity, clone);
+                    AZ_PROFILE_SCOPE(
+                        AzFramework,
+                        "Spawnable::ActivateEntities %s (%zu entities)",
+                        ticket.m_spawnable.GetHint().c_str(),
+                        static_cast<size_t>(newEntitiesEnd - newEntitiesBegin));
+                    for (auto it = newEntitiesBegin; it != newEntitiesEnd; ++it)
+                    {
+                        AZ::Entity* clone = (*it);
+                        clone->SetEntitySpawnTicketId(request.m_ticketId);
+                        GameEntityContextRequestBus::Broadcast(&GameEntityContextRequestBus::Events::AddGameEntity, clone);
+                    }
                 }
 
                 // Let other systems know about newly spawned entities for any post-processing after adding to the scene/game context.

@@ -19,6 +19,7 @@
 
 #include "MainThreadRenderRequestBus.h"
 #include <AzCore/Component/TickBus.h>
+#include <AzCore/Debug/Profiler.h>
 #include <AzCore/IO/Path/Path.h>
 #include <AzCore/Settings/SettingsRegistryVisitorUtils.h>
 #include <AzCore/StringFunc/StringFunc.h>
@@ -203,6 +204,8 @@ namespace LegacyLevelSystem
     //------------------------------------------------------------------------
     bool SpawnableLevelSystem::LoadLevel(const char* levelName)
     {
+        AZ_PROFILE_SCOPE(System, "LevelLoad::LoadLevel %s", levelName);
+
         if (gEnv->IsEditor())
         {
             AZ_TracePrintf("CrySystem::SpawnableLevelSystem", "LoadLevel for %s was called in the editor - not actually loading.\n", levelName);
@@ -267,6 +270,7 @@ namespace LegacyLevelSystem
         // If a level is currently loaded, unload it before loading the next one.
         if (IsLevelLoaded())
         {
+            AZ_PROFILE_SCOPE(System, "LevelLoad::UnloadPreviousLevel");
             UnloadLevel();
         }
 
@@ -280,12 +284,20 @@ namespace LegacyLevelSystem
         m_fFilteredProgress = 0.f;
 #endif // if AZ_LOADSCREENCOMPONENT_ENABLED
 #endif
-        gEnv->pSystem->GetISystemEventDispatcher()->OnSystemEvent(ESYSTEM_EVENT_LEVEL_LOAD_PREPARE, 0, 0);
-        PrepareNextLevel(validLevelName.c_str());
+        {
+            AZ_PROFILE_SCOPE(System, "LevelLoad::Prepare %s", validLevelName.c_str());
+            gEnv->pSystem->GetISystemEventDispatcher()->OnSystemEvent(ESYSTEM_EVENT_LEVEL_LOAD_PREPARE, 0, 0);
+            PrepareNextLevel(validLevelName.c_str());
+        }
 
-        bool result = LoadLevelInternal(validLevelName.c_str());
+        bool result = false;
+        {
+            AZ_PROFILE_SCOPE(System, "LevelLoad::LoadInternal %s", validLevelName.c_str());
+            result = LoadLevelInternal(validLevelName.c_str());
+        }
         if (result)
         {
+            AZ_PROFILE_SCOPE(System, "LevelLoad::OnLoadingComplete %s", validLevelName.c_str());
             OnLoadingComplete(validLevelName.c_str());
         }
 
@@ -300,6 +312,8 @@ namespace LegacyLevelSystem
     //------------------------------------------------------------------------
     bool SpawnableLevelSystem::LoadLevelInternal(const char* levelName)
     {
+        AZ_PROFILE_SCOPE(System, "LevelLoad::LoadLevelInternal %s", levelName);
+
         gEnv->pSystem->SetSystemGlobalState(ESYSTEM_GLOBAL_STATE_LEVEL_LOAD_START);
 
         INDENT_LOG_DURING_SCOPE();
@@ -333,7 +347,10 @@ namespace LegacyLevelSystem
             // This is a workaround until the replacement for GameEntityContext is done
             AzFramework::GameEntityContextEventBus::Broadcast(&AzFramework::GameEntityContextEventBus::Events::OnPreGameEntitiesStarted);
 
-            OnLoadingStart(levelName);
+            {
+                AZ_PROFILE_SCOPE(System, "LevelLoad::BroadcastLoadingStart %s", levelName);
+                OnLoadingStart(levelName);
+            }
 
             auto pPak = gEnv->pCryPak;
 
@@ -350,19 +367,28 @@ namespace LegacyLevelSystem
 
 // Gruber patch begin. // LVB
 #ifdef CARBONATED
-            rootSpawnable.QueueLoad();
-            // when we call AssetBus::QueuedEventCount() immediately after Asset::QueueLoad(), it returns the number of level assets for loading
-            m_queuedAssetsCountMax = static_cast<int>(AZ::Data::AssetBus::QueuedEventCount());
-            m_queuedAssetsCount = -1;
-            rootSpawnable.BlockUntilLoadComplete();
+            {
+                AZ_PROFILE_SCOPE(System, "LevelLoad::WaitForRootSpawnable %s", levelName);
+                rootSpawnable.QueueLoad();
+                // when we call AssetBus::QueuedEventCount() immediately after Asset::QueueLoad(), it returns the number of level assets for loading
+                m_queuedAssetsCountMax = static_cast<int>(AZ::Data::AssetBus::QueuedEventCount());
+                m_queuedAssetsCount = -1;
+                rootSpawnable.BlockUntilLoadComplete();
+            }
 #endif
 // Gruber patch end. // LVB
 
             m_rootSpawnableId = rootSpawnableAssetId;
-            m_rootSpawnableGeneration = AzFramework::RootSpawnableInterface::Get()->AssignRootSpawnable(rootSpawnable);
+            {
+                AZ_PROFILE_SCOPE(System, "LevelLoad::AssignRootSpawnable %s", levelName);
+                m_rootSpawnableGeneration = AzFramework::RootSpawnableInterface::Get()->AssignRootSpawnable(rootSpawnable);
+            }
 
             // This is a workaround until the replacement for GameEntityContext is done
-            AzFramework::GameEntityContextEventBus::Broadcast(&AzFramework::GameEntityContextEventBus::Events::OnGameEntitiesStarted);
+            {
+                AZ_PROFILE_SCOPE(System, "LevelLoad::BroadcastGameEntitiesStarted %s", levelName);
+                AzFramework::GameEntityContextEventBus::Broadcast(&AzFramework::GameEntityContextEventBus::Events::OnGameEntitiesStarted);
+            }
 
             //////////////////////////////////////////////////////////////////////////
             // Movie system must be reset after entities.
@@ -391,7 +417,10 @@ namespace LegacyLevelSystem
             gEnv->pSystem->SetSystemGlobalState(ESYSTEM_GLOBAL_STATE_LEVEL_LOAD_END);
         }
 
-        GetISystem()->GetISystemEventDispatcher()->OnSystemEvent(ESYSTEM_EVENT_LEVEL_LOAD_END, 0, 0);
+        {
+            AZ_PROFILE_SCOPE(System, "LevelLoad::BroadcastLevelLoadEnd %s", levelName);
+            GetISystem()->GetISystemEventDispatcher()->OnSystemEvent(ESYSTEM_EVENT_LEVEL_LOAD_END, 0, 0);
+        }
 
 #if defined(CARBONATED)
         if (auto console = AZ::Interface<AZ::IConsole>::Get(); console != nullptr)

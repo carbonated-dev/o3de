@@ -195,7 +195,7 @@ namespace AZ
 
     void Entity::Activate()
     {
-        AZ_PROFILE_FUNCTION(AzCore);
+        AZ_PROFILE_SCOPE(AzCore, "Entity::Activate %s (%zu components)", m_name.c_str(), m_components.size());
 
         AZ_Assert(m_state == State::Init, "Entity should be in Init state to be Activated!");
 
@@ -210,6 +210,7 @@ namespace AZ
 
         for (ComponentArrayType::iterator it = m_components.begin(); it != m_components.end(); ++it)
         {
+            AZ_PROFILE_SCOPE(AzCore, "Entity::ActivateComponent %s | %s", m_name.c_str(), (*it)->RTTI_GetTypeName());
             ActivateComponent(**it);
         }
 

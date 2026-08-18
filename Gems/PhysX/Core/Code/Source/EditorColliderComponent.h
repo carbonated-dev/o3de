@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <AzCore/Asset/AssetManagerBus.h>
 #include <AzCore/Component/TransformBus.h>
 #include <AzCore/Component/NonUniformScaleBus.h>
 #include <AzCore/Math/Quaternion.h>
@@ -130,6 +131,7 @@ namespace PhysX
         , private PhysX::EditorColliderComponentRequestBus::Handler
         , private PhysX::EditorPrimitiveColliderComponentRequestBus::Handler
         , private AzPhysics::SimulatedBodyComponentRequestsBus::Handler
+        , private AZ::Data::AssetBus::MultiHandler
         , public AzFramework::BoundsRequestBus::Handler
     {
     public:
@@ -251,6 +253,11 @@ namespace PhysX
 
         void UpdateCollider();
         void CreateStaticEditorCollider();
+        bool QueueMaterialAssets();
+
+        // AZ::Data::AssetBus overrides ...
+        void OnAssetReady(AZ::Data::Asset<AZ::Data::AssetData> asset) override;
+        void OnAssetError(AZ::Data::Asset<AZ::Data::AssetData> asset) override;
 
         void BuildDebugDrawMesh() const;
 
@@ -276,6 +283,8 @@ namespace PhysX
         mutable AZStd::optional<Physics::CookedMeshShapeConfiguration> m_scaledPrimitive; //!< Approximation for non-uniformly scaled primitive.
         AZ::Aabb m_cachedAabb = AZ::Aabb::CreateNull(); //!< Cache the Aabb to avoid recalculating it.
         bool m_cachedAabbDirty = true; //!< Track whether the cached Aabb needs to be recomputed.
+        bool m_queueingMaterialAssets = false; //!< Guards against synchronous AssetBus callbacks while connecting.
+        bool m_materialAssetNotificationReceived = false; //!< Requests a rescan after a synchronous callback.
     };
 
 } // namespace PhysX
