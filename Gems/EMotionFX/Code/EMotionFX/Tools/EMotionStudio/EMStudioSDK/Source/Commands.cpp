@@ -12,6 +12,10 @@
 #include <AzCore/IO/SystemFile.h>
 #include <AzFramework/API/ApplicationAPI.h>
 #include <AzToolsFramework/Debug/TraceContext.h>
+#if defined(CARBONATED)
+#include <AzToolsFramework/API/EditorAssetSystemAPI.h>
+#include <AzCore/std/containers/unordered_map.h>
+#endif
 #include <EMotionFX/Source/AnimGraphManager.h>
 #include <EMotionFX/Source/ActorManager.h>
 #include <EMotionFX/Source/Motion.h>
@@ -32,6 +36,90 @@
 
 namespace EMStudio
 {
+#if defined(CARBONATED)
+    namespace
+    {
+        using MotionSourceUpdate = AZStd::pair<EMotionFX::MotionSet::MotionEntry*, AZStd::string>;
+
+        bool CollectMotionSourceUpdates(
+            EMotionFX::MotionSet* motionSet,
+            AZStd::unordered_map<AZStd::string, AZStd::string>& resolvedSources,
+            AZStd::vector<MotionSourceUpdate>& updates,
+            AZStd::string& outResult)
+        {
+            for (const auto& [motionId, motionEntry] : motionSet->GetMotionEntries())
+            {
+                const AZStd::string& motionProductPath = motionEntry->GetFilenameString();
+                auto resolvedSource = resolvedSources.find(motionProductPath);
+                if (resolvedSource == resolvedSources.end())
+                {
+                    AZStd::string fullSourcePath;
+                    bool foundFullSourcePath = false;
+                    AzToolsFramework::AssetSystemRequestBus::BroadcastResult(
+                        foundFullSourcePath,
+                        &AzToolsFramework::AssetSystemRequestBus::Events::GetFullSourcePathFromRelativeProductPath,
+                        motionProductPath,
+                        fullSourcePath);
+
+                    AZ::Data::AssetInfo sourceInfo;
+                    AZStd::string watchFolder;
+                    bool foundSourceInfo = false;
+                    if (foundFullSourcePath)
+                    {
+                        AzToolsFramework::AssetSystemRequestBus::BroadcastResult(
+                            foundSourceInfo,
+                            &AzToolsFramework::AssetSystemRequestBus::Events::GetSourceInfoBySourcePath,
+                            fullSourcePath.c_str(),
+                            sourceInfo,
+                            watchFolder);
+                    }
+
+                    if (!foundSourceInfo || sourceInfo.m_relativePath.empty())
+                    {
+                        outResult = AZStd::string::format(
+                            "Motion set cannot be saved. Unable to identify the Scene source for motion product '%s' "
+                            "(entry '%s').",
+                            motionProductPath.c_str(),
+                            motionId.c_str());
+                        return false;
+                    }
+
+                    resolvedSource = resolvedSources.emplace(motionProductPath, sourceInfo.m_relativePath).first;
+                }
+
+                updates.emplace_back(motionEntry, resolvedSource->second);
+            }
+
+            for (size_t childIndex = 0; childIndex < motionSet->GetNumChildSets(); ++childIndex)
+            {
+                if (!CollectMotionSourceUpdates(
+                        motionSet->GetChildSet(childIndex), resolvedSources, updates, outResult))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool UpdateMotionSourceFilenames(EMotionFX::MotionSet* motionSet, AZStd::string& outResult)
+        {
+            AZStd::unordered_map<AZStd::string, AZStd::string> resolvedSources;
+            AZStd::vector<MotionSourceUpdate> updates;
+            if (!CollectMotionSourceUpdates(motionSet, resolvedSources, updates, outResult))
+            {
+                return false;
+            }
+
+            // Apply only after every entry has resolved so a failed save does not partially modify the in-memory motion set.
+            for (const auto& [motionEntry, sourceFilename] : updates)
+            {
+                motionEntry->SetSourceFilename(sourceFilename);
+            }
+            return true;
+        }
+    } // namespace
+#endif
+
     void SourceControlCommand::InitSyntax()
     {
         GetSyntax().AddParameter(
@@ -483,6 +571,13 @@ namespace EMStudio
             AZ_Error("EMotionFX", false, "Can't get serialize context from component application.");
             return false;
         }
+
+#if defined(CARBONATED)
+        if (!UpdateMotionSourceFilenames(motionSet, outResult))
+        {
+            return false;
+        }
+#endif
 
         const bool saveResult = motionSet->SaveToFile(filename, context);
 

@@ -148,10 +148,18 @@ namespace EMotionFX
             return;
         }
 
+#if defined(CARBONATED)
+        serializeContext->Class<MotionEntry>()
+            ->Version(2)
+            ->Field("id", &MotionEntry::m_id)
+            ->Field("assetId", &MotionEntry::m_filename)
+            ->Field("sourceFilename", &MotionEntry::m_sourceFilename);
+#else
         serializeContext->Class<MotionEntry>()
             ->Version(1)
             ->Field("id", &MotionEntry::m_id)
             ->Field("assetId", &MotionEntry::m_filename);
+#endif
     }
 
     //----------------------------------------------------------------------------------------

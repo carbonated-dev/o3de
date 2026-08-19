@@ -12,19 +12,12 @@
 #include <EMotionFX/Source/EMotionFXManager.h>
 #include <Integration/Assets/MotionSetAsset.h>
 #if defined(CARBONATED)
-#include <SceneAPIExt/Groups/IMotionGroup.h>
-
 #include <AzCore/Asset/AssetManagerBus.h>
-#include <AzCore/IO/Path/Path.h>
-#include <AzCore/IO/SystemFile.h>
 #include <AzCore/Serialization/Utils.h>
 #include <AzCore/Utils/Utils.h>
 #include <AzCore/std/sort.h>
 #include <AzFramework/StringFunc/StringFunc.h>
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
-#include <SceneAPI/SceneCore/Containers/SceneManifest.h>
-#include <SceneAPI/SceneCore/Events/AssetImportRequest.h>
-#include <SceneAPI/SceneCore/Utilities/FileUtilities.h>
 #endif
 
 namespace EMotionFX
@@ -34,185 +27,85 @@ namespace EMotionFX
 #if defined(CARBONATED)
         namespace
         {
-            bool GetMotionSourcePathFromDatabase(const AZStd::string& motionPath, AZStd::string& sourcePath)
+            struct AuthoredMotionDependency
             {
-                bool resolvedSourcePath = false;
-                AzToolsFramework::AssetSystemRequestBus::BroadcastResult(
-                    resolvedSourcePath,
-                    &AzToolsFramework::AssetSystem::AssetSystemRequest::GetFullSourcePathFromRelativeProductPath,
-                    motionPath,
-                    sourcePath);
-                return resolvedSourcePath;
-            }
+                AZStd::string m_productPath;
+                AZStd::string m_sourcePath;
+            };
 
-            bool ManifestProducesMotion(
-                const AZStd::string& manifestPath, const AZ::IO::PathView& expectedMotionFileName)
+            bool LoadAuthoredMotionDependencies(
+                const AZStd::string& motionSetPath, AZStd::vector<AuthoredMotionDependency>& dependencies)
             {
-                AZ::SceneAPI::Containers::SceneManifest manifest;
-                if (!manifest.LoadFromFile(manifestPath))
-                {
-                    AZ_Warning(
-                        AssetBuilderSDK::WarningWindow,
-                        false,
-                        "Unable to read Scene manifest \"%s\" while resolving motion dependencies.\n",
-                        manifestPath.c_str());
-                    return false;
-                }
-
-                for (const auto& manifestObject : manifest.GetValueStorage())
-                {
-                    const auto* motionGroup = azrtti_cast<const Pipeline::Group::IMotionGroup*>(manifestObject.get());
-                    if (!motionGroup)
-                    {
-                        continue;
-                    }
-
-                    const AZ::IO::Path generatedMotionPath(
-                        AZ::SceneAPI::Utilities::FileUtilities::CreateOutputFileName(
-                            motionGroup->GetName(), {}, "motion", {}));
-                    const AZStd::string generatedMotionFileName(generatedMotionPath.Filename().Native());
-                    const AZStd::string expectedMotionFileNameString(expectedMotionFileName.Native());
-                    if (AzFramework::StringFunc::Equal(
-                            generatedMotionFileName.c_str(), expectedMotionFileNameString.c_str(), false))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            bool FindMotionSourceFromManifests(const AZStd::string& motionPath, AZStd::string& sourcePath)
-            {
-                const AZ::IO::Path motionProductPath(motionPath);
-                const AZ::IO::Path relativeDirectory = motionProductPath.ParentPath();
-
-                AZStd::vector<AZStd::string> scanFolders;
-                bool foundScanFolders = false;
-                AzToolsFramework::AssetSystemRequestBus::BroadcastResult(
-                    foundScanFolders,
-                    &AzToolsFramework::AssetSystem::AssetSystemRequest::GetScanFolders,
-                    scanFolders);
-                if (!foundScanFolders)
+                AZ::ObjectStream::FilterDescriptor loadFilter(
+                    &AZ::Data::AssetFilterNoAssetLoading,
+                    AZ::ObjectStream::FILTERFLAG_IGNORE_UNKNOWN_CLASSES);
+                AZStd::unique_ptr<MotionSet> motionSet(GetImporter().LoadMotionSet(motionSetPath, nullptr, loadFilter));
+                if (!motionSet)
                 {
                     return false;
                 }
 
-                AZStd::vector<AZStd::string> candidateSources;
-                for (const AZStd::string& scanFolder : scanFolders)
+                dependencies.reserve(motionSet->GetNumMotionEntries());
+                for (const auto& [motionId, motionEntry] : motionSet->GetMotionEntries())
                 {
-                    const AZ::IO::Path sourceDirectory = AZ::IO::Path(scanFolder) / relativeDirectory;
-                    AZ::IO::SystemFile::FindFiles(
-                        (sourceDirectory / "*.assetinfo").c_str(),
-                        [&candidateSources, &sourceDirectory, &motionProductPath](const char* fileName, bool isFile)
+                    if (motionEntry->GetSourceFilename().empty())
+                    {
+                        AZ_Error(
+                            AssetBuilderSDK::ErrorWindow,
+                            false,
+                            "Motion \"%s\" (entry \"%s\") in \"%s\" does not contain its Scene source path. "
+                            "Open and save the motion set in Animation Editor to upgrade it.\n",
+                            motionEntry->GetFilename(),
+                            motionId.c_str(),
+                            motionSetPath.c_str());
+                        return false;
+                    }
+                    dependencies.push_back({ motionEntry->GetFilenameString(), motionEntry->GetSourceFilename() });
+                }
+
+                AZStd::sort(
+                    dependencies.begin(),
+                    dependencies.end(),
+                    [](const AuthoredMotionDependency& left, const AuthoredMotionDependency& right)
+                    {
+                        if (left.m_productPath == right.m_productPath)
                         {
-                            if (!isFile)
-                            {
-                                return true;
-                            }
+                            return left.m_sourcePath < right.m_sourcePath;
+                        }
+                        return left.m_productPath < right.m_productPath;
+                    });
 
-                            const AZ::IO::Path manifestPath = sourceDirectory / fileName;
-                            AZ::IO::Path candidateSource = manifestPath;
-                            candidateSource.ReplaceExtension({});
-                            if (AZ::IO::SystemFile::Exists(candidateSource.c_str()) &&
-                                ManifestProducesMotion(manifestPath.Native(), motionProductPath.Filename()))
-                            {
-                                candidateSources.push_back(candidateSource.Native());
-                            }
-                            return true;
-                        });
-                }
-
-                AZStd::sort(candidateSources.begin(), candidateSources.end());
-                candidateSources.erase(AZStd::unique(candidateSources.begin(), candidateSources.end()), candidateSources.end());
-                if (candidateSources.size() == 1)
+                for (size_t dependencyIndex = 1; dependencyIndex < dependencies.size(); ++dependencyIndex)
                 {
-                    sourcePath = AZStd::move(candidateSources.front());
-                    return true;
-                }
-
-                if (candidateSources.size() > 1)
-                {
-                    AZ_Error(
-                        AssetBuilderSDK::ErrorWindow,
-                        false,
-                        "Motion product \"%s\" is declared by more than one Scene manifest. The producer is ambiguous.\n",
-                        motionPath.c_str());
-                }
-                return false;
-            }
-
-            bool FindVerifiedSameStemSource(const AZStd::string& motionPath, AZStd::string& sourcePath)
-            {
-                AZStd::unordered_set<AZStd::string> sceneExtensions;
-                AZ::SceneAPI::Events::AssetImportRequestBus::Broadcast(
-                    &AZ::SceneAPI::Events::AssetImportRequestBus::Events::GetSupportedFileExtensions,
-                    sceneExtensions);
-
-                AZStd::vector<AZStd::string> candidateSources;
-                for (const AZStd::string& extension : sceneExtensions)
-                {
-                    AZ::IO::Path candidateRelativePath(motionPath);
-                    candidateRelativePath.ReplaceExtension(AZ::IO::PathView(extension));
-
-                    AZ::Data::AssetInfo sourceInfo;
-                    AZStd::string watchFolder;
-                    bool foundSource = false;
-                    AzToolsFramework::AssetSystemRequestBus::BroadcastResult(
-                        foundSource,
-                        &AzToolsFramework::AssetSystem::AssetSystemRequest::GetSourceInfoBySourcePath,
-                        candidateRelativePath.c_str(),
-                        sourceInfo,
-                        watchFolder);
-                    if (!foundSource)
+                    if (dependencies[dependencyIndex - 1].m_productPath == dependencies[dependencyIndex].m_productPath &&
+                        dependencies[dependencyIndex - 1].m_sourcePath != dependencies[dependencyIndex].m_sourcePath)
                     {
-                        continue;
-                    }
-
-                    const AZ::IO::Path candidateFullPath = AZ::IO::Path(watchFolder) / sourceInfo.m_relativePath;
-                    AZ::IO::Path manifestPath = candidateFullPath;
-                    manifestPath.Native() += ".assetinfo";
-
-                    // A source manifest explicitly controls its outputs. If it exists, the manifest resolver above must
-                    // identify the matching MotionGroup; do not override it with a filename convention.
-                    if (!AZ::IO::SystemFile::Exists(manifestPath.c_str()))
-                    {
-                        candidateSources.push_back(candidateFullPath.Native());
+                        AZ_Error(
+                            AssetBuilderSDK::ErrorWindow,
+                            false,
+                            "Motion product \"%s\" in \"%s\" declares conflicting Scene sources.\n",
+                            dependencies[dependencyIndex].m_productPath.c_str(),
+                            motionSetPath.c_str());
+                        return false;
                     }
                 }
 
-                AZStd::sort(candidateSources.begin(), candidateSources.end());
-                candidateSources.erase(AZStd::unique(candidateSources.begin(), candidateSources.end()), candidateSources.end());
-                if (candidateSources.size() == 1)
-                {
-                    sourcePath = AZStd::move(candidateSources.front());
-                    return true;
-                }
-
-                if (candidateSources.size() > 1)
-                {
-                    AZ_Error(
-                        AssetBuilderSDK::ErrorWindow,
-                        false,
-                        "Motion product \"%s\" has more than one same-stem Scene source. The producer is ambiguous.\n",
-                        motionPath.c_str());
-                }
-                return false;
+                dependencies.erase(
+                    AZStd::unique(
+                        dependencies.begin(),
+                        dependencies.end(),
+                        [](const AuthoredMotionDependency& left, const AuthoredMotionDependency& right)
+                        {
+                            return left.m_productPath == right.m_productPath;
+                        }),
+                    dependencies.end());
+                return true;
             }
 
-            bool GetMotionSourcePath(const AZStd::string& motionPath, AZStd::string& sourcePath)
-            {
-                if (GetMotionSourcePathFromDatabase(motionPath, sourcePath) ||
-                    FindMotionSourceFromManifests(motionPath, sourcePath) ||
-                    FindVerifiedSameStemSource(motionPath, sourcePath))
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool ResolveMotionAssetId(const AZStd::string& motionPath, AZ::Data::AssetId& motionAssetId)
+            bool ResolveMotionAssetId(
+                const AZStd::string& motionPath,
+                const AZStd::string& motionSourcePath,
+                AZ::Data::AssetId& motionAssetId)
             {
                 AZ::Data::AssetCatalogRequestBus::BroadcastResult(
                     motionAssetId,
@@ -225,20 +118,15 @@ namespace EMotionFX
                     return true;
                 }
 
-                // The builder catalog can lag behind the Asset Processor database. Query the source and its products through
-                // the tools asset-system API so a newly generated motion product can still be resolved during this job.
-                AZStd::string sourcePath;
-                if (!GetMotionSourcePath(motionPath, sourcePath))
-                {
-                    return false;
-                }
+                // The builder catalog can lag behind the Asset Processor database. The authored source path lets us query
+                // its products directly without reverse-resolving the product during a clean-cache build.
                 AZ::Data::AssetInfo sourceInfo;
                 AZStd::string watchFolder;
                 bool foundSource = false;
                 AzToolsFramework::AssetSystemRequestBus::BroadcastResult(
                     foundSource,
                     &AzToolsFramework::AssetSystem::AssetSystemRequest::GetSourceInfoBySourcePath,
-                    sourcePath.c_str(),
+                    motionSourcePath.c_str(),
                     sourceInfo,
                     watchFolder);
                 if (!foundSource || !sourceInfo.m_assetId.IsValid())
@@ -280,8 +168,7 @@ namespace EMotionFX
             motionSetBuilderDescriptor.m_patterns.emplace_back(AssetBuilderSDK::AssetBuilderPattern("*.motionset", AssetBuilderSDK::AssetBuilderPattern::PatternType::Wildcard));
             motionSetBuilderDescriptor.m_busId = azrtti_typeid<MotionSetBuilderWorker>();
 #if defined(CARBONATED)
-            // Version 4 resolves Scene sources through product records or MotionGroup manifests and rejects partially
-            // resolved motion preload lists.
+            // Version 4 reads the producing Scene source directly from each authored motion-set entry.
             motionSetBuilderDescriptor.m_version = 4;
 #else
             motionSetBuilderDescriptor.m_version = 3;
@@ -314,30 +201,18 @@ namespace EMotionFX
             AzFramework::StringFunc::Path::ConstructFull(
                 request.m_watchFolder.c_str(), request.m_sourceFile.c_str(), fullPath, true);
 
-            AssetBuilderSDK::ProductPathDependencySet motionPathDependencies;
-            if (!ParseProductDependencies(fullPath, request.m_sourceFile, motionPathDependencies))
+            AZStd::vector<AuthoredMotionDependency> motionDependencies;
+            if (!LoadAuthoredMotionDependencies(fullPath, motionDependencies))
             {
                 response.m_result = AssetBuilderSDK::CreateJobsResultCode::Failed;
                 return;
             }
 
             AZStd::vector<AZStd::string> motionSourcePaths;
-            motionSourcePaths.reserve(motionPathDependencies.size());
-            for (const AssetBuilderSDK::ProductPathDependency& dependency : motionPathDependencies)
+            motionSourcePaths.reserve(motionDependencies.size());
+            for (const AuthoredMotionDependency& dependency : motionDependencies)
             {
-                AZStd::string sourcePath;
-                if (!GetMotionSourcePath(dependency.m_dependencyPath, sourcePath))
-                {
-                    AZ_Error(
-                        AssetBuilderSDK::ErrorWindow,
-                        false,
-                        "Unable to identify the Scene source that produces motion \"%s\" referenced by \"%s\".\n",
-                        dependency.m_dependencyPath.c_str(),
-                        request.m_sourceFile.c_str());
-                    response.m_result = AssetBuilderSDK::CreateJobsResultCode::Failed;
-                    return;
-                }
-                motionSourcePaths.push_back(AZStd::move(sourcePath));
+                motionSourcePaths.push_back(dependency.m_sourcePath);
             }
             AZStd::sort(motionSourcePaths.begin(), motionSourcePaths.end());
             motionSourcePaths.erase(AZStd::unique(motionSourcePaths.begin(), motionSourcePaths.end()), motionSourcePaths.end());
@@ -390,8 +265,8 @@ namespace EMotionFX
             AzFramework::StringFunc::Path::ConstructFull(request.m_tempDirPath.c_str(), fileName.c_str(), destPath, true);
 
 #if defined(CARBONATED)
-            AssetBuilderSDK::ProductPathDependencySet motionPathDependencies;
-            if (!ParseProductDependencies(request.m_fullPath, request.m_sourceFile, motionPathDependencies))
+            AZStd::vector<AuthoredMotionDependency> motionDependencies;
+            if (!LoadAuthoredMotionDependencies(request.m_fullPath, motionDependencies))
             {
                 AZ_Error(AssetBuilderSDK::ErrorWindow, false, "Error while parsing motion dependencies for asset %s.\n", fileName.c_str());
                 response.m_resultCode = AssetBuilderSDK::ProcessJobResult_Failed;
@@ -414,25 +289,17 @@ namespace EMotionFX
             Integration::MotionSetAsset::SerializedData motionSetAssetData;
             motionSetAssetData.m_emfxNativeData = nativeDataOutcome.TakeValue();
 
-            AZStd::vector<AZStd::string> motionPaths;
-            motionPaths.reserve(motionPathDependencies.size());
-            for (const AssetBuilderSDK::ProductPathDependency& dependency : motionPathDependencies)
-            {
-                motionPaths.push_back(dependency.m_dependencyPath);
-            }
-            AZStd::sort(motionPaths.begin(), motionPaths.end());
-
             AssetBuilderSDK::JobProduct jobProduct(destPath, azrtti_typeid<Integration::MotionSetAsset>(), 0);
-            for (const AZStd::string& motionPath : motionPaths)
+            for (const AuthoredMotionDependency& dependency : motionDependencies)
             {
                 AZ::Data::AssetId motionAssetId;
-                if (!ResolveMotionAssetId(motionPath, motionAssetId))
+                if (!ResolveMotionAssetId(dependency.m_productPath, dependency.m_sourcePath, motionAssetId))
                 {
                     AZ_Error(
                         AssetBuilderSDK::ErrorWindow,
                         false,
                         "Motion product \"%s\" referenced by motion set %s could not be resolved.\n",
-                        motionPath.c_str(),
+                        dependency.m_productPath.c_str(),
                         fileName.c_str());
                     continue;
                 }
@@ -440,7 +307,7 @@ namespace EMotionFX
                 AZ::Data::Asset<Integration::MotionAsset> motionAsset(
                     motionAssetId,
                     azrtti_typeid<Integration::MotionAsset>(),
-                    motionPath);
+                    dependency.m_productPath);
                 motionAsset.SetAutoLoadBehavior(AZ::Data::AssetLoadBehavior::PreLoad);
                 motionSetAssetData.m_motionAssets.push_back(AZStd::move(motionAsset));
 
@@ -449,7 +316,7 @@ namespace EMotionFX
                     AZ::Data::ProductDependencyInfo::CreateFlags(AZ::Data::AssetLoadBehavior::PreLoad));
             }
 
-            if (motionSetAssetData.m_motionAssets.size() != motionPaths.size())
+            if (motionSetAssetData.m_motionAssets.size() != motionDependencies.size())
             {
                 AZ_Error(
                     AssetBuilderSDK::ErrorWindow,
@@ -457,7 +324,7 @@ namespace EMotionFX
                     "Motion set %s references %zu motion products, but only %zu could be resolved. "
                     "Refusing to emit a cooked motion set with an incomplete preload list.\n",
                     fileName.c_str(),
-                    motionPaths.size(),
+                    motionDependencies.size(),
                     motionSetAssetData.m_motionAssets.size());
                 response.m_resultCode = AssetBuilderSDK::ProcessJobResult_Failed;
                 return;
