@@ -280,9 +280,9 @@ namespace EMotionFX
             motionSetBuilderDescriptor.m_patterns.emplace_back(AssetBuilderSDK::AssetBuilderPattern("*.motionset", AssetBuilderSDK::AssetBuilderPattern::PatternType::Wildcard));
             motionSetBuilderDescriptor.m_busId = azrtti_typeid<MotionSetBuilderWorker>();
 #if defined(CARBONATED)
-            // Version 8 resolves Scene sources through product records or MotionGroup manifests and rejects partially
+            // Version 4 resolves Scene sources through product records or MotionGroup manifests and rejects partially
             // resolved motion preload lists.
-            motionSetBuilderDescriptor.m_version = 8;
+            motionSetBuilderDescriptor.m_version = 4;
 #else
             motionSetBuilderDescriptor.m_version = 3;
 #endif
