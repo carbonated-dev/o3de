@@ -10,7 +10,7 @@
 #include <Atom/RHI.Reflect/PipelineLayoutDescriptor.h>
 #include <Atom/RHI.Reflect/ShaderStageFunction.h>
 #include <Atom/RHI.Reflect/InputStreamLayout.h>
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_SHADER_PRELOAD)
 #include <Atom/RHI.Reflect/PipelineStateDescriptorForDrawPreloadData.h>
 #endif
 
@@ -55,7 +55,7 @@ namespace AZ::RHI
         : PipelineStateDescriptor(PipelineStateType::RayTracing)
     {}
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_SHADER_PRELOAD)
     void PipelineStateDescriptorForDrawPreloadData::Reflect(ReflectContext* context)
     {
         if (SerializeContext* serializeContext = azrtti_cast<SerializeContext*>(context))

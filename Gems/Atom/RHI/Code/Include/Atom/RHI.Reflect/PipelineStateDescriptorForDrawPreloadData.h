@@ -7,7 +7,7 @@
  */
 #pragma once
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_SHADER_PRELOAD)
 
 #include <Atom/RHI.Reflect/ConstantsLayout.h>
 #include <Atom/RHI.Reflect/InputStreamLayout.h>

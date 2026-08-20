@@ -24,7 +24,7 @@
 #include <Atom/RHI.Reflect/RenderStates.h>
 #include <Atom/RHI.Reflect/PipelineLayoutDescriptor.h>
 #include <Atom/RHI.Reflect/PipelineLibraryData.h>
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_SHADER_PRELOAD)
 #include <Atom/RHI.Reflect/PipelineStateDescriptorForDrawPreloadData.h>
 #endif
 #include <Atom/RHI.Reflect/ReflectSystemComponent.h>
@@ -69,7 +69,7 @@ namespace AZ::RHI
         PipelineLibraryData::Reflect(context);
         ReflectRenderStateEnums(context);
         ReflectSamplerStateEnums(context);
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_SHADER_PRELOAD)
         PipelineStateDescriptorForDrawPreloadData::Reflect(context);
 #endif
         //////////////////////////////////////////////////////////////////////////

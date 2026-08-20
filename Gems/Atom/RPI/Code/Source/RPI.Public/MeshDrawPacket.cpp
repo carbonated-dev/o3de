@@ -20,7 +20,9 @@
 #if defined(CARBONATED)
 #include <Atom/RHI/ConstantsData.h>
 #include <AzCore/Memory/MemoryMarker.h>
+#if defined(CARBONATED_SHADER_PRELOAD)
 #include <Atom/RHI.Reflect/PipelineStateDescriptorForDrawPreloadData.h>
+#endif
 #if defined(CARBONATED_SHADER_LOADING_TIME)
 #include <AzCore/Time/ITime.h>
 #endif
@@ -647,10 +649,7 @@ namespace AZ
                         {
                             if (!fallbackPipelineState)
                             {
-#if defined(RELEASE)
-                                fallbackPipelineState = fallbackShader->AcquirePipelineState(
-                                    fallbackPipelineStateDescriptor, RHI::PipelineStateAcquireFlags::None);
-#else
+#if !defined(RELEASE) && defined(CARBONATED_SHADER_PRELOAD)
                                 const int begin = int(AZ::GetRealElapsedTimeMs());
                                 fallbackPipelineState = fallbackShader->AcquirePipelineState(
                                     fallbackPipelineStateDescriptor, RHI::PipelineStateAcquireFlags::None);
@@ -688,6 +687,9 @@ namespace AZ
                                         }
                                     }
                                 }
+#else
+                                fallbackPipelineState = fallbackShader->AcquirePipelineState(
+                                    fallbackPipelineStateDescriptor, RHI::PipelineStateAcquireFlags::None);
 #endif
                             }
                             pipelineState = fallbackPipelineState;
