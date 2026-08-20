@@ -123,7 +123,9 @@ namespace AZ::Render
 #include <Atom/Feature/ParamMacros/EndParams.inl>
 
             uint32_t m_enabled = 0; // 0/1 toggle sent to the shader to short-circuit the composite pass.
-            float m_padding0 = 0.0f;
+            uint32_t m_debugMode = 0; // FroxelScatter diagnostic visualization mode.
+            uint32_t m_lightTypeMask = 0x3fu; // Directional, ambient, simple point/spot, sphere, and disk lights.
+            float m_debugLightCountScale = 1.0f / 16.0f; // Maps diagnostic counts into the heat-map range.
         };
 
         VolumetricFogConstants m_sceneSrgGlobalConstants;

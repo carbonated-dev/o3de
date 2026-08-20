@@ -35,6 +35,32 @@ namespace AZ::Render
         AZ::ConsoleFunctorFlags::Null,
         "Enable volumetric fog rendering. The Volumetric Fog component must also be enabled.");
 
+    AZ_CVAR(
+        uint32_t,
+        r_volumetricFogDebugMode,
+        0,
+        nullptr,
+        AZ::ConsoleFunctorFlags::Null,
+        "FroxelScatter diagnostics: 0=off, 1=listed lights, 2=contributing lights, 3=rejected lights, "
+        "4=shadow evaluations, 5=NVLC overflow, 6=NVLC depth bin.");
+
+    AZ_CVAR(
+        uint32_t,
+        r_volumetricFogLightTypeMask,
+        0x3f,
+        nullptr,
+        AZ::ConsoleFunctorFlags::Null,
+        "Volumetric fog light mask: bit 0=directional, 1=ambient, 2=simple point, 3=simple spot, "
+        "4=sphere/point, 5=disk. Useful for isolating FroxelScatter costs.");
+
+    AZ_CVAR(
+        float,
+        r_volumetricFogDebugLightCountScale,
+        1.0f / 16.0f,
+        nullptr,
+        AZ::ConsoleFunctorFlags::Null,
+        "Scale applied to FroxelScatter light-count diagnostic heat maps.");
+
     void VolumetricFogFeatureProcessor::Reflect(ReflectContext* context)
     {
         if (auto* serializeContext = azrtti_cast<SerializeContext*>(context))
@@ -148,6 +174,11 @@ namespace AZ::Render
         {
             UpdateScatterPassShaderOptions();
         }
+        m_sceneSrgGlobalConstants.m_debugMode = r_volumetricFogDebugMode;
+        m_sceneSrgGlobalConstants.m_lightTypeMask = r_volumetricFogLightTypeMask;
+        m_sceneSrgGlobalConstants.m_debugLightCountScale = r_volumetricFogDebugLightCountScale > 0.0f
+            ? r_volumetricFogDebugLightCountScale
+            : 0.0f;
         m_sceneSrg->SetConstant(m_shaderConstantsIndex, m_sceneSrgGlobalConstants);
         m_sceneSrg->SetConstant(m_shaderConstantsVolumeIndex, m_sceneSrgVolumeConstants);
 

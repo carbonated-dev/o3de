@@ -37,7 +37,9 @@ partial ShaderResourceGroup SceneSrg
         uint     m_sequenceLength;
         float    m_blendFactor;
         uint     m_enabled;
-        float    m_padding0;
+        uint     m_debugMode;
+        uint     m_lightTypeMask;
+        float    m_debugLightCountScale;
     };
     VolumetricFogConstants m_volumetricFogData;
 

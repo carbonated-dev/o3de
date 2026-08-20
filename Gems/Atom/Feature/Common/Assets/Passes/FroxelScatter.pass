@@ -60,12 +60,6 @@
                     "ImageViewDesc": {
                         "IsArray": 1
                     }
-                },
-                {
-                    "Name": "BRDFTextureInput",
-                    "ShaderInputName": "m_brdfMap",
-                    "SlotType": "Input",
-                    "ScopeAttachmentUsage": "Shader"
                 }
             ],
             "ImageAttachments": [
@@ -78,15 +72,8 @@
                         }
                     },
                     "ImageDescriptor": {
-                        "Format": "R16G16B16A16_FLOAT",
+                        "Format": "R11G11B10_FLOAT",
                         "Dimension": 3
-                    }
-                },
-                {
-                    "Name": "BRDFTexture",
-                    "Lifetime": "Imported",
-                    "AssetRef": {
-                        "FilePath": "Textures/BRDFTexture.attimage"
                     }
                 }
             ],
@@ -96,13 +83,6 @@
                     "AttachmentRef": {
                         "Pass": "This",
                         "Attachment": "FroxelScatterResult"
-                    }
-                },
-                {
-                    "LocalSlot": "BRDFTextureInput",
-                    "AttachmentRef": {
-                        "Pass": "This",
-                        "Attachment": "BRDFTexture"
                     }
                 }
             ],

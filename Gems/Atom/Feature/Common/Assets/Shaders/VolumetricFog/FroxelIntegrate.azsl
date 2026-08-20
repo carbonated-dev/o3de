@@ -13,9 +13,9 @@
 
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
-    Texture3D<float4>   m_froxelScattered;       // current-frame raw light contribution
-    Texture3D<float4>   m_froxelHistory;         // previous-frame temporally-filtered scatter (ping-pong read)
-    RWTexture3D<float4> m_froxelTemporalOutput;  // this frame's temporal result (ping-pong write, for next frame)
+    Texture3D<float3>   m_froxelScattered;       // current-frame raw light contribution
+    Texture3D<float3>   m_froxelHistory;         // previous-frame temporally-filtered scatter (ping-pong read)
+    RWTexture3D<float3> m_froxelTemporalOutput;  // this frame's RGB temporal result (ping-pong write, for next frame)
     Texture3D<float4>   m_froxelMedium;          // per-froxel scattering coefficient (rgb) + extinction (a)
     Texture3D<float4>   m_froxelEmissive;        // per-froxel emissive
     RWTexture3D<float4> m_froxelIntegrated;      // accumulated in-scatter (rgb) + transmittance (a)
@@ -57,7 +57,7 @@ bool ReprojectToHistory(float3 posWS, out float3 historyUVW)
 // Compute AABB of the current-frame values in a 3x3x3 neighborhood
 // to clamp history samples and suppress ghosting
 // -----------------------------------------------------------------------
-void ComputeNeighborhoodAABB(uint3 center, out float4 minVal, out float4 maxVal)
+void ComputeNeighborhoodAABB(uint3 center, out float3 minVal, out float3 maxVal)
 {
     minVal =  1e10;
     maxVal = -1e10;
@@ -69,7 +69,7 @@ void ComputeNeighborhoodAABB(uint3 center, out float4 minVal, out float4 maxVal)
         {
             for (int x = start.x; x <= end.x; ++x)
             {
-                float4 s = PassSrg::m_froxelScattered[int3(x, y, z)];
+                float3 s = PassSrg::m_froxelScattered[int3(x, y, z)];
                 minVal   = min(minVal, s);
                 maxVal   = max(maxVal, s);
             }
@@ -77,29 +77,29 @@ void ComputeNeighborhoodAABB(uint3 center, out float4 minVal, out float4 maxVal)
     }
 }
 
-float4 ClipToAABB(float4 history, float4 current, float4 minVal, float4 maxVal)
+float3 ClipToAABB(float3 history, float3 current, float3 minVal, float3 maxVal)
 {
-    float4 extents = (maxVal - minVal) * 0.5 + 1e-6;
-    float4 delta   = history - current;
-    float4 units   = delta / extents;
-    float  maxUnit = max(max(abs(units.x), abs(units.y)),
-                         max(abs(units.z), abs(units.w)));
+    float3 extents = (maxVal - minVal) * 0.5 + 1e-6;
+    float3 delta   = history - current;
+    float3 units   = delta / extents;
+    float maxUnit = max(abs(units.x), max(abs(units.y), abs(units.z)));
     if (maxUnit <= 1.0)
         return history;
     return clamp(history, minVal, maxVal);
 }
 
-float4 LogEncodeRGBD(float4 rgbd) { return float4(log2(max(rgbd.rgb, 1e-6)), rgbd.a); }
-float4 LogDecodeRGBD(float4 rgbd) { return float4(exp2(rgbd.rgb), rgbd.a); }
+float3 LogEncodeRGB(float3 rgb) { return log2(max(rgb, 1e-6)); }
+float3 LogDecodeRGB(float3 rgb) { return exp2(rgb); }
 
 // -----------------------------------------------------------------------
 // Temporal blend for a single froxel
 // -----------------------------------------------------------------------
-float4 TemporalBlend(uint3 froxelId)
+float3 TemporalBlend(uint3 froxelId)
 {
-    float4 current = PassSrg::m_froxelScattered[froxelId];
+    float3 current = PassSrg::m_froxelScattered[froxelId];
 
-    if (SceneSrg::m_volumetricFogData.m_frameIndex == 1)
+    // Diagnostics represent the current froxel and must not be smeared by history.
+    if (SceneSrg::m_volumetricFogData.m_debugMode != 0 || SceneSrg::m_volumetricFogData.m_frameIndex == 1)
         return current;
 
     float3 posWS = GetFroxelWorldPosition(froxelId);
@@ -109,19 +109,19 @@ float4 TemporalBlend(uint3 froxelId)
 
     float3 cellSize   = 1.0f / float3(SceneSrg::m_volumetricFogData.m_froxelCount);
     float3 clampedUVW = clamp(historyUVW, cellSize * 0.5f, 1.0f - cellSize * 0.5f);
-    float4 history    = PassSrg::m_froxelHistory.SampleLevel(PassSrg::LinearSampler, clampedUVW, 0);
+    float3 history = PassSrg::m_froxelHistory.SampleLevel(PassSrg::LinearSampler, clampedUVW, 0);
 
-    float4 minNeighbor, maxNeighbor;
+    float3 minNeighbor, maxNeighbor;
     ComputeNeighborhoodAABB(froxelId, minNeighbor, maxNeighbor);
 
-    float4 historyLog = LogEncodeRGBD(history);
-    float4 currentLog = LogEncodeRGBD(current);
-    float4 minLog     = LogEncodeRGBD(float4(max(minNeighbor.rgb, 1e-6), minNeighbor.a));
-    float4 maxLog     = LogEncodeRGBD(float4(max(maxNeighbor.rgb, 1e-6), maxNeighbor.a));
+    float3 historyLog = LogEncodeRGB(history);
+    float3 currentLog = LogEncodeRGB(current);
+    float3 minLog = LogEncodeRGB(minNeighbor);
+    float3 maxLog = LogEncodeRGB(maxNeighbor);
     historyLog = ClipToAABB(historyLog, currentLog, minLog, maxLog);
 
-    float4 blendedLog = lerp(historyLog, currentLog, SceneSrg::m_volumetricFogData.m_blendFactor);
-    return LogDecodeRGBD(blendedLog);
+    float3 blendedLog = lerp(historyLog, currentLog, SceneSrg::m_volumetricFogData.m_blendFactor);
+    return LogDecodeRGB(blendedLog);
 }
 
 // -----------------------------------------------------------------------
@@ -147,14 +147,14 @@ void MainCS(uint2 tileID : SV_DispatchThreadID)
         uint3 froxelId = uint3(tileID, z);
 
         // --- Temporal reprojection (all slices, so history is fully populated next frame) ---
-        float4 blended = TemporalBlend(froxelId);
+        float3 blended = TemporalBlend(froxelId);
         PassSrg::m_froxelTemporalOutput[froxelId] = blended;
 
         // --- Beer-Lambert integration ---
         if (!doneIntegrating)
         {
             float4 medium    = PassSrg::m_froxelMedium[froxelId];
-            float3 inScatter = blended.rgb * medium.rgb;
+            float3 inScatter = blended * medium.rgb;
             float  extinction = medium.a;
             float3 emissive  = PassSrg::m_froxelEmissive[froxelId].rgb;
 

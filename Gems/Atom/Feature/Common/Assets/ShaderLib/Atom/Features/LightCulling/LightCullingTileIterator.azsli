@@ -18,6 +18,8 @@ class LightCullingTileIterator
     {
         m_readIndex = 0;
         m_value = NVLC_END_OF_LIST;  
+        m_bin = 0;
+        m_overflow = false;
     }
 
 #if ENABLE_LIGHT_CULLING
@@ -37,8 +39,8 @@ class LightCullingTileIterator
                     
         TileLightData tileLightData = Tile_UnpackData(tileLightDataTex[tileId]);
         m_overflow = tileLightData.overflow;
-        uint bin = NVLC_GetBin(viewz, tileLightData); 
-        m_readIndex = ((tileId.y * tileWidth + tileId.x) * NVLC_MAX_BINS + bin) * NVLC_MAX_POSSIBLE_LIGHTS_PER_BIN;  
+        m_bin = NVLC_GetBin(viewz, tileLightData);
+        m_readIndex = ((tileId.y * tileWidth + tileId.x) * NVLC_MAX_BINS + m_bin) * NVLC_MAX_POSSIBLE_LIGHTS_PER_BIN;
         m_value = 0;  
     }
 #else
@@ -69,8 +71,19 @@ class LightCullingTileIterator
         return !(m_value < NVLC_END_OF_GROUP);
     }
 
+    uint GetBin()
+    {
+        return m_bin;
+    }
+
+    bool HasOverflow()
+    {
+        return m_overflow;
+    }
+
     uint m_readIndex;
     uint m_value;   
+    uint m_bin;
 
     // true if the maximum number of lights per tile is exceeded
     // lights will probably flicker if this happens

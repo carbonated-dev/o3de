@@ -87,11 +87,8 @@
                             "Attachment": "FroxelScattered"
                         }
                     },
-                     "FormatSource": {
-                        "Pass": "This",
-                        "Attachment": "FroxelScattered"
-                    },
                     "ImageDescriptor": {
+                        "Format": "R16G16B16A16_FLOAT",
                         "Dimension": 3
                     }
                 }
