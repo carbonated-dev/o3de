@@ -11,6 +11,8 @@
 #include <Atom/RPI/Math.azsli>
 #include "FroxelUtil.azsli"
 
+option bool o_volumetricFog_tiled_neighborhood = true;
+
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
     Texture3D<float3>   m_froxelScattered;       // current-frame raw light contribution
@@ -29,6 +31,29 @@ ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
         AddressV = Clamp;
         AddressW = Clamp;
     };
+}
+
+static const uint SharedTileWidth = NUM_THREADS_PER_GROUP + 2;
+static const uint SharedPlaneCellCount = SharedTileWidth * SharedTileWidth;
+static const uint ThreadsPerGroup = NUM_THREADS_PER_GROUP * NUM_THREADS_PER_GROUP;
+groupshared uint sharedScatter[3 * SharedPlaneCellCount];
+
+// Scatter is backed by R11G11B10_FLOAT. Repacking through fp16 preserves its effective
+// non-negative precision while reducing each LDS cell and load to one 32-bit value.
+uint PackSharedScatter(float3 value)
+{
+    uint r = min((f32tof16(max(value.r, 0.0)) + 0x8) >> 4, 0x7ff);
+    uint g = min((f32tof16(max(value.g, 0.0)) + 0x8) >> 4, 0x7ff);
+    uint b = min((f32tof16(max(value.b, 0.0)) + 0x10) >> 5, 0x3ff);
+    return r | (g << 11) | (b << 22);
+}
+
+float3 UnpackSharedScatter(uint value)
+{
+    return float3(
+        f16tof32((value & 0x7ff) << 4),
+        f16tof32(((value >> 11) & 0x7ff) << 4),
+        f16tof32(((value >> 22) & 0x3ff) << 5));
 }
 
 // -----------------------------------------------------------------------
@@ -57,7 +82,7 @@ bool ReprojectToHistory(float3 posWS, out float3 historyUVW)
 // Compute AABB of the current-frame values in a 3x3x3 neighborhood
 // to clamp history samples and suppress ghosting
 // -----------------------------------------------------------------------
-void ComputeNeighborhoodAABB(uint3 center, out float3 minVal, out float3 maxVal)
+void ComputeNeighborhoodAABBGlobal(uint3 center, out float3 minVal, out float3 maxVal)
 {
     minVal =  1e10;
     maxVal = -1e10;
@@ -72,6 +97,61 @@ void ComputeNeighborhoodAABB(uint3 center, out float3 minVal, out float3 maxVal)
                 float3 s = PassSrg::m_froxelScattered[int3(x, y, z)];
                 minVal   = min(minVal, s);
                 maxVal   = max(maxVal, s);
+            }
+        }
+    }
+}
+
+uint GetSharedScatterIndex(uint plane, uint2 localPosition)
+{
+    return plane * SharedPlaneCellCount + localPosition.y * SharedTileWidth + localPosition.x;
+}
+
+void LoadSharedScatterPlane(
+    uint plane,
+    uint sourceZ,
+    uint groupIndex,
+    uint2 groupBase,
+    uint2 froxelCountXY)
+{
+    for (uint cell = groupIndex; cell < SharedPlaneCellCount; cell += ThreadsPerGroup)
+    {
+        uint2 localPosition = uint2(cell % SharedTileWidth, cell / SharedTileWidth);
+        int2 globalPosition = clamp(
+            int2(groupBase) + int2(localPosition) - 1,
+            0,
+            int2(froxelCountXY) - 1);
+        sharedScatter[plane * SharedPlaneCellCount + cell] = PackSharedScatter(
+            PassSrg::m_froxelScattered[uint3(globalPosition, sourceZ)]);
+    }
+}
+
+void ComputeNeighborhoodAABBShared(uint2 localCenter, uint z, out float3 minVal, out float3 maxVal)
+{
+    minVal = 1e10;
+    maxVal = -1e10;
+    uint currentPlane = z % 3;
+    uint previousPlane = z > 0 ? (z + 2) % 3 : currentPlane;
+    uint nextPlane = z + 1 < SceneSrg::m_volumetricFogData.m_froxelCount.z
+        ? (z + 1) % 3
+        : currentPlane;
+    int3 radius = min(int3(SceneSrg::m_volumetricFogData.m_froxelCount) - 1, 1);
+
+    [loop]
+    for (int zOffset = -radius.z; zOffset <= radius.z; ++zOffset)
+    {
+        uint plane = zOffset < 0 ? previousPlane : (zOffset > 0 ? nextPlane : currentPlane);
+        [loop]
+        for (int yOffset = -radius.y; yOffset <= radius.y; ++yOffset)
+        {
+            [loop]
+            for (int xOffset = -radius.x; xOffset <= radius.x; ++xOffset)
+            {
+                uint2 samplePosition = uint2(int2(localCenter) + int2(xOffset, yOffset));
+                float3 sampleValue = UnpackSharedScatter(
+                    sharedScatter[GetSharedScatterIndex(plane, samplePosition)]);
+                minVal = min(minVal, sampleValue);
+                maxVal = max(maxVal, sampleValue);
             }
         }
     }
@@ -94,10 +174,12 @@ float3 LogDecodeRGB(float3 rgb) { return exp2(rgb); }
 // -----------------------------------------------------------------------
 // Temporal blend for a single froxel
 // -----------------------------------------------------------------------
-float3 TemporalBlend(uint3 froxelId)
+float3 TemporalBlend(
+    uint3 froxelId,
+    float3 current,
+    float3 minNeighbor,
+    float3 maxNeighbor)
 {
-    float3 current = PassSrg::m_froxelScattered[froxelId];
-
     // Diagnostics represent the current froxel and must not be smeared by history.
     if (SceneSrg::m_volumetricFogData.m_debugMode != 0 || SceneSrg::m_volumetricFogData.m_frameIndex == 1)
         return current;
@@ -111,9 +193,6 @@ float3 TemporalBlend(uint3 froxelId)
     float3 clampedUVW = clamp(historyUVW, cellSize * 0.5f, 1.0f - cellSize * 0.5f);
     float3 history = PassSrg::m_froxelHistory.SampleLevel(PassSrg::LinearSampler, clampedUVW, 0);
 
-    float3 minNeighbor, maxNeighbor;
-    ComputeNeighborhoodAABB(froxelId, minNeighbor, maxNeighbor);
-
     float3 historyLog = LogEncodeRGB(history);
     float3 currentLog = LogEncodeRGB(current);
     float3 minLog = LogEncodeRGB(minNeighbor);
@@ -124,56 +203,135 @@ float3 TemporalBlend(uint3 froxelId)
     return LogDecodeRGB(blendedLog);
 }
 
+float3 TemporalBlendGlobal(uint3 froxelId)
+{
+    float3 current = PassSrg::m_froxelScattered[froxelId];
+    float3 minNeighbor, maxNeighbor;
+    ComputeNeighborhoodAABBGlobal(froxelId, minNeighbor, maxNeighbor);
+    return TemporalBlend(froxelId, current, minNeighbor, maxNeighbor);
+}
+
+void IntegrateFroxel(
+    uint3 froxelId,
+    uint z,
+    float3 blended,
+    float fogNear,
+    float fogFar,
+    uint froxelCountZ,
+    inout float3 accumScatter,
+    inout float accumTransparency,
+    inout bool doneIntegrating)
+{
+    if (!doneIntegrating)
+    {
+        float4 medium = PassSrg::m_froxelMedium[froxelId];
+        float3 inScatter = blended * medium.rgb;
+        float extinction = medium.a;
+        float3 emissive = PassSrg::m_froxelEmissive[froxelId].rgb;
+
+        float sliceDepth = SliceToViewZ(z + 1, fogNear, fogFar, froxelCountZ)
+                         - SliceToViewZ(z, fogNear, fogFar, froxelCountZ);
+        float sliceTransparency = exp(-extinction * sliceDepth);
+        float sliceOpacity = 1.0 - sliceTransparency;
+        float scatterFactor = (extinction > 1e-6) ? (sliceOpacity / extinction) : sliceDepth;
+
+        accumScatter += (inScatter + emissive) * accumTransparency * scatterFactor;
+        accumTransparency *= sliceTransparency;
+
+        if (accumTransparency < 0.001)
+        {
+            accumTransparency = 0.0;
+            doneIntegrating = true;
+        }
+    }
+
+    PassSrg::m_froxelIntegrated[froxelId] = float4(accumScatter, accumTransparency);
+}
+
+void IntegrateColumnGlobal(uint2 tileID)
+{
+    float3 accumScatter = 0;
+    float accumTransparency = 1.0;
+    bool doneIntegrating = false;
+    uint froxelCountZ = SceneSrg::m_volumetricFogData.m_froxelCount.z;
+    float fogNear = SceneSrg::m_volumetricFogData.m_fogNear;
+    float fogFar = SceneSrg::m_volumetricFogData.m_fogFar;
+
+    for (uint z = 0; z < froxelCountZ; ++z)
+    {
+        uint3 froxelId = uint3(tileID, z);
+        float3 blended = TemporalBlendGlobal(froxelId);
+        PassSrg::m_froxelTemporalOutput[froxelId] = blended;
+        IntegrateFroxel(
+            froxelId, z, blended, fogNear, fogFar, froxelCountZ,
+            accumScatter, accumTransparency, doneIntegrating);
+    }
+}
+
 // -----------------------------------------------------------------------
 // One thread per (x, y) froxel column; z is iterated in the loop.
 // For each slice: temporal blend first, then Beer-Lambert integration.
 // -----------------------------------------------------------------------
 [numthreads(NUM_THREADS_PER_GROUP, NUM_THREADS_PER_GROUP, 1)]
-void MainCS(uint2 tileID : SV_DispatchThreadID)
+void MainCS(
+    uint2 tileID : SV_DispatchThreadID,
+    uint3 groupID : SV_GroupID,
+    uint groupIndex : SV_GroupIndex,
+    uint3 groupThreadID : SV_GroupThreadID)
 {
-    if (any(tileID >= SceneSrg::m_volumetricFogData.m_froxelCount.xy))
+    uint2 froxelCountXY = SceneSrg::m_volumetricFogData.m_froxelCount.xy;
+    if (!o_volumetricFog_tiled_neighborhood)
+    {
+        if (any(tileID >= froxelCountXY))
+        {
+            return;
+        }
+        IntegrateColumnGlobal(tileID);
         return;
+    }
 
-    float3 accumScatter      = 0;
-    float  accumTransparency = 1.0;
-    bool   doneIntegrating   = false;
+    // Edge groups must keep all lanes alive for group barriers, even when some lanes are outside
+    // the logical froxel grid.
+    bool active = all(tileID < froxelCountXY);
+    uint froxelCountZ = SceneSrg::m_volumetricFogData.m_froxelCount.z;
+    uint2 groupBase = groupID.xy * NUM_THREADS_PER_GROUP;
 
-    uint  froxelCountZ = SceneSrg::m_volumetricFogData.m_froxelCount.z;
-    float fogNear      = SceneSrg::m_volumetricFogData.m_fogNear;
-    float fogFar       = SceneSrg::m_volumetricFogData.m_fogFar;
+    // Prime the rolling window. Boundary samples reuse the current plane, which has the same
+    // min/max result as the original clipped neighborhood.
+    LoadSharedScatterPlane(0, 0, groupIndex, groupBase, froxelCountXY);
+    LoadSharedScatterPlane(1, min(1, froxelCountZ - 1), groupIndex, groupBase, froxelCountXY);
+    GroupMemoryBarrierWithGroupSync();
+
+    float3 accumScatter = 0;
+    float accumTransparency = 1.0;
+    bool doneIntegrating = false;
+    float fogNear = SceneSrg::m_volumetricFogData.m_fogNear;
+    float fogFar = SceneSrg::m_volumetricFogData.m_fogFar;
+    uint2 localCenter = groupThreadID.xy + 1;
 
     for (uint z = 0; z < froxelCountZ; ++z)
     {
-        uint3 froxelId = uint3(tileID, z);
-
-        // --- Temporal reprojection (all slices, so history is fully populated next frame) ---
-        float3 blended = TemporalBlend(froxelId);
-        PassSrg::m_froxelTemporalOutput[froxelId] = blended;
-
-        // --- Beer-Lambert integration ---
-        if (!doneIntegrating)
+        if (z > 0 && z + 1 < froxelCountZ)
         {
-            float4 medium    = PassSrg::m_froxelMedium[froxelId];
-            float3 inScatter = blended * medium.rgb;
-            float  extinction = medium.a;
-            float3 emissive  = PassSrg::m_froxelEmissive[froxelId].rgb;
-
-            float sliceDepth = SliceToViewZ(z + 1, fogNear, fogFar, froxelCountZ)
-                             - SliceToViewZ(z,     fogNear, fogFar, froxelCountZ);
-            float sliceTransparency = exp(-extinction * sliceDepth);
-            float sliceOpacity      = 1.0 - sliceTransparency;
-            float scatterFactor     = (extinction > 1e-6) ? (sliceOpacity / extinction) : sliceDepth;
-
-            accumScatter      += (inScatter + emissive) * accumTransparency * scatterFactor;
-            accumTransparency *= sliceTransparency;
-
-            if (accumTransparency < 0.001)
-            {
-                accumTransparency = 0.0;
-                doneIntegrating   = true;
-            }
+            // Finish all reads from the previous window before overwriting its oldest plane.
+            GroupMemoryBarrierWithGroupSync();
+            uint nextZ = min(z + 1, froxelCountZ - 1);
+            LoadSharedScatterPlane((z + 1) % 3, nextZ, groupIndex, groupBase, froxelCountXY);
+            GroupMemoryBarrierWithGroupSync();
         }
 
-        PassSrg::m_froxelIntegrated[froxelId] = float4(accumScatter, accumTransparency);
+        if (active)
+        {
+            uint3 froxelId = uint3(tileID, z);
+            float3 current = UnpackSharedScatter(
+                sharedScatter[GetSharedScatterIndex(z % 3, localCenter)]);
+            float3 minNeighbor, maxNeighbor;
+            ComputeNeighborhoodAABBShared(localCenter, z, minNeighbor, maxNeighbor);
+            float3 blended = TemporalBlend(froxelId, current, minNeighbor, maxNeighbor);
+            PassSrg::m_froxelTemporalOutput[froxelId] = blended;
+            IntegrateFroxel(
+                froxelId, z, blended, fogNear, fogFar, froxelCountZ,
+                accumScatter, accumTransparency, doneIntegrating);
+        }
     }
 }
