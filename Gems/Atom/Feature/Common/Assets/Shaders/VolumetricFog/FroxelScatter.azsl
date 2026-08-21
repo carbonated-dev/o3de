@@ -32,6 +32,9 @@ option bool o_volumetricFog_collect_stats = false;
 option bool o_volumetricFog_compact_directional_shadow = true;
 option bool o_volumetricFog_compact_projected_shadow = true;
 option bool o_volumetricFog_depth_bounds = true;
+option bool o_volumetricFog_simple_area_lights = true;
+option bool o_volumetricFog_spot_gobos = false;
+option bool o_volumetricFog_local_light_shadows = true;
 
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
@@ -81,14 +84,6 @@ static const uint FogLightSimplePoint = 1u << 2;
 static const uint FogLightSimpleSpot = 1u << 3;
 static const uint FogLightPoint = 1u << 4;
 static const uint FogLightDisk = 1u << 5;
-
-enum FogCullLightType
-{
-    SimplePointLight,
-    SimpleSpotLight,
-    PointLight,
-    DiskLight
-};
 
 struct FogLightResult
 {
@@ -158,6 +153,31 @@ float3 EvaluateFogLocalLightLod(
         SceneSrg::m_volumetricFogData.m_lightLodFullPixels,
         detailImportancePixels);
     return float3(contributionFade, detailFade, projectedRadiusPixels);
+}
+
+float EvaluateFogLocalLightContributionFade(
+    float3 lightPosition,
+    float inverseAttenuationRadiusSquared,
+    float3 lightIntensity)
+{
+    if (SceneSrg::m_volumetricFogData.m_lightLodEnabled == 0)
+    {
+        return 1.0;
+    }
+
+    float attenuationRadius = rsqrt(max(inverseAttenuationRadiusSquared, 1.0e-12));
+    float3 cameraToLight = lightPosition - ViewSrg::m_worldPosition.xyz;
+    float inverseCameraDistance = rsqrt(max(dot(cameraToLight, cameraToLight), 1.0e-4));
+    float screenHeight = float(
+        SceneSrg::m_volumetricFogData.m_froxelCount.y * SceneSrg::m_volumetricFogData.m_tileSize);
+    float projectionScale = 0.5 * screenHeight * abs(ViewSrg::m_projectionMatrix[1][1]);
+    float peakIntensity = max(lightIntensity.x, max(lightIntensity.y, lightIntensity.z));
+    float intensityScale = sqrt(max(peakIntensity, 0.0) /
+        SceneSrg::m_volumetricFogData.m_lightLodReferenceIntensity);
+    float importancePixels = attenuationRadius * inverseCameraDistance * projectionScale * intensityScale;
+    float cullStart = SceneSrg::m_volumetricFogData.m_lightLodCullPixels;
+    float cullEnd = max(cullStart * 2.0, cullStart + 1.0e-3);
+    return smoothstep(cullStart, cullEnd, importancePixels);
 }
 
 float HenyeyGreenstein(float cosTheta)
@@ -409,7 +429,8 @@ FogLightResult EvaluateFogSimpleSpotLight(uint lightIndex, float3 froxelPosition
     result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation * coneAttenuation * lightLod.x /
         max(distanceSquared, 1e-6);
 
-    if (lightLod.y > 0.0 && light.m_goboTexIndex < ViewSrg::MaxGoboTextureCount)
+    if (o_volumetricFog_spot_gobos &&
+        lightLod.y > 0.0 && light.m_goboTexIndex < ViewSrg::MaxGoboTextureCount)
     {
         float4 positionInLight = mul(light.m_viewProjectionMatrix, float4(froxelPosition, 1.0));
         float inverseW = rcp(max(abs(positionInLight.w), 1e-5));
@@ -420,7 +441,8 @@ FogLightResult EvaluateFogSimpleSpotLight(uint lightIndex, float3 froxelPosition
     }
 
 #if ENABLE_SHADOWS
-    if (lightLod.y > 0.0 && any(result.m_radiance > 0) && o_enableShadows &&
+    if (o_volumetricFog_local_light_shadows && lightLod.y > 0.0 &&
+        any(result.m_radiance > 0) && o_enableShadows &&
         o_enableSimpleSpotLightShadows && light.m_shadowIndex != 0xffff)
     {
         float shadowVisibility = EvaluateFogProjectedShadow(
@@ -500,7 +522,8 @@ FogLightResult EvaluateFogPointLight(uint lightIndex, float3 froxelPosition)
     result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation * lightLod.x /
         max(centerDistanceSquared, 1e-6);
 #if ENABLE_SHADOWS
-    if (lightLod.y > 0.0 && any(result.m_radiance > 0) && o_enableShadows && o_enableSphereLightShadows)
+    if (o_volumetricFog_local_light_shadows && lightLod.y > 0.0 &&
+        any(result.m_radiance > 0) && o_enableShadows && o_enableSphereLightShadows)
     {
         uint face = GetFogPointLightShadowFace(froxelPosition, light.m_position);
         uint shadowIndex = UnpackFogPointLightShadowIndex(light, face);
@@ -575,7 +598,8 @@ FogLightResult EvaluateFogDiskLight(uint lightIndex, float3 froxelPosition)
     float rangeAttenuation = 1.0 - range * range;
     rangeAttenuation *= rangeAttenuation;
 
-    if (lightLod.z < 0.5 * SceneSrg::m_volumetricFogData.m_lightLodShadowPixels)
+    if (o_volumetricFog_simple_area_lights ||
+        lightLod.z < 0.5 * SceneSrg::m_volumetricFogData.m_lightLodShadowPixels)
     {
         // Once the disk is small on screen, its center-point approximation is visually
         // indistinguishable and avoids the closest-point construction and extra square roots.
@@ -612,7 +636,8 @@ FogLightResult EvaluateFogDiskLight(uint lightIndex, float3 froxelPosition)
             apparentSizeAttenuation * lightLod.x / max(distanceToDiskSquared, 1e-6);
     }
 #if ENABLE_SHADOWS
-    if (lightLod.y > 0.0 && any(result.m_radiance > 0) && o_enableShadows &&
+    if (o_volumetricFog_local_light_shadows && lightLod.y > 0.0 &&
+        any(result.m_radiance > 0) && o_enableShadows &&
         o_enableDiskLightShadows && light.m_shadowIndex != 0xffff)
     {
         float shadowVisibility = EvaluateFogProjectedShadow(
@@ -629,6 +654,193 @@ FogLightResult EvaluateFogDiskLight(uint lightIndex, float3 froxelPosition)
 #endif
 
     return result;
+}
+
+float3 EvaluateFogUnshadowedScattering(
+    float3 radiance,
+    float3 directionToLight,
+    float distanceToLight,
+    float3 viewDirection,
+    float extinction)
+{
+    float phase = HenyeyGreenstein(dot(directionToLight, viewDirection));
+    float lightTransmittance = exp(-extinction * distanceToLight);
+    return radiance * phase * lightTransmittance;
+}
+
+// Low-register local-light evaluators. These retain the same range, cone, phase, channel,
+// light-distance extinction, and projected-size LOD behavior as the full evaluators, but
+// deliberately omit local shadows, gobos, and finite-area closest-point construction.
+float3 EvaluateFogFastSimplePointLight(
+    uint lightIndex, float3 froxelPosition, float3 viewDirection, float extinction)
+{
+    if (!o_enablePunctualLights || !o_enableSimplePointLights)
+    {
+        return 0;
+    }
+
+    ViewSrg::SimplePointLight light = ViewSrg::m_simplePointLights[lightIndex];
+    if (!IsFogLightChannelEnabled(light.m_lightingChannelMask))
+    {
+        return 0;
+    }
+
+    float contributionFade = EvaluateFogLocalLightContributionFade(
+        light.m_position, light.m_invAttenuationRadiusSquared, light.m_rgbIntensityCandelas);
+    float3 toLight = light.m_position - froxelPosition;
+    float distanceSquared = dot(toLight, toLight);
+    float range = distanceSquared * light.m_invAttenuationRadiusSquared;
+    if (contributionFade <= 0.0 || range >= 1.0)
+    {
+        return 0;
+    }
+
+    float inverseDistance = rsqrt(max(distanceSquared, 1e-6));
+    float rangeAttenuation = 1.0 - range * range;
+    rangeAttenuation *= rangeAttenuation;
+    float3 radiance = light.m_rgbIntensityCandelas * rangeAttenuation * contributionFade /
+        max(distanceSquared, 1e-6);
+    return EvaluateFogUnshadowedScattering(
+        radiance, toLight * inverseDistance, distanceSquared * inverseDistance,
+        viewDirection, extinction);
+}
+
+float3 EvaluateFogFastSimpleSpotLight(
+    uint lightIndex, float3 froxelPosition, float3 viewDirection, float extinction)
+{
+    if (!o_enablePunctualLights || !o_enableSimpleSpotLights)
+    {
+        return 0;
+    }
+
+    ViewSrg::SimpleSpotLight light = ViewSrg::m_simpleSpotLights[lightIndex];
+    if (!IsFogLightChannelEnabled(light.m_lightingChannelMask))
+    {
+        return 0;
+    }
+
+    float contributionFade = EvaluateFogLocalLightContributionFade(
+        light.m_position, light.m_invAttenuationRadiusSquared, light.m_rgbIntensityCandelas);
+    float3 toLight = light.m_position - froxelPosition;
+    float distanceSquared = dot(toLight, toLight);
+    float range = distanceSquared * light.m_invAttenuationRadiusSquared;
+    if (contributionFade <= 0.0 || range >= 1.0)
+    {
+        return 0;
+    }
+
+    float inverseDistance = rsqrt(max(distanceSquared, 1e-6));
+    float3 directionToLight = toLight * inverseDistance;
+    float coneCosine = dot(directionToLight, -light.m_direction);
+    if (coneCosine < light.m_cosOuterConeAngle)
+    {
+        return 0;
+    }
+
+    // Consume the normalized direction before constructing RGB radiance so the compiler does
+    // not have to retain both float3 values across the final attenuation calculation.
+    float phase = HenyeyGreenstein(dot(directionToLight, viewDirection));
+    float lightTransmittance = exp(-extinction * distanceSquared * inverseDistance);
+    float rangeAttenuation = 1.0 - range * range;
+    rangeAttenuation *= rangeAttenuation;
+    float coneAttenuation = saturate(
+        (coneCosine - light.m_cosOuterConeAngle) /
+        max(light.m_cosInnerConeAngle - light.m_cosOuterConeAngle, 1e-5));
+    coneAttenuation = coneAttenuation * coneAttenuation * (3.0 - 2.0 * coneAttenuation);
+    float scatteringScale = rangeAttenuation * coneAttenuation * contributionFade * phase * lightTransmittance /
+        max(distanceSquared, 1e-6);
+    return light.m_rgbIntensityCandelas * scatteringScale;
+}
+
+float3 EvaluateFogFastPointLight(
+    uint lightIndex, float3 froxelPosition, float3 viewDirection, float extinction)
+{
+    if (!o_enableAreaLights || !o_enableSphereLights)
+    {
+        return 0;
+    }
+
+    ViewSrg::PointLight light = ViewSrg::m_pointLights[lightIndex];
+    if (!IsFogLightChannelEnabled(light.m_lightingChannelMask))
+    {
+        return 0;
+    }
+
+    float contributionFade = EvaluateFogLocalLightContributionFade(
+        light.m_position, light.m_invAttenuationRadiusSquared, light.m_rgbIntensityCandelas);
+    float3 toLight = light.m_position - froxelPosition;
+    float distanceSquared = dot(toLight, toLight);
+    float range = distanceSquared * light.m_invAttenuationRadiusSquared;
+    if (contributionFade <= 0.0 || range >= 1.0)
+    {
+        return 0;
+    }
+
+    float inverseDistance = rsqrt(max(distanceSquared, 1e-6));
+    float distance = distanceSquared * inverseDistance;
+    float rangeAttenuation = 1.0 - range * range;
+    rangeAttenuation *= rangeAttenuation;
+    float3 radiance = light.m_rgbIntensityCandelas * rangeAttenuation * contributionFade /
+        max(distanceSquared, 1e-6);
+    return EvaluateFogUnshadowedScattering(
+        radiance, toLight * inverseDistance, max(distance - light.m_bulbRadius, 0.0),
+        viewDirection, extinction);
+}
+
+float3 EvaluateFogFastDiskLight(
+    uint lightIndex, float3 froxelPosition, float3 viewDirection, float extinction)
+{
+    if (!o_enableAreaLights || !o_enableDiskLights)
+    {
+        return 0;
+    }
+
+    ViewSrg::DiskLight light = ViewSrg::m_diskLights[lightIndex];
+    if (!IsFogLightChannelEnabled(light.m_lightingChannelMask))
+    {
+        return 0;
+    }
+
+    float contributionFade = EvaluateFogLocalLightContributionFade(
+        light.m_position, light.m_invAttenuationRadiusSquared, light.m_rgbIntensityCandelas);
+    float3 toLight = light.m_position - froxelPosition;
+    float distanceSquared = dot(toLight, toLight);
+    float inverseDistance = rsqrt(max(distanceSquared, 1e-6));
+    float3 directionToLight = toLight * inverseDistance;
+    float facing = dot(directionToLight, -light.m_direction);
+    float range = distanceSquared * light.m_invAttenuationRadiusSquared;
+    if (contributionFade <= 0.0 || range >= 1.0 || facing <= 0.0)
+    {
+        return 0;
+    }
+
+    float phase = HenyeyGreenstein(dot(directionToLight, viewDirection));
+    float distanceToLight = max(distanceSquared * inverseDistance - light.m_diskRadius, 0.0);
+    float lightTransmittance = exp(-extinction * distanceToLight);
+
+    float coneAttenuation = 1.0;
+    static const uint UseConeAngle = 1;
+    if ((light.m_flags & UseConeAngle) != 0)
+    {
+        // The fast path treats the disk as a center-point spotlight. Reusing its already
+        // normalized center direction avoids retaining another float3 and reciprocal square root.
+        float coneCosine = dot(directionToLight, -light.m_direction);
+        if (coneCosine < light.m_cosOuterConeAngle)
+        {
+            return 0;
+        }
+        coneAttenuation = saturate(
+            (coneCosine - light.m_cosOuterConeAngle) /
+            max(light.m_cosInnerConeAngle - light.m_cosOuterConeAngle, 1e-5));
+        coneAttenuation = coneAttenuation * coneAttenuation * (3.0 - 2.0 * coneAttenuation);
+    }
+
+    float rangeAttenuation = 1.0 - range * range;
+    rangeAttenuation *= rangeAttenuation;
+    float radiusSquared = max(light.m_diskRadius * light.m_diskRadius, 1e-6);
+    float scatteringScale = rangeAttenuation * facing * coneAttenuation * contributionFade * phase *
+        lightTransmittance / max(distanceSquared, radiusSquared);
+    return light.m_rgbIntensityCandelas * scatteringScale;
 }
 
 float3 ApplyFogDirectionalLights(
@@ -666,8 +878,7 @@ float3 ApplyFogDirectionalLights(
     return inScattering;
 }
 
-float3 ApplyFogLightsByType(
-    FogCullLightType type,
+float3 ApplyFogSimplePointLights(
     float3 froxelPosition,
     float extinction,
     float3 viewDirection,
@@ -685,30 +896,30 @@ float3 ApplyFogLightsByType(
             ++stats.m_listedLights;
         }
 
-        FogLightResult light = MakeEmptyFogLightResult();
-        switch (type)
+        float3 contribution = 0;
+        bool shadowEvaluated = false;
+        if (o_volumetricFog_local_light_shadows)
         {
-        case SimplePointLight:
-            light = EvaluateFogSimplePointLight(lightIndex, froxelPosition);
-            break;
-        case SimpleSpotLight:
-            light = EvaluateFogSimpleSpotLight(lightIndex, froxelPosition);
-            break;
-        case PointLight:
-            light = EvaluateFogPointLight(lightIndex, froxelPosition);
-            break;
-        case DiskLight:
-            light = EvaluateFogDiskLight(lightIndex, froxelPosition);
-            break;
+            FogLightResult light = EvaluateFogSimplePointLight(lightIndex, froxelPosition);
+            if (any(light.m_radiance > 0) && light.m_visibility > 0)
+            {
+                contribution = EvaluateFogSingleScattering(light, viewDirection, extinction);
+            }
+            shadowEvaluated = light.m_shadowEvaluated;
+        }
+        else
+        {
+            contribution = EvaluateFogFastSimplePointLight(
+                lightIndex, froxelPosition, viewDirection, extinction);
         }
 
-        if (any(light.m_radiance > 0) && light.m_visibility > 0)
+        if (any(contribution > 0))
         {
             if (o_volumetricFog_collect_stats)
             {
                 ++stats.m_contributingLights;
             }
-            inScattering += EvaluateFogSingleScattering(light, viewDirection, extinction);
+            inScattering += contribution;
         }
         else if (o_volumetricFog_collect_stats)
         {
@@ -716,7 +927,172 @@ float3 ApplyFogLightsByType(
         }
         if (o_volumetricFog_collect_stats)
         {
-            stats.m_shadowEvaluations += light.m_shadowEvaluated ? 1 : 0;
+            stats.m_shadowEvaluations += shadowEvaluated ? 1 : 0;
+        }
+    }
+    return inScattering;
+}
+
+float3 ApplyFogSimpleSpotLights(
+    float3 froxelPosition,
+    float extinction,
+    float3 viewDirection,
+    inout LightCullingTileIterator tileIterator,
+    inout FogScatterStats stats)
+{
+    float3 inScattering = 0;
+    tileIterator.LoadAdvance();
+    while (!tileIterator.IsDone())
+    {
+        uint lightIndex = tileIterator.GetValue();
+        tileIterator.LoadAdvance();
+        if (o_volumetricFog_collect_stats)
+        {
+            ++stats.m_listedLights;
+        }
+
+        float3 contribution = 0;
+        bool shadowEvaluated = false;
+        if (o_volumetricFog_local_light_shadows)
+        {
+            FogLightResult light = EvaluateFogSimpleSpotLight(lightIndex, froxelPosition);
+            if (any(light.m_radiance > 0) && light.m_visibility > 0)
+            {
+                contribution = EvaluateFogSingleScattering(light, viewDirection, extinction);
+            }
+            shadowEvaluated = light.m_shadowEvaluated;
+        }
+        else
+        {
+            contribution = EvaluateFogFastSimpleSpotLight(
+                lightIndex, froxelPosition, viewDirection, extinction);
+        }
+
+        if (any(contribution > 0))
+        {
+            if (o_volumetricFog_collect_stats)
+            {
+                ++stats.m_contributingLights;
+            }
+            inScattering += contribution;
+        }
+        else if (o_volumetricFog_collect_stats)
+        {
+            ++stats.m_rejectedLights;
+        }
+        if (o_volumetricFog_collect_stats)
+        {
+            stats.m_shadowEvaluations += shadowEvaluated ? 1 : 0;
+        }
+    }
+    return inScattering;
+}
+
+float3 ApplyFogPointLights(
+    float3 froxelPosition,
+    float extinction,
+    float3 viewDirection,
+    inout LightCullingTileIterator tileIterator,
+    inout FogScatterStats stats)
+{
+    float3 inScattering = 0;
+    tileIterator.LoadAdvance();
+    while (!tileIterator.IsDone())
+    {
+        uint lightIndex = tileIterator.GetValue();
+        tileIterator.LoadAdvance();
+        if (o_volumetricFog_collect_stats)
+        {
+            ++stats.m_listedLights;
+        }
+
+        float3 contribution = 0;
+        bool shadowEvaluated = false;
+        if (o_volumetricFog_local_light_shadows)
+        {
+            FogLightResult light = EvaluateFogPointLight(lightIndex, froxelPosition);
+            if (any(light.m_radiance > 0) && light.m_visibility > 0)
+            {
+                contribution = EvaluateFogSingleScattering(light, viewDirection, extinction);
+            }
+            shadowEvaluated = light.m_shadowEvaluated;
+        }
+        else
+        {
+            contribution = EvaluateFogFastPointLight(
+                lightIndex, froxelPosition, viewDirection, extinction);
+        }
+
+        if (any(contribution > 0))
+        {
+            if (o_volumetricFog_collect_stats)
+            {
+                ++stats.m_contributingLights;
+            }
+            inScattering += contribution;
+        }
+        else if (o_volumetricFog_collect_stats)
+        {
+            ++stats.m_rejectedLights;
+        }
+        if (o_volumetricFog_collect_stats)
+        {
+            stats.m_shadowEvaluations += shadowEvaluated ? 1 : 0;
+        }
+    }
+    return inScattering;
+}
+
+float3 ApplyFogDiskLights(
+    float3 froxelPosition,
+    float extinction,
+    float3 viewDirection,
+    inout LightCullingTileIterator tileIterator,
+    inout FogScatterStats stats)
+{
+    float3 inScattering = 0;
+    tileIterator.LoadAdvance();
+    while (!tileIterator.IsDone())
+    {
+        uint lightIndex = tileIterator.GetValue();
+        tileIterator.LoadAdvance();
+        if (o_volumetricFog_collect_stats)
+        {
+            ++stats.m_listedLights;
+        }
+
+        float3 contribution = 0;
+        bool shadowEvaluated = false;
+        if (o_volumetricFog_local_light_shadows)
+        {
+            FogLightResult light = EvaluateFogDiskLight(lightIndex, froxelPosition);
+            if (any(light.m_radiance > 0) && light.m_visibility > 0)
+            {
+                contribution = EvaluateFogSingleScattering(light, viewDirection, extinction);
+            }
+            shadowEvaluated = light.m_shadowEvaluated;
+        }
+        else
+        {
+            contribution = EvaluateFogFastDiskLight(
+                lightIndex, froxelPosition, viewDirection, extinction);
+        }
+
+        if (any(contribution > 0))
+        {
+            if (o_volumetricFog_collect_stats)
+            {
+                ++stats.m_contributingLights;
+            }
+            inScattering += contribution;
+        }
+        else if (o_volumetricFog_collect_stats)
+        {
+            ++stats.m_rejectedLights;
+        }
+        if (o_volumetricFog_collect_stats)
+        {
+            stats.m_shadowEvaluations += shadowEvaluated ? 1 : 0;
         }
     }
     return inScattering;
@@ -850,7 +1226,10 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID, uint groupIndex : SV_GroupInde
     float3 jitteredPositionVs = ViewSrg::GetViewSpacePosition(jitteredUv, jitteredDepth);
     jitteredPositionVs.z = -jitteredPositionVs.z;
     float3 froxelPosition = mul(ViewSrg::m_viewMatrixInverse, float4(jitteredPositionVs, 1.0)).xyz;
-    float3 viewDirection = normalize(froxelPosition - ViewSrg::m_worldPosition.xyz);
+    // A normalized direction only needs the [-1, 1] range. Keeping it at minimum
+    // precision shortens its live range enough to avoid another VGPR allocation
+    // block on AMD while preserving the precision needed by the phase function.
+    min16float3 viewDirection = normalize(froxelPosition - ViewSrg::m_worldPosition.xyz);
 
     float2 screenPosition = float2(froxelId.xy) * SceneSrg::m_volumetricFogData.m_tileSize + 0.5;
     float4 svPosition = float4(screenPosition, 0, sliceCenter);
@@ -872,22 +1251,22 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID, uint groupIndex : SV_GroupInde
     SkipLightGroup(tileIterator, false, stats);
 
     if ((lightTypeMask & FogLightSimplePoint) != 0)
-        inScatter += ApplyFogLightsByType(SimplePointLight, froxelPosition, extinction, viewDirection, tileIterator, stats);
+        inScatter += ApplyFogSimplePointLights(froxelPosition, extinction, viewDirection, tileIterator, stats);
     else
         SkipLightGroup(tileIterator, true, stats);
 
     if ((lightTypeMask & FogLightSimpleSpot) != 0)
-        inScatter += ApplyFogLightsByType(SimpleSpotLight, froxelPosition, extinction, viewDirection, tileIterator, stats);
+        inScatter += ApplyFogSimpleSpotLights(froxelPosition, extinction, viewDirection, tileIterator, stats);
     else
         SkipLightGroup(tileIterator, true, stats);
 
     if ((lightTypeMask & FogLightPoint) != 0)
-        inScatter += ApplyFogLightsByType(PointLight, froxelPosition, extinction, viewDirection, tileIterator, stats);
+        inScatter += ApplyFogPointLights(froxelPosition, extinction, viewDirection, tileIterator, stats);
     else
         SkipLightGroup(tileIterator, true, stats);
 
     if ((lightTypeMask & FogLightDisk) != 0)
-        inScatter += ApplyFogLightsByType(DiskLight, froxelPosition, extinction, viewDirection, tileIterator, stats);
+        inScatter += ApplyFogDiskLights(froxelPosition, extinction, viewDirection, tileIterator, stats);
     else
         SkipLightGroup(tileIterator, true, stats);
 

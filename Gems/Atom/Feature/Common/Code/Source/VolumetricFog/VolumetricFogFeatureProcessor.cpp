@@ -72,6 +72,9 @@ namespace AZ::Render
         "Intensity-weighted projected radius where local fog lights begin fading out.");
     AZ_CVAR(float, r_volumetricFogLightLodReferenceIntensity, 1000.0f, nullptr, AZ::ConsoleFunctorFlags::Null,
         "Reference intensity in candelas used by volumetric-fog light importance.");
+    AZ_CVAR(uint32_t, r_volumetricFogLocalLightQuality, 0, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "Local fog-light quality: 0=fast unshadowed point/spot approximations, "
+        "1=shadowed approximations, 2=full area geometry and spot gobos.");
     AZ_CVAR(bool, r_volumetricFogDepthBounds, true, nullptr, AZ::ConsoleFunctorFlags::Null,
         "Limit volumetric-fog work to the farthest visible depth in each light-culling tile.");
     AZ_CVAR(uint32_t, r_volumetricFogDepthBoundsSliceMargin, 2, nullptr, AZ::ConsoleFunctorFlags::Null,
@@ -639,6 +642,17 @@ namespace AZ::Render
         shaderOptions.SetValue(
             Name("o_volumetricFog_depth_bounds"),
             Name(static_cast<bool>(r_volumetricFogDepthBounds) ? "true" : "false"));
+
+        const uint32_t localLightQuality = AZStd::min(static_cast<uint32_t>(r_volumetricFogLocalLightQuality), 2u);
+        shaderOptions.SetValue(
+            Name("o_volumetricFog_simple_area_lights"),
+            Name(localLightQuality < 2 ? "true" : "false"));
+        shaderOptions.SetValue(
+            Name("o_volumetricFog_spot_gobos"),
+            Name(localLightQuality == 2 ? "true" : "false"));
+        shaderOptions.SetValue(
+            Name("o_volumetricFog_local_light_shadows"),
+            Name(localLightQuality == 0 ? "false" : "true"));
 
         m_scatterPass->SetShaderOptions(AZStd::move(shaderOptions));
     }
