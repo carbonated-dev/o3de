@@ -84,6 +84,9 @@ static const uint FogLightSimplePoint = 1u << 2;
 static const uint FogLightSimpleSpot = 1u << 3;
 static const uint FogLightPoint = 1u << 4;
 static const uint FogLightDisk = 1u << 5;
+static const uint FogIteratorValueMask = 0x0000ffffu;
+static const uint FogIteratorBudgetMask = 0xffff0000u;
+static const uint FogIteratorBudgetStep = 0x00010000u;
 
 struct FogLightResult
 {
@@ -116,6 +119,58 @@ FogLightResult MakeEmptyFogLightResult()
 bool IsFogLightChannelEnabled(uint lightChannelMask)
 {
     return (SceneSrg::m_volumetricFogData.m_lightingChannelMask & lightChannelMask) != 0;
+}
+
+uint EvaluateFogLocalLightBudget(float viewDepth)
+{
+    float budgetDistanceRange = max(
+        SceneSrg::m_volumetricFogData.m_lightBudgetFarDistance -
+            SceneSrg::m_volumetricFogData.m_lightBudgetNearDistance,
+        1.0e-3);
+    float distanceFade = saturate(
+        (viewDepth - SceneSrg::m_volumetricFogData.m_lightBudgetNearDistance) /
+        budgetDistanceRange);
+    float lightBudget = lerp(
+        float(SceneSrg::m_volumetricFogData.m_maxLocalLightsNear),
+        float(SceneSrg::m_volumetricFogData.m_maxLocalLightsFar),
+        distanceFade);
+    return uint(lightBudget + 0.5);
+}
+
+// NVLC indices and sentinels occupy only the lower 16 bits. Preserve a shared
+// per-froxel budget in the unused upper half of the iterator's existing value,
+// avoiding both another VGPR and per-thread LDS traffic.
+uint FogIteratorLoadAdvance(inout LightCullingTileIterator iterator)
+{
+    uint budgetBits = iterator.m_value & FogIteratorBudgetMask;
+    uint value = iterator.m_value & FogIteratorValueMask;
+    if (value != NVLC_END_OF_LIST)
+    {
+        value = iterator.m_lightListRemapped.Load(int(iterator.m_readIndex)).x & FogIteratorValueMask;
+        ++iterator.m_readIndex;
+    }
+    iterator.m_value = budgetBits | value;
+    return value;
+}
+
+uint FogIteratorGetValue(LightCullingTileIterator iterator)
+{
+    return iterator.m_value & FogIteratorValueMask;
+}
+
+bool FogIteratorIsDone(LightCullingTileIterator iterator)
+{
+    return !((iterator.m_value & FogIteratorValueMask) < NVLC_END_OF_GROUP);
+}
+
+bool HasFogLocalLightBudget(LightCullingTileIterator iterator)
+{
+    return (iterator.m_value & FogIteratorBudgetMask) != 0;
+}
+
+void ConsumeFogLocalLightBudget(inout LightCullingTileIterator iterator)
+{
+    iterator.m_value -= FogIteratorBudgetStep;
 }
 
 // x: contribution fade, y: expensive-detail fade, z: projected attenuation radius in pixels.
@@ -850,7 +905,7 @@ float3 ApplyFogDirectionalLights(
     float4 screenPosition,
     inout FogScatterStats stats)
 {
-    float3 inScattering = 0;
+    min16float3 inScattering = 0;
     for (uint lightIndex = 0; lightIndex < SceneSrg::m_directionalLightCount; ++lightIndex)
     {
         if (o_volumetricFog_collect_stats)
@@ -878,6 +933,21 @@ float3 ApplyFogDirectionalLights(
     return inScattering;
 }
 
+void DrainActiveFogLightGroup(
+    inout LightCullingTileIterator tileIterator,
+    inout FogScatterStats stats)
+{
+    while (!FogIteratorIsDone(tileIterator))
+    {
+        if (o_volumetricFog_collect_stats)
+        {
+            ++stats.m_listedLights;
+            ++stats.m_rejectedLights;
+        }
+        FogIteratorLoadAdvance(tileIterator);
+    }
+}
+
 float3 ApplyFogSimplePointLights(
     float3 froxelPosition,
     float extinction,
@@ -885,18 +955,24 @@ float3 ApplyFogSimplePointLights(
     inout LightCullingTileIterator tileIterator,
     inout FogScatterStats stats)
 {
-    float3 inScattering = 0;
-    tileIterator.LoadAdvance();
-    while (!tileIterator.IsDone())
+    min16float3 inScattering = 0;
+    FogIteratorLoadAdvance(tileIterator);
+    while (!FogIteratorIsDone(tileIterator))
     {
-        uint lightIndex = tileIterator.GetValue();
-        tileIterator.LoadAdvance();
+        if (!HasFogLocalLightBudget(tileIterator))
+        {
+            DrainActiveFogLightGroup(tileIterator, stats);
+            break;
+        }
+
+        uint lightIndex = FogIteratorGetValue(tileIterator);
+        FogIteratorLoadAdvance(tileIterator);
         if (o_volumetricFog_collect_stats)
         {
             ++stats.m_listedLights;
         }
 
-        float3 contribution = 0;
+        min16float3 contribution = 0;
         bool shadowEvaluated = false;
         if (o_volumetricFog_local_light_shadows)
         {
@@ -920,6 +996,7 @@ float3 ApplyFogSimplePointLights(
                 ++stats.m_contributingLights;
             }
             inScattering += contribution;
+            ConsumeFogLocalLightBudget(tileIterator);
         }
         else if (o_volumetricFog_collect_stats)
         {
@@ -940,18 +1017,24 @@ float3 ApplyFogSimpleSpotLights(
     inout LightCullingTileIterator tileIterator,
     inout FogScatterStats stats)
 {
-    float3 inScattering = 0;
-    tileIterator.LoadAdvance();
-    while (!tileIterator.IsDone())
+    min16float3 inScattering = 0;
+    FogIteratorLoadAdvance(tileIterator);
+    while (!FogIteratorIsDone(tileIterator))
     {
-        uint lightIndex = tileIterator.GetValue();
-        tileIterator.LoadAdvance();
+        if (!HasFogLocalLightBudget(tileIterator))
+        {
+            DrainActiveFogLightGroup(tileIterator, stats);
+            break;
+        }
+
+        uint lightIndex = FogIteratorGetValue(tileIterator);
+        FogIteratorLoadAdvance(tileIterator);
         if (o_volumetricFog_collect_stats)
         {
             ++stats.m_listedLights;
         }
 
-        float3 contribution = 0;
+        min16float3 contribution = 0;
         bool shadowEvaluated = false;
         if (o_volumetricFog_local_light_shadows)
         {
@@ -975,6 +1058,7 @@ float3 ApplyFogSimpleSpotLights(
                 ++stats.m_contributingLights;
             }
             inScattering += contribution;
+            ConsumeFogLocalLightBudget(tileIterator);
         }
         else if (o_volumetricFog_collect_stats)
         {
@@ -995,18 +1079,24 @@ float3 ApplyFogPointLights(
     inout LightCullingTileIterator tileIterator,
     inout FogScatterStats stats)
 {
-    float3 inScattering = 0;
-    tileIterator.LoadAdvance();
-    while (!tileIterator.IsDone())
+    min16float3 inScattering = 0;
+    FogIteratorLoadAdvance(tileIterator);
+    while (!FogIteratorIsDone(tileIterator))
     {
-        uint lightIndex = tileIterator.GetValue();
-        tileIterator.LoadAdvance();
+        if (!HasFogLocalLightBudget(tileIterator))
+        {
+            DrainActiveFogLightGroup(tileIterator, stats);
+            break;
+        }
+
+        uint lightIndex = FogIteratorGetValue(tileIterator);
+        FogIteratorLoadAdvance(tileIterator);
         if (o_volumetricFog_collect_stats)
         {
             ++stats.m_listedLights;
         }
 
-        float3 contribution = 0;
+        min16float3 contribution = 0;
         bool shadowEvaluated = false;
         if (o_volumetricFog_local_light_shadows)
         {
@@ -1030,6 +1120,7 @@ float3 ApplyFogPointLights(
                 ++stats.m_contributingLights;
             }
             inScattering += contribution;
+            ConsumeFogLocalLightBudget(tileIterator);
         }
         else if (o_volumetricFog_collect_stats)
         {
@@ -1050,18 +1141,24 @@ float3 ApplyFogDiskLights(
     inout LightCullingTileIterator tileIterator,
     inout FogScatterStats stats)
 {
-    float3 inScattering = 0;
-    tileIterator.LoadAdvance();
-    while (!tileIterator.IsDone())
+    min16float3 inScattering = 0;
+    FogIteratorLoadAdvance(tileIterator);
+    while (!FogIteratorIsDone(tileIterator))
     {
-        uint lightIndex = tileIterator.GetValue();
-        tileIterator.LoadAdvance();
+        if (!HasFogLocalLightBudget(tileIterator))
+        {
+            DrainActiveFogLightGroup(tileIterator, stats);
+            break;
+        }
+
+        uint lightIndex = FogIteratorGetValue(tileIterator);
+        FogIteratorLoadAdvance(tileIterator);
         if (o_volumetricFog_collect_stats)
         {
             ++stats.m_listedLights;
         }
 
-        float3 contribution = 0;
+        min16float3 contribution = 0;
         bool shadowEvaluated = false;
         if (o_volumetricFog_local_light_shadows)
         {
@@ -1085,6 +1182,7 @@ float3 ApplyFogDiskLights(
                 ++stats.m_contributingLights;
             }
             inScattering += contribution;
+            ConsumeFogLocalLightBudget(tileIterator);
         }
         else if (o_volumetricFog_collect_stats)
         {
@@ -1100,15 +1198,15 @@ float3 ApplyFogDiskLights(
 
 void SkipLightGroup(inout LightCullingTileIterator tileIterator, bool includeInStats, inout FogScatterStats stats)
 {
-    tileIterator.LoadAdvance();
-    while (!tileIterator.IsDone())
+    FogIteratorLoadAdvance(tileIterator);
+    while (!FogIteratorIsDone(tileIterator))
     {
         if (o_volumetricFog_collect_stats && includeInStats)
         {
             ++stats.m_listedLights;
             ++stats.m_rejectedLights;
         }
-        tileIterator.LoadAdvance();
+        FogIteratorLoadAdvance(tileIterator);
     }
 }
 
@@ -1238,8 +1336,13 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID, uint groupIndex : SV_GroupInde
     tileIterator.Init(svPosition, PassSrg::m_lightListRemapped, PassSrg::m_tileLightData);
 
     FogScatterStats stats = (FogScatterStats)0;
-    float3 inScatter = 0;
+    // The target is R11G11B10, so minimum-precision accumulation remains above
+    // the stored precision while recovering the VGPR used by the fog budget.
+    min16float3 inScatter = 0;
     uint lightTypeMask = SceneSrg::m_volumetricFogData.m_lightTypeMask;
+    tileIterator.m_value =
+        (EvaluateFogLocalLightBudget(sliceCenter) << 16) |
+        (tileIterator.m_value & FogIteratorValueMask);
 
     if ((lightTypeMask & FogLightDirectional) != 0)
     {
@@ -1251,22 +1354,26 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID, uint groupIndex : SV_GroupInde
     SkipLightGroup(tileIterator, false, stats);
 
     if ((lightTypeMask & FogLightSimplePoint) != 0)
-        inScatter += ApplyFogSimplePointLights(froxelPosition, extinction, viewDirection, tileIterator, stats);
+        inScatter += ApplyFogSimplePointLights(
+            froxelPosition, extinction, viewDirection, tileIterator, stats);
     else
         SkipLightGroup(tileIterator, true, stats);
 
     if ((lightTypeMask & FogLightSimpleSpot) != 0)
-        inScatter += ApplyFogSimpleSpotLights(froxelPosition, extinction, viewDirection, tileIterator, stats);
+        inScatter += ApplyFogSimpleSpotLights(
+            froxelPosition, extinction, viewDirection, tileIterator, stats);
     else
         SkipLightGroup(tileIterator, true, stats);
 
     if ((lightTypeMask & FogLightPoint) != 0)
-        inScatter += ApplyFogPointLights(froxelPosition, extinction, viewDirection, tileIterator, stats);
+        inScatter += ApplyFogPointLights(
+            froxelPosition, extinction, viewDirection, tileIterator, stats);
     else
         SkipLightGroup(tileIterator, true, stats);
 
     if ((lightTypeMask & FogLightDisk) != 0)
-        inScatter += ApplyFogDiskLights(froxelPosition, extinction, viewDirection, tileIterator, stats);
+        inScatter += ApplyFogDiskLights(
+            froxelPosition, extinction, viewDirection, tileIterator, stats);
     else
         SkipLightGroup(tileIterator, true, stats);
 

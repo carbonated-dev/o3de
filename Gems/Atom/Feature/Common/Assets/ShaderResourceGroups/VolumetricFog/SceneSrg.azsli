@@ -46,6 +46,10 @@ partial ShaderResourceGroup SceneSrg
         float    m_lightLodCullPixels;
         float    m_lightLodReferenceIntensity;
         uint     m_depthBoundsSliceMargin;
+        uint     m_maxLocalLightsNear;
+        uint     m_maxLocalLightsFar;
+        float    m_lightBudgetNearDistance;
+        float    m_lightBudgetFarDistance;
     };
     VolumetricFogConstants m_volumetricFogData;
 

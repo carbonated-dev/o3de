@@ -133,6 +133,10 @@ namespace AZ::Render
             float m_lightLodCullPixels = 1.0f; // Intensity-weighted projected radius at which contribution starts fading.
             float m_lightLodReferenceIntensity = 1000.0f; // Candela reference used to preserve unusually bright distant lights.
             uint32_t m_depthBoundsSliceMargin = 2; // Conservative slices retained for filtering and temporal jitter.
+            uint32_t m_maxLocalLightsNear = 32; // Maximum contributing local lights in near froxels.
+            uint32_t m_maxLocalLightsFar = 8; // Maximum contributing local lights in distant froxels.
+            float m_lightBudgetNearDistance = 20.0f; // View distance where the near light budget starts decreasing.
+            float m_lightBudgetFarDistance = 60.0f; // View distance where the far light budget is reached.
         };
 
         VolumetricFogConstants m_sceneSrgGlobalConstants;

@@ -75,6 +75,16 @@ namespace AZ::Render
     AZ_CVAR(uint32_t, r_volumetricFogLocalLightQuality, 0, nullptr, AZ::ConsoleFunctorFlags::Null,
         "Local fog-light quality: 0=fast unshadowed point/spot approximations, "
         "1=shadowed approximations, 2=full area geometry and spot gobos.");
+    AZ_CVAR(bool, r_volumetricFogLightBudget, true, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "Enable a view-distance-scaled cap on contributing local fog lights per froxel.");
+    AZ_CVAR(uint32_t, r_volumetricFogMaxLocalLightsNear, 32, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "Maximum contributing local fog lights per froxel at the near budget distance.");
+    AZ_CVAR(uint32_t, r_volumetricFogMaxLocalLightsFar, 8, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "Maximum contributing local fog lights per froxel at and beyond the far budget distance.");
+    AZ_CVAR(float, r_volumetricFogLightBudgetNearDistance, 20.0f, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "View distance in meters where the local fog-light budget starts decreasing.");
+    AZ_CVAR(float, r_volumetricFogLightBudgetFarDistance, 60.0f, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "View distance in meters where the far local fog-light budget is reached.");
     AZ_CVAR(bool, r_volumetricFogDepthBounds, true, nullptr, AZ::ConsoleFunctorFlags::Null,
         "Limit volumetric-fog work to the farthest visible depth in each light-culling tile.");
     AZ_CVAR(uint32_t, r_volumetricFogDepthBoundsSliceMargin, 2, nullptr, AZ::ConsoleFunctorFlags::Null,
@@ -224,6 +234,19 @@ namespace AZ::Render
             1.0e-3f);
         m_sceneSrgGlobalConstants.m_depthBoundsSliceMargin =
             static_cast<uint32_t>(r_volumetricFogDepthBoundsSliceMargin);
+        constexpr uint32_t MaxPackedLocalLightBudget = 0xffffu;
+        const bool lightBudgetEnabled = static_cast<bool>(r_volumetricFogLightBudget);
+        m_sceneSrgGlobalConstants.m_maxLocalLightsNear = lightBudgetEnabled
+            ? AZStd::min(static_cast<uint32_t>(r_volumetricFogMaxLocalLightsNear), MaxPackedLocalLightBudget)
+            : MaxPackedLocalLightBudget;
+        m_sceneSrgGlobalConstants.m_maxLocalLightsFar = lightBudgetEnabled
+            ? AZStd::min(static_cast<uint32_t>(r_volumetricFogMaxLocalLightsFar), MaxPackedLocalLightBudget)
+            : MaxPackedLocalLightBudget;
+        m_sceneSrgGlobalConstants.m_lightBudgetNearDistance =
+            AZStd::max(static_cast<float>(r_volumetricFogLightBudgetNearDistance), 0.0f);
+        m_sceneSrgGlobalConstants.m_lightBudgetFarDistance = AZStd::max(
+            static_cast<float>(r_volumetricFogLightBudgetFarDistance),
+            m_sceneSrgGlobalConstants.m_lightBudgetNearDistance + 1.0e-3f);
         m_sceneSrg->SetConstant(m_shaderConstantsIndex, m_sceneSrgGlobalConstants);
         m_sceneSrg->SetConstant(m_shaderConstantsVolumeIndex, m_sceneSrgVolumeConstants);
 
