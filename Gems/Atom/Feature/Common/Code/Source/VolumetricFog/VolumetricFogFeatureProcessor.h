@@ -28,6 +28,7 @@
 namespace AZ::Render
 {
     class FroxelPass;
+    class FroxelIntegratePass;
 
     //! Feature processor for global volumetric fog; owns the froxel grid, halton jitter sequence,
     //! scene SRG constants, and the FroxelParent pass hierarchy. It handles enabling/disabling the passes
@@ -126,6 +127,12 @@ namespace AZ::Render
             uint32_t m_debugMode = 0; // FroxelScatter diagnostic visualization mode.
             uint32_t m_lightTypeMask = 0x3fu; // Directional, ambient, simple point/spot, sphere, and disk lights.
             float m_debugLightCountScale = 1.0f / 16.0f; // Maps diagnostic counts into the heat-map range.
+            uint32_t m_lightLodEnabled = 1; // Enables projected-size LOD for local fog lights.
+            float m_lightLodFullPixels = 32.0f; // Radius in pixels above which full local-light detail is used.
+            float m_lightLodShadowPixels = 8.0f; // Radius below which local shadows and gobos are skipped.
+            float m_lightLodCullPixels = 1.0f; // Intensity-weighted projected radius at which contribution starts fading.
+            float m_lightLodReferenceIntensity = 1000.0f; // Candela reference used to preserve unusually bright distant lights.
+            uint32_t m_depthBoundsSliceMargin = 2; // Conservative slices retained for filtering and temporal jitter.
         };
 
         VolumetricFogConstants m_sceneSrgGlobalConstants;
@@ -166,6 +173,7 @@ namespace AZ::Render
         RPI::ParentPass* m_froxelParentPass = nullptr;
         FroxelPass* m_injectPass = nullptr;
         FroxelPass* m_scatterPass = nullptr;
+        FroxelIntegratePass* m_integratePass = nullptr;
         RPI::Pass* m_froxelCompositePass = nullptr;
         AZ::RPI::RenderPipeline* m_renderPipeline = nullptr;
         Data::Instance<RPI::ShaderResourceGroup> m_sceneSrg;

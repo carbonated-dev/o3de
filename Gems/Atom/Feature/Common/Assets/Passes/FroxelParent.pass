@@ -52,7 +52,16 @@
             "PassRequests": [
                 {
                     "Name": "FroxelInjectPass",
-                    "TemplateName": "FroxelInjectTemplate"
+                    "TemplateName": "FroxelInjectTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "TileLightData",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "TileLightData"
+                            }
+                        }
+                    ]
                 },
                 {
                     "Name": "FroxelLocalVolumePass",
@@ -145,6 +154,13 @@
                             "AttachmentRef": {
                                 "Pass": "FroxelLocalVolumePass",
                                 "Attachment": "FroxelMedium"
+                            }
+                        },
+                        {
+                            "LocalSlot": "TileLightData",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "TileLightData"
                             }
                         }
                     ]

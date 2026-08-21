@@ -10,6 +10,7 @@
 #include <AzCore/Memory/SystemAllocator.h>
 
 #include <Atom/RPI.Public/Pass/ComputePass.h>
+#include <Atom/RPI.Reflect/Shader/ShaderOptionGroup.h>
 
 namespace AZ::Render
 {
@@ -42,5 +43,8 @@ namespace AZ::Render
 
         //! Resolves froxel grid dimensions
         void UpdateFroxelVolumeSize();
+
+        //! Persistent option state used to select compute variants on non-Carbonated builds.
+        RPI::ShaderOptionGroup m_froxelShaderOptions;
     };
 }   // namespace AZ::Render

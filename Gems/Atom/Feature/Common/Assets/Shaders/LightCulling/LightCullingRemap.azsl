@@ -143,11 +143,12 @@ void WriteTileLightData(const uint groupIndex, const uint3 groupID, const uint l
     if (groupIndex == 0)
     {
         uint4 tileLightData = PassSrg::m_tileLightData[groupID.xy];
+        uint tileFlags = tileLightData.w & NVLC_TILE_HAS_SKY_BIT;
         // Used for the heatmap
-        tileLightData.w = lightsInWorstBin;
+        tileLightData.w = (lightsInWorstBin & NVLC_TILE_LIGHT_COUNT_MASK) | tileFlags;
         
         // pack a "lights have overflowed bit" into this uint
-        tileLightData.w |= overflow ? (1 << 31) : 0;
+        tileLightData.w |= overflow ? NVLC_TILE_OVERFLOW_BIT : 0;
 
         PassSrg::m_tileLightData[groupID.xy] = tileLightData;    
     } 

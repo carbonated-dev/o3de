@@ -33,26 +33,45 @@ namespace AZ::Render
 
     void FroxelPass::SetShaderOption(const Name& optionName, const Name& valueName)
     {
-        const auto layout = m_shaderOptions.GetShaderOptionLayout();
+        const auto shader = GetShader();
+        if (!shader)
+        {
+            return;
+        }
+
+        const auto& defaultOptions = shader->GetDefaultShaderOptions();
+        const auto defaultLayout = defaultOptions.GetShaderOptionLayout();
+        if (!defaultLayout)
+        {
+            return;
+        }
+        if (!m_froxelShaderOptions.GetShaderOptionLayout() ||
+            m_froxelShaderOptions.GetShaderOptionLayout()->GetHash() != defaultLayout->GetHash())
+        {
+            m_froxelShaderOptions = defaultOptions;
+        }
+
+        const auto layout = m_froxelShaderOptions.GetShaderOptionLayout();
         if (!layout)
         {
             return;
         }
 
         const auto value = layout->FindValue(optionName, valueName);
-        if (value != m_shaderOptions.GetValue(optionName))
+        if (value != m_froxelShaderOptions.GetValue(optionName))
         {
-            m_shaderOptions.SetValue(optionName, valueName);
-            LoadShader();
+            m_froxelShaderOptions.SetValue(optionName, valueName);
+            UpdateShaderOptions(m_froxelShaderOptions.GetShaderVariantId());
         }
     }
 
     void FroxelPass::SetShaderOptions(RPI::ShaderOptionGroup shaderOptions)
     {
-        if (shaderOptions.GetShaderVariantId() != m_shaderOptions.GetShaderVariantId())
+        if (!m_froxelShaderOptions.GetShaderOptionLayout() ||
+            shaderOptions.GetShaderVariantId() != m_froxelShaderOptions.GetShaderVariantId())
         {
-            m_shaderOptions = AZStd::move(shaderOptions);
-            LoadShader();
+            m_froxelShaderOptions = AZStd::move(shaderOptions);
+            UpdateShaderOptions(m_froxelShaderOptions.GetShaderVariantId());
         }
     }
 

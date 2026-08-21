@@ -10,8 +10,10 @@
 #include <viewsrg.srgi>
 #include <Atom/RPI/Math.azsli>
 #include "FroxelUtil.azsli"
+#include "FroxelDepthBounds.azsli"
 
 option bool o_volumetricFog_tiled_neighborhood = true;
+option bool o_volumetricFog_depth_bounds = true;
 
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
@@ -21,6 +23,7 @@ ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
     Texture3D<float4>   m_froxelMedium;          // per-froxel scattering coefficient (rgb) + extinction (a)
     Texture3D<float4>   m_froxelEmissive;        // per-froxel emissive
     RWTexture3D<float4> m_froxelIntegrated;      // accumulated in-scatter (rgb) + transmittance (a)
+    Texture2D<uint4>    m_tileLightData;         // packed light-tile depth range and flags
 
     Sampler LinearSampler
     {
@@ -37,6 +40,7 @@ static const uint SharedTileWidth = NUM_THREADS_PER_GROUP + 2;
 static const uint SharedPlaneCellCount = SharedTileWidth * SharedTileWidth;
 static const uint ThreadsPerGroup = NUM_THREADS_PER_GROUP * NUM_THREADS_PER_GROUP;
 groupshared uint sharedScatter[3 * SharedPlaneCellCount];
+groupshared uint sharedMaximumVisibleSlice;
 
 // Scatter is backed by R11G11B10_FLOAT. Repacking through fp16 preserves its effective
 // non-negative precision while reducing each LDS cell and load to one 32-bit value.
@@ -248,6 +252,26 @@ void IntegrateFroxel(
     PassSrg::m_froxelIntegrated[froxelId] = float4(accumScatter, accumTransparency);
 }
 
+// Depth-bounded integration skips all expensive filtering and medium evaluation behind the
+// visible surface, but both output volumes are persistent resources. Define their hidden tail
+// explicitly so temporal reprojection cannot read stale scatter and trilinear composite samples
+// see the accumulated fog at the surface instead of uninitialized data.
+void FillDepthBoundedTail(
+    uint2 tileID,
+    uint firstHiddenSlice,
+    uint froxelCountZ,
+    float3 accumScatter,
+    float accumTransparency)
+{
+    float4 integratedTail = float4(accumScatter, accumTransparency);
+    for (uint z = firstHiddenSlice; z < froxelCountZ; ++z)
+    {
+        uint3 froxelId = uint3(tileID, z);
+        PassSrg::m_froxelTemporalOutput[froxelId] = 0;
+        PassSrg::m_froxelIntegrated[froxelId] = integratedTail;
+    }
+}
+
 void IntegrateColumnGlobal(uint2 tileID)
 {
     float3 accumScatter = 0;
@@ -256,8 +280,10 @@ void IntegrateColumnGlobal(uint2 tileID)
     uint froxelCountZ = SceneSrg::m_volumetricFogData.m_froxelCount.z;
     float fogNear = SceneSrg::m_volumetricFogData.m_fogNear;
     float fogFar = SceneSrg::m_volumetricFogData.m_fogFar;
+    uint maximumVisibleSlice = GetFroxelMaxVisibleSlice(
+        tileID, PassSrg::m_tileLightData, 0, o_volumetricFog_depth_bounds);
 
-    for (uint z = 0; z < froxelCountZ; ++z)
+    for (uint z = 0; z <= maximumVisibleSlice; ++z)
     {
         uint3 froxelId = uint3(tileID, z);
         float3 blended = TemporalBlendGlobal(froxelId);
@@ -266,6 +292,9 @@ void IntegrateColumnGlobal(uint2 tileID)
             froxelId, z, blended, fogNear, fogFar, froxelCountZ,
             accumScatter, accumTransparency, doneIntegrating);
     }
+
+    FillDepthBoundedTail(
+        tileID, maximumVisibleSlice + 1, froxelCountZ, accumScatter, accumTransparency);
 }
 
 // -----------------------------------------------------------------------
@@ -295,6 +324,18 @@ void MainCS(
     bool active = all(tileID < froxelCountXY);
     uint froxelCountZ = SceneSrg::m_volumetricFogData.m_froxelCount.z;
     uint2 groupBase = groupID.xy * NUM_THREADS_PER_GROUP;
+    uint maximumVisibleSlice = active
+        ? GetFroxelMaxVisibleSlice(tileID, PassSrg::m_tileLightData, 0, o_volumetricFog_depth_bounds)
+        : 0;
+    if (groupIndex == 0)
+    {
+        sharedMaximumVisibleSlice = 0;
+    }
+    GroupMemoryBarrierWithGroupSync();
+    uint originalMaximumVisibleSlice;
+    InterlockedMax(sharedMaximumVisibleSlice, maximumVisibleSlice, originalMaximumVisibleSlice);
+    GroupMemoryBarrierWithGroupSync();
+    uint groupMaximumVisibleSlice = sharedMaximumVisibleSlice;
 
     // Prime the rolling window. Boundary samples reuse the current plane, which has the same
     // min/max result as the original clipped neighborhood.
@@ -309,7 +350,7 @@ void MainCS(
     float fogFar = SceneSrg::m_volumetricFogData.m_fogFar;
     uint2 localCenter = groupThreadID.xy + 1;
 
-    for (uint z = 0; z < froxelCountZ; ++z)
+    for (uint z = 0; z <= groupMaximumVisibleSlice; ++z)
     {
         if (z > 0 && z + 1 < froxelCountZ)
         {
@@ -320,7 +361,7 @@ void MainCS(
             GroupMemoryBarrierWithGroupSync();
         }
 
-        if (active)
+        if (active && z <= maximumVisibleSlice)
         {
             uint3 froxelId = uint3(tileID, z);
             float3 current = UnpackSharedScatter(
@@ -333,5 +374,12 @@ void MainCS(
                 froxelId, z, blended, fogNear, fogFar, froxelCountZ,
                 accumScatter, accumTransparency, doneIntegrating);
         }
+    }
+
+
+    if (active)
+    {
+        FillDepthBoundedTail(
+            tileID, maximumVisibleSlice + 1, froxelCountZ, accumScatter, accumTransparency);
     }
 }

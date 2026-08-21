@@ -10,6 +10,7 @@
 #include <AzCore/Memory/SystemAllocator.h>
 
 #include <Atom/RPI.Public/Pass/ComputePass.h>
+#include <Atom/RPI.Reflect/Shader/ShaderOptionGroup.h>
 #include <Atom/RPI.Reflect/Pass/ComputePassData.h>
 #include <Atom/Feature/VolumetricFog/VolumetricFogSettings.h>
 
@@ -29,6 +30,7 @@ namespace AZ::Render
         virtual ~FroxelIntegratePass() = default;
 
         static RPI::Ptr<FroxelIntegratePass> Create(const RPI::PassDescriptor& descriptor);
+        void SetShaderOption(const Name& optionName, const Name& valueName);
 
     private:
         FroxelIntegratePass(const RPI::PassDescriptor& descriptor);
@@ -52,5 +54,6 @@ namespace AZ::Render
         RPI::PassAttachmentBinding* m_historyScatteredBinding = nullptr; // cached binding pointers for fast per-frame rebind.
         RPI::PassAttachmentBinding* m_scatteredBinding = nullptr; // cached binding pointers for fast per-frame rebind.
         uint8_t m_scatteringOuptutIndex = 0; // 0 or 1, toggles each frame to alternate write target.
+        RPI::ShaderOptionGroup m_froxelShaderOptions;
     };
 }   // namespace AZ::Render

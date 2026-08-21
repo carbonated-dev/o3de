@@ -9,20 +9,30 @@
 #include <scenesrg.srgi>
 #include <viewsrg.srgi>
 #include "FroxelUtil.azsli"
+#include "FroxelDepthBounds.azsli"
 
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
     RWTexture3D<float4> m_froxelVolume;
     RWTexture3D<float4> m_froxelEmissive;
+    Texture2D<uint4> m_tileLightData;
 }
 
 option bool o_enableNoiseTexture = true;
+option bool o_volumetricFog_depth_bounds = true;
 
 [numthreads(NUM_THREADS_PER_GROUP, NUM_THREADS_PER_GROUP, 1)]
 void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint3 froxelId = dispatchThreadID;
     if (any(froxelId >= SceneSrg::m_volumetricFogData.m_froxelCount))
+    {
+        return;
+    }
+
+    uint maximumVisibleSlice = GetFroxelMaxVisibleSlice(
+        froxelId.xy, PassSrg::m_tileLightData, 0, o_volumetricFog_depth_bounds);
+    if (froxelId.z > maximumVisibleSlice)
     {
         return;
     }

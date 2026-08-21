@@ -24,12 +24,14 @@
 #include <Atom/Features/LightCulling/LightCullingTileIterator.azsli>
 #include <Atom/RPI/Math.azsli>
 #include "FroxelUtil.azsli"
+#include "FroxelDepthBounds.azsli"
 
 // Keep diagnostic counters out of the production shader. Maintaining these counters through
 // every light loop extends several live ranges and substantially increases VGPR pressure.
 option bool o_volumetricFog_collect_stats = false;
 option bool o_volumetricFog_compact_directional_shadow = true;
 option bool o_volumetricFog_compact_projected_shadow = true;
+option bool o_volumetricFog_depth_bounds = true;
 
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
@@ -119,6 +121,43 @@ FogLightResult MakeEmptyFogLightResult()
 bool IsFogLightChannelEnabled(uint lightChannelMask)
 {
     return (SceneSrg::m_volumetricFogData.m_lightingChannelMask & lightChannelMask) != 0;
+}
+
+// x: contribution fade, y: expensive-detail fade, z: projected attenuation radius in pixels.
+// This depends only on the camera and light, so the selected LOD is stable across all froxels.
+float3 EvaluateFogLocalLightLod(
+    float3 lightPosition,
+    float inverseAttenuationRadiusSquared,
+    float3 lightIntensity)
+{
+    if (SceneSrg::m_volumetricFogData.m_lightLodEnabled == 0)
+    {
+        return float3(1.0, 1.0, 1.0e20);
+    }
+
+    float attenuationRadius = rsqrt(max(inverseAttenuationRadiusSquared, 1.0e-12));
+    float3 cameraToLight = lightPosition - ViewSrg::m_worldPosition.xyz;
+    float inverseCameraDistance = rsqrt(max(dot(cameraToLight, cameraToLight), 1.0e-4));
+    float screenHeight = float(
+        SceneSrg::m_volumetricFogData.m_froxelCount.y * SceneSrg::m_volumetricFogData.m_tileSize);
+    float projectionScale = 0.5 * screenHeight * abs(ViewSrg::m_projectionMatrix[1][1]);
+    float projectedRadiusPixels = attenuationRadius * inverseCameraDistance * projectionScale;
+
+    // Preserve exceptionally bright distant lights with intensity-weighted contribution and
+    // detail metrics. Dim lights still retain geometric detail until the normal size threshold.
+    float peakIntensity = max(lightIntensity.x, max(lightIntensity.y, lightIntensity.z));
+    float intensityScale = sqrt(max(peakIntensity, 0.0) /
+        SceneSrg::m_volumetricFogData.m_lightLodReferenceIntensity);
+    float importancePixels = projectedRadiusPixels * intensityScale;
+    float cullStart = SceneSrg::m_volumetricFogData.m_lightLodCullPixels;
+    float cullEnd = max(cullStart * 2.0, cullStart + 1.0e-3);
+    float contributionFade = smoothstep(cullStart, cullEnd, importancePixels);
+    float detailImportancePixels = projectedRadiusPixels * max(intensityScale, 1.0);
+    float detailFade = smoothstep(
+        SceneSrg::m_volumetricFogData.m_lightLodShadowPixels,
+        SceneSrg::m_volumetricFogData.m_lightLodFullPixels,
+        detailImportancePixels);
+    return float3(contributionFade, detailFade, projectedRadiusPixels);
 }
 
 float HenyeyGreenstein(float cosTheta)
@@ -301,6 +340,13 @@ FogLightResult EvaluateFogSimplePointLight(uint lightIndex, float3 froxelPositio
         return result;
     }
 
+    float3 lightLod = EvaluateFogLocalLightLod(
+        light.m_position, light.m_invAttenuationRadiusSquared, light.m_rgbIntensityCandelas);
+    if (lightLod.x <= 0.0)
+    {
+        return result;
+    }
+
     float3 toLight = light.m_position - froxelPosition;
     float distanceSquared = dot(toLight, toLight);
     float range = distanceSquared * light.m_invAttenuationRadiusSquared;
@@ -315,7 +361,7 @@ FogLightResult EvaluateFogSimplePointLight(uint lightIndex, float3 froxelPositio
 
     result.m_directionToLight = toLight * inverseDistance;
     result.m_distanceToLight = distanceSquared * inverseDistance;
-    result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation / max(distanceSquared, 1e-6);
+    result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation * lightLod.x / max(distanceSquared, 1e-6);
     return result;
 }
 
@@ -329,6 +375,13 @@ FogLightResult EvaluateFogSimpleSpotLight(uint lightIndex, float3 froxelPosition
 
     ViewSrg::SimpleSpotLight light = ViewSrg::m_simpleSpotLights[lightIndex];
     if (!IsFogLightChannelEnabled(light.m_lightingChannelMask))
+    {
+        return result;
+    }
+
+    float3 lightLod = EvaluateFogLocalLightLod(
+        light.m_position, light.m_invAttenuationRadiusSquared, light.m_rgbIntensityCandelas);
+    if (lightLod.x <= 0.0)
     {
         return result;
     }
@@ -353,25 +406,29 @@ FogLightResult EvaluateFogSimpleSpotLight(uint lightIndex, float3 froxelPosition
 
     result.m_directionToLight = directionToLight;
     result.m_distanceToLight = distanceSquared * inverseDistance;
-    result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation * coneAttenuation / max(distanceSquared, 1e-6);
+    result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation * coneAttenuation * lightLod.x /
+        max(distanceSquared, 1e-6);
 
-    if (light.m_goboTexIndex < ViewSrg::MaxGoboTextureCount)
+    if (lightLod.y > 0.0 && light.m_goboTexIndex < ViewSrg::MaxGoboTextureCount)
     {
         float4 positionInLight = mul(light.m_viewProjectionMatrix, float4(froxelPosition, 1.0));
         float inverseW = rcp(max(abs(positionInLight.w), 1e-5));
         float2 goboUv = positionInLight.xy * inverseW * 0.5 + 0.5;
-        result.m_radiance *= ViewSrg::m_goboTextures[light.m_goboTexIndex].SampleLevel(
+        float gobo = ViewSrg::m_goboTextures[light.m_goboTexIndex].SampleLevel(
             PassSrg::LinearSampler, goboUv, 0);
+        result.m_radiance *= lerp(1.0, gobo, lightLod.y);
     }
 
 #if ENABLE_SHADOWS
-    if (any(result.m_radiance > 0) && o_enableShadows && o_enableSimpleSpotLightShadows && light.m_shadowIndex != 0xffff)
+    if (lightLod.y > 0.0 && any(result.m_radiance > 0) && o_enableShadows &&
+        o_enableSimpleSpotLightShadows && light.m_shadowIndex != 0xffff)
     {
-        result.m_visibility = EvaluateFogProjectedShadow(
+        float shadowVisibility = EvaluateFogProjectedShadow(
             light.m_shadowIndex,
             light.m_position,
             froxelPosition,
             directionToLight);
+        result.m_visibility = lerp(1.0, shadowVisibility, lightLod.y);
         if (o_volumetricFog_collect_stats)
         {
             result.m_shadowEvaluated = true;
@@ -418,6 +475,13 @@ FogLightResult EvaluateFogPointLight(uint lightIndex, float3 froxelPosition)
         return result;
     }
 
+    float3 lightLod = EvaluateFogLocalLightLod(
+        light.m_position, light.m_invAttenuationRadiusSquared, light.m_rgbIntensityCandelas);
+    if (lightLod.x <= 0.0)
+    {
+        return result;
+    }
+
     float3 toLightCenter = light.m_position - froxelPosition;
     float centerDistanceSquared = dot(toLightCenter, toLightCenter);
     float range = centerDistanceSquared * light.m_invAttenuationRadiusSquared;
@@ -433,19 +497,21 @@ FogLightResult EvaluateFogPointLight(uint lightIndex, float3 froxelPosition)
 
     result.m_directionToLight = toLightCenter * inverseCenterDistance;
     result.m_distanceToLight = max(centerDistance - light.m_bulbRadius, 0.0);
-    result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation / max(centerDistanceSquared, 1e-6);
+    result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation * lightLod.x /
+        max(centerDistanceSquared, 1e-6);
 #if ENABLE_SHADOWS
-    if (any(result.m_radiance > 0) && o_enableShadows && o_enableSphereLightShadows)
+    if (lightLod.y > 0.0 && any(result.m_radiance > 0) && o_enableShadows && o_enableSphereLightShadows)
     {
         uint face = GetFogPointLightShadowFace(froxelPosition, light.m_position);
         uint shadowIndex = UnpackFogPointLightShadowIndex(light, face);
         if (shadowIndex != 0xffff)
         {
-            result.m_visibility = EvaluateFogProjectedShadow(
+            float shadowVisibility = EvaluateFogProjectedShadow(
                 shadowIndex,
                 light.m_position,
                 froxelPosition,
                 result.m_directionToLight);
+            result.m_visibility = lerp(1.0, shadowVisibility, lightLod.y);
             if (o_volumetricFog_collect_stats)
             {
                 result.m_shadowEvaluated = true;
@@ -467,6 +533,13 @@ FogLightResult EvaluateFogDiskLight(uint lightIndex, float3 froxelPosition)
 
     ViewSrg::DiskLight light = ViewSrg::m_diskLights[lightIndex];
     if (!IsFogLightChannelEnabled(light.m_lightingChannelMask))
+    {
+        return result;
+    }
+
+    float3 lightLod = EvaluateFogLocalLightLod(
+        light.m_position, light.m_invAttenuationRadiusSquared, light.m_rgbIntensityCandelas);
+    if (lightLod.x <= 0.0)
     {
         return result;
     }
@@ -499,39 +572,55 @@ FogLightResult EvaluateFogDiskLight(uint lightIndex, float3 froxelPosition)
         coneAttenuation = coneAttenuation * coneAttenuation * (3.0 - 2.0 * coneAttenuation);
     }
 
-    float distanceToPlane = max(dot(toCenter, -light.m_direction), 1e-4);
-    float radialDistanceSquared = max(centerDistanceSquared - distanceToPlane * distanceToPlane, 0.0);
-    float radialDistance = sqrt(radialDistanceSquared);
-    float distancePastDisk = max(radialDistance - light.m_diskRadius, 0.0);
-    float distanceToDiskSquared = distancePastDisk * distancePastDisk + distanceToPlane * distanceToPlane;
-
-    // Project the froxel-to-center vector onto the disk plane, expressed from the disk center.
-    float3 projectedCenterOffset = -toCenter + (-light.m_direction * distanceToPlane);
-    float projectedLength = length(projectedCenterOffset);
-    float3 closestPoint = light.m_position;
-    if (projectedLength > 1e-5)
-    {
-        closestPoint += projectedCenterOffset / projectedLength * min(projectedLength, light.m_diskRadius);
-    }
-    float3 toRepresentativePoint = closestPoint - froxelPosition;
-    float representativeDistanceSquared = dot(toRepresentativePoint, toRepresentativePoint);
-    float inverseRepresentativeDistance = rsqrt(max(representativeDistanceSquared, 1e-6));
     float rangeAttenuation = 1.0 - range * range;
     rangeAttenuation *= rangeAttenuation;
-    float apparentSizeAttenuation = rcp(light.m_diskRadius / distanceToPlane + 1.0);
 
-    result.m_directionToLight = toRepresentativePoint * inverseRepresentativeDistance;
-    result.m_distanceToLight = representativeDistanceSquared * inverseRepresentativeDistance;
-    result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation * facing * coneAttenuation * apparentSizeAttenuation /
-        max(distanceToDiskSquared, 1e-6);
-#if ENABLE_SHADOWS
-    if (any(result.m_radiance > 0) && o_enableShadows && o_enableDiskLightShadows && light.m_shadowIndex != 0xffff)
+    if (lightLod.z < 0.5 * SceneSrg::m_volumetricFogData.m_lightLodShadowPixels)
     {
-        result.m_visibility = EvaluateFogProjectedShadow(
+        // Once the disk is small on screen, its center-point approximation is visually
+        // indistinguishable and avoids the closest-point construction and extra square roots.
+        float centerDistance = centerDistanceSquared * inverseCenterDistance;
+        result.m_directionToLight = directionToCenter;
+        result.m_distanceToLight = max(centerDistance - light.m_diskRadius, 0.0);
+        result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation * facing * coneAttenuation * lightLod.x /
+            max(centerDistanceSquared, max(light.m_diskRadius * light.m_diskRadius, 1e-6));
+    }
+    else
+    {
+        float distanceToPlane = max(dot(toCenter, -light.m_direction), 1e-4);
+        float radialDistanceSquared = max(centerDistanceSquared - distanceToPlane * distanceToPlane, 0.0);
+        float radialDistance = sqrt(radialDistanceSquared);
+        float distancePastDisk = max(radialDistance - light.m_diskRadius, 0.0);
+        float distanceToDiskSquared = distancePastDisk * distancePastDisk + distanceToPlane * distanceToPlane;
+
+        // Project the froxel-to-center vector onto the disk plane, expressed from the disk center.
+        float3 projectedCenterOffset = -toCenter + (-light.m_direction * distanceToPlane);
+        float projectedLength = length(projectedCenterOffset);
+        float3 closestPoint = light.m_position;
+        if (projectedLength > 1e-5)
+        {
+            closestPoint += projectedCenterOffset / projectedLength * min(projectedLength, light.m_diskRadius);
+        }
+        float3 toRepresentativePoint = closestPoint - froxelPosition;
+        float representativeDistanceSquared = dot(toRepresentativePoint, toRepresentativePoint);
+        float inverseRepresentativeDistance = rsqrt(max(representativeDistanceSquared, 1e-6));
+        float apparentSizeAttenuation = rcp(light.m_diskRadius / distanceToPlane + 1.0);
+
+        result.m_directionToLight = toRepresentativePoint * inverseRepresentativeDistance;
+        result.m_distanceToLight = representativeDistanceSquared * inverseRepresentativeDistance;
+        result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation * facing * coneAttenuation *
+            apparentSizeAttenuation * lightLod.x / max(distanceToDiskSquared, 1e-6);
+    }
+#if ENABLE_SHADOWS
+    if (lightLod.y > 0.0 && any(result.m_radiance > 0) && o_enableShadows &&
+        o_enableDiskLightShadows && light.m_shadowIndex != 0xffff)
+    {
+        float shadowVisibility = EvaluateFogProjectedShadow(
             light.m_shadowIndex,
             light.m_position,
             froxelPosition,
             result.m_directionToLight);
+        result.m_visibility = lerp(1.0, shadowVisibility, lightLod.y);
         if (o_volumetricFog_collect_stats)
         {
             result.m_shadowEvaluated = true;
@@ -712,6 +801,23 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID, uint groupIndex : SV_GroupInde
 
     if (any(froxelId >= SceneSrg::m_volumetricFogData.m_froxelCount))
     {
+        return;
+    }
+
+    // Integrate's temporal clamp samples one additional Z neighbor, so Scatter retains one
+    // source slice beyond the visible integration range. Hidden cells are cleared to keep
+    // neighborhood reads deterministic at depth discontinuities.
+    uint maximumScatterSlice = GetFroxelMaxVisibleSlice(
+        froxelId.xy, PassSrg::m_tileLightData, 1, o_volumetricFog_depth_bounds);
+    if (froxelId.z > maximumScatterSlice)
+    {
+        PassSrg::m_froxelScatterResult[froxelId] = 0;
+        return;
+    }
+    if (o_volumetricFog_collect_stats && SceneSrg::m_volumetricFogData.m_debugMode == 7)
+    {
+        PassSrg::m_froxelScatterResult[froxelId] = DebugHeatMap(
+            float(maximumScatterSlice) / float(SceneSrg::m_volumetricFogData.m_froxelCount.z - 1));
         return;
     }
 

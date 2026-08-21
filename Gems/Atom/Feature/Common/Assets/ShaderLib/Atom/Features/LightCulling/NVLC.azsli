@@ -35,6 +35,9 @@
 
 #define NVLC_ALL_BIN_BITS                               ((1 << NVLC_MAX_BINS) - 1)
 #define NVLC_BINS_MASK                                  (NVLC_MAX_BINS - 1)
+#define NVLC_TILE_HAS_SKY_BIT                           (1u << 30)
+#define NVLC_TILE_OVERFLOW_BIT                          (1u << 31)
+#define NVLC_TILE_LIGHT_COUNT_MASK                      (NVLC_TILE_HAS_SKY_BIT - 1u)
 
 // We terminate the entire list of lights with a single marker of this type
 #define NVLC_END_OF_LIST                                0xFFFF
@@ -68,7 +71,9 @@ struct TileLightData
     uint mask;
     uint logMaxBins;
     // true if there are too many lights or decals assigned to this tile
-    bool overflow;    
+    bool overflow;
+    // true if at least one opaque depth sample in the tile contains sky
+    bool hasSky;
 };
 
  
@@ -118,7 +123,8 @@ TileLightData Tile_UnpackData(uint4 pack)
     data.mask               = pack.z;
     data.logMaxBins         = pack.y & NVLC_BINS_MASK;
     // unpack the "lights overflowed" bit
-    data.overflow           = pack.w >> 31; 
+    data.overflow           = (pack.w & NVLC_TILE_OVERFLOW_BIT) != 0;
+    data.hasSky             = (pack.w & NVLC_TILE_HAS_SKY_BIT) != 0;
     return data;
 }
 

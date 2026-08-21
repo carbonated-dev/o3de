@@ -42,6 +42,12 @@
                     "SlotType": "Output",
                     "ShaderInputName": "m_froxelTemporalOutput",
                     "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "TileLightData",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_tileLightData",
+                    "ScopeAttachmentUsage": "Shader"
                 }
             ],
             "ImageAttachments": [

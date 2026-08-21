@@ -48,6 +48,7 @@ groupshared uint shared_depthFar;
 // Likewise for transparent z values:
 groupshared uint shared_depthTransparentNear;
 groupshared uint shared_depthTransparentFar;
+groupshared uint shared_hasSky;
 
 
 void StoreMinMaxIntoSharedMemory(float2 data)
@@ -95,6 +96,7 @@ void ClearSharedMemory(uint groupIndex)
         shared_depthTransparentNear = asuint(DEPTH_FAR);
         shared_depthTransparentFar = asuint(DEPTH_NEAR);
         shared_opaqueMask = 0;
+        shared_hasSky = 0;
     }
 }
 
@@ -120,6 +122,15 @@ void CombineOpaqueMaskWithAllThreads(uint opaqueMask)
 {
     InterlockedOr(shared_opaqueMask, opaqueMask);
     GroupMemoryBarrierWithGroupSync();
+}
+
+void MarkSkySamples(bool hasSky, bool isPixelOnScreen)
+{
+    if (hasSky && isPixelOnScreen)
+    {
+        uint original;
+        InterlockedOr(shared_hasSky, 1u, original);
+    }
 }
 
 // Given the locations of two values in a uint, return a bitmask that contains 1s in between those bits and 0s elsewhere
@@ -184,7 +195,7 @@ void WriteTileLightDataToMainMemory(uint groupIndex, uint3 groupID, float2 minma
         data.x = asuint(minmaxZ.x);
         data.y = (asuint(minmaxZ.y) & ~NVLC_BINS_MASK) | ulogMaxBins;
         data.z = ComputeOpaqueAndTransparentMask(minmaxZ);
-        data.w = 0;
+        data.w = shared_hasSky != 0 ? NVLC_TILE_HAS_SKY_BIT : 0;
         
         PassSrg::m_tileLightData[groupID.xy] = data;        
     }
@@ -292,6 +303,8 @@ void MainCS(
         {
             opaqueDepthSamples = ReadOpaqueDepthSamples2xMSAA(dispatchThreadID.xy);
         }
+
+        MarkSkySamples(any(opaqueDepthSamples == DEPTH_FAR), isPixelOnScreen);
         
         // Transparent geometry can't be behind opaque geometry. Just pick the first MSAA sample since we are trying to reduce reading from MSAA buffer
         minmaxDepth_transparent = DEPTH_MIN(minmaxDepth_transparent, opaqueDepthSamples.x);
@@ -310,6 +323,8 @@ void MainCS(
     else if (o_msaaMode == MsaaMode::Msaa4x || o_msaaMode == MsaaMode::Msaa8x)
     {
         float4 opaqueDepthSamples = ReadOpaqueDepthSamples4xMSAA(dispatchThreadID.xy);    
+
+        MarkSkySamples(any(opaqueDepthSamples == DEPTH_FAR), isPixelOnScreen);
 
         // Transparent geometry can't be behind opaque geometry. Just pick the first MSAA sample since we are trying to reduce reading from MSAA buffer
         minmaxDepth_transparent = DEPTH_MIN(minmaxDepth_transparent, opaqueDepthSamples.x);

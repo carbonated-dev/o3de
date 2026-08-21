@@ -8,6 +8,7 @@
 
 #include <VolumetricFog/VolumetricFogFeatureProcessor.h>
 #include <VolumetricFog/FroxelPass.h>
+#include <VolumetricFog/FroxelIntegratePass.h>
 #include <VolumetricFog/VolumetricFogUtils.h>
 
 #include <AzCore/Console/IConsole.h>
@@ -42,7 +43,7 @@ namespace AZ::Render
         nullptr,
         AZ::ConsoleFunctorFlags::Null,
         "FroxelScatter diagnostics: 0=off, 1=listed lights, 2=contributing lights, 3=rejected lights, "
-        "4=shadow evaluations, 5=NVLC overflow, 6=NVLC depth bin.");
+        "4=shadow evaluations, 5=NVLC overflow, 6=NVLC depth bin, 7=depth-bound slice.");
 
     AZ_CVAR(
         uint32_t,
@@ -60,6 +61,21 @@ namespace AZ::Render
         nullptr,
         AZ::ConsoleFunctorFlags::Null,
         "Scale applied to FroxelScatter light-count diagnostic heat maps.");
+
+    AZ_CVAR(bool, r_volumetricFogLightLod, true, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "Enable projected-size LOD for local volumetric-fog lights.");
+    AZ_CVAR(float, r_volumetricFogLightLodFullPixels, 32.0f, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "Projected light radius in pixels above which fog uses full local-light detail.");
+    AZ_CVAR(float, r_volumetricFogLightLodShadowPixels, 8.0f, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "Projected radius below which fog skips local-light shadows and gobos.");
+    AZ_CVAR(float, r_volumetricFogLightLodCullPixels, 1.0f, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "Intensity-weighted projected radius where local fog lights begin fading out.");
+    AZ_CVAR(float, r_volumetricFogLightLodReferenceIntensity, 1000.0f, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "Reference intensity in candelas used by volumetric-fog light importance.");
+    AZ_CVAR(bool, r_volumetricFogDepthBounds, true, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "Limit volumetric-fog work to the farthest visible depth in each light-culling tile.");
+    AZ_CVAR(uint32_t, r_volumetricFogDepthBoundsSliceMargin, 2, nullptr, AZ::ConsoleFunctorFlags::Null,
+        "Additional fog slices retained behind the light-culling tile depth for filtering and jitter.");
 
     void VolumetricFogFeatureProcessor::Reflect(ReflectContext* context)
     {
@@ -174,11 +190,37 @@ namespace AZ::Render
         {
             UpdateScatterPassShaderOptions();
         }
+        const Name depthBoundsOptionValue = static_cast<bool>(r_volumetricFogDepthBounds)
+            ? Name("true")
+            : Name("false");
+        if (m_injectPass)
+        {
+            m_injectPass->SetShaderOption(Name("o_volumetricFog_depth_bounds"), depthBoundsOptionValue);
+        }
+        if (m_integratePass)
+        {
+            m_integratePass->SetShaderOption(Name("o_volumetricFog_depth_bounds"), depthBoundsOptionValue);
+        }
         m_sceneSrgGlobalConstants.m_debugMode = r_volumetricFogDebugMode;
         m_sceneSrgGlobalConstants.m_lightTypeMask = r_volumetricFogLightTypeMask;
         m_sceneSrgGlobalConstants.m_debugLightCountScale = r_volumetricFogDebugLightCountScale > 0.0f
             ? r_volumetricFogDebugLightCountScale
             : 0.0f;
+        const float lightLodCullPixels = static_cast<float>(r_volumetricFogLightLodCullPixels);
+        const float lightLodFullPixels = static_cast<float>(r_volumetricFogLightLodFullPixels);
+        const float lightLodShadowPixels = static_cast<float>(r_volumetricFogLightLodShadowPixels);
+        const float lightLodReferenceIntensity = static_cast<float>(r_volumetricFogLightLodReferenceIntensity);
+        m_sceneSrgGlobalConstants.m_lightLodEnabled = static_cast<bool>(r_volumetricFogLightLod) ? 1u : 0u;
+        m_sceneSrgGlobalConstants.m_lightLodCullPixels = AZStd::max(lightLodCullPixels, 0.0f);
+        m_sceneSrgGlobalConstants.m_lightLodShadowPixels = AZStd::max(lightLodShadowPixels, 0.0f);
+        m_sceneSrgGlobalConstants.m_lightLodFullPixels = AZStd::max(
+            lightLodFullPixels,
+            m_sceneSrgGlobalConstants.m_lightLodShadowPixels + 1.0e-3f);
+        m_sceneSrgGlobalConstants.m_lightLodReferenceIntensity = AZStd::max(
+            lightLodReferenceIntensity,
+            1.0e-3f);
+        m_sceneSrgGlobalConstants.m_depthBoundsSliceMargin =
+            static_cast<uint32_t>(r_volumetricFogDepthBoundsSliceMargin);
         m_sceneSrg->SetConstant(m_shaderConstantsIndex, m_sceneSrgGlobalConstants);
         m_sceneSrg->SetConstant(m_shaderConstantsVolumeIndex, m_sceneSrgVolumeConstants);
 
@@ -306,6 +348,7 @@ namespace AZ::Render
     {
         m_injectPass = nullptr;
         m_scatterPass = nullptr;
+        m_integratePass = nullptr;
         m_froxelParentPass = nullptr;
         m_froxelCompositePass = nullptr;
 
@@ -334,6 +377,15 @@ namespace AZ::Render
         }
 
         {
+            const auto templateName = Name("FroxelIntegrateTemplate");
+            auto passFilter = AZ::RPI::PassFilter::CreateWithTemplateName(templateName, renderPipeline);
+            if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(passFilter); foundPass)
+            {
+                m_integratePass = static_cast<FroxelIntegratePass*>(foundPass);
+            }
+        }
+
+        {
             const auto templateName = Name("FroxelParentTemplate");
             auto passFilter = AZ::RPI::PassFilter::CreateWithTemplateName(templateName, renderPipeline);
             if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(passFilter); foundPass)
@@ -354,7 +406,9 @@ namespace AZ::Render
 
         // remember which render pipeline we found our passes on
         m_renderPipeline =
-            (m_injectPass && m_scatterPass && m_froxelParentPass && m_froxelCompositePass) ? renderPipeline : nullptr;
+            (m_injectPass && m_scatterPass && m_integratePass && m_froxelParentPass && m_froxelCompositePass)
+            ? renderPipeline
+            : nullptr;
     }
 
     void VolumetricFogFeatureProcessor::UpdateSceneSrgConstants()
@@ -582,6 +636,9 @@ namespace AZ::Render
         shaderOptions.SetValue(
             Name("o_volumetricFog_collect_stats"),
             Name(static_cast<uint32_t>(r_volumetricFogDebugMode) != 0 ? "true" : "false"));
+        shaderOptions.SetValue(
+            Name("o_volumetricFog_depth_bounds"),
+            Name(static_cast<bool>(r_volumetricFogDepthBounds) ? "true" : "false"));
 
         m_scatterPass->SetShaderOptions(AZStd::move(shaderOptions));
     }

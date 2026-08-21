@@ -23,6 +23,40 @@ namespace AZ::Render
     {
     }
 
+    void FroxelIntegratePass::SetShaderOption(const Name& optionName, const Name& valueName)
+    {
+        const auto shader = GetShader();
+        if (!shader)
+        {
+            return;
+        }
+
+        const auto& defaultOptions = shader->GetDefaultShaderOptions();
+        const auto defaultLayout = defaultOptions.GetShaderOptionLayout();
+        if (!defaultLayout)
+        {
+            return;
+        }
+        if (!m_froxelShaderOptions.GetShaderOptionLayout() ||
+            m_froxelShaderOptions.GetShaderOptionLayout()->GetHash() != defaultLayout->GetHash())
+        {
+            m_froxelShaderOptions = defaultOptions;
+        }
+
+        const auto layout = m_froxelShaderOptions.GetShaderOptionLayout();
+        if (!layout)
+        {
+            return;
+        }
+
+        const auto value = layout->FindValue(optionName, valueName);
+        if (value != m_froxelShaderOptions.GetValue(optionName))
+        {
+            m_froxelShaderOptions.SetValue(optionName, valueName);
+            UpdateShaderOptions(m_froxelShaderOptions.GetShaderVariantId());
+        }
+    }
+
     void FroxelIntegratePass::BuildInternal()
     {
         m_scatteringAttachments[0] = FindAttachment(Name("Scattering1"));
@@ -43,6 +77,7 @@ namespace AZ::Render
             {
                 break;
             }
+
         }
 
         if (!attachmentsValid)
@@ -58,7 +93,6 @@ namespace AZ::Render
         AZ_Error("FroxelIntegratePass", m_historyScatteredBinding, "FroxelIntegratePass requires a slot for FroxelHistory.");
         m_scatteredBinding = FindAttachmentBinding(Name("FroxelOutput"));
         AZ_Error("FroxelIntegratePass", m_scatteredBinding, "FroxelIntegratePass requires a slot for FroxelOutput.");
-
         if (m_historyScatteredBinding->GetAttachment() == nullptr)
         {
             m_scatteredBinding->SetAttachment(m_scatteringAttachments[0]);

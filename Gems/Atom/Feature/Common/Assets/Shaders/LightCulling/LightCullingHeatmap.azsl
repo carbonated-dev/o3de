@@ -236,10 +236,11 @@ PSOutput MainPS(VSOutput IN)
 
     // check to see if we are overflowing the number of lights per tile
     // expect the lighting to flicker if this happens
-    const bool overflow = (tileLightDataW >> 31);    
+    const bool overflow = (tileLightDataW & NVLC_TILE_OVERFLOW_BIT) != 0;
+    const uint packedLightCount = tileLightDataW & NVLC_TILE_LIGHT_COUNT_MASK;
 
     // We subtract NUM_LIGHT_TYPES because it includes termination markers
-    const uint lightCount = overflow ? OverflowDisplayNumber : tileLightDataW - NUM_LIGHT_TYPES;
+    const uint lightCount = overflow ? OverflowDisplayNumber : packedLightCount - NUM_LIGHT_TYPES;
 
     const float3 tileColor = ComputeTileColor(IN.m_position.xy, lightCount, overflow);
                              

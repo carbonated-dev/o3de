@@ -40,6 +40,12 @@ partial ShaderResourceGroup SceneSrg
         uint     m_debugMode;
         uint     m_lightTypeMask;
         float    m_debugLightCountScale;
+        uint     m_lightLodEnabled;
+        float    m_lightLodFullPixels;
+        float    m_lightLodShadowPixels;
+        float    m_lightLodCullPixels;
+        float    m_lightLodReferenceIntensity;
+        uint     m_depthBoundsSliceMargin;
     };
     VolumetricFogConstants m_volumetricFogData;
 

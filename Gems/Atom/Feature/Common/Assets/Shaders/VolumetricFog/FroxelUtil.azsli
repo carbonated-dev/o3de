@@ -9,7 +9,6 @@
 #pragma once
 
 #define NUM_THREADS_PER_GROUP 16
-#define LIGHT_CULLING_TILE_SIZE 16
 
 // Match the log distribution from LightCullingTilePrepare
 float SliceToViewZ(uint slice, float fogNear, float fogFar, uint sliceCount)
