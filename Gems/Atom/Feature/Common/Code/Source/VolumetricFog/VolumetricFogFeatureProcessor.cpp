@@ -579,6 +579,9 @@ namespace AZ::Render
         shaderOptions.SetValue(
             Name("o_directional_shadow_filtering_sample_count"),
             RPI::ShaderOptionValue{ aznumeric_cast<uint32_t>(filteringSampleCount) });
+        shaderOptions.SetValue(
+            Name("o_volumetricFog_collect_stats"),
+            Name(static_cast<uint32_t>(r_volumetricFogDebugMode) != 0 ? "true" : "false"));
 
         m_scatterPass->SetShaderOptions(AZStd::move(shaderOptions));
     }

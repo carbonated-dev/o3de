@@ -25,6 +25,12 @@
 #include <Atom/RPI/Math.azsli>
 #include "FroxelUtil.azsli"
 
+// Keep diagnostic counters out of the production shader. Maintaining these counters through
+// every light loop extends several live ranges and substantially increases VGPR pressure.
+option bool o_volumetricFog_collect_stats = false;
+option bool o_volumetricFog_compact_directional_shadow = true;
+option bool o_volumetricFog_compact_projected_shadow = true;
+
 ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
     RWTexture3D<float3> m_froxelScatterResult;
@@ -88,7 +94,6 @@ struct FogLightResult
     float3 m_directionToLight;
     float m_distanceToLight;
     float m_visibility;
-    bool m_contributes;
     bool m_shadowEvaluated;
 };
 
@@ -107,7 +112,6 @@ FogLightResult MakeEmptyFogLightResult()
     result.m_directionToLight = 0;
     result.m_distanceToLight = 0;
     result.m_visibility = 1;
-    result.m_contributes = false;
     result.m_shadowEvaluated = false;
     return result;
 }
@@ -128,14 +132,124 @@ float HenyeyGreenstein(float cosTheta)
 
 float3 EvaluateFogSingleScattering(FogLightResult light, float3 viewDirection, float extinction)
 {
-    if (!light.m_contributes)
-    {
-        return 0;
-    }
-
     float phase = HenyeyGreenstein(dot(light.m_directionToLight, viewDirection));
     float lightTransmittance = exp(-extinction * light.m_distanceToLight);
     return light.m_radiance * light.m_visibility * phase * lightTransmittance;
+}
+
+// The generic directional-shadow calculator retains arrays for all cascade coordinates, normal
+// offsets, derivative state, and every filtering mode. Fog has no surface normal, and the common
+// unfiltered/no-blend configuration can stream through the cascades with the same depth test.
+float EvaluateFogDirectionalShadowNoFilter(uint lightIndex, float3 worldPosition)
+{
+    uint shadowmapSize = ViewSrg::m_directionalLightShadows[lightIndex].m_shadowmapSize;
+    if (shadowmapSize <= 1)
+    {
+        return 1.0;
+    }
+
+    uint cascadeCount = min(
+        ViewSrg::m_directionalLightShadows[lightIndex].m_cascadeCount,
+        ViewSrg::MaxCascadeCount);
+    float shadowBias = ViewSrg::m_directionalLightShadows[lightIndex].m_shadowBias;
+    float xyMin = PIXEL_MARGIN / float(shadowmapSize);
+    float xyMax = 1.0 - xyMin;
+    bool foundCascade = false;
+
+    for (uint cascade = 0; cascade < cascadeCount; ++cascade)
+    {
+        float4 lightSpacePosition = mul(
+            ViewSrg::m_directionalLightShadows[lightIndex].m_worldToLightViewMatrices[cascade],
+            float4(worldPosition, 1.0));
+        lightSpacePosition.z += shadowBias;
+        float4 shadowPosition = mul(
+            ViewSrg::m_directionalLightShadows[lightIndex].m_lightViewToShadowmapMatrices[cascade],
+            lightSpacePosition);
+        float3 shadowCoord = shadowPosition.xyz / shadowPosition.w;
+
+        if (!foundCascade)
+        {
+            foundCascade = all(shadowCoord.xy >= xyMin) && all(shadowCoord.xy <= xyMax);
+        }
+        if (!foundCascade)
+        {
+            continue;
+        }
+
+        float shadowDepth = PassSrg::m_directionalLightShadowmap.SampleLevel(
+            PassSrg::PointSampler,
+            float3(shadowCoord.xy, cascade),
+            0).r;
+        if (shadowDepth != 1.0 && shadowCoord.z - shadowDepth > 0.0)
+        {
+            return 0.0;
+        }
+
+        // Once depth is inside a cascade, the generic calculator's maximum cascade is reached.
+        if (shadowCoord.z <= 1.0 - DEPTH_MARGIN)
+        {
+            break;
+        }
+    }
+    return 1.0;
+}
+
+float EvaluateFogDirectionalShadow(uint lightIndex, float3 worldPosition, float4 screenPosition)
+{
+    if (o_volumetricFog_compact_directional_shadow &&
+        o_directional_shadow_filtering_method == ShadowFilterMethod::None &&
+        !o_blend_between_cascades_enable)
+    {
+        return EvaluateFogDirectionalShadowNoFilter(lightIndex, worldPosition);
+    }
+    return DirectionalLightShadow::GetVisibility(
+        lightIndex, worldPosition, FogShadowNormal, screenPosition);
+}
+
+// Froxels are spatially filtered by integration and temporal history, so one hardware-bilinear
+// comparison provides a stable compact PCF footprint without retaining the 4/9/16-tap bicubic
+// filter state. The legacy evaluator remains available in the fallback variant.
+float EvaluateFogProjectedShadowCompact(uint shadowIndex, float3 worldPosition)
+{
+    uint shadowmapSize = ViewSrg::m_projectedFilterParams[shadowIndex].m_shadowmapSize;
+    if (shadowmapSize <= 1)
+    {
+        return 1.0;
+    }
+
+    float4 shadowPositionHomogeneous = mul(
+        ViewSrg::m_projectedShadows[shadowIndex].m_depthBiasMatrix,
+        float4(worldPosition, 1.0));
+    float inverseW = rcp(shadowPositionHomogeneous.w);
+    float3 shadowPosition = shadowPositionHomogeneous.xyz * inverseW;
+    float pixelMargin = 1.5 / float(shadowmapSize);
+    if (any(shadowPosition.xy < 0.0) || any(shadowPosition.xy > 1.0 - pixelMargin))
+    {
+        return 1.0;
+    }
+
+    uint2 atlasOrigin = ViewSrg::m_projectedFilterParams[shadowIndex].m_shadowmapOriginInSlice;
+    uint atlasSlice = ViewSrg::m_projectedShadows[shadowIndex].m_shadowmapArraySlice;
+    float2 atlasPosition = shadowPosition.xy * float(shadowmapSize) + float2(atlasOrigin);
+    float comparisonDepth = shadowPosition.z - ViewSrg::m_projectedShadows[shadowIndex].m_bias * inverseW;
+    return PassSrg::m_projectedShadowmaps.SampleCmpLevelZero(
+        SceneSrg::m_hwPcfSampler,
+        float3(atlasPosition * ViewSrg::m_invShadowmapAtlasSize, atlasSlice),
+        comparisonDepth);
+}
+
+float EvaluateFogProjectedShadow(
+    uint shadowIndex,
+    float3 lightPosition,
+    float3 worldPosition,
+    float3 directionToLight)
+{
+    if (o_volumetricFog_compact_projected_shadow)
+    {
+        return EvaluateFogProjectedShadowCompact(shadowIndex, worldPosition);
+    }
+    return ProjectedShadow::GetVisibility(
+        shadowIndex, lightPosition, worldPosition, directionToLight, FogShadowNormal);
 }
 
 FogLightResult EvaluateFogDirectionalLight(uint lightIndex, float3 froxelPosition, float4 screenPosition)
@@ -156,16 +270,17 @@ FogLightResult EvaluateFogDirectionalLight(uint lightIndex, float3 froxelPositio
     result.m_directionToLight = normalize(-light.m_direction);
     // Preserve the previous one-meter optical-depth approximation for directional lights.
     result.m_distanceToLight = 1.0;
-    result.m_contributes = any(result.m_radiance > 0);
-
 #if ENABLE_SHADOWS
     const uint shadowIndex = ViewSrg::m_shadowIndexDirectionalLight;
-    if (result.m_contributes && o_enableShadows && lightIndex == shadowIndex)
+    if (any(result.m_radiance > 0) && o_enableShadows && lightIndex == shadowIndex)
     {
         // A participating medium has no surface normal. Zero disables the surface normal offset.
-        result.m_visibility = DirectionalLightShadow::GetVisibility(
-            shadowIndex, froxelPosition, FogShadowNormal, screenPosition);
-        result.m_shadowEvaluated = true;
+        result.m_visibility = EvaluateFogDirectionalShadow(
+            shadowIndex, froxelPosition, screenPosition);
+        if (o_volumetricFog_collect_stats)
+        {
+            result.m_shadowEvaluated = true;
+        }
     }
 #endif
 
@@ -201,7 +316,6 @@ FogLightResult EvaluateFogSimplePointLight(uint lightIndex, float3 froxelPositio
     result.m_directionToLight = toLight * inverseDistance;
     result.m_distanceToLight = distanceSquared * inverseDistance;
     result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation / max(distanceSquared, 1e-6);
-    result.m_contributes = any(result.m_radiance > 0);
     return result;
 }
 
@@ -250,18 +364,18 @@ FogLightResult EvaluateFogSimpleSpotLight(uint lightIndex, float3 froxelPosition
             PassSrg::LinearSampler, goboUv, 0);
     }
 
-    result.m_contributes = any(result.m_radiance > 0);
-
 #if ENABLE_SHADOWS
-    if (result.m_contributes && o_enableShadows && o_enableSimpleSpotLightShadows && light.m_shadowIndex != 0xffff)
+    if (any(result.m_radiance > 0) && o_enableShadows && o_enableSimpleSpotLightShadows && light.m_shadowIndex != 0xffff)
     {
-        result.m_visibility = ProjectedShadow::GetVisibility(
+        result.m_visibility = EvaluateFogProjectedShadow(
             light.m_shadowIndex,
             light.m_position,
             froxelPosition,
-            directionToLight,
-            FogShadowNormal);
-        result.m_shadowEvaluated = true;
+            directionToLight);
+        if (o_volumetricFog_collect_stats)
+        {
+            result.m_shadowEvaluated = true;
+        }
     }
 #endif
 
@@ -320,22 +434,22 @@ FogLightResult EvaluateFogPointLight(uint lightIndex, float3 froxelPosition)
     result.m_directionToLight = toLightCenter * inverseCenterDistance;
     result.m_distanceToLight = max(centerDistance - light.m_bulbRadius, 0.0);
     result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation / max(centerDistanceSquared, 1e-6);
-    result.m_contributes = any(result.m_radiance > 0);
-
 #if ENABLE_SHADOWS
-    if (result.m_contributes && o_enableShadows && o_enableSphereLightShadows)
+    if (any(result.m_radiance > 0) && o_enableShadows && o_enableSphereLightShadows)
     {
         uint face = GetFogPointLightShadowFace(froxelPosition, light.m_position);
         uint shadowIndex = UnpackFogPointLightShadowIndex(light, face);
         if (shadowIndex != 0xffff)
         {
-            result.m_visibility = ProjectedShadow::GetVisibility(
+            result.m_visibility = EvaluateFogProjectedShadow(
                 shadowIndex,
                 light.m_position,
                 froxelPosition,
-                result.m_directionToLight,
-                FogShadowNormal);
-            result.m_shadowEvaluated = true;
+                result.m_directionToLight);
+            if (o_volumetricFog_collect_stats)
+            {
+                result.m_shadowEvaluated = true;
+            }
         }
     }
 #endif
@@ -402,7 +516,6 @@ FogLightResult EvaluateFogDiskLight(uint lightIndex, float3 froxelPosition)
     float3 toRepresentativePoint = closestPoint - froxelPosition;
     float representativeDistanceSquared = dot(toRepresentativePoint, toRepresentativePoint);
     float inverseRepresentativeDistance = rsqrt(max(representativeDistanceSquared, 1e-6));
-
     float rangeAttenuation = 1.0 - range * range;
     rangeAttenuation *= rangeAttenuation;
     float apparentSizeAttenuation = rcp(light.m_diskRadius / distanceToPlane + 1.0);
@@ -411,18 +524,18 @@ FogLightResult EvaluateFogDiskLight(uint lightIndex, float3 froxelPosition)
     result.m_distanceToLight = representativeDistanceSquared * inverseRepresentativeDistance;
     result.m_radiance = light.m_rgbIntensityCandelas * rangeAttenuation * facing * coneAttenuation * apparentSizeAttenuation /
         max(distanceToDiskSquared, 1e-6);
-    result.m_contributes = any(result.m_radiance > 0);
-
 #if ENABLE_SHADOWS
-    if (result.m_contributes && o_enableShadows && o_enableDiskLightShadows && light.m_shadowIndex != 0xffff)
+    if (any(result.m_radiance > 0) && o_enableShadows && o_enableDiskLightShadows && light.m_shadowIndex != 0xffff)
     {
-        result.m_visibility = ProjectedShadow::GetVisibility(
+        result.m_visibility = EvaluateFogProjectedShadow(
             light.m_shadowIndex,
             light.m_position,
             froxelPosition,
-            result.m_directionToLight,
-            FogShadowNormal);
-        result.m_shadowEvaluated = true;
+            result.m_directionToLight);
+        if (o_volumetricFog_collect_stats)
+        {
+            result.m_shadowEvaluated = true;
+        }
     }
 #endif
 
@@ -439,18 +552,27 @@ float3 ApplyFogDirectionalLights(
     float3 inScattering = 0;
     for (uint lightIndex = 0; lightIndex < SceneSrg::m_directionalLightCount; ++lightIndex)
     {
-        ++stats.m_listedLights;
-        FogLightResult light = EvaluateFogDirectionalLight(lightIndex, froxelPosition, screenPosition);
-        if (light.m_contributes && light.m_visibility > 0)
+        if (o_volumetricFog_collect_stats)
         {
-            ++stats.m_contributingLights;
+            ++stats.m_listedLights;
+        }
+        FogLightResult light = EvaluateFogDirectionalLight(lightIndex, froxelPosition, screenPosition);
+        if (any(light.m_radiance > 0) && light.m_visibility > 0)
+        {
+            if (o_volumetricFog_collect_stats)
+            {
+                ++stats.m_contributingLights;
+            }
             inScattering += EvaluateFogSingleScattering(light, viewDirection, extinction);
         }
-        else
+        else if (o_volumetricFog_collect_stats)
         {
             ++stats.m_rejectedLights;
         }
-        stats.m_shadowEvaluations += light.m_shadowEvaluated ? 1 : 0;
+        if (o_volumetricFog_collect_stats)
+        {
+            stats.m_shadowEvaluations += light.m_shadowEvaluated ? 1 : 0;
+        }
     }
     return inScattering;
 }
@@ -469,7 +591,10 @@ float3 ApplyFogLightsByType(
     {
         uint lightIndex = tileIterator.GetValue();
         tileIterator.LoadAdvance();
-        ++stats.m_listedLights;
+        if (o_volumetricFog_collect_stats)
+        {
+            ++stats.m_listedLights;
+        }
 
         FogLightResult light = MakeEmptyFogLightResult();
         switch (type)
@@ -488,16 +613,22 @@ float3 ApplyFogLightsByType(
             break;
         }
 
-        if (light.m_contributes && light.m_visibility > 0)
+        if (any(light.m_radiance > 0) && light.m_visibility > 0)
         {
-            ++stats.m_contributingLights;
+            if (o_volumetricFog_collect_stats)
+            {
+                ++stats.m_contributingLights;
+            }
             inScattering += EvaluateFogSingleScattering(light, viewDirection, extinction);
         }
-        else
+        else if (o_volumetricFog_collect_stats)
         {
             ++stats.m_rejectedLights;
         }
-        stats.m_shadowEvaluations += light.m_shadowEvaluated ? 1 : 0;
+        if (o_volumetricFog_collect_stats)
+        {
+            stats.m_shadowEvaluations += light.m_shadowEvaluated ? 1 : 0;
+        }
     }
     return inScattering;
 }
@@ -507,7 +638,7 @@ void SkipLightGroup(inout LightCullingTileIterator tileIterator, bool includeInS
     tileIterator.LoadAdvance();
     while (!tileIterator.IsDone())
     {
-        if (includeInStats)
+        if (o_volumetricFog_collect_stats && includeInStats)
         {
             ++stats.m_listedLights;
             ++stats.m_rejectedLights;
@@ -654,7 +785,7 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID, uint groupIndex : SV_GroupInde
     else
         SkipLightGroup(tileIterator, true, stats);
 
-    if (SceneSrg::m_volumetricFogData.m_debugMode != 0)
+    if (o_volumetricFog_collect_stats && SceneSrg::m_volumetricFogData.m_debugMode != 0)
     {
         inScatter = EvaluateDebugOutput(stats, tileIterator);
     }
