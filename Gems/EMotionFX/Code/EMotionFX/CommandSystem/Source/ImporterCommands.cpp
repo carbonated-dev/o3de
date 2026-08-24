@@ -24,10 +24,6 @@
 #endif
 #include <Source/Integration/Assets/ActorAsset.h>
 
-#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
-#pragma optimize("", off)
-#endif
-
 namespace CommandSystem
 {
     //--------------------------------------------------------------------------------
@@ -493,7 +489,3 @@ namespace CommandSystem
 
 #endif
 } // namespace CommandSystem
-
-#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
-#pragma optimize("", on)
-#endif

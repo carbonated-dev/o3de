@@ -84,10 +84,6 @@ AZ_POP_DISABLE_WARNING
 #endif
 #include <IEditor.h>
 
-#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
-#pragma optimize("", off)
-#endif
-
 namespace EMStudio
 {
     class UndoMenuCallback
@@ -3047,7 +3043,3 @@ namespace EMStudio
         return AZ::TICK_UI;
     }
 } // namespace EMStudio
-
-#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
-#pragma optimize("", on)
-#endif

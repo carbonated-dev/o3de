@@ -45,10 +45,6 @@
 #include <AzFramework/Spawnable/SpawnableEntitiesInterface.h>
 #endif
 
-#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
-#pragma optimize("", off)
-#endif
-
 namespace EMStudio
 {
     AnimViewportRenderer::AnimViewportRenderer(AZ::RPI::ViewportContextPtr viewportContext, const RenderOptions* renderOptions)
@@ -573,7 +569,3 @@ namespace EMStudio
 #endif
 
 } // namespace EMStudio
-
-#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
-#pragma optimize("", on)
-#endif

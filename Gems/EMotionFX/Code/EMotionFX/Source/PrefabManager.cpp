@@ -21,10 +21,6 @@
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentConstants.h>
 #include <Integration/Components/ActorComponent.h>
 
-#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
-#pragma optimize("", off)
-#endif
-
 namespace EMotionFX
 {
     AZ_CLASS_ALLOCATOR_IMPL(PrefabManager, GeneralAllocator)
@@ -247,7 +243,3 @@ namespace EMotionFX
         return m_prefabDatas[nr];
     }
 }   // namespace EMotionFX
-
-#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
-#pragma optimize("", on)
-#endif
