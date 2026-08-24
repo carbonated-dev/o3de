@@ -225,14 +225,6 @@ namespace AZ
 
                 if (groupIdChanged || syncBoundary)
                 {
-                    const auto currentScopes = group->GetScopes();
-                    const auto previousScopes = previousGroup ? previousGroup->GetScopes() : AZStd::span<const Scope* const>{};
-                   /* AZ_TracePrintf(
-                        "FrameGraph",
-                        "Split Vulkan execute-group handler before '%s' (wait=%s, previousSignal=%s)\n",
-                        currentScopes.empty() ? "<empty>" : currentScopes.front()->GetId().GetCStr(),
-                        groupHasWait(*group) ? "yes" : "no",
-                        previousScopes.empty() ? "no" : (groupHasSignal(*previousGroup) ? "yes" : "no"));*/
                     AddExecuteGroupHandler(groupId, groupRefs);
                     groupRefs.clear();
                 }
