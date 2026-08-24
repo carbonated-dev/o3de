@@ -77,7 +77,16 @@ AZ_POP_DISABLE_WARNING
 #include <LyViewPaneNames.h>
 
 #include <AzToolsFramework/API/ToolsApplicationAPI.h>
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+#include <EMotionFX/Source/PrefabManager.h>
+#include <AzToolsFramework/UI/Prefab/PrefabSaveLoadHandler.h>
+#include <AzCore/Utils/Utils.h>
+#endif
 #include <IEditor.h>
+
+#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
+#pragma optimize("", off)
+#endif
 
 namespace EMStudio
 {
@@ -170,6 +179,9 @@ namespace EMStudio
         m_shortcutManager                = nullptr;
         m_nativeEventFilter              = nullptr;
         m_importActorCallback            = nullptr;
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        m_prefabLoadedCallback           = nullptr;
+#endif
         m_removeActorCallback            = nullptr;
         m_removeActorInstanceCallback    = nullptr;
         m_importMotionCallback           = nullptr;
@@ -237,6 +249,10 @@ namespace EMStudio
         GetCommandManager()->RemoveCommandCallback(m_clearSelectionCallback, false);
         GetCommandManager()->RemoveCommandCallback(m_saveWorkspaceCallback, false);
         GetCommandManager()->RemoveCallback(&m_mainWindowCommandManagerCallback, false);
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        GetCommandManager()->RemoveCommandCallback(m_prefabLoadedCallback, false);
+        delete m_prefabLoadedCallback;
+#endif
         delete m_importActorCallback;
         delete m_removeActorCallback;
         delete m_removeActorInstanceCallback;
@@ -323,8 +339,13 @@ namespace EMStudio
         menu->addSeparator();
 
         // actor file actions
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        m_openActorAction = menu->addAction(tr("&Open Actor"), this, &MainWindow::OnFileOpenActor, QKeySequence::Open);
+        m_openActorAction->setObjectName("EMFX.MainWindow.OpenActorAction");
+#else
         QAction* openAction = menu->addAction(tr("&Open Actor"), this, &MainWindow::OnFileOpenActor, QKeySequence::Open);
         openAction->setObjectName("EMFX.MainWindow.OpenActorAction");
+#endif
         m_mergeActorAction = menu->addAction(tr("&Merge Actor"), this, &MainWindow::OnFileMergeActor, Qt::CTRL + Qt::Key_I);
         m_mergeActorAction->setObjectName("EMFX.MainWindow.MergeActorAction");
         m_saveSelectedActorsAction = menu->addAction(tr("&Save Selected Actors"), this, &MainWindow::OnFileSaveSelectedActors);
@@ -339,6 +360,17 @@ namespace EMStudio
         // recent actors submenu
         m_recentActors.Init(menu, m_options.GetMaxRecentFiles(), "Recent Actors", "recentActorFiles");
         connect(&m_recentActors, &MysticQt::RecentFiles::OnRecentFile, this, &MainWindow::OnRecentFile);
+
+        menu->addSeparator();
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        // prefab file actions
+        m_openPrefabAction = menu->addAction(tr("Open Prefab"), this, &MainWindow::OnFileOpenPrefab);
+        m_openPrefabAction->setObjectName("EMFX.MainWindow.OpenPrefabAction");
+
+        m_recentPrefabs.Init(menu, m_options.GetMaxRecentFiles(), "Recent Prefabs", "recentPrefabFiles");
+        connect(&m_recentPrefabs, &MysticQt::RecentFiles::OnRecentFile, this, &MainWindow::OnRecentPrefabFile);
+#endif
 
         // workspace file actions
         menu->addSeparator();
@@ -496,6 +528,10 @@ namespace EMStudio
         m_unselectCallback = new CommandUnselectCallback(false);
         m_clearSelectionCallback = new CommandClearSelectionCallback(false);
         m_saveWorkspaceCallback = new CommandSaveWorkspaceCallback(false);
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        m_prefabLoadedCallback = new PrefabLoadedCallback(false);
+        GetCommandManager()->RegisterCommandCallback("PrefabLoaded", m_prefabLoadedCallback);
+#endif
         GetCommandManager()->RegisterCommandCallback("ImportActor", m_importActorCallback);
         GetCommandManager()->RegisterCommandCallback("RemoveActor", m_removeActorCallback);
         GetCommandManager()->RegisterCommandCallback("RemoveActorInstance", m_removeActorInstanceCallback);
@@ -583,6 +619,81 @@ namespace EMStudio
         m_errorWindow->Init(errors);
         m_errorWindow->open();
     }
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    void MainWindow::AddRecentPrefabFile(const QString& fileName)
+    {
+        m_recentPrefabs.AddRecentFile(fileName.toUtf8().data());
+    }
+
+    void MainWindow::OnOpenDroppedPrefab()
+    {
+        if (m_dirtyFileManager->SaveDirtyFiles({ azrtti_typeid<AzFramework::Spawnable>() }) == DirtyFileManager::CANCELED)
+        {
+            return;
+        }
+        const auto relativePath = AZ::IO::PathView(m_droppedPrefabFileName).LexicallyProximate(AZ::IO::PathView(AZ::Utils::GetProjectPath())).StringAsPosix();
+        LoadPrefab(relativePath);
+    }
+
+    void MainWindow::OnRecentPrefabFile(QAction* action)
+    {
+        const AZStd::string filename = action->data().toString().toUtf8().data();
+
+        // Load the recent file.
+        // No further error handling needed here as the commands do that all internally.
+        LoadFile(filename.c_str(), 0, 0, false);
+    }
+
+    void UpdatePrefabUI()
+    {
+        EMStudio::MainWindow* mainWindow = GetManager()->GetMainWindow();
+        if (EMotionFX::GetPrefabManager().GetNumPrefabs())
+        {
+            mainWindow->GetSaveSelectedActorsAction()->setEnabled(true);
+            mainWindow->GetSaveAllAction()->setEnabled(true);
+            mainWindow->GetMergeActorAction()->setEnabled(false);
+            mainWindow->GetOpenActorAction()->setEnabled(false);
+            mainWindow->GetRecentActors().SetEnabled(false);
+        }
+        else
+        {
+            mainWindow->GetSaveSelectedActorsAction()->setEnabled(false);
+            mainWindow->GetSaveAllAction()->setEnabled(false);
+            mainWindow->GetMergeActorAction()->setEnabled(false);
+            mainWindow->GetOpenActorAction()->setEnabled(true);
+            mainWindow->GetRecentActors().SetEnabled(true);
+        }
+    }
+
+    bool MainWindow::PrefabLoadedCallback::Execute(MCore::Command* command, const MCore::CommandLine& commandLine)
+    {
+        MCORE_UNUSED(command);
+        MCORE_UNUSED(commandLine);
+
+        UpdatePrefabUI();
+
+        EMStudio::MainWindow* mainWindow = GetManager()->GetMainWindow();
+        mainWindow->BroadcastSelectionNotifications();
+        mainWindow->UpdateResetAndSaveAllMenus();
+
+        return true;
+    }
+
+    bool MainWindow::PrefabLoadedCallback::Undo(MCore::Command* command, const MCore::CommandLine& commandLine)
+    {
+        MCORE_UNUSED(command);
+        MCORE_UNUSED(commandLine);
+
+        UpdatePrefabUI();
+
+        EMStudio::MainWindow* mainWindow = GetManager()->GetMainWindow();
+        mainWindow->BroadcastSelectionNotifications();
+        mainWindow->UpdateResetAndSaveAllMenus();
+
+        return true;
+    }
+#endif
 
     bool MainWindow::CommandImportActorCallback::Execute(MCore::Command* command, const MCore::CommandLine& commandLine)
     {
@@ -979,7 +1090,11 @@ namespace EMStudio
     void MainWindow::UpdateSaveActorsMenu()
     {
         // enable the merge menu only if one actor is in the scene
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        if (EMotionFX::GetActorManager().GetNumActors() > 0 && EMotionFX::GetPrefabManager().GetNumPrefabs() == 0)
+#else
         if (EMotionFX::GetActorManager().GetNumActors() > 0)
+#endif
         {
             EnableMergeActorMenu();
         }
@@ -995,10 +1110,16 @@ namespace EMStudio
         const size_t numSelectedActorInstances = selectionList.GetNumSelectedActorInstances();
         if ((numSelectedActors > 0) || (numSelectedActorInstances > 0))
         {
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+            m_openPrefabAction->setDisabled(false);
+#endif
             EnableSaveSelectedActorsMenu();
         }
         else
         {
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+            m_openPrefabAction->setDisabled(true);
+#endif
             DisableSaveSelectedActorsMenu();
         }
     }
@@ -1645,6 +1766,9 @@ namespace EMStudio
             // Set the maximum number of recent files
             m_recentActors.SetMaxRecentFiles(m_options.GetMaxRecentFiles());
             m_recentWorkspaces.SetMaxRecentFiles(m_options.GetMaxRecentFiles());
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+            m_recentPrefabs.SetMaxRecentFiles(m_options.GetMaxRecentFiles());
+#endif
         }
         else if (optionChanged == GUIOptions::s_maxHistoryItemsOptionName)
         {
@@ -1693,6 +1817,70 @@ namespace EMStudio
             SavePreferences();
         }
     }
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    void MainWindow::OnFileOpenPrefab()
+    {
+        if (m_dirtyFileManager->SaveDirtyFiles({ azrtti_typeid<EMotionFX::Actor>() }) == DirtyFileManager::CANCELED)
+        {
+            return;
+        }
+
+        AZStd::string prefabFilePath;
+        if (AzToolsFramework::Prefab::PrefabSaveHandler::QueryUserForPrefabFilePath(prefabFilePath))
+        {
+            const auto relativePath = AZ::IO::PathView(prefabFilePath).LexicallyProximate(AZ::IO::PathView(AZ::Utils::GetProjectPath())).StringAsPosix();
+            LoadPrefab(relativePath);
+
+            m_recentPrefabs.AddRecentFile(prefabFilePath);
+        }
+        activateWindow();
+    }
+
+    void MainWindow::LoadPrefab(AZStd::string const& fileName)
+    {
+        // create the final command
+        AZStd::string commandResult;
+
+        // set the command group name based on the parameters
+        const AZStd::string commandGroupName = "Open prefab";
+
+        // create the command group
+        AZStd::string outResult;
+        MCore::CommandGroup commandGroup(commandGroupName.c_str());
+
+        CommandSystem::ClearScene(true, true, &commandGroup);
+
+        // create the load command
+        AZStd::string loadActorCommand = AZStd::string::format("ImportPrefab -filename \"%s\" ", fileName.c_str());
+
+        LoadActorSettingsWindow::LoadActorSettings loadActorSettings;
+        loadActorCommand += "-loadMeshes " + AZStd::to_string(loadActorSettings.m_loadMeshes);
+        loadActorCommand += " -loadTangents " + AZStd::to_string(loadActorSettings.m_loadTangents);
+        loadActorCommand += " -autoGenTangents " + AZStd::to_string(loadActorSettings.m_autoGenerateTangents);
+        loadActorCommand += " -loadLimits " + AZStd::to_string(loadActorSettings.m_loadLimits);
+        loadActorCommand += " -loadGeomLods " + AZStd::to_string(loadActorSettings.m_loadGeometryLoDs);
+        loadActorCommand += " -loadMorphTargets " + AZStd::to_string(loadActorSettings.m_loadMorphTargets);
+        loadActorCommand += " -loadCollisionMeshes " + AZStd::to_string(loadActorSettings.m_loadCollisionMeshes);
+        loadActorCommand += " -loadMaterialLayers " + AZStd::to_string(loadActorSettings.m_loadStandardMaterialLayers);
+        loadActorCommand += " -loadSkinningInfo " + AZStd::to_string(loadActorSettings.m_loadSkinningInfo);
+        loadActorCommand += " -loadSkeletalLODs " + AZStd::to_string(loadActorSettings.m_loadSkeletalLoDs);
+        loadActorCommand += " -dualQuatSkinning " + AZStd::to_string(loadActorSettings.m_dualQuaternionSkinning);
+
+        // add the load and the create instance commands
+        commandGroup.AddCommandString(loadActorCommand.c_str());
+
+        // add the load and the create instance commands
+        commandGroup.AddCommandString(loadActorCommand.c_str());
+
+        // execute the group command
+        if (GetCommandManager()->ExecuteCommandGroup(commandGroup, outResult) == false)
+        {
+            MCore::LogError("Could not load prefab '%s'.", fileName.c_str());
+        }
+    }
+
+#endif
 
     // open an actor
     void MainWindow::OnFileOpenActor()
@@ -2111,7 +2299,9 @@ namespace EMStudio
         AZStd::vector<AZStd::string> animGraphFilenames;
         AZStd::vector<AZStd::string> workspaceFilenames;
         AZStd::vector<AZStd::string> motionSetFilenames;
-
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        AZStd::vector<AZStd::string> prefabFilenames;
+#endif
         // get the number of urls and iterate over them
         AZStd::string extension;
         for (const AZStd::string& filename : filenames)
@@ -2153,9 +2343,44 @@ namespace EMStudio
                     motionSetFilenames.push_back(assetSourceFilename);
                 }
             }
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+            else if (AzFramework::StringFunc::Equal(extension.c_str(), "prefab"))
+            {
+                prefabFilenames.push_back(filename);
+            }
+#endif
         }
 
         //--------------------
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        if (prefabFilenames.size() == 1)
+        {
+            m_droppedPrefabFileName = prefabFilenames[0].c_str();
+            m_recentPrefabs.AddRecentFile(m_droppedPrefabFileName.c_str());
+
+            if (contextMenuEnabled)
+            {
+                if (EMotionFX::GetActorManager().GetNumActors() > 0)
+                {
+                    // create the drop context menu
+                    QMenu menu(this);
+                    QAction* openAction = menu.addAction("Open Prefab");
+                    connect(openAction, &QAction::triggered, this, &MainWindow::OnOpenDroppedPrefab);
+
+                    // show the menu at the given position
+                    menu.exec(mapToGlobal(QPoint(contextMenuPosX, contextMenuPosY)));
+                }
+                else
+                {
+                    OnOpenDroppedPrefab();
+                }
+            }
+            else
+            {
+                OnOpenDroppedPrefab();
+            }
+        }
+#endif
 
         const size_t actorCount = actorFilenames.size();
         if (actorCount == 1)
@@ -2822,3 +3047,7 @@ namespace EMStudio
         return AZ::TICK_UI;
     }
 } // namespace EMStudio
+
+#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
+#pragma optimize("", on)
+#endif

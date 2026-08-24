@@ -37,6 +37,10 @@ namespace EMStudio
         AnimViewportRenderer* GetAnimViewportRenderer() { return m_renderer.get(); }
 
         void Reinit(bool resetCamera = true);
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        void ReinitPrefabEntities();
+        void ReinitEnvEntities(bool resetCamera = true);
+#endif
 
     private:
         void OnTick(float deltaTime, AZ::ScriptTimePoint time) override;

@@ -35,6 +35,9 @@ namespace AZ
 
 namespace AzFramework
 {
+#if defined(CARBONATED)
+    class EntityContext;
+#endif
     AZ_TYPE_SAFE_INTEGRAL(SpawnablePriority, uint8_t);
 
     inline static constexpr SpawnablePriority SpawnablePriority_Highest  { 0 };
@@ -250,6 +253,7 @@ namespace AzFramework
 #ifdef CARBONATED
         //! Custom entity id remapper.
         AZStd::unordered_map<AZ::EntityId, AZ::EntityId> m_customEntityIdMapper;
+        AzFramework::EntityContext* m_entityContext{ nullptr };
 #endif
 // Gruber patch end // VMED 
     };
@@ -538,6 +542,7 @@ namespace AzFramework
 
 // Gruber patch begin. // LVB. // Support unique instances
 #ifdef CARBONATED
+        virtual void DespawnAllEntitiesImmediately(EntitySpawnTicket& spawnTicket, DespawnAllEntitiesOptionalArgs optionalArgs = {}) = 0;
         /**
          * Gets the address of the spawnable instance that owns the entity.
          *

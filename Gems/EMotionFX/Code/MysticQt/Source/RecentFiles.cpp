@@ -212,6 +212,12 @@ namespace MysticQt
         }
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    void RecentFiles::SetEnabled(bool enable)
+    {
+        m_recentFilesMenu->setEnabled(enable);
+    }
+#endif
 
     AZStd::string RecentFiles::GetLastRecentFileName() const
     {

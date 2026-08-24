@@ -101,6 +101,8 @@ set(FILES
     Source/PoseDataFactory.h
     Source/PoseDataRagdoll.cpp
     Source/PoseDataRagdoll.h
+    Source/PrefabManager.cpp
+    Source/PrefabManager.h
     Source/RagdollInstance.cpp
     Source/RagdollInstance.h
     Source/RagdollVelocityEvaluators.cpp

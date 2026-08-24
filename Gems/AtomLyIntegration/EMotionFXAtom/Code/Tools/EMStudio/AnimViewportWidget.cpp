@@ -76,6 +76,23 @@ namespace EMStudio
         AnimViewportRequestBus::Handler::BusDisconnect();
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    void AnimViewportWidget::ReinitPrefabEntities()
+    {
+        m_renderer->ReinitPrefabEntities();
+    }
+
+    void AnimViewportWidget::ReinitEnvEntities(bool resetCamera)
+    {
+        m_renderer->UpdateActorRenderFlag(m_plugin->GetRenderOptions()->GetRenderFlags());
+
+        if (resetCamera)
+        {
+            UpdateCameraViewMode(RenderOptions::CameraViewMode::DEFAULT);
+        }
+    }
+#endif
+
     void AnimViewportWidget::Reinit(bool resetCamera)
     {
         m_renderer->Reinit();

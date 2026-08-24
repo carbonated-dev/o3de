@@ -214,6 +214,9 @@ namespace EMotionFX
         {
             m_configuration.m_actorAsset = actorAsset;
             CheckActorCreation();
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+            m_processLoadedAsset = false;
+#endif
         }
 
         // carbonated begin EMotionFX_port

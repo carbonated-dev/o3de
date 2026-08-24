@@ -68,6 +68,10 @@ namespace EMStudio
 
         void UpdatePickingRenderFlags(EMotionFX::ActorRenderFlags renderFlags);
 
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        void ReinitPrefab();
+        void ReinitEnv();
+#endif
     private:
         // AzToolsFramework::ViewportInteraction::ViewportMouseRequestBus overrides...
         bool HandleMouseInteraction(const AzToolsFramework::ViewportInteraction::MouseInteractionEvent& mouseInteractionEvent) override;
@@ -97,6 +101,12 @@ namespace EMStudio
         
         MCORE_DEFINECOMMANDCALLBACK(ImportActorCallback);
         MCORE_DEFINECOMMANDCALLBACK(RemoveActorCallback);
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        MCORE_DEFINECOMMANDCALLBACK(PrefabLoadedCallback);
+        MCORE_DEFINECOMMANDCALLBACK(ImportPrefabCallback);
+        PrefabLoadedCallback* m_prefabLoadedCallback = nullptr;
+        ImportPrefabCallback* m_importPrefabCallback = nullptr;
+#endif
         ImportActorCallback* m_importActorCallback = nullptr;
         RemoveActorCallback* m_removeActorCallback = nullptr;
     };

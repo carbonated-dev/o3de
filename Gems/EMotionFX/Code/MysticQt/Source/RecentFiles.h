@@ -33,6 +33,9 @@ namespace MysticQt
         void SetMaxRecentFiles(size_t numRecentFiles);
         void AddRecentFile(AZStd::string filename);
         AZStd::string GetLastRecentFileName() const;
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        void SetEnabled(bool enable);
+#endif
 
     signals:
         void OnRecentFile(QAction* action);

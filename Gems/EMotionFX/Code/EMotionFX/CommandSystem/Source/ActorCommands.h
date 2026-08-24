@@ -56,6 +56,16 @@ namespace CommandSystem
         bool            m_oldWorkspaceDirtyFlag;
     MCORE_DEFINECOMMAND_END
 
+#if defined(CARBONATED)
+    // Remove prefab.
+    MCORE_DEFINECOMMAND_START(CommandRemovePrefab, "Remove prefab", true)
+public:
+    uint32 m_previouslyUsedId;
+    AZStd::string m_oldFileName;
+    bool m_oldDirtyFlag;
+    bool m_oldWorkspaceDirtyFlag;
+    MCORE_DEFINECOMMAND_END
+#endif
 
     // Scale actor data.
     MCORE_DEFINECOMMAND_START(CommandScaleActorData, "Scale actor data", true)

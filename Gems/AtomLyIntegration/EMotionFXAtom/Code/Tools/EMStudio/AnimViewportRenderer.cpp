@@ -38,6 +38,17 @@
 #include <EMotionFX/Tools/EMotionStudio/EMStudioSDK/Source/EMStudioManager.h>
 #include <EMotionFX/Tools/EMotionStudio/EMStudioSDK/Source/RenderPlugin/RenderOptions.h>
 
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+#include <AzFramework/Helpers/AssetHelpers.h>
+#include <AzFramework/Helpers/EntityHelpers.h>
+#include <AzFramework/Spawnable/Spawnable.h>
+#include <AzFramework/Spawnable/SpawnableEntitiesInterface.h>
+#endif
+
+#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
+#pragma optimize("", off)
+#endif
+
 namespace EMStudio
 {
     AnimViewportRenderer::AnimViewportRenderer(AZ::RPI::ViewportContextPtr viewportContext, const RenderOptions* renderOptions)
@@ -161,10 +172,15 @@ namespace EMStudio
         m_entityContext->DestroyEntity(m_iblEntity);
         m_entityContext->DestroyEntity(m_postProcessEntity);
         m_entityContext->DestroyEntity(m_groundEntity);
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        EMotionFX::GetPrefabManager().UnregisterAllPrefabs();
+#else
         for (AZ::Entity* entity : m_actorEntities)
         {
             m_entityContext->DestroyEntity(entity);
         }
+#endif
         m_actorEntities.clear();
         m_entityContext->DestroyContext();
 
@@ -294,6 +310,12 @@ namespace EMStudio
 
     void AnimViewportRenderer::ReinitActorEntities()
     {
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        if (EMotionFX::GetPrefabManager().GetNumPrefabs())
+        {
+            return;
+        }
+#endif
         // 1. Destroy all the entities that do not point to any actorAsset anymore.
         AZStd::set<AZ::Data::AssetId> assetLookup;
         AzFramework::EntityContext* entityContext = m_entityContext.get();
@@ -406,4 +428,152 @@ namespace EMStudio
     {
         return m_actorEntities;
     }
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    void AnimViewportRenderer::ReinitPrefabEntities()
+    {
+        AZStd::set<AZStd::string> assetLookup;
+        const int numPrefabs = EMotionFX::GetPrefabManager().GetNumPrefabs();
+        for (int i = 0; i < numPrefabs; ++i)
+        {
+            const auto actorComponent = EMotionFX::GetPrefabManager().GetActorComponent(i);
+            if (actorComponent)
+            {
+                assetLookup.emplace(actorComponent->GetActorAsset().GetHint());
+            }
+        }
+        m_actorEntities.erase(
+            AZStd::remove_if( m_actorEntities.begin(), m_actorEntities.end(),
+                [&assetLookup](AZ::Entity* entity)
+                {
+                    auto actorComponent = entity->FindComponent<EMotionFX::Integration::ActorComponent>();
+                    if (assetLookup.find(actorComponent->GetActorAsset().GetHint()) == assetLookup.end())
+                    {
+                        return true;
+                    }
+                    return false;
+                }),
+            m_actorEntities.end());
+
+        for (int i = 0; i < numPrefabs; ++i)
+        {
+            EMotionFX::PrefabData& prefabData = EMotionFX::GetPrefabManager().GetPrefabData(i);
+            if (!prefabData.m_prefabAsset->IsReady())
+            {
+                continue;
+            }
+            if (!prefabData.m_spawnTicket.IsValid())
+            {
+                continue;
+            }
+            if (!prefabData.m_isSpawned)
+            {
+                InstantiatePrefab(prefabData);
+            }
+        }
+    }
+
+    void AnimViewportRenderer::InstantiatePrefab(EMotionFX::PrefabData& prefabData)
+    {
+        prefabData.m_isSpawned = true;
+
+        auto preInsertionCallback = []([[maybe_unused]] AzFramework::EntitySpawnTicket::Id ticketId, AzFramework::SpawnableEntityContainerView entities)
+        {
+            for (const AZ::Entity* pEntity : entities)
+            {
+                const auto entityId = pEntity->GetId();
+                if (entityId.IsValid() && pEntity->GetComponents().size() == 1)
+                {
+                    auto pTx = pEntity->FindComponent(AZ::TransformComponentTypeId);
+                    if (pTx)
+                    {
+                        AZ::TransformConfig transformConfig;
+                        pTx->GetConfiguration(transformConfig);
+                        if (!transformConfig.m_parentId.IsValid())
+                        {
+                            transformConfig.m_worldTransform = AZ::Transform::CreateIdentity();
+                            pTx->SetConfiguration(transformConfig);
+                            break;
+                        }
+                    }
+                }
+            }
+        };
+
+        auto completionCallback = [this, &prefabData](
+                [[maybe_unused]] AzFramework::EntitySpawnTicket::Id ticketId, AzFramework::SpawnableConstEntityContainerView entities)
+        {
+            AZ::Entity* rootEntity = nullptr;
+            for (const AZ::Entity* pEntity : entities)
+            {
+                const auto entityId = pEntity->GetId();
+                if (entityId.IsValid())
+                {
+                    auto const& entityTransform = pEntity->GetTransform();
+                    if (entityTransform && !entityTransform->GetParentId().IsValid())
+                    {
+                        auto childrenIds = entityTransform->GetChildren();
+                        AZ::EntityId rootEntityId;
+                        if (childrenIds.size() > 0)
+                        {
+                            do
+                            {
+                                rootEntity = AzFramework::EntityHelpers::GetEntity(childrenIds[0]);
+                                childrenIds = rootEntity->GetTransform()->GetChildren();
+                                if (rootEntity->GetComponents().size() > 1 || childrenIds.empty())
+                                {
+                                    const auto& rootEntityTransform = rootEntity->GetTransform();
+                                    rootEntityId = rootEntity->GetId();
+                                    rootEntityTransform->SetWorldTM(AZ::Transform::CreateIdentity());
+                                }
+                            } while (!rootEntityId.IsValid());
+                        }
+                    }
+                }
+            }
+            OnSpawnableInstantiated(rootEntity, prefabData);
+        };
+
+        AzFramework::SpawnAllEntitiesOptionalArgs optionalArgs;
+        optionalArgs.m_preInsertionCallback = AZStd::move(preInsertionCallback);
+        optionalArgs.m_completionCallback = AZStd::move(completionCallback);
+        optionalArgs.m_entityContext = m_entityContext.get();
+        AzFramework::SpawnableEntitiesInterface::Get()->SpawnAllEntities(prefabData.m_spawnTicket, optionalArgs);
+    }
+
+    void AnimViewportRenderer::OnSpawnableInstantiated(AZ::Entity* entity, EMotionFX::PrefabData& prefabData)
+    {
+        if (entity)
+        {
+            auto actorComponent = entity->FindComponent<EMotionFX::Integration::ActorComponent>();
+            if (actorComponent)
+            {
+                actorComponent->SetActorAsset(actorComponent->GetActorAsset());
+                actorComponent->GetActorInstance()->SetIsOwnedByRuntime(false);
+
+                auto actorAsset = actorComponent->GetActorAsset();
+                EMotionFX::GetActorManager().RegisterActor(actorAsset);
+                prefabData.m_actorAssetId = actorAsset.GetId();
+
+                AZStd::string outResult;
+                EMStudioManager::GetInstance()->GetCommandManager()->ExecuteCommandInsideCommand(
+                    AZStd::string::format("Select -actorInstanceID %i", actorComponent->GetActorInstance()->GetID()).c_str(), outResult);
+
+                m_actorEntities.emplace_back(entity);
+
+                EMStudioManager::GetInstance()->GetCommandManager()->ExecuteCommandInsideCommand("PrefabLoaded", outResult);
+            }
+            else
+            {
+                AZ_Error("EMotionFX", false, "Spawned entity does not have an ActorComponent!");
+                EMotionFX::GetPrefabManager().UnregisterPrefab(prefabData.m_prefabAsset.GetId());
+            }
+        }
+    }
+#endif
+
 } // namespace EMStudio
+
+#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
+#pragma optimize("", on)
+#endif

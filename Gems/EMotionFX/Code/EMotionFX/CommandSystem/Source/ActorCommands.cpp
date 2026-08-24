@@ -24,6 +24,9 @@
 #include <EMotionFX/Source/EMotionFXManager.h>
 #include <AzFramework/API/ApplicationAPI.h>
 #include <Source/Integration/Assets/ActorAsset.h>
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+#include <EMotionFX/Source/PrefabManager.h>
+#endif
 
 
 namespace CommandSystem
@@ -875,6 +878,27 @@ namespace CommandSystem
                     commandGroup->AddCommandString(command);
                 }
             }
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+            for (size_t i = 0, numPrefabs = EMotionFX::GetPrefabManager().GetNumPrefabs(); i < numPrefabs; ++i)
+            {
+                // get the current prefab
+                auto const& prefab = EMotionFX::GetPrefabManager().GetPrefabData(i);
+
+                // create the command to remove the prefab
+                const AZStd::string command = AZStd::string::format("RemovePrefab -prefabID %i", prefab.m_id);
+
+                // add the command to the command group
+                if (!commandGroup)
+                {
+                    internalCommandGroup.AddCommandString(command);
+                }
+                else
+                {
+                    commandGroup->AddCommandString(command);
+                }
+            }
+#endif
         }
 
         // clear the existing selection
@@ -1118,4 +1142,76 @@ namespace CommandSystem
     {
         return "This command can be used to scale all internal actor data. This includes vertex positions, morph targets, bounding volumes, bind pose transforms, etc.";
     }
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+
+    CommandRemovePrefab::CommandRemovePrefab(MCore::Command* orgCommand)
+        : MCore::Command("RemovePrefab", orgCommand)
+    {
+        m_previouslyUsedId = MCORE_INVALIDINDEX32;
+    }
+
+    CommandRemovePrefab::~CommandRemovePrefab()
+    {
+    }
+
+    bool CommandRemovePrefab::Execute(const MCore::CommandLine& parameters, AZStd::string& outResult)
+    {
+        const EMotionFX::PrefabData* prefabData = nullptr;
+
+        if (parameters.CheckIfHasParameter("prefabID"))
+        {
+            const uint32 prefabID = parameters.GetValueAsInt("prefabID", MCORE_INVALIDINDEX32);
+            prefabData = EMotionFX::GetPrefabManager().FindPrefabByID(prefabID);
+        }
+
+        if (!prefabData)
+        {
+            outResult = "Cannot create prefab data instance.";
+            return false;
+        }
+
+        m_previouslyUsedId = prefabData->m_id;
+        m_oldFileName = prefabData->m_prefabAsset.GetHint();
+        m_oldWorkspaceDirtyFlag = GetCommandManager()->GetWorkspaceDirtyFlag();
+
+        const AZ::Data::AssetId assetId = EMotionFX::GetPrefabManager().FindAssetIdByPrefabId(prefabData->m_id);
+        EMotionFX::GetPrefabManager().UnregisterPrefab(assetId);
+
+        // mark the workspace as dirty
+        GetCommandManager()->SetWorkspaceDirtyFlag(true);
+
+        return true;
+    }
+
+    bool CommandRemovePrefab::Undo(const MCore::CommandLine& parameters, AZStd::string& outResult)
+    {
+        MCORE_UNUSED(parameters);
+
+        const AZStd::string command = AZStd::string::format("ImportPrefab -filename \"%s\" -prefabID %i", m_oldFileName.c_str(), m_previouslyUsedId);
+        if (!GetCommandManager()->ExecuteCommandInsideCommand(command, outResult))
+        {
+            return false;
+        }
+
+        // restore the workspace dirty flag
+        GetCommandManager()->SetWorkspaceDirtyFlag(m_oldWorkspaceDirtyFlag);
+
+        return true;
+    }
+
+    void CommandRemovePrefab::InitSyntax()
+    {
+        GetSyntax().ReserveParameters(1);
+        GetSyntax().AddRequiredParameter(
+            "prefabID", "The identification number of the prefab we want to remove.", MCore::CommandSyntax::PARAMTYPE_INT);
+    }
+
+    const char* CommandRemovePrefab::GetDescription() const
+    {
+        return "This command can be used to destruct a prefab and all the corresponding actor instances.";
+    }
+
+#endif
+
 } // namespace CommandSystem

@@ -39,6 +39,9 @@ namespace EMStudio
         m_adjustActorCallback                = nullptr;
         m_actorSetCollisionMeshesCallback    = nullptr;
         m_adjustActorInstanceCallback        = nullptr;
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        m_prefabLoadedCallback               = nullptr;
+#endif
     }
 
     SceneManagerPlugin::~SceneManagerPlugin()
@@ -56,6 +59,10 @@ namespace EMStudio
         GetCommandManager()->RemoveCommandCallback(m_actorSetCollisionMeshesCallback, false);
         GetCommandManager()->RemoveCommandCallback(m_adjustActorInstanceCallback, false);
         GetCommandManager()->RemoveCommandCallback(m_scaleActorDataCallback, false);
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        GetCommandManager()->RemoveCommandCallback(m_prefabLoadedCallback, false);
+        delete m_prefabLoadedCallback;
+#endif
         delete m_importActorCallback;
         delete m_createActorInstanceCallback;
         delete m_selectCallback;
@@ -89,7 +96,10 @@ namespace EMStudio
         m_actorSetCollisionMeshesCallback    = new CommandActorSetCollisionMeshesCallback(false);
         m_adjustActorInstanceCallback        = new CommandAdjustActorInstanceCallback(false);
         m_scaleActorDataCallback             = new CommandScaleActorDataCallback(false);
-
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        m_prefabLoadedCallback = new PrefabLoadedCallback(false);
+        GetCommandManager()->RegisterCommandCallback("PrefabLoaded", m_prefabLoadedCallback);
+#endif
         GetCommandManager()->RegisterCommandCallback("ImportActor", m_importActorCallback);
         GetCommandManager()->RegisterCommandCallback("CreateActorInstance", m_createActorInstanceCallback);
         GetCommandManager()->RegisterCommandCallback("Select", m_selectCallback);
@@ -201,6 +211,21 @@ namespace EMStudio
         return true;
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    bool SceneManagerPlugin::PrefabLoadedCallback::Execute(MCore::Command* command, const MCore::CommandLine& commandLine)
+    {
+        MCORE_UNUSED(command);
+        MCORE_UNUSED(commandLine);
+        return ReInitSceneManagerPlugin();
+    }
+
+    bool SceneManagerPlugin::PrefabLoadedCallback::Undo(MCore::Command* command, const MCore::CommandLine& commandLine)
+    {
+        MCORE_UNUSED(command);
+        MCORE_UNUSED(commandLine);
+        return ReInitSceneManagerPlugin();
+    }
+#endif
 
     // command callbacks
     bool SceneManagerPlugin::ImportActorCallback::Execute(MCore::Command* command, const MCore::CommandLine& commandLine)
