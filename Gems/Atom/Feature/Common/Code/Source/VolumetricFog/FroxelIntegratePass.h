@@ -49,10 +49,15 @@ namespace AZ::Render
         bool UpdateAttachmentImage(uint32_t attachmentIndex);
         //! Sets dispatch thread count to match froxel XY.
         void UpdateThreadsCount();
+        //! Binds the previous-frame local-volume targets without making them scope
+        //! attachments of the current graphics LocalVolume pass.
+        bool UpdateLocalVolumeHistoryBindings();
 
         AZStd::array<Data::Instance<RPI::PassAttachment>, 2> m_scatteringAttachments; // ping-pong pair of Texture3D attachments holding previous-frame scatter for temporal reprojection.
         RPI::PassAttachmentBinding* m_historyScatteredBinding = nullptr; // cached binding pointers for fast per-frame rebind.
         RPI::PassAttachmentBinding* m_scatteredBinding = nullptr; // cached binding pointers for fast per-frame rebind.
+        RPI::PassAttachmentBinding* m_localMediumHistoryBinding = nullptr;
+        RPI::PassAttachmentBinding* m_localEmissiveHistoryBinding = nullptr;
         uint8_t m_scatteringOuptutIndex = 0; // 0 or 1, toggles each frame to alternate write target.
         RPI::ShaderOptionGroup m_froxelShaderOptions;
     };

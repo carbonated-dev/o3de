@@ -39,7 +39,7 @@
                     },
                     "ImageDescriptor": {
                         "Format": "D32_FLOAT_S8X24_UINT",
-                        "SharedQueueMask": "Graphics"
+                        "SharedQueueMask": "All"
                     }
                 }
             ],

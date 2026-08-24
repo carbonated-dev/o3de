@@ -13,6 +13,8 @@
 #include <RHI/FrameGraphExecuteGroupHandler.h>
 
 #include <AzCore/std/containers/unordered_map.h>
+#include <AzCore/std/containers/array.h>
+#include <AzCore/std/parallel/mutex.h>
 #include <Atom/RHI.Reflect/Vulkan/PlatformLimitsDescriptor.h>
 namespace AZ
 {
@@ -48,9 +50,17 @@ namespace AZ
 
             // Adds a handler for a list of execute groups.
             void AddExecuteGroupHandler(const RHI::GraphGroupId& groupId, const AZStd::vector<RHI::FrameGraphExecuteGroup*>& groups);
+            void ExecuteReadyHandlers(RHI::HardwareQueueClass hardwareQueueClass);
 
             // List of handlers for execute groups.
-            AZStd::unordered_map<RHI::GraphGroupId, AZStd::unique_ptr<FrameGraphExecuteGroupHandler>> m_groupHandlers;
+            // A graph group may need to be split at a semaphore boundary. Use the
+            // execute-group address as the lookup key so multiple handlers can own
+            // portions of the same graph group.
+            AZStd::unordered_map<const RHI::FrameGraphExecuteGroup*, FrameGraphExecuteGroupHandler*> m_groupHandlers;
+            AZStd::vector<AZStd::unique_ptr<FrameGraphExecuteGroupHandler>> m_groupHandlerStorage;
+            AZStd::array<AZStd::vector<FrameGraphExecuteGroupHandler*>, RHI::HardwareQueueClassCount> m_handlersByQueue;
+            AZStd::array<size_t, RHI::HardwareQueueClassCount> m_nextHandlerByQueue{};
+            AZStd::mutex m_handlerExecutionMutex;
             FrameGraphExecuterData m_frameGraphExecuterData;
         };
     }

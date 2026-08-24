@@ -98,6 +98,8 @@
 #include <VolumetricFog/FogVolumeFeatureProcessor.h>
 #include <VolumetricFog/FroxelPass.h>
 #include <VolumetricFog/FroxelIntegratePass.h>
+#include <VolumetricFog/FroxelLocalVolumePass.h>
+#include <VolumetricFog/FroxelMaxVisibleSlicePass.h>
 #endif
 
 #include <Atom/RPI.Public/Pass/PassSystemInterface.h>
@@ -383,6 +385,8 @@ namespace AZ
             // Volumetric Fog
             passSystem->AddPassCreator(Name("FroxelPass"), &FroxelPass::Create);
             passSystem->AddPassCreator(Name("FroxelIntegratePass"), &FroxelIntegratePass::Create);
+            passSystem->AddPassCreator(Name("FroxelLocalVolumePass"), &FroxelLocalVolumePass::Create);
+            passSystem->AddPassCreator(Name("FroxelMaxVisibleSlicePass"), &FroxelMaxVisibleSlicePass::Create);
 #endif
 
             // setup handler for load pass template mappings

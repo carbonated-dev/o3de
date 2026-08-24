@@ -40,6 +40,7 @@ namespace AZ::Render
 
         // Pass behavior overrides...
         void BuildInternal() override;
+        void FrameBeginInternal(FramePrepareParams params) override;
 
         //! Resolves froxel grid dimensions
         void UpdateFroxelVolumeSize();

@@ -382,8 +382,12 @@ set(FILES
     Source/VolumetricFog/FogVolumeFeatureProcessor.h
     Source/VolumetricFog/FroxelPass.cpp
     Source/VolumetricFog/FroxelPass.h
+    Source/VolumetricFog/FroxelMaxVisibleSlicePass.cpp
+    Source/VolumetricFog/FroxelMaxVisibleSlicePass.h
     Source/VolumetricFog/FroxelIntegratePass.cpp
     Source/VolumetricFog/FroxelIntegratePass.h
+    Source/VolumetricFog/FroxelLocalVolumePass.cpp
+    Source/VolumetricFog/FroxelLocalVolumePass.h
     Source/VolumetricFog/VolumetricFogUtils.cpp
     Include/Atom/Feature/OrderIndependentTransparency/OitMethod.h
     Source/OrderIndependentTransparency/OrderIndependentTransparencyFeatureProcessor.h

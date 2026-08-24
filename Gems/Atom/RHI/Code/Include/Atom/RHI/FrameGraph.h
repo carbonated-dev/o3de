@@ -199,6 +199,14 @@ namespace AZ::RHI
                             // multiple subpasses connected by SubpassInput attachments.
         };
 
+        //! Adds graph edges for the current attachment using writer / reader dependencies.
+        //! Read-only users of the same resource view do not serialize with one another, while
+        //! writers remain ordered after the last writer and all outstanding readers.
+        void AddAttachmentDependencies(
+            FrameAttachment& frameAttachment,
+            ScopeAttachment& currentScopeAttachment,
+            GraphEdgeType edgeType);
+
         void InsertEdge(Scope& producer, Scope& consumer, GraphEdgeType edgeType = GraphEdgeType::DifferentGroup);
 
         struct GraphEdge

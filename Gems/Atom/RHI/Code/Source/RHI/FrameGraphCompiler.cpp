@@ -377,16 +377,32 @@ namespace AZ::RHI
 
             if (foundInterval)
             {
-                // Accumulate scope attachments for all scopes in the interval. This will be used to find the best queue to
-                // allow aliasing.
-                for (uint32_t asyncScopeIdx = interval.m_indexFirst; asyncScopeIdx <= interval.m_indexLast; ++asyncScopeIdx)
+                // Cross-queue hand-offs can produce adjacent intervals when work alternates between queues. Those
+                // intervals are one continuous asynchronous region: work before the hand-off can still overlap work
+                // after it on the other queue. Keep them together so transient resources cannot alias across the
+                // hand-off and introduce an otherwise unnecessary cross-queue semaphore.
+                if (!asyncIntervals.empty() && asyncIntervals.back().m_indexLast + 1 >= interval.m_indexFirst)
                 {
-                    const Scope* asyncScope = scopes[asyncScopeIdx];
-                    interval.m_attachmentCountsByQueue[static_cast<uint32_t>(asyncScope->GetHardwareQueueClass())] += static_cast<uint32_t>(asyncScope->GetTransientAttachments().size());
+                    asyncIntervals.back().m_indexLast = AZStd::max(asyncIntervals.back().m_indexLast, interval.m_indexLast);
+                }
+                else
+                {
+                    asyncIntervals.push_back(interval);
                 }
 
-                asyncIntervals.push_back(interval);
                 scopeIdx = interval.m_indexLast;
+            }
+        }
+
+        // Accumulate attachment counts after merging intervals. The queue with the most transient attachments is
+        // selected below as the only queue allowed to alias memory within each asynchronous region.
+        for (AsyncInterval& interval : asyncIntervals)
+        {
+            for (uint32_t asyncScopeIdx = interval.m_indexFirst; asyncScopeIdx <= interval.m_indexLast; ++asyncScopeIdx)
+            {
+                const Scope* asyncScope = scopes[asyncScopeIdx];
+                interval.m_attachmentCountsByQueue[static_cast<uint32_t>(asyncScope->GetHardwareQueueClass())] +=
+                    static_cast<uint32_t>(asyncScope->GetTransientAttachments().size());
             }
         }
 

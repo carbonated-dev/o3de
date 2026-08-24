@@ -12,6 +12,7 @@
 #include <Atom/RPI.Public/RenderPipeline.h>
 #include <Atom/RPI.Public/Scene.h>
 #include <Atom/RPI.Public/View.h>
+#include <Atom/RPI.Public/Pass/ParentPass.h>
 #include <Atom/RPI.Reflect/Shader/ShaderOptionGroup.h>
 #include <Atom/RHI.Reflect/ShaderResourceGroupLayout.h>
 #include <AzCore/Math/Plane.h>
@@ -77,8 +78,42 @@ namespace AZ::Render
 
     void FroxelPass::BuildInternal()
     {
+        // Scatter is deliberately serialized after the bandwidth-heavy opaque pass. On async
+        // compute it competes for the same SM/cache resources and remains on the frame's critical
+        // path. Inject remains an early async pass; Integrate's attachment dependency waits for it
+        // only when the injected volume is actually consumed.
+        if (GetName() == Name("FroxelScatterPass"))
+        {
+            RPI::ParentPass* froxelParent = GetParent();
+            RPI::ParentPass* pipelineParent = froxelParent ? froxelParent->GetParent() : nullptr;
+            RPI::Ptr<RPI::Pass> opaquePass = pipelineParent
+                ? pipelineParent->FindChildPass(Name("OpaquePass"))
+                : nullptr;
+            AZ_Error(
+                "FroxelPass",
+                opaquePass,
+                "FroxelScatterPass could not find OpaquePass for graphics-queue scheduling.");
+            if (opaquePass)
+            {
+                m_executeAfterPasses.push_back(opaquePass.get());
+            }
+        }
+
         UpdateFroxelVolumeSize();
         Base::BuildInternal();
+    }
+
+    void FroxelPass::FrameBeginInternal(FramePrepareParams params)
+    {
+        // FroxelPass is shared by Inject and Scatter. Scatter deliberately stays on graphics
+        // because it regressed under opaque-pass contention; only Inject is async eligible.
+        const bool useAsyncCompute =
+            GetName() == Name("FroxelInjectPass") && VolumetricFog::IsAsyncComputeEnabled();
+        m_hardwareQueueClass = useAsyncCompute
+            ? RHI::HardwareQueueClass::Compute
+            : RHI::HardwareQueueClass::Graphics;
+        SetHardwareQueueClass(m_hardwareQueueClass);
+        Base::FrameBeginInternal(params);
     }
 
     void FroxelPass::UpdateFroxelVolumeSize()

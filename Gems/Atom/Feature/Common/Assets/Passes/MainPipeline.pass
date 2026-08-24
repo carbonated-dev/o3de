@@ -64,6 +64,20 @@
                     ]
                 },
                 {
+                    "Name": "FroxelMaxVisibleSlicePass",
+                    "TemplateName": "FroxelMaxVisibleSliceTemplate",
+                    "Enabled": false,
+                    "Connections": [
+                        {
+                            "LocalSlot": "DepthMSAA",
+                            "AttachmentRef": {
+                                "Pass": "DepthPrePass",
+                                "Attachment": "DepthMSAA"
+                            }
+                        }
+                    ]
+                },
+                {
                     "Name": "MotionVectorPass",
                     "TemplateName": "MotionVectorParentTemplate",
                     "Connections": [
@@ -149,6 +163,13 @@
                     "TemplateName": "FroxelParentTemplate",
                     "Enabled": false,
                     "Connections": [
+                        {
+                            "LocalSlot": "FroxelMaxVisibleSlice",
+                            "AttachmentRef": {
+                                "Pass": "FroxelMaxVisibleSlicePass",
+                                "Attachment": "FroxelMaxVisibleSlice"
+                            }
+                        },
                         {
                             "LocalSlot": "TileLightData",
                             "AttachmentRef": {

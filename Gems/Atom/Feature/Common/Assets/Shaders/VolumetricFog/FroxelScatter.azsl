@@ -40,6 +40,7 @@ ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
     RWTexture3D<float3> m_froxelScatterResult;
 
+    Texture2D<uint> m_froxelMaxVisibleSlice;
     Texture2D<uint4> m_tileLightData;
     StructuredBuffer<uint> m_lightListRemapped;
 
@@ -1282,7 +1283,7 @@ void MainCS(uint3 froxelId : SV_DispatchThreadID, uint groupIndex : SV_GroupInde
     // source slice beyond the visible integration range. Hidden cells are cleared to keep
     // neighborhood reads deterministic at depth discontinuities.
     uint maximumScatterSlice = GetFroxelMaxVisibleSlice(
-        froxelId.xy, PassSrg::m_tileLightData, 1, o_volumetricFog_depth_bounds);
+        froxelId.xy, PassSrg::m_froxelMaxVisibleSlice, 1, o_volumetricFog_depth_bounds);
     if (froxelId.z > maximumScatterSlice)
     {
         PassSrg::m_froxelScatterResult[froxelId] = 0;

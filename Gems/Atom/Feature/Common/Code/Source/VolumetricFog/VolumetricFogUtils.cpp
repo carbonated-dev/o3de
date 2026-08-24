@@ -8,8 +8,24 @@
 
 #include <VolumetricFog/VolumetricFogUtils.h>
 
+#include <AzCore/Console/IConsole.h>
+
 namespace AZ::Render::VolumetricFog
 {
+    AZ_CVAR(
+        bool,
+        r_volumetricFogAsyncCompute,
+        true,
+        nullptr,
+        AZ::ConsoleFunctorFlags::Null,
+        "Run async-compute-eligible volumetric fog passes on the compute queue. "
+        "0 uses the graphics queue; 1 uses async compute.");
+
+    bool IsAsyncComputeEnabled()
+    {
+        return r_volumetricFogAsyncCompute;
+    }
+
     RHI::Size ToFroxelSize(VolumetricFogQuality quality)
     {
         // The width and height are the pixel size of a froxel

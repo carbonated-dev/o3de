@@ -15,7 +15,7 @@ ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
 {
     RWTexture3D<float4> m_froxelVolume;
     RWTexture3D<float4> m_froxelEmissive;
-    Texture2D<uint4> m_tileLightData;
+    Texture2D<uint> m_froxelMaxVisibleSlice;
 }
 
 option bool o_enableNoiseTexture = true;
@@ -31,7 +31,7 @@ void MainCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     uint maximumVisibleSlice = GetFroxelMaxVisibleSlice(
-        froxelId.xy, PassSrg::m_tileLightData, 0, o_volumetricFog_depth_bounds);
+        froxelId.xy, PassSrg::m_froxelMaxVisibleSlice, 0, o_volumetricFog_depth_bounds);
     if (froxelId.z > maximumVisibleSlice)
     {
         return;

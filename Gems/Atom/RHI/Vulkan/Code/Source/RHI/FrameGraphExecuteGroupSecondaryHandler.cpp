@@ -20,12 +20,26 @@ namespace AZ::Vulkan
         // We first need to build the renderpass that will be used by all groups.
         RenderPassBuilder builder(device, static_cast<uint32_t>(executeGroups.size()));
         AZStd::string name = executeGroups.size() > 1 ? "[Merged]" : "";
-        for (auto executeGroupBase : executeGroups)
+        for (size_t groupIndex = 0; groupIndex < executeGroups.size(); ++groupIndex)
         {
+            auto executeGroupBase = executeGroups[groupIndex];
             const FrameGraphExecuteGroupSecondary* executeGroup = static_cast<const FrameGraphExecuteGroupSecondary*>(executeGroupBase);
             AZ_Assert(executeGroup, "Invalid execute group on FrameGraphExecuteGroupHandler");
             AZ_Assert(executeGroup->GetScopes().size() == 1, "Incorrect number of scopes (%d) in group on FrameGraphExecuteGroupHandler", executeGroup->GetScopes().size());
             auto* scope = executeGroup->GetScopes()[0];
+            AZ_Warning(
+                "FrameGraph",
+                groupIndex == 0 || (scope->GetWaitSemaphores().empty() && scope->GetWaitFences().empty()),
+                "Merged secondary group placed a wait on scope '%s' after earlier work; the render-pass group should have been split.",
+                scope->GetId().GetCStr());
+            if (groupIndex + 1 < executeGroups.size())
+            {
+                AZ_Warning(
+                    "FrameGraph",
+                    scope->GetSignalSemaphores().empty() && scope->GetSignalFences().empty(),
+                    "Merged secondary group placed a signal on scope '%s' before later work; the render-pass group should have been split.",
+                    scope->GetId().GetCStr());
+            }
             builder.AddScopeAttachments(*scope);
             name = AZStd::string::format("%s;%s", name.c_str(), scope->GetName().GetCStr());
         }

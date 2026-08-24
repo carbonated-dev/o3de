@@ -26,6 +26,12 @@
                     "ScopeAttachmentUsage": "Shader"
                 },
                 {
+                    "Name": "FroxelMaxVisibleSlice",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_froxelMaxVisibleSlice",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
                     "Name": "DirectionalShadowmap",
                     "ShaderInputName": "m_directionalLightShadowmap",
                     "SlotType": "Input",
@@ -73,7 +79,8 @@
                     },
                     "ImageDescriptor": {
                         "Format": "R11G11B10_FLOAT",
-                        "Dimension": 3
+                        "Dimension": 3,
+                        "SharedQueueMask": "All"
                     }
                 }
             ],
@@ -92,7 +99,8 @@
                     "FilePath": "Shaders/VolumetricFog/FroxelScatter.shader"
                 },
                 "Make Fullscreen Pass": true,
-                "BindViewSrg" : true
+                "BindViewSrg" : true,
+                "Use Async Compute": false
             }
         }
     }

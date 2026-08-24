@@ -693,6 +693,10 @@
                 "Path": "Passes/FroxelParent.pass"
             },
             {
+                "Name": "FroxelMaxVisibleSliceTemplate",
+                "Path": "Passes/FroxelMaxVisibleSlice.pass"
+            },
+            {
                 "Name": "FroxelInjectTemplate",
                 "Path": "Passes/FroxelInject.pass"
             },

@@ -32,6 +32,18 @@
                     "ScopeAttachmentUsage": "Shader"
                 },
                 {
+                    "Name": "FroxelLocalMediumHistory",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_froxelLocalMediumHistory",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "FroxelLocalEmissiveHistory",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_froxelLocalEmissiveHistory",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
                     "Name": "FroxelIntegrated",
                     "SlotType": "Output",
                     "ShaderInputName": "m_froxelIntegrated",
@@ -44,9 +56,9 @@
                     "ScopeAttachmentUsage": "Shader"
                 },
                 {
-                    "Name": "TileLightData",
+                    "Name": "FroxelMaxVisibleSlice",
                     "SlotType": "Input",
-                    "ShaderInputName": "m_tileLightData",
+                    "ShaderInputName": "m_froxelMaxVisibleSlice",
                     "ScopeAttachmentUsage": "Shader"
                 }
             ],
@@ -95,7 +107,8 @@
                     },
                     "ImageDescriptor": {
                         "Format": "R16G16B16A16_FLOAT",
-                        "Dimension": 3
+                        "Dimension": 3,
+                        "SharedQueueMask": "All"
                     }
                 }
             ],
@@ -113,7 +126,8 @@
                 "ShaderAsset": {
                     "FilePath": "Shaders/VolumetricFog/FroxelIntegrate.shader"
                 },
-                "BindViewSrg": true
+                "BindViewSrg": true,
+                "Use Async Compute": true
             }
         }
     }

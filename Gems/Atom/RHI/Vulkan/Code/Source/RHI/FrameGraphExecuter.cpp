@@ -6,6 +6,7 @@
  *
  */
 #include <Atom/RHI/FrameGraph.h>
+#include <AzCore/Debug/Trace.h>
 #include <AzCore/std/parallel/thread.h>
 #include <RHI/FrameGraphExecuteGroupSecondaryHandler.h>
 #include <RHI/FrameGraphExecuteGroupPrimaryHandler.h>
@@ -58,6 +59,12 @@ namespace AZ
 
         void FrameGraphExecuter::BeginInternal(const RHI::FrameGraph& frameGraph)
         {
+            for (AZStd::vector<FrameGraphExecuteGroupHandler*>& handlers : m_handlersByQueue)
+            {
+                handlers.clear();
+            }
+            m_nextHandlerByQueue.fill(0);
+
             Device& device = GetDevice();
             AZStd::vector<const Scope*> mergedScopes;
             const Scope* scopePrev = nullptr;
@@ -192,53 +199,106 @@ namespace AZ
             auto groups = GetGroups();
             AZStd::vector<RHI::FrameGraphExecuteGroup*> groupRefs;
             groupRefs.reserve(groups.size());
-            RHI::GraphGroupId groupId;
-            uint32_t initGroupIndex = 0;
-            for (uint32_t i = 0; i < groups.size(); ++i)
+
+            auto groupHasWait = [](const FrameGraphExecuteGroup& group)
             {
-                const FrameGraphExecuteGroup* group = static_cast<const FrameGraphExecuteGroup*>(groups[i].get());
-                if (groupId != group->GetGroupId())
+                const auto scopes = group.GetScopes();
+                return !scopes.empty() &&
+                    (!scopes.front()->GetWaitSemaphores().empty() || !scopes.front()->GetWaitFences().empty());
+            };
+
+            auto groupHasSignal = [](const FrameGraphExecuteGroup& group)
+            {
+                const auto scopes = group.GetScopes();
+                return !scopes.empty() &&
+                    (!scopes.back()->GetSignalSemaphores().empty() || !scopes.back()->GetSignalFences().empty());
+            };
+
+            RHI::GraphGroupId groupId;
+            const FrameGraphExecuteGroup* previousGroup = nullptr;
+            for (const auto& groupPtr : groups)
+            {
+                const FrameGraphExecuteGroup* group = static_cast<const FrameGraphExecuteGroup*>(groupPtr.get());
+                const bool groupIdChanged = !groupRefs.empty() && groupId != group->GetGroupId();
+                const bool syncBoundary = !groupRefs.empty() &&
+                    (groupHasWait(*group) || (previousGroup && groupHasSignal(*previousGroup)));
+
+                if (groupIdChanged || syncBoundary)
                 {
-                    groupRefs.clear();
-                    for (size_t groupRefIndex = initGroupIndex; groupRefIndex < i; ++groupRefIndex)
-                    {
-                        groupRefs.push_back(groups[groupRefIndex].get());
-                    }
+                    const auto currentScopes = group->GetScopes();
+                    const auto previousScopes = previousGroup ? previousGroup->GetScopes() : AZStd::span<const Scope* const>{};
+                   /* AZ_TracePrintf(
+                        "FrameGraph",
+                        "Split Vulkan execute-group handler before '%s' (wait=%s, previousSignal=%s)\n",
+                        currentScopes.empty() ? "<empty>" : currentScopes.front()->GetId().GetCStr(),
+                        groupHasWait(*group) ? "yes" : "no",
+                        previousScopes.empty() ? "no" : (groupHasSignal(*previousGroup) ? "yes" : "no"));*/
                     AddExecuteGroupHandler(groupId, groupRefs);
-                    groupId = group->GetGroupId();
-                    initGroupIndex = i;
+                    groupRefs.clear();
                 }
+
+                if (groupRefs.empty())
+                {
+                    groupId = group->GetGroupId();
+                }
+                groupRefs.push_back(groupPtr.get());
+                previousGroup = group;
             }
 
             // Add the final handler for the remaining groups.
-            groupRefs.clear();
-            for (size_t groupRefIndex = initGroupIndex; groupRefIndex < groups.size(); ++groupRefIndex)
-            {
-                groupRefs.push_back(groups[groupRefIndex].get());
-            }
             AddExecuteGroupHandler(groupId, groupRefs);
         }
 
         void FrameGraphExecuter::ExecuteGroupInternal(RHI::FrameGraphExecuteGroup& groupBase)
         {
             FrameGraphExecuteGroup& group = static_cast<FrameGraphExecuteGroup&>(groupBase);
-            auto findIter = m_groupHandlers.find(group.GetGroupId());
-            AZ_Assert(findIter != m_groupHandlers.end(), "Could not find group handler for groupId %d", group.GetGroupId().GetIndex());
-            FrameGraphExecuteGroupHandler* handler = findIter->second.get();
-            // Wait until all execute groups of the handler has finished and also make sure that the handler itself hasn't executed already (which is possible for parallel encoding).
-            if (!handler->IsExecuted() && handler->IsComplete())
+            auto findIter = m_groupHandlers.find(&group);
+            AZ_Assert(findIter != m_groupHandlers.end(), "Could not find group handler for execute group");
+            FrameGraphExecuteGroupHandler* handler = findIter->second;
+            AZ_UNUSED(handler);
+
+            // Execute handlers in frame-graph order for this hardware queue. Command-list
+            // recording is parallel, so a later handler may become complete first; submitting
+            // it immediately would reverse image layout transitions on the same VkQueue.
+            AZStd::scoped_lock lock(m_handlerExecutionMutex);
+            ExecuteReadyHandlers(group.GetHardwareQueueClass());
+        }
+
+        void FrameGraphExecuter::ExecuteReadyHandlers(RHI::HardwareQueueClass hardwareQueueClass)
+        {
+            const uint32_t queueIndex = static_cast<uint32_t>(hardwareQueueClass);
+            AZ_Assert(queueIndex < RHI::HardwareQueueClassCount, "Invalid hardware queue class");
+
+            AZStd::vector<FrameGraphExecuteGroupHandler*>& handlers = m_handlersByQueue[queueIndex];
+            size_t& nextHandler = m_nextHandlerByQueue[queueIndex];
+            while (nextHandler < handlers.size())
             {
-                // This will execute the recorded work into the queue.
-                handler->End();
+                FrameGraphExecuteGroupHandler* handler = handlers[nextHandler];
+                if (!handler->IsComplete())
+                {
+                    break;
+                }
+
+                if (!handler->IsExecuted())
+                {
+                    handler->End();
+                }
+                ++nextHandler;
             }
         }
 
         void FrameGraphExecuter::EndInternal()
         {
             m_groupHandlers.clear();
+            m_groupHandlerStorage.clear();
+            for (AZStd::vector<FrameGraphExecuteGroupHandler*>& handlers : m_handlersByQueue)
+            {
+                handlers.clear();
+            }
+            m_nextHandlerByQueue.fill(0);
         }
 
-        void FrameGraphExecuter::AddExecuteGroupHandler(const RHI::GraphGroupId& groupId, const AZStd::vector<RHI::FrameGraphExecuteGroup*>& groups)
+        void FrameGraphExecuter::AddExecuteGroupHandler([[maybe_unused]] const RHI::GraphGroupId& groupId, const AZStd::vector<RHI::FrameGraphExecuteGroup*>& groups)
         {
             if (groups.empty())
             {
@@ -251,7 +311,23 @@ namespace AZ
                 static_cast<FrameGraphExecuteGroupHandler*>(aznew FrameGraphExecuteGroupSecondaryHandler));
 
             handler->Init(GetDevice(), groups);
-            m_groupHandlers.insert({ groupId, AZStd::move(handler) });
+            FrameGraphExecuteGroupHandler* handlerPtr = handler.get();
+            const RHI::HardwareQueueClass hardwareQueueClass =
+                static_cast<FrameGraphExecuteGroup*>(groups.front())->GetHardwareQueueClass();
+            const uint32_t queueIndex = static_cast<uint32_t>(hardwareQueueClass);
+            AZ_Assert(queueIndex < RHI::HardwareQueueClassCount, "Invalid hardware queue class");
+            for (RHI::FrameGraphExecuteGroup* group : groups)
+            {
+                AZ_Assert(
+                    static_cast<FrameGraphExecuteGroup*>(group)->GetHardwareQueueClass() == hardwareQueueClass,
+                    "A Vulkan execute-group handler cannot span hardware queues");
+            }
+            m_handlersByQueue[queueIndex].push_back(handlerPtr);
+            m_groupHandlerStorage.push_back(AZStd::move(handler));
+            for (RHI::FrameGraphExecuteGroup* group : groups)
+            {
+                m_groupHandlers.insert({ group, handlerPtr });
+            }
         }
     }
 }

@@ -7,8 +7,11 @@
  */
 
 #include <VolumetricFog/FroxelIntegratePass.h>
+#include <VolumetricFog/FroxelLocalVolumePass.h>
 #include <VolumetricFog/VolumetricFogUtils.h>
 #include <VolumetricFog/VolumetricFogFeatureProcessor.h>
+
+#include <Atom/RPI.Public/Pass/ParentPass.h>
 
 namespace AZ::Render
 {
@@ -59,6 +62,27 @@ namespace AZ::Render
 
     void FroxelIntegratePass::BuildInternal()
     {
+        // Keep async Integrate behind the completed linear-depth pass. This explicit
+        // dependency establishes the desired graphics-to-compute scheduling boundary;
+        // Scatter and Inject resource dependencies may move Integrate later when needed.
+        RPI::ParentPass* froxelParent = GetParent();
+        RPI::ParentPass* pipelineParent = froxelParent ? froxelParent->GetParent() : nullptr;
+        RPI::Ptr<RPI::Pass> depthPrePass = pipelineParent
+            ? pipelineParent->FindChildPass(Name("DepthPrePass"))
+            : nullptr;
+        RPI::ParentPass* depthPrePassParent = depthPrePass ? depthPrePass->AsParent() : nullptr;
+        RPI::Ptr<RPI::Pass> depthToLinearPass = depthPrePassParent
+            ? depthPrePassParent->FindChildPass(Name("DepthToLinearDepthPass"))
+            : nullptr;
+        AZ_Error(
+            "FroxelIntegratePass",
+            depthToLinearPass,
+            "FroxelIntegratePass could not find DepthPrePass.DepthToLinearDepthPass for async scheduling.");
+        if (depthToLinearPass)
+        {
+            m_executeAfterPasses.push_back(depthToLinearPass.get());
+        }
+
         m_scatteringAttachments[0] = FindAttachment(Name("Scattering1"));
         m_scatteringAttachments[1] = FindAttachment(Name("Scattering2"));
 
@@ -93,6 +117,19 @@ namespace AZ::Render
         AZ_Error("FroxelIntegratePass", m_historyScatteredBinding, "FroxelIntegratePass requires a slot for FroxelHistory.");
         m_scatteredBinding = FindAttachmentBinding(Name("FroxelOutput"));
         AZ_Error("FroxelIntegratePass", m_scatteredBinding, "FroxelIntegratePass requires a slot for FroxelOutput.");
+        m_localMediumHistoryBinding = FindAttachmentBinding(Name("FroxelLocalMediumHistory"));
+        m_localEmissiveHistoryBinding = FindAttachmentBinding(Name("FroxelLocalEmissiveHistory"));
+        attachmentsValid = m_historyScatteredBinding && m_scatteredBinding &&
+            m_localMediumHistoryBinding && m_localEmissiveHistoryBinding && UpdateLocalVolumeHistoryBindings();
+        if (!attachmentsValid)
+        {
+            SetEnabled(false);
+            AZ_Error(
+                "FroxelIntegratePass",
+                false,
+                "FroxelIntegratePass requires valid previous-frame local-volume attachments.");
+            return;
+        }
         if (m_historyScatteredBinding->GetAttachment() == nullptr)
         {
             m_scatteredBinding->SetAttachment(m_scatteringAttachments[0]);
@@ -108,13 +145,37 @@ namespace AZ::Render
         m_scatteringAttachments[1].reset();
         m_historyScatteredBinding = nullptr;
         m_scatteredBinding = nullptr;
+        m_localMediumHistoryBinding = nullptr;
+        m_localEmissiveHistoryBinding = nullptr;
         Base::ResetInternal();
     }
 
     void FroxelIntegratePass::FrameBeginInternal(FramePrepareParams params)
     {
+        m_hardwareQueueClass = VolumetricFog::IsAsyncComputeEnabled()
+            ? RHI::HardwareQueueClass::Compute
+            : RHI::HardwareQueueClass::Graphics;
+        SetHardwareQueueClass(m_hardwareQueueClass);
+        UpdateLocalVolumeHistoryBindings();
         Base::FrameBeginInternal(params);
         UpdateThreadsCount();
+    }
+
+    bool FroxelIntegratePass::UpdateLocalVolumeHistoryBindings()
+    {
+        RPI::ParentPass* parent = GetParent();
+        FroxelLocalVolumePass* localVolumePass = parent
+            ? azrtti_cast<FroxelLocalVolumePass*>(parent->FindChildPass(Name("FroxelLocalVolumePass")).get())
+            : nullptr;
+        if (!localVolumePass || !m_localMediumHistoryBinding || !m_localEmissiveHistoryBinding ||
+            !localVolumePass->GetMediumHistoryAttachment() || !localVolumePass->GetEmissiveHistoryAttachment())
+        {
+            return false;
+        }
+
+        m_localMediumHistoryBinding->SetAttachment(localVolumePass->GetMediumHistoryAttachment());
+        m_localEmissiveHistoryBinding->SetAttachment(localVolumePass->GetEmissiveHistoryAttachment());
+        return true;
     }
 
     void FroxelIntegratePass::FrameEndInternal()

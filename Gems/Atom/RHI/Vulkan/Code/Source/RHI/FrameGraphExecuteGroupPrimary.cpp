@@ -28,6 +28,21 @@ namespace AZ::Vulkan
 
         m_scopes = AZStd::move(scopes);
 
+        for (size_t scopeIndex = 0; scopeIndex < m_scopes.size(); ++scopeIndex)
+        {
+            const Scope* scope = m_scopes[scopeIndex];
+            AZ_Warning(
+                "FrameGraph",
+                scopeIndex == 0 || (scope->GetWaitSemaphores().empty() && scope->GetWaitFences().empty()),
+                "Merged primary group placed a wait on scope '%s' after earlier work; the group should have been split.",
+                scope->GetId().GetCStr());
+            AZ_Warning(
+                "FrameGraph",
+                scopeIndex + 1 == m_scopes.size() || (scope->GetSignalSemaphores().empty() && scope->GetSignalFences().empty()),
+                "Merged primary group placed a signal on scope '%s' before later work; the group should have been split.",
+                scope->GetId().GetCStr());
+        }
+
         auto& swapChainsToPresent = m_workRequest.m_swapChainsToPresent;
         AZStd::vector<InitMergedRequest::ScopeEntry> scopeEntries;
         scopeEntries.reserve(m_scopes.size());

@@ -7,15 +7,9 @@
 
 #pragma once
 
-static const uint VolumetricFogLightCullingTileSize = 16;
-// These two packed-data constants mirror NVLC.azsli. Keeping the decoder local avoids
-// including NVLC twice in FroxelScatter, which already receives it through TileIterator.
-static const uint VolumetricFogLightCullingBinsMask = 7u;
-static const uint VolumetricFogLightCullingHasSkyBit = 1u << 30;
-
 uint GetFroxelMaxVisibleSlice(
     uint2 froxelId,
-    Texture2D<uint4> tileLightDataTexture,
+    Texture2D<uint> maxVisibleSliceTexture,
     uint additionalSliceMargin,
     bool depthBoundsEnabled)
 {
@@ -25,22 +19,5 @@ uint GetFroxelMaxVisibleSlice(
         return sliceCount - 1;
     }
 
-    uint2 pixelPosition = froxelId * SceneSrg::m_volumetricFogData.m_tileSize;
-    uint2 lightTileId = pixelPosition / VolumetricFogLightCullingTileSize;
-    uint4 packedTileData = tileLightDataTexture[lightTileId];
-    if ((packedTileData.w & VolumetricFogLightCullingHasSkyBit) != 0)
-    {
-        return sliceCount - 1;
-    }
-
-    float fogNear = SceneSrg::m_volumetricFogData.m_fogNear;
-    float fogFar = SceneSrg::m_volumetricFogData.m_fogFar;
-    // Light culling stores its logarithmic bin count in the low bits of zFar. Restore
-    // those lost bits exactly as Tile_UnpackData does to keep the cutoff conservative.
-    float maximumVisibleDepth = abs(asfloat(packedTileData.y | VolumetricFogLightCullingBinsMask));
-    float normalizedSlice = log(max(maximumVisibleDepth, fogNear) / fogNear) /
-        log(fogFar / fogNear);
-    uint depthSlice = uint(saturate(normalizedSlice) * float(sliceCount));
-    uint sliceMargin = SceneSrg::m_volumetricFogData.m_depthBoundsSliceMargin + additionalSliceMargin;
-    return min(depthSlice + sliceMargin, sliceCount - 1);
+    return min(maxVisibleSliceTexture[froxelId] + additionalSliceMargin, sliceCount - 1);
 }

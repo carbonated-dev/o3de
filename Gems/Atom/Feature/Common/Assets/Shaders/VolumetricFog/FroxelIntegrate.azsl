@@ -22,8 +22,10 @@ ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
     RWTexture3D<float3> m_froxelTemporalOutput;  // this frame's RGB temporal result (ping-pong write, for next frame)
     Texture3D<float4>   m_froxelMedium;          // per-froxel scattering coefficient (rgb) + extinction (a)
     Texture3D<float4>   m_froxelEmissive;        // per-froxel emissive
+    Texture3D<float4>   m_froxelLocalMediumHistory;   // previous-frame local-volume medium
+    Texture3D<float4>   m_froxelLocalEmissiveHistory; // previous-frame local-volume emissive
     RWTexture3D<float4> m_froxelIntegrated;      // accumulated in-scatter (rgb) + transmittance (a)
-    Texture2D<uint4>    m_tileLightData;         // packed light-tile depth range and flags
+    Texture2D<uint>     m_froxelMaxVisibleSlice;
 
     Sampler LinearSampler
     {
@@ -104,6 +106,34 @@ void ComputeNeighborhoodAABBGlobal(uint3 center, out float3 minVal, out float3 m
             }
         }
     }
+}
+
+// Local volumes are produced on graphics into a ping-pong target. Async compute samples the
+// completed target from frame N-1 at the current froxel's reprojected world position, avoiding
+// both a graphics wait on Inject and an Integrate wait on LocalVolume.
+void SampleReprojectedLocalVolume(
+    uint3 froxelId,
+    out float4 localMedium,
+    out float3 localEmissive)
+{
+    localMedium = 0;
+    localEmissive = 0;
+
+    if (SceneSrg::m_volumetricFogData.m_frameIndex <= 1)
+    {
+        return;
+    }
+
+    float3 historyUVW;
+    if (!ReprojectToHistory(GetFroxelWorldPosition(froxelId), historyUVW))
+    {
+        return;
+    }
+
+    float3 cellSize = 1.0f / float3(SceneSrg::m_volumetricFogData.m_froxelCount);
+    float3 clampedUVW = clamp(historyUVW, cellSize * 0.5f, 1.0f - cellSize * 0.5f);
+    localMedium = PassSrg::m_froxelLocalMediumHistory.SampleLevel(PassSrg::LinearSampler, clampedUVW, 0);
+    localEmissive = PassSrg::m_froxelLocalEmissiveHistory.SampleLevel(PassSrg::LinearSampler, clampedUVW, 0).rgb;
 }
 
 uint GetSharedScatterIndex(uint plane, uint2 localPosition)
@@ -229,9 +259,13 @@ void IntegrateFroxel(
     if (!doneIntegrating)
     {
         float4 medium = PassSrg::m_froxelMedium[froxelId];
+        float4 localMedium;
+        float3 localEmissive;
+        SampleReprojectedLocalVolume(froxelId, localMedium, localEmissive);
+        medium += localMedium;
         float3 inScatter = blended * medium.rgb;
         float extinction = medium.a;
-        float3 emissive = PassSrg::m_froxelEmissive[froxelId].rgb;
+        float3 emissive = PassSrg::m_froxelEmissive[froxelId].rgb + localEmissive;
 
         float sliceDepth = SliceToViewZ(z + 1, fogNear, fogFar, froxelCountZ)
                          - SliceToViewZ(z, fogNear, fogFar, froxelCountZ);
@@ -281,7 +315,7 @@ void IntegrateColumnGlobal(uint2 tileID)
     float fogNear = SceneSrg::m_volumetricFogData.m_fogNear;
     float fogFar = SceneSrg::m_volumetricFogData.m_fogFar;
     uint maximumVisibleSlice = GetFroxelMaxVisibleSlice(
-        tileID, PassSrg::m_tileLightData, 0, o_volumetricFog_depth_bounds);
+        tileID, PassSrg::m_froxelMaxVisibleSlice, 0, o_volumetricFog_depth_bounds);
 
     for (uint z = 0; z <= maximumVisibleSlice; ++z)
     {
@@ -325,7 +359,7 @@ void MainCS(
     uint froxelCountZ = SceneSrg::m_volumetricFogData.m_froxelCount.z;
     uint2 groupBase = groupID.xy * NUM_THREADS_PER_GROUP;
     uint maximumVisibleSlice = active
-        ? GetFroxelMaxVisibleSlice(tileID, PassSrg::m_tileLightData, 0, o_volumetricFog_depth_bounds)
+        ? GetFroxelMaxVisibleSlice(tileID, PassSrg::m_froxelMaxVisibleSlice, 0, o_volumetricFog_depth_bounds)
         : 0;
     if (groupIndex == 0)
     {

@@ -812,7 +812,7 @@ namespace AZ::Render
             imageDescriptor.m_format = format;
             imageDescriptor.m_arraySize = m_atlas.GetArraySliceCount();
             imageDescriptor.m_bindFlags |= bindFlags;
-            imageDescriptor.m_sharedQueueMask = RHI::HardwareQueueClassMask::Graphics;
+            imageDescriptor.m_sharedQueueMask = RHI::HardwareQueueClassMask::All;
 
             // The ImageViewDescriptor must be specified to make sure the frame graph compiler doesn't treat this as a transient image.
             RHI::ImageViewDescriptor viewDesc = RHI::ImageViewDescriptor::Create(imageDescriptor.m_format, 0, 0);

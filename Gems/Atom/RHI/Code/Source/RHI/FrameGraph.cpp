@@ -20,6 +20,125 @@
 
 namespace AZ::RHI
 {
+    namespace
+    {
+        bool HasReadAccess(const ScopeAttachment& scopeAttachment)
+        {
+            for (const ScopeAttachmentUsageAndAccess& usageAndAccess : scopeAttachment.GetUsageAndAccess())
+            {
+                if (CheckBitsAny(usageAndAccess.m_access, ScopeAttachmentAccess::Read))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool HasWriteAccess(const ScopeAttachment& scopeAttachment)
+        {
+            for (const ScopeAttachmentUsageAndAccess& usageAndAccess : scopeAttachment.GetUsageAndAccess())
+            {
+                if (CheckBitsAny(usageAndAccess.m_access, ScopeAttachmentAccess::Write))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool RangesOverlap(uint16_t lhsMin, uint16_t lhsMax, uint16_t rhsMin, uint16_t rhsMax)
+        {
+            return lhsMin <= rhsMax && rhsMin <= lhsMax;
+        }
+
+        bool ViewsOverlap(const ScopeAttachment& lhs, const ScopeAttachment& rhs)
+        {
+            if (const auto* lhsImage = azrtti_cast<const ImageScopeAttachment*>(&lhs))
+            {
+                const auto* rhsImage = azrtti_cast<const ImageScopeAttachment*>(&rhs);
+                if (!rhsImage)
+                {
+                    return true;
+                }
+
+                const ImageViewDescriptor& lhsView = lhsImage->GetDescriptor().m_imageViewDescriptor;
+                const ImageViewDescriptor& rhsView = rhsImage->GetDescriptor().m_imageViewDescriptor;
+                return CheckBitsAny(lhsView.m_aspectFlags, rhsView.m_aspectFlags) &&
+                    RangesOverlap(lhsView.m_mipSliceMin, lhsView.m_mipSliceMax, rhsView.m_mipSliceMin, rhsView.m_mipSliceMax) &&
+                    RangesOverlap(lhsView.m_arraySliceMin, lhsView.m_arraySliceMax, rhsView.m_arraySliceMin, rhsView.m_arraySliceMax) &&
+                    RangesOverlap(lhsView.m_depthSliceMin, lhsView.m_depthSliceMax, rhsView.m_depthSliceMin, rhsView.m_depthSliceMax);
+            }
+
+            if (const auto* lhsBuffer = azrtti_cast<const BufferScopeAttachment*>(&lhs))
+            {
+                const auto* rhsBuffer = azrtti_cast<const BufferScopeAttachment*>(&rhs);
+                if (!rhsBuffer)
+                {
+                    return true;
+                }
+
+                const BufferViewDescriptor& lhsView = lhsBuffer->GetDescriptor().m_bufferViewDescriptor;
+                const BufferViewDescriptor& rhsView = rhsBuffer->GetDescriptor().m_bufferViewDescriptor;
+                // A zero-sized descriptor is treated as an unspecified/full view.
+                if (lhsView.m_elementCount == 0 || rhsView.m_elementCount == 0 ||
+                    lhsView.m_elementSize == 0 || rhsView.m_elementSize == 0)
+                {
+                    return true;
+                }
+
+                const AZ::u64 lhsBegin = static_cast<AZ::u64>(lhsView.m_elementOffset) * lhsView.m_elementSize;
+                const AZ::u64 lhsEnd = lhsBegin + static_cast<AZ::u64>(lhsView.m_elementCount) * lhsView.m_elementSize;
+                const AZ::u64 rhsBegin = static_cast<AZ::u64>(rhsView.m_elementOffset) * rhsView.m_elementSize;
+                const AZ::u64 rhsEnd = rhsBegin + static_cast<AZ::u64>(rhsView.m_elementCount) * rhsView.m_elementSize;
+                return lhsBegin < rhsEnd && rhsBegin < lhsEnd;
+            }
+
+            // Non-image / non-buffer attachments do not expose a view range. Keep the
+            // conservative dependency for those attachment types.
+            return true;
+        }
+
+        bool HasCompatibleReadUsage(const ScopeAttachment& lhs, const ScopeAttachment& rhs)
+        {
+            const auto* lhsImage = azrtti_cast<const ImageScopeAttachment*>(&lhs);
+            const auto* rhsImage = azrtti_cast<const ImageScopeAttachment*>(&rhs);
+            if (!lhsImage || !rhsImage)
+            {
+                // Buffers have no image-layout transition associated with a read usage.
+                return azrtti_cast<const BufferScopeAttachment*>(&lhs) &&
+                    azrtti_cast<const BufferScopeAttachment*>(&rhs);
+            }
+
+            const auto& lhsUsageAndAccess = lhs.GetUsageAndAccess();
+            const auto& rhsUsageAndAccess = rhs.GetUsageAndAccess();
+            if (lhsUsageAndAccess.size() != rhsUsageAndAccess.size())
+            {
+                return false;
+            }
+
+            for (const ScopeAttachmentUsageAndAccess& lhsUsage : lhsUsageAndAccess)
+            {
+                const bool matchingUsage = AZStd::find_if(
+                    rhsUsageAndAccess.begin(),
+                    rhsUsageAndAccess.end(),
+                    [&lhsUsage](const ScopeAttachmentUsageAndAccess& rhsUsage)
+                    {
+                        return lhsUsage.m_usage == rhsUsage.m_usage && lhsUsage.m_access == rhsUsage.m_access;
+                    }) != rhsUsageAndAccess.end();
+                if (!matchingUsage)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool CanReadConcurrently(const ScopeAttachment& lhs, const ScopeAttachment& rhs)
+        {
+            return !ViewsOverlap(lhs, rhs) || HasCompatibleReadUsage(lhs, rhs);
+        }
+    }
+
     FrameGraph::~FrameGraph()
     {
         Clear();
@@ -203,16 +322,12 @@ namespace AZ::RHI
             }
         }
             
-        // TODO:[ATOM-1267] Replace with writer / reader dependencies.
-        GraphEdgeType edgeType = usage == ScopeAttachmentUsage::SubpassInput ? GraphEdgeType::SameGroup : GraphEdgeType::DifferentGroup;
-        if (Scope* producer = frameAttachment.GetLastScope())
-        {
-            InsertEdge(*producer, *m_currentScope, edgeType);
-        }
-
         ImageScopeAttachment* scopeAttachment =
             m_attachmentDatabase.EmplaceScopeAttachment<ImageScopeAttachment>(
                 *m_currentScope, frameAttachment, usage, access, descriptor);
+
+        GraphEdgeType edgeType = usage == ScopeAttachmentUsage::SubpassInput ? GraphEdgeType::SameGroup : GraphEdgeType::DifferentGroup;
+        AddAttachmentDependencies(frameAttachment, *scopeAttachment, edgeType);
 
             
         m_currentScope->m_attachments.push_back(scopeAttachment);
@@ -243,15 +358,11 @@ namespace AZ::RHI
         }
 #endif
 
-        // TODO:[ATOM-1267] Replace with writer / reader dependencies.
-        if (Scope* producer = frameAttachment.GetLastScope())
-        {
-            InsertEdge(*producer, *m_currentScope);
-        }
-
         ResolveScopeAttachment* scopeAttachment =
             m_attachmentDatabase.EmplaceScopeAttachment<ResolveScopeAttachment>(
                 *m_currentScope, frameAttachment, descriptor);
+
+        AddAttachmentDependencies(frameAttachment, *scopeAttachment, GraphEdgeType::DifferentGroup);
 
         m_currentScope->m_attachments.push_back(scopeAttachment);
         m_currentScope->m_imageAttachments.push_back(scopeAttachment);
@@ -281,15 +392,11 @@ namespace AZ::RHI
             }
         }
 
-        // TODO:[ATOM-1267] Replace with writer / reader dependencies.
-        if (Scope* producer = frameAttachment.GetLastScope())
-        {
-            InsertEdge(*producer, *m_currentScope);
-        }
-
         BufferScopeAttachment* scopeAttachment =
             m_attachmentDatabase.EmplaceScopeAttachment<BufferScopeAttachment>(
                 *m_currentScope, frameAttachment, usage, access, descriptor);
+
+        AddAttachmentDependencies(frameAttachment, *scopeAttachment, GraphEdgeType::DifferentGroup);
 
         m_currentScope->m_attachments.push_back(scopeAttachment);
         m_currentScope->m_bufferAttachments.push_back(scopeAttachment);
@@ -327,6 +434,86 @@ namespace AZ::RHI
 
         AZ_Error("FrameGraph", false, "No compatible image attachment found for id: '%s'", descriptor.m_attachmentId.GetCStr());
         return ResultCode::InvalidArgument;
+    }
+
+    void FrameGraph::AddAttachmentDependencies(
+        FrameAttachment& frameAttachment,
+        ScopeAttachment& currentScopeAttachment,
+        GraphEdgeType edgeType)
+    {
+        const bool currentHasRead = HasReadAccess(currentScopeAttachment);
+        const bool currentHasWrite = HasWriteAccess(currentScopeAttachment);
+        ScopeAttachment* immediatePrevious = currentScopeAttachment.GetPrevious();
+
+        if (!immediatePrevious)
+        {
+            return;
+        }
+
+        ScopeAttachment* lastWriter = nullptr;
+        AZStd::vector<ScopeAttachment*> readersSinceLastWriter;
+
+        for (ScopeAttachment* previous = frameAttachment.GetFirstScopeAttachment();
+             previous && previous != &currentScopeAttachment;
+             previous = previous->GetNext())
+        {
+            // Keep dependency state per overlapping view. A write to another mip,
+            // array slice, or buffer range must not hide the last writer/readers for
+            // the range used by the current scope.
+            if (!ViewsOverlap(*previous, currentScopeAttachment))
+            {
+                continue;
+            }
+
+            if (HasWriteAccess(*previous))
+            {
+                lastWriter = previous;
+                readersSinceLastWriter.clear();
+            }
+            else if (HasReadAccess(*previous))
+            {
+                readersSinceLastWriter.push_back(previous);
+            }
+        }
+
+        if (currentHasWrite || !currentHasRead)
+        {
+            // A writer must wait for the last writer and every reader after it. Unknown
+            // access is treated conservatively as a writer-like use.
+            if (lastWriter)
+            {
+                InsertEdge(lastWriter->GetScope(), currentScopeAttachment.GetScope(), edgeType);
+            }
+
+            for (ScopeAttachment* reader : readersSinceLastWriter)
+            {
+                InsertEdge(reader->GetScope(), currentScopeAttachment.GetScope(), edgeType);
+            }
+            return;
+        }
+
+        // Subpass inputs are deliberately ordered into the same render-pass group.
+        if (edgeType == GraphEdgeType::SameGroup)
+        {
+            InsertEdge(immediatePrevious->GetScope(), currentScopeAttachment.GetScope(), edgeType);
+            return;
+        }
+
+        if (lastWriter)
+        {
+            InsertEdge(lastWriter->GetScope(), currentScopeAttachment.GetScope(), edgeType);
+        }
+
+        // A read/read pair can run concurrently only when the views are disjoint or the
+        // backend can keep the same read layout. Preserve the edge for overlapping image
+        // views that require different layouts/usages.
+        for (ScopeAttachment* reader : readersSinceLastWriter)
+        {
+            if (!CanReadConcurrently(*reader, currentScopeAttachment))
+            {
+                InsertEdge(reader->GetScope(), currentScopeAttachment.GetScope(), edgeType);
+            }
+        }
     }
 
     ResultCode FrameGraph::UseAttachments(AZStd::span<const ImageScopeAttachmentDescriptor> descriptors, ScopeAttachmentAccess access, ScopeAttachmentUsage usage)

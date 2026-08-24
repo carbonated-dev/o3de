@@ -5,14 +5,14 @@
     "ClassData": {
         "PassTemplate": {
             "Name": "FroxelLocalVolumeTemplate",
-            "PassClass": "RasterPass",
+            "PassClass": "FroxelLocalVolumePass",
             "Slots": [
                 {
                     "Name": "FroxelMedium",
-                    "SlotType": "InputOutput",
+                    "SlotType": "Output",
                     "ScopeAttachmentUsage": "RenderTarget",
                     "LoadStoreAction": {
-                        "LoadAction": "Load",
+                        "LoadAction": "Clear",
                         "StoreAction": "Store"
                     },
                     "ImageViewDesc": {
@@ -23,16 +23,108 @@
                 },
                 {
                     "Name": "FroxelEmissive",
-                    "SlotType": "InputOutput",
+                    "SlotType": "Output",
                     "ScopeAttachmentUsage": "RenderTarget",
                     "LoadStoreAction": {
-                        "LoadAction": "Load",
+                        "LoadAction": "Clear",
                         "StoreAction": "Store"
                     },
                     "ImageViewDesc": {
                         "OverrideBindFlags": [
                             "Color"
                         ]
+                    }
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "LocalMedium1",
+                    "Lifetime": "Imported",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "Parent",
+                            "Attachment": "PipelineOutput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R16G16B16A16_FLOAT",
+                        "Dimension": 3,
+                        "SharedQueueMask": "All"
+                    }
+                },
+                {
+                    "Name": "LocalMedium2",
+                    "Lifetime": "Imported",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "Parent",
+                            "Attachment": "PipelineOutput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R16G16B16A16_FLOAT",
+                        "Dimension": 3,
+                        "SharedQueueMask": "All"
+                    }
+                },
+                {
+                    "Name": "LocalMedium3",
+                    "Lifetime": "Imported",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "Parent",
+                            "Attachment": "PipelineOutput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R16G16B16A16_FLOAT",
+                        "Dimension": 3,
+                        "SharedQueueMask": "All"
+                    }
+                },
+                {
+                    "Name": "LocalEmissive1",
+                    "Lifetime": "Imported",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "Parent",
+                            "Attachment": "PipelineOutput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R11G11B10_FLOAT",
+                        "Dimension": 3,
+                        "SharedQueueMask": "All"
+                    }
+                },
+                {
+                    "Name": "LocalEmissive2",
+                    "Lifetime": "Imported",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "Parent",
+                            "Attachment": "PipelineOutput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R11G11B10_FLOAT",
+                        "Dimension": 3,
+                        "SharedQueueMask": "All"
+                    }
+                },
+                {
+                    "Name": "LocalEmissive3",
+                    "Lifetime": "Imported",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "Parent",
+                            "Attachment": "PipelineOutput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R11G11B10_FLOAT",
+                        "Dimension": 3,
+                        "SharedQueueMask": "All"
                     }
                 }
             ],

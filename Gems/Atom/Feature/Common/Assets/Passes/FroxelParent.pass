@@ -20,6 +20,10 @@
                     "SlotType": "Input"
                 },
                 {
+                    "Name": "FroxelMaxVisibleSlice",
+                    "SlotType": "Input"
+                },
+                {
                     "Name": "FroxelIntegrated",
                     "SlotType": "Output"
                 },
@@ -55,33 +59,17 @@
                     "TemplateName": "FroxelInjectTemplate",
                     "Connections": [
                         {
-                            "LocalSlot": "TileLightData",
+                            "LocalSlot": "FroxelMaxVisibleSlice",
                             "AttachmentRef": {
                                 "Pass": "Parent",
-                                "Attachment": "TileLightData"
+                                "Attachment": "FroxelMaxVisibleSlice"
                             }
                         }
                     ]
                 },
                 {
                     "Name": "FroxelLocalVolumePass",
-                    "TemplateName": "FroxelLocalVolumeTemplate",
-                    "Connections": [
-                        {
-                            "LocalSlot": "FroxelMedium",
-                            "AttachmentRef": {
-                                "Pass": "FroxelInjectPass",
-                                "Attachment": "FroxelVolume"
-                            }
-                        },
-                        {
-                            "LocalSlot": "FroxelEmissive",
-                            "AttachmentRef": {
-                                "Pass": "FroxelInjectPass",
-                                "Attachment": "FroxelEmissive"
-                            }
-                        }
-                    ]
+                    "TemplateName": "FroxelLocalVolumeTemplate"
                 },
                 {
                     "Name": "FroxelScatterPass",
@@ -92,6 +80,13 @@
                             "AttachmentRef": {
                                 "Pass": "Parent",
                                 "Attachment": "TileLightData"
+                            }
+                        },
+                        {
+                            "LocalSlot": "FroxelMaxVisibleSlice",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "FroxelMaxVisibleSlice"
                             }
                         },
                         {
@@ -145,22 +140,22 @@
                         {
                             "LocalSlot": "FroxelEmissive",
                             "AttachmentRef": {
-                                "Pass": "FroxelLocalVolumePass",
+                                "Pass": "FroxelInjectPass",
                                 "Attachment": "FroxelEmissive"
                             }
                         },
                         {
                             "LocalSlot": "FroxelMedium",
                             "AttachmentRef": {
-                                "Pass": "FroxelLocalVolumePass",
-                                "Attachment": "FroxelMedium"
+                                "Pass": "FroxelInjectPass",
+                                "Attachment": "FroxelVolume"
                             }
                         },
                         {
-                            "LocalSlot": "TileLightData",
+                            "LocalSlot": "FroxelMaxVisibleSlice",
                             "AttachmentRef": {
                                 "Pass": "Parent",
-                                "Attachment": "TileLightData"
+                                "Attachment": "FroxelMaxVisibleSlice"
                             }
                         }
                     ]

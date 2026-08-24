@@ -175,6 +175,7 @@ namespace AZ::Render
         bool m_buildDrawPackets = false; // set when froxel size changes and draw packets must be rebuilt.
         bool m_wasEnabled = false; // tracks CVar/settings transitions so GPU state is refreshed when re-enabled.
         RPI::ParentPass* m_froxelParentPass = nullptr;
+        RPI::Pass* m_froxelMaxVisibleSlicePass = nullptr;
         FroxelPass* m_injectPass = nullptr;
         FroxelPass* m_scatterPass = nullptr;
         FroxelIntegratePass* m_integratePass = nullptr;

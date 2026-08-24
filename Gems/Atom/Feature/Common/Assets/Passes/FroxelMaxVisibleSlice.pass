@@ -1,0 +1,63 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "FroxelMaxVisibleSliceTemplate",
+            "PassClass": "FroxelMaxVisibleSlicePass",
+            "Slots": [
+                {
+                    "Name": "DepthMSAA",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_depthBufferMSAA",
+                    "ScopeAttachmentUsage": "Shader",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Depth"
+                        ]
+                    }
+                },
+                {
+                    "Name": "FroxelMaxVisibleSlice",
+                    "SlotType": "Output",
+                    "ShaderInputName": "m_froxelMaxVisibleSlice",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "FroxelMaxVisibleSlice",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "Parent",
+                            "Attachment": "PipelineOutput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R32_UINT",
+                        "SharedQueueMask": "All"
+                    }
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "FroxelMaxVisibleSlice",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "FroxelMaxVisibleSlice"
+                    }
+                }
+            ],
+            "PassData": {
+                "$type": "ComputePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/VolumetricFog/FroxelMaxVisibleSlice.shader"
+                },
+                "Make Fullscreen Pass": true,
+                "BindViewSrg": true,
+                "Use Async Compute": true
+            }
+        }
+    }
+}

@@ -20,9 +20,9 @@
                     "ScopeAttachmentUsage": "Shader"
                 },
                 {
-                    "Name": "TileLightData",
+                    "Name": "FroxelMaxVisibleSlice",
                     "SlotType": "Input",
-                    "ShaderInputName": "m_tileLightData",
+                    "ShaderInputName": "m_froxelMaxVisibleSlice",
                     "ScopeAttachmentUsage": "Shader"
                 }
             ],
@@ -37,7 +37,8 @@
                     },
                     "ImageDescriptor": {
                         "Format": "R16G16B16A16_FLOAT",
-                        "Dimension" : 3
+                        "Dimension" : 3,
+                        "SharedQueueMask": "All"
                     }
                 },
                 {
@@ -50,7 +51,8 @@
                     },
                     "ImageDescriptor": {
                         "Format": "R11G11B10_FLOAT",
-                        "Dimension" : 3
+                        "Dimension" : 3,
+                        "SharedQueueMask": "All"
                     }
                 }
             ],
@@ -76,7 +78,8 @@
                     "FilePath": "Shaders/VolumetricFog/FroxelInject.shader"
                 },
                 "Make Fullscreen Pass": true,
-                "BindViewSrg" : true
+                "BindViewSrg" : true,
+                "Use Async Compute": true
             }
         }
     }

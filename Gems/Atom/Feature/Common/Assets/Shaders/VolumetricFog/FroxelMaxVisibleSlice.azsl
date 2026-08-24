@@ -1,0 +1,63 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ */
+
+#include <scenesrg.srgi>
+#include <viewsrg.srgi>
+#include "FroxelUtil.azsli"
+
+ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
+{
+    Texture2DMS<float> m_depthBufferMSAA;
+    RWTexture2D<uint> m_froxelMaxVisibleSlice;
+}
+
+float LinearizeDepth(float depth)
+{
+    return abs(ViewSrg::GetFarZTimesNearZ() /
+        (ViewSrg::GetFarZMinusNearZ() * depth - ViewSrg::GetFarZ()));
+}
+
+[numthreads(NUM_THREADS_PER_GROUP, NUM_THREADS_PER_GROUP, 1)]
+void MainCS(uint2 froxelId : SV_DispatchThreadID)
+{
+    uint2 froxelCount = SceneSrg::m_volumetricFogData.m_froxelCount.xy;
+    if (any(froxelId >= froxelCount))
+    {
+        return;
+    }
+
+    uint depthWidth;
+    uint depthHeight;
+    uint sampleCount;
+    PassSrg::m_depthBufferMSAA.GetDimensions(depthWidth, depthHeight, sampleCount);
+
+    uint tileSize = SceneSrg::m_volumetricFogData.m_tileSize;
+    uint2 pixelBegin = froxelId * tileSize;
+    uint2 pixelEnd = min(pixelBegin + tileSize, uint2(depthWidth, depthHeight));
+    float maximumVisibleDepth = SceneSrg::m_volumetricFogData.m_fogNear;
+
+    for (uint pixelY = pixelBegin.y; pixelY < pixelEnd.y; ++pixelY)
+    {
+        for (uint pixelX = pixelBegin.x; pixelX < pixelEnd.x; ++pixelX)
+        {
+            for (uint sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex)
+            {
+                float depth = PassSrg::m_depthBufferMSAA.Load(uint2(pixelX, pixelY), sampleIndex);
+                maximumVisibleDepth = max(maximumVisibleDepth, LinearizeDepth(depth));
+            }
+        }
+    }
+
+    float fogNear = SceneSrg::m_volumetricFogData.m_fogNear;
+    float fogFar = SceneSrg::m_volumetricFogData.m_fogFar;
+    uint sliceCount = SceneSrg::m_volumetricFogData.m_froxelCount.z;
+    float normalizedSlice = log(max(maximumVisibleDepth, fogNear) / fogNear) / log(fogFar / fogNear);
+    uint depthSlice = uint(saturate(normalizedSlice) * float(sliceCount));
+    PassSrg::m_froxelMaxVisibleSlice[froxelId] = min(
+        depthSlice + SceneSrg::m_volumetricFogData.m_depthBoundsSliceMargin,
+        sliceCount - 1);
+}

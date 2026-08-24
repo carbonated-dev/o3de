@@ -23,6 +23,7 @@
 #include <RHI/ImageView.h>
 #include <RHI/Scope.h>
 #include <RHI/SwapChain.h>
+#include <AzCore/Debug/Trace.h>
 
 
 namespace AZ
@@ -385,6 +386,13 @@ namespace AZ
                     {
                         if (Scope* producer = static_cast<Scope*>(scope->GetProducerByQueue(hardwareQueueClass)))
                         {
+                            AZ_TracePrintf(
+                                "FrameGraph",
+                                "Async dependency %s [%s] -> %s [%s]\n",
+                                producer->GetId().GetCStr(),
+                                GetHardwareQueueClassName(producer->GetHardwareQueueClass()),
+                                scope->GetId().GetCStr(),
+                                GetHardwareQueueClassName(scope->GetHardwareQueueClass()));
                             auto semaphore = device.GetSemaphoreAllocator().Allocate();
                             producer->AddSignalSemaphore(semaphore);
                             scope->AddWaitSemaphore(Semaphore::WaitSemaphore(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, semaphore));
