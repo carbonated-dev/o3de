@@ -8,7 +8,7 @@
 
 #pragma once
 
-#if defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
 
 // include the required headers
 #include <AzCore/std/containers/vector.h>
@@ -20,12 +20,10 @@
 #include <AzCore/std/smart_ptr/weak_ptr.h>
 #include <Source/Integration/Assets/ActorAsset.h>
 #include <Source/Integration/System/SystemCommon.h>
-#if defined(CARBONATED)
 #include <AzFramework/Spawnable/SpawnableEntitiesInterface.h>
 #include <AzFramework/Spawnable/Spawnable.h>
 #include <Integration/Components/ActorComponent.h>
 #include <MCore/Source/IDGenerator.h>
-#endif
 
 namespace EMotionFX
 {

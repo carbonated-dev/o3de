@@ -6,7 +6,7 @@
  *
  */
 
-#if defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
 
 // include the required headers
 #include "EMotionFXConfig.h"

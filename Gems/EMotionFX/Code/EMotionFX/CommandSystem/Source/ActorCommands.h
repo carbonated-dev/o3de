@@ -56,7 +56,7 @@ namespace CommandSystem
         bool            m_oldWorkspaceDirtyFlag;
     MCORE_DEFINECOMMAND_END
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
     // Remove prefab.
     MCORE_DEFINECOMMAND_START(CommandRemovePrefab, "Remove prefab", true)
 public:
