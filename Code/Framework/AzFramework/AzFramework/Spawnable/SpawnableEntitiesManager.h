@@ -28,6 +28,10 @@ namespace AZ
 
 namespace AzFramework
 {
+#if defined(CARBONATED)
+    class EntityContext;
+#endif
+
     class SpawnableEntitiesManager
         : public SpawnableEntitiesInterface::Registrar
     {

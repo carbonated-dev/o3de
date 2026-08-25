@@ -18,6 +18,7 @@
 #include <AzCore/std/sort.h>
 #include <AzFramework/StringFunc/StringFunc.h>
 #include <AzCore/Memory/MemoryMarker.h>
+#include <AzFramework/Entity/EntityContext.h>
 #endif
 // Gruber patch end // VMED
 #include <AzFramework/Components/TransformComponent.h>
