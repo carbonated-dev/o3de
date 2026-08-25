@@ -340,6 +340,10 @@ namespace AZ
             // Search order: 1.This -> 2.Parent -> 3.Siblings -> 4.Children
             Ptr<Pass> FindAdjacentPass(const Name& passName);
 
+            //! Resolves either an adjacent pass name or a dot-qualified path through a parent pass
+            //! (for example, "OpaquePass.ForwardSubsurface").
+            Ptr<Pass> FindPassFromReference(const Name& passReference);
+
             // Searches this pass's attachment bindings for one with the provided Name (nullptr if none found)
             const PassAttachmentBinding* FindAttachmentBinding(const Name& slotName) const;
 
@@ -590,6 +594,7 @@ namespace AZ
 
             // Sets up explicitly declared dependencies on other passes declared in the PassRequest
             void SetupPassDependencies();
+            void ResolvePassDependenciesFromRequest();
 
             // Sets up inputs from the list of PassConnections in PassTemplate
             void SetupInputsFromTemplate();

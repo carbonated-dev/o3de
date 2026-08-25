@@ -11,8 +11,6 @@
 #include <VolumetricFog/VolumetricFogUtils.h>
 #include <VolumetricFog/VolumetricFogFeatureProcessor.h>
 
-#include <Atom/RPI.Public/Pass/ParentPass.h>
-
 namespace AZ::Render
 {
     RPI::Ptr<FroxelIntegratePass> FroxelIntegratePass::Create(const RPI::PassDescriptor& descriptor)
@@ -62,27 +60,6 @@ namespace AZ::Render
 
     void FroxelIntegratePass::BuildInternal()
     {
-        // Keep async Integrate behind the completed linear-depth pass. This explicit
-        // dependency establishes the desired graphics-to-compute scheduling boundary;
-        // Scatter and Inject resource dependencies may move Integrate later when needed.
-        RPI::ParentPass* froxelParent = GetParent();
-        RPI::ParentPass* pipelineParent = froxelParent ? froxelParent->GetParent() : nullptr;
-        RPI::Ptr<RPI::Pass> depthPrePass = pipelineParent
-            ? pipelineParent->FindChildPass(Name("DepthPrePass"))
-            : nullptr;
-        RPI::ParentPass* depthPrePassParent = depthPrePass ? depthPrePass->AsParent() : nullptr;
-        RPI::Ptr<RPI::Pass> depthToLinearPass = depthPrePassParent
-            ? depthPrePassParent->FindChildPass(Name("DepthToLinearDepthPass"))
-            : nullptr;
-        AZ_Error(
-            "FroxelIntegratePass",
-            depthToLinearPass,
-            "FroxelIntegratePass could not find DepthPrePass.DepthToLinearDepthPass for async scheduling.");
-        if (depthToLinearPass)
-        {
-            m_executeAfterPasses.push_back(depthToLinearPass.get());
-        }
-
         m_scatteringAttachments[0] = FindAttachment(Name("Scattering1"));
         m_scatteringAttachments[1] = FindAttachment(Name("Scattering2"));
 

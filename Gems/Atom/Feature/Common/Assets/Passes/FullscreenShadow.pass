@@ -72,20 +72,6 @@
             ],
             "Connections": [
                 {
-                    "LocalSlot": "Depth",
-                    "AttachmentRef": {
-                        "Pass": "PipelineGlobal",
-                        "Attachment": "DepthMSAA"
-                    }
-                },
-                {
-                    "LocalSlot": "DepthLinear",
-                    "AttachmentRef": {
-                        "Pass": "PipelineGlobal",
-                        "Attachment": "DepthLinear"
-                    }
-                },
-                {
                     "LocalSlot": "Output",
                     "AttachmentRef": {
                         "Pass": "This",

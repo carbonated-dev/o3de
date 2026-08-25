@@ -16,6 +16,10 @@
                     "Name": "Depth",
                     "SlotType": "Input"
                 },
+                {
+                    "Name": "DepthLinear",
+                    "SlotType": "Input"
+                },
                 // Outputs...
                 {
                     "Name": "DirectionalShadowmap",
@@ -202,6 +206,20 @@
                                 "Pass": "CascadesESM",
                                 "Attachment": "EsmShadowmaps"
                             }
+                        },
+                        {
+                            "LocalSlot": "Depth",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "Depth"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthLinear",
+                            "AttachmentRef": {
+                                "Pass": "Parent",
+                                "Attachment": "DepthLinear"
+                            }
                         }
                     ]
                 },
@@ -212,7 +230,7 @@
                         {
                             "LocalSlot": "LinearDepth",
                             "AttachmentRef": {
-                                "Pass": "PipelineGlobal",
+                                "Pass": "Parent",
                                 "Attachment": "DepthLinear"
                             }
                         },

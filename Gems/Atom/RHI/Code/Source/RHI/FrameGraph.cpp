@@ -196,6 +196,7 @@ namespace AZ::RHI
         m_graphNodes.clear();
         m_graphEdges.clear();
         m_scopeLookup.clear();
+        m_deferredScopeDependencies.clear();
         m_attachmentDatabase.Clear();
         m_isCompiled = false;
     }
@@ -239,6 +240,9 @@ namespace AZ::RHI
     ResultCode FrameGraph::End()
     {
         AZ_PROFILE_SCOPE(RHI, "FrameGraph: End");
+
+        ResolveDeferredScopeDependencies();
+
         ResultCode resultCode = ValidateEnd();
         if (resultCode != ResultCode::Success)
         {
@@ -450,7 +454,10 @@ namespace AZ::RHI
             return;
         }
 
-        ScopeAttachment* lastWriter = nullptr;
+        // Keep the latest writer for every disjoint portion of the current view. A
+        // single writer is insufficient when, for example, several scopes write
+        // individual array slices and the current scope reads the entire array.
+        AZStd::vector<ScopeAttachment*> lastWriters;
         AZStd::vector<ScopeAttachment*> readersSinceLastWriter;
 
         for (ScopeAttachment* previous = frameAttachment.GetFirstScopeAttachment();
@@ -467,8 +474,25 @@ namespace AZ::RHI
 
             if (HasWriteAccess(*previous))
             {
-                lastWriter = previous;
-                readersSinceLastWriter.clear();
+                // The later writer already depends on earlier writers and readers that
+                // overlap its view. Retain only frontier entries for disjoint regions.
+                lastWriters.erase(
+                    AZStd::remove_if(
+                        lastWriters.begin(), lastWriters.end(),
+                        [previous](ScopeAttachment* writer)
+                        {
+                            return ViewsOverlap(*writer, *previous);
+                        }),
+                    lastWriters.end());
+                readersSinceLastWriter.erase(
+                    AZStd::remove_if(
+                        readersSinceLastWriter.begin(), readersSinceLastWriter.end(),
+                        [previous](ScopeAttachment* reader)
+                        {
+                            return ViewsOverlap(*reader, *previous);
+                        }),
+                    readersSinceLastWriter.end());
+                lastWriters.push_back(previous);
             }
             else if (HasReadAccess(*previous))
             {
@@ -480,9 +504,9 @@ namespace AZ::RHI
         {
             // A writer must wait for the last writer and every reader after it. Unknown
             // access is treated conservatively as a writer-like use.
-            if (lastWriter)
+            for (ScopeAttachment* writer : lastWriters)
             {
-                InsertEdge(lastWriter->GetScope(), currentScopeAttachment.GetScope(), edgeType);
+                InsertEdge(writer->GetScope(), currentScopeAttachment.GetScope(), edgeType);
             }
 
             for (ScopeAttachment* reader : readersSinceLastWriter)
@@ -499,9 +523,9 @@ namespace AZ::RHI
             return;
         }
 
-        if (lastWriter)
+        for (ScopeAttachment* writer : lastWriters)
         {
-            InsertEdge(lastWriter->GetScope(), currentScopeAttachment.GetScope(), edgeType);
+            InsertEdge(writer->GetScope(), currentScopeAttachment.GetScope(), edgeType);
         }
 
         // A read/read pair can run concurrently only when the views are disjoint or the
@@ -601,6 +625,10 @@ namespace AZ::RHI
         {
             InsertEdge(*producer, *m_currentScope);
         }
+        else
+        {
+            m_deferredScopeDependencies.push_back({ producerScopeId, m_currentScope->GetId() });
+        }
     }
 
     void FrameGraph::ExecuteBefore(const ScopeId& consumerScopeId)
@@ -609,6 +637,25 @@ namespace AZ::RHI
         {
             InsertEdge(*m_currentScope, *consumer);
         }
+        else
+        {
+            m_deferredScopeDependencies.push_back({ m_currentScope->GetId(), consumerScopeId });
+        }
+    }
+
+    void FrameGraph::ResolveDeferredScopeDependencies()
+    {
+        for (const DeferredScopeDependency& dependency : m_deferredScopeDependencies)
+        {
+            Scope* producer = FindScope(dependency.m_producerScopeId);
+            Scope* consumer = FindScope(dependency.m_consumerScopeId);
+            if (producer && consumer)
+            {
+                InsertEdge(*producer, *consumer);
+            }
+        }
+
+        m_deferredScopeDependencies.clear();
     }
 
     void FrameGraph::SignalFence(Fence& fence)

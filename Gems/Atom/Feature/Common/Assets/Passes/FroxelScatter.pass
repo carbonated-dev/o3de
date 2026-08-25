@@ -100,7 +100,7 @@
                 },
                 "Make Fullscreen Pass": true,
                 "BindViewSrg" : true,
-                "Use Async Compute": false
+                "Use Async Compute": true
             }
         }
     }

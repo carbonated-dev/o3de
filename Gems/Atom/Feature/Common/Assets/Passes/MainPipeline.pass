@@ -40,10 +40,6 @@
                     ]
                 },
                 {
-                    "Name": "RayTracingAccelerationStructurePass",
-                    "TemplateName": "RayTracingAccelerationStructurePassTemplate"
-                },
-                {
                     "Name": "DepthPrePass",
                     "TemplateName": "DepthParentTemplate",
                     "Connections": [
@@ -64,6 +60,10 @@
                     ]
                 },
                 {
+                    "Name": "RayTracingAccelerationStructurePass",
+                    "TemplateName": "RayTracingAccelerationStructurePassTemplate"
+                },
+                {
                     "Name": "FroxelMaxVisibleSlicePass",
                     "TemplateName": "FroxelMaxVisibleSliceTemplate",
                     "Enabled": false,
@@ -73,6 +73,40 @@
                             "AttachmentRef": {
                                 "Pass": "DepthPrePass",
                                 "Attachment": "DepthMSAA"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "Name": "Shadows",
+                    "TemplateName": "ShadowParentTemplate",
+                    "Connections": [
+                        {
+                            "LocalSlot": "SkinnedMeshes",
+                            "AttachmentRef": {
+                                "Pass": "SkinningPass",
+                                "Attachment": "SkinnedMeshOutputStream"
+                            }
+                        },
+                        {
+                            "LocalSlot": "PipelineOutput",
+                            "AttachmentRef": {
+                                "Pass": "PipelineGlobal",
+                                "Attachment": "PipelineOutput"
+                            }
+                        },
+                        {
+                            "LocalSlot": "Depth",
+                            "AttachmentRef": {
+                                "Pass": "DepthPrePass",
+                                "Attachment": "DepthMSAA"
+                            }
+                        },
+                        {
+                            "LocalSlot": "DepthLinear",
+                            "AttachmentRef": {
+                                "Pass": "DepthPrePass",
+                                "Attachment": "DepthLinear"
                             }
                         }
                     ]
@@ -127,33 +161,6 @@
                             "AttachmentRef": {
                                 "Pass": "PipelineGlobal",
                                 "Attachment": "PipelineOutput"
-                            }
-                        }
-                    ]
-                },                
-                {
-                    "Name": "Shadows",
-                    "TemplateName": "ShadowParentTemplate",
-                    "Connections": [
-                        {
-                            "LocalSlot": "SkinnedMeshes",
-                            "AttachmentRef": {
-                                "Pass": "SkinningPass",
-                                "Attachment": "SkinnedMeshOutputStream"
-                            }
-                        },
-                        {
-                            "LocalSlot": "PipelineOutput",
-                            "AttachmentRef": {
-                                "Pass": "PipelineGlobal",
-                                "Attachment": "PipelineOutput"
-                            }
-                        },
-                        {
-                            "LocalSlot": "Depth",
-                            "AttachmentRef": {
-                                "Pass": "DepthPrePass",
-                                "Attachment": "DepthMSAA" 
                             }
                         }
                     ]

@@ -74,6 +74,9 @@
                 {
                     "Name": "FroxelScatterPass",
                     "TemplateName": "FroxelScatterTemplate",
+                    "ExecuteAfter": [
+                        "FroxelInjectPass"
+                    ],
                     "Connections": [
                         {
                             "LocalSlot": "TileLightData",
@@ -129,6 +132,9 @@
                 {
                     "Name": "FroxelIntegratePass",
                     "TemplateName": "FroxelIntegrateTemplate",
+                    "ExecuteAfter": [
+                        "OpaquePass.ForwardSubsurface"
+                    ],
                     "Connections": [
                         {
                             "LocalSlot": "FroxelScattered",

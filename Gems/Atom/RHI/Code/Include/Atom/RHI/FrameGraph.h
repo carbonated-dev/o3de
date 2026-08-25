@@ -209,6 +209,16 @@ namespace AZ::RHI
 
         void InsertEdge(Scope& producer, Scope& consumer, GraphEdgeType edgeType = GraphEdgeType::DifferentGroup);
 
+        //! Resolves explicit execution dependencies whose referenced scope had not yet been added
+        //! when ExecuteAfter or ExecuteBefore was called.
+        void ResolveDeferredScopeDependencies();
+
+        struct DeferredScopeDependency
+        {
+            ScopeId m_producerScopeId;
+            ScopeId m_consumerScopeId;
+        };
+
         struct GraphEdge
         {
             bool operator== (const GraphEdge& rhs) const
@@ -238,6 +248,7 @@ namespace AZ::RHI
         AZStd::vector<GraphNode> m_graphNodes;
         AZStd::vector<Scope*> m_scopes;
         AZStd::unordered_map<ScopeId, Scope*> m_scopeLookup;
+        AZStd::vector<DeferredScopeDependency> m_deferredScopeDependencies;
         Scope* m_currentScope = nullptr;
         bool m_isCompiled = false;
         bool m_isBuilding = false;

@@ -45,10 +45,12 @@ namespace AZ
             //! Name of the template from which the pass will be created
             Name m_templateName;
 
-            //! Names of Passes that this Pass should execute after
+            //! References to passes that this pass should execute after. A reference may be an
+            //! adjacent pass name or a dot-qualified path through a parent pass.
             AZStd::vector<Name> m_executeAfterPasses;
 
-            //! Names of Passes that this Pass should execute before
+            //! References to passes that this pass should execute before. A reference may be an
+            //! adjacent pass name or a dot-qualified path through a parent pass.
             AZStd::vector<Name> m_executeBeforePasses;
 
             //! Connections for the instantiated Pass

@@ -45,12 +45,9 @@ namespace AZ::Render
         {
             if (auto fogFeatureProcessor = scene->GetFeatureProcessor<VolumetricFogFeatureProcessor>())
             {
-                AZ_Assert(!m_ownedAttachments.empty(), "[FroxelMaxVisibleSlicePass %s] requires an owned output image.", GetPathName().GetCStr());
-                if (m_ownedAttachments.empty())
-                {
-                    return;
-                }
-                RPI::Ptr<RPI::PassAttachment> attachment = m_ownedAttachments.front();
+                // The output binding is not connected until Base::BuildInternal(). Look up the
+                // attachment owned by this pass so its size can be configured before that build.
+                RPI::Ptr<RPI::PassAttachment> attachment = FindOwnedAttachment(Name("FroxelMaxVisibleSlice"));
                 AZ_Assert(attachment, "[FroxelMaxVisibleSlicePass %s] cannot find its output image.", GetPathName().GetCStr());
                 if (!attachment)
                 {

@@ -276,6 +276,69 @@ namespace AZ
             return foundPass;
         }
 
+        Ptr<Pass> Pass::FindPassFromReference(const Name& passReference)
+        {
+            if (Ptr<Pass> adjacentPass = FindAdjacentPass(passReference))
+            {
+                return adjacentPass;
+            }
+
+            const AZStd::string_view path = passReference.GetStringView();
+            const size_t firstSeparator = path.find('.');
+            if (firstSeparator == AZStd::string_view::npos || firstSeparator == 0 || firstSeparator + 1 >= path.size())
+            {
+                return nullptr;
+            }
+
+            const Name firstPassName(path.substr(0, firstSeparator));
+            Ptr<Pass> foundPass;
+            for (Pass* searchContext = this; searchContext && !foundPass; searchContext = searchContext->GetParent())
+            {
+                if (searchContext->GetName() == firstPassName)
+                {
+                    foundPass = searchContext;
+                    break;
+                }
+
+                if (ParentPass* parent = searchContext->GetParent())
+                {
+                    if (parent->GetName() == firstPassName)
+                    {
+                        foundPass = parent;
+                    }
+                    else
+                    {
+                        foundPass = parent->FindChildPass(firstPassName);
+                    }
+                }
+            }
+
+            size_t componentBegin = firstSeparator + 1;
+            while (foundPass && componentBegin < path.size())
+            {
+                const size_t componentEnd = path.find('.', componentBegin);
+                const size_t componentLength = componentEnd == AZStd::string_view::npos
+                    ? path.size() - componentBegin
+                    : componentEnd - componentBegin;
+                if (componentLength == 0)
+                {
+                    return nullptr;
+                }
+
+                ParentPass* parent = foundPass->AsParent();
+                foundPass = parent
+                    ? parent->FindChildPass(Name(path.substr(componentBegin, componentLength)))
+                    : nullptr;
+                if (componentEnd == AZStd::string_view::npos)
+                {
+                    break;
+                }
+                componentBegin = componentEnd + 1;
+            }
+
+            return foundPass;
+        }
+
         PassAttachmentBinding* Pass::FindAttachmentBinding(const Name& slotName)
         {
             for (PassAttachmentBinding& binding : m_attachmentBindings)
@@ -793,28 +856,39 @@ namespace AZ
             }
         }
 
-        void Pass::SetupPassDependencies()
+        void Pass::ResolvePassDependenciesFromRequest()
         {
-            // Get dependencies declared in the PassRequest
             if (m_flags.m_createdByPassRequest)
             {
                 for (const Name& passName : m_request.m_executeAfterPasses)
                 {
-                    Ptr<Pass> executeAfterPass = FindAdjacentPass(passName);
-                    if (executeAfterPass != nullptr)
+                    Ptr<Pass> executeAfterPass = FindPassFromReference(passName);
+                    if (executeAfterPass != nullptr &&
+                        AZStd::find(m_executeAfterPasses.begin(), m_executeAfterPasses.end(), executeAfterPass.get()) ==
+                            m_executeAfterPasses.end())
                     {
                         m_executeAfterPasses.push_back(executeAfterPass.get());
                     }
                 }
                 for (const Name& passName : m_request.m_executeBeforePasses)
                 {
-                    Ptr<Pass> executeBeforePass = FindAdjacentPass(passName);
-                    if (executeBeforePass != nullptr)
+                    Ptr<Pass> executeBeforePass = FindPassFromReference(passName);
+                    if (executeBeforePass != nullptr &&
+                        AZStd::find(m_executeBeforePasses.begin(), m_executeBeforePasses.end(), executeBeforePass.get()) ==
+                            m_executeBeforePasses.end())
                     {
                         m_executeBeforePasses.push_back(executeBeforePass.get());
                     }
                 }
             }
+        }
+
+        void Pass::SetupPassDependencies()
+        {
+            // Get dependencies declared in the PassRequest. Qualified references may be unresolved
+            // until later parent passes have built; FrameBegin retries them once the tree is complete.
+            ResolvePassDependenciesFromRequest();
+
             // Inherit dependencies from ParentPass
             if (m_parent)
             {
@@ -1354,6 +1428,8 @@ namespace AZ
                 m_path.GetCStr(), ToString(m_state).data());
 
             m_state = PassState::Rendering;
+
+            ResolvePassDependenciesFromRequest();
 
             UpdateOwnedAttachments();
 

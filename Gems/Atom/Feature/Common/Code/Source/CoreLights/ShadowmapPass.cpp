@@ -91,6 +91,29 @@ namespace AZ
                 return;
             }
 
+            // Camera depth is front-loaded in the pipeline. Keep every shadow-map raster scope
+            // behind the main depth raster pass so depth work is submitted as soon as possible.
+            RPI::ParentPass* shadowParent = parentPass->GetParent();
+            RPI::ParentPass* pipelineParent = shadowParent ? shadowParent->GetParent() : nullptr;
+            if (shadowParent && shadowParent->GetName() == Name("Shadows"))
+            {
+                RPI::Ptr<RPI::Pass> depthPrePass = pipelineParent
+                    ? pipelineParent->FindChildPass(Name("DepthPrePass"))
+                    : nullptr;
+                RPI::ParentPass* depthParent = depthPrePass ? depthPrePass->AsParent() : nullptr;
+                RPI::Ptr<RPI::Pass> depthPass = depthParent
+                    ? depthParent->FindChildPass(Name("DepthPass"))
+                    : nullptr;
+                AZ_Error(
+                    "ShadowmapPass",
+                    depthPass,
+                    "ShadowmapPass could not find DepthPrePass.DepthPass for scheduling.");
+                if (depthPass)
+                {
+                    m_executeAfterPasses.push_back(depthPass.get());
+                }
+            }
+
             RHI::ImageViewDescriptor imageViewDescriptor;
             imageViewDescriptor.m_arraySliceMin = m_arraySlice;
             imageViewDescriptor.m_arraySliceMax = m_arraySlice;
