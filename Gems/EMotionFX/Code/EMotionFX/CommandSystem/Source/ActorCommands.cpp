@@ -1176,11 +1176,17 @@ namespace CommandSystem
         m_oldWorkspaceDirtyFlag = GetCommandManager()->GetWorkspaceDirtyFlag();
 
         const AZ::Data::AssetId assetId = EMotionFX::GetPrefabManager().FindAssetIdByPrefabId(prefabData->m_id);
-        EMotionFX::GetPrefabManager().UnregisterPrefab(assetId);
+        if (assetId.IsValid())
+        {
+            EMotionFX::GetPrefabManager().UnregisterPrefab(assetId);
 
-        // mark the workspace as dirty
-        GetCommandManager()->SetWorkspaceDirtyFlag(true);
-
+            // mark the workspace as dirty
+            GetCommandManager()->SetWorkspaceDirtyFlag(true);
+        }
+        else
+        {
+            AZ_Error("EMotionFX", false, "PrefabManager can't find AssetID for %s", m_oldFileName.c_str());
+        }
         return true;
     }
 

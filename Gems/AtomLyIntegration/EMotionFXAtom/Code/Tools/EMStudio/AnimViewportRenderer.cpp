@@ -480,8 +480,7 @@ namespace EMStudio
                 const auto entityId = pEntity->GetId();
                 if (entityId.IsValid() && pEntity->GetComponents().size() == 1)
                 {
-                    auto pTx = pEntity->FindComponent(AZ::TransformComponentTypeId);
-                    if (pTx)
+                    if (auto pTx = pEntity->FindComponent(AZ::TransformComponentTypeId))
                     {
                         AZ::TransformConfig transformConfig;
                         pTx->GetConfiguration(transformConfig);
@@ -503,27 +502,28 @@ namespace EMStudio
             for (const AZ::Entity* pEntity : entities)
             {
                 const auto entityId = pEntity->GetId();
-                if (entityId.IsValid())
+                if (!entityId.IsValid())
                 {
-                    auto const& entityTransform = pEntity->GetTransform();
-                    if (entityTransform && !entityTransform->GetParentId().IsValid())
+                    continue;
+                }
+                auto const& entityTransform = pEntity->GetTransform();
+                if (entityTransform && !entityTransform->GetParentId().IsValid())
+                {
+                    auto childrenIds = entityTransform->GetChildren();
+                    AZ::EntityId rootEntityId;
+                    if (childrenIds.size() > 0)
                     {
-                        auto childrenIds = entityTransform->GetChildren();
-                        AZ::EntityId rootEntityId;
-                        if (childrenIds.size() > 0)
+                        do
                         {
-                            do
+                            rootEntity = AzFramework::EntityHelpers::GetEntity(childrenIds[0]);
+                            childrenIds = rootEntity->GetTransform()->GetChildren();
+                            if (rootEntity->GetComponents().size() > 1 || childrenIds.empty())
                             {
-                                rootEntity = AzFramework::EntityHelpers::GetEntity(childrenIds[0]);
-                                childrenIds = rootEntity->GetTransform()->GetChildren();
-                                if (rootEntity->GetComponents().size() > 1 || childrenIds.empty())
-                                {
-                                    const auto& rootEntityTransform = rootEntity->GetTransform();
-                                    rootEntityId = rootEntity->GetId();
-                                    rootEntityTransform->SetWorldTM(AZ::Transform::CreateIdentity());
-                                }
-                            } while (!rootEntityId.IsValid());
-                        }
+                                const auto& rootEntityTransform = rootEntity->GetTransform();
+                                rootEntityId = rootEntity->GetId();
+                                rootEntityTransform->SetWorldTM(AZ::Transform::CreateIdentity());
+                            }
+                        } while (!rootEntityId.IsValid());
                     }
                 }
             }
@@ -539,32 +539,37 @@ namespace EMStudio
 
     void AnimViewportRenderer::OnSpawnableInstantiated(AZ::Entity* entity, EMotionFX::PrefabData& prefabData)
     {
-        if (entity)
+        if (!entity)
         {
-            auto actorComponent = entity->FindComponent<EMotionFX::Integration::ActorComponent>();
-            if (actorComponent)
-            {
-                actorComponent->SetActorAsset(actorComponent->GetActorAsset());
-                actorComponent->GetActorInstance()->SetIsOwnedByRuntime(false);
+            AZ_Error("EMotionFX", false, "Spawned entity is nullptr");
 
-                auto actorAsset = actorComponent->GetActorAsset();
-                EMotionFX::GetActorManager().RegisterActor(actorAsset);
-                prefabData.m_actorAssetId = actorAsset.GetId();
-
-                AZStd::string outResult;
-                EMStudioManager::GetInstance()->GetCommandManager()->ExecuteCommandInsideCommand(
-                    AZStd::string::format("Select -actorInstanceID %i", actorComponent->GetActorInstance()->GetID()).c_str(), outResult);
-
-                m_actorEntities.emplace_back(entity);
-
-                EMStudioManager::GetInstance()->GetCommandManager()->ExecuteCommandInsideCommand("PrefabLoaded", outResult);
-            }
-            else
-            {
-                AZ_Error("EMotionFX", false, "Spawned entity does not have an ActorComponent!");
-                EMotionFX::GetPrefabManager().UnregisterPrefab(prefabData.m_prefabAsset.GetId());
-            }
+            return;
         }
+
+        auto actorComponent = entity->FindComponent<EMotionFX::Integration::ActorComponent>();
+        if (!actorComponent)
+        {
+            AZ_Error("EMotionFX", false, "Spawned entity does not have an ActorComponent!");
+
+            EMotionFX::GetPrefabManager().UnregisterPrefab(prefabData.m_prefabAsset.GetId());
+
+            return;
+        }
+
+        actorComponent->SetActorAsset(actorComponent->GetActorAsset());
+        actorComponent->GetActorInstance()->SetIsOwnedByRuntime(false);
+
+        auto actorAsset = actorComponent->GetActorAsset();
+        EMotionFX::GetActorManager().RegisterActor(actorAsset);
+        prefabData.m_actorAssetId = actorAsset.GetId();
+
+        AZStd::string outResult;
+        EMStudioManager::GetInstance()->GetCommandManager()->ExecuteCommandInsideCommand(
+            AZStd::string::format("Select -actorInstanceID %i", actorComponent->GetActorInstance()->GetID()).c_str(), outResult);
+
+        m_actorEntities.emplace_back(entity);
+
+        EMStudioManager::GetInstance()->GetCommandManager()->ExecuteCommandInsideCommand("PrefabLoaded", outResult);
     }
 #endif
 

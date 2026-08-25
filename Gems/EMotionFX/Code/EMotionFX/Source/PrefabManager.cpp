@@ -6,6 +6,8 @@
  *
  */
 
+#if defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+
 // include the required headers
 #include "EMotionFXConfig.h"
 #include "PrefabManager.h"
@@ -84,19 +86,20 @@ namespace EMotionFX
 
     AZ::Component* PrefabManager::GetAttachmentsComponent(size_t nr) const
     {
+        return GetComponentByUUID(nr, AZ::TypeId{ "{2D17A64A-7AC5-4C02-AC36-C5E8141FFDDF}" });
+    }
+
+    AZ::Component* PrefabManager::GetComponentByUUID(size_t nr, const AZ::Uuid& type) const
+    {
         PrefabAssetData asset = m_prefabDatas[nr].m_prefabAsset;
         AzFramework::Spawnable* prefab = asset.Get();
         auto& entities = prefab->GetEntities();
         for (auto& e : entities)
         {
-            auto const& entityTransform = e->GetTransform();
-            if (entityTransform && !entityTransform->GetParentId().IsValid())
-            {
-            }
             AZ::Component* act = e->FindComponent(azrtti_typeid<EMotionFX::Integration::ActorComponent>());
             if (act)
             {
-                AZ::Component* mat = e->FindComponent(AZ::TypeId{ "{2D17A64A-7AC5-4C02-AC36-C5E8141FFDDF}" });
+                AZ::Component* mat = e->FindComponent(type);
                 if (mat)
                 {
                     return mat;
@@ -108,27 +111,7 @@ namespace EMotionFX
 
     AZ::Component* PrefabManager::GetMaterialComponent(size_t nr) const
     {
-        PrefabAssetData asset = m_prefabDatas[nr].m_prefabAsset;
-        AzFramework::Spawnable* prefab = asset.Get();
-        auto& entities = prefab->GetEntities();
-        for (auto& e : entities)
-        {
-            auto const& entityTransform = e->GetTransform();
-            if (entityTransform && !entityTransform->GetParentId().IsValid())
-            {
-
-            }
-            AZ::Component* act = e->FindComponent(azrtti_typeid<EMotionFX::Integration::ActorComponent>());
-            if (act)
-            {
-                AZ::Component* mat = e->FindComponent(AZ::Render::MaterialComponentTypeId);
-                if (mat)
-                {
-                    return mat;
-                }
-            }
-        }
-        return nullptr;
+        return GetComponentByUUID(nr, AZ::Render::MaterialComponentTypeId);
     }
 
     const PrefabData* PrefabManager::FindPrefabByID(uint32 prefabId) const
@@ -243,3 +226,5 @@ namespace EMotionFX
         return m_prefabDatas[nr];
     }
 }   // namespace EMotionFX
+
+#endif // CARBONATED_EMOTIONFX_PREFAB_SYSTEM

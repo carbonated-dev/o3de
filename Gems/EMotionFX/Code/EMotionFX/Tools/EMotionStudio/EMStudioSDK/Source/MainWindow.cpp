@@ -357,9 +357,9 @@ namespace EMStudio
         m_recentActors.Init(menu, m_options.GetMaxRecentFiles(), "Recent Actors", "recentActorFiles");
         connect(&m_recentActors, &MysticQt::RecentFiles::OnRecentFile, this, &MainWindow::OnRecentFile);
 
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
         menu->addSeparator();
 
-#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
         // prefab file actions
         m_openPrefabAction = menu->addAction(tr("Open Prefab"), this, &MainWindow::OnFileOpenPrefab);
         m_openPrefabAction->setObjectName("EMFX.MainWindow.OpenPrefabAction");
@@ -1835,14 +1835,10 @@ namespace EMStudio
 
     void MainWindow::LoadPrefab(AZStd::string const& fileName)
     {
-        // create the final command
-        AZStd::string commandResult;
-
         // set the command group name based on the parameters
         const AZStd::string commandGroupName = "Open prefab";
 
         // create the command group
-        AZStd::string outResult;
         MCore::CommandGroup commandGroup(commandGroupName.c_str());
 
         CommandSystem::ClearScene(true, true, &commandGroup);
@@ -1870,6 +1866,7 @@ namespace EMStudio
         commandGroup.AddCommandString(loadActorCommand.c_str());
 
         // execute the group command
+        AZStd::string outResult;
         if (GetCommandManager()->ExecuteCommandGroup(commandGroup, outResult) == false)
         {
             MCore::LogError("Could not load prefab '%s'.", fileName.c_str());

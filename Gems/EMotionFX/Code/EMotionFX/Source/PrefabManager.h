@@ -8,6 +8,8 @@
 
 #pragma once
 
+#if defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+
 // include the required headers
 #include <AzCore/std/containers/vector.h>
 #include "EMotionFXConfig.h"
@@ -42,7 +44,6 @@ namespace EMotionFX
             : m_spawnTicket(prefabAsset)
             , m_prefabAsset(prefabAsset)
             , m_isSpawned(false)
-            , m_id(0)
         {
             m_id = aznumeric_caster(MCore::GetIDGenerator().GenerateID());
         }
@@ -122,6 +123,7 @@ namespace EMotionFX
         void LockPrefabs();
         void UnlockPrefabs();
 
+        AZ::Component* GetComponentByUUID(size_t nr, const AZ::Uuid& type) const;
         AZ::Component* GetMaterialComponent(size_t nr) const;
         AZ::Component* GetAttachmentsComponent(size_t nr) const;
         EMotionFX::Integration::ActorComponent* GetActorComponent(size_t nr) const;
@@ -141,3 +143,5 @@ namespace EMotionFX
         ~PrefabManager() override;
     };
 }   // namespace EMotionFX
+
+#endif // CARBONATED_EMOTIONFX_PREFAB_SYSTEM
