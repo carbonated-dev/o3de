@@ -1107,14 +1107,16 @@ namespace EMStudio
         if ((numSelectedActors > 0) || (numSelectedActorInstances > 0))
         {
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
-            m_openPrefabAction->setDisabled(false);
+            m_openPrefabAction->setDisabled(true);
+            m_recentPrefabs.SetEnabled(false);
 #endif
             EnableSaveSelectedActorsMenu();
         }
         else
         {
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
-            m_openPrefabAction->setDisabled(true);
+            m_openPrefabAction->setDisabled(false);
+            m_recentPrefabs.SetEnabled(true);
 #endif
             DisableSaveSelectedActorsMenu();
         }
