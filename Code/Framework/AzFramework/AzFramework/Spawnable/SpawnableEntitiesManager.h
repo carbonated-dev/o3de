@@ -155,7 +155,7 @@ namespace AzFramework
 // Gruber patch begin // VMED // Custom entity id remapper
 #ifdef CARBONATED
             EntityIdToEntityIdMap m_customEntityIdMapper;
-            EntityContext* m_entityContext = nullptr;
+            EntityContext* m_entityContext;
 #endif
 // Gruber patch end // VMED 
         };
