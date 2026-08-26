@@ -372,7 +372,7 @@ namespace EMotionFX
         void SystemComponent::Reflect(AZ::ReflectContext* context)
         {
             ReflectEMotionFX(context);
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
             MotionSetAsset::Reflect(context);
 #endif
 

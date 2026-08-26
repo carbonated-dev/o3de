@@ -36,7 +36,7 @@
 
 namespace EMStudio
 {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
     namespace
     {
         using MotionSourceUpdate = AZStd::pair<EMotionFX::MotionSet::MotionEntry*, AZStd::string>;
@@ -572,7 +572,7 @@ namespace EMStudio
             return false;
         }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
         if (!UpdateMotionSourceFilenames(motionSet, outResult))
         {
             return false;

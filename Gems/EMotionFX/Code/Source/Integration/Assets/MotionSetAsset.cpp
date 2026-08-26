@@ -6,7 +6,7 @@
  *
  */
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
 #include <AzCore/Asset/AssetSerializer.h>
 #include <AzCore/Debug/Profiler.h>
 #include <AzCore/Serialization/SerializeContext.h>
@@ -47,7 +47,7 @@ namespace EMotionFX
             {
             }
 
-#if !defined(CARBONATED)
+#if !defined(CARBONATED) || !defined(CARBONATED_ASYNC_MOTION_LOAD)
             EMotionFX::Motion* LoadMotion(EMotionFX::MotionSet::MotionEntry* entry) override
             {
                 // When EMotionFX requests a motion to be loaded, retrieve it from the asset database.
@@ -104,7 +104,7 @@ namespace EMotionFX
             AZ::Data::AssetBus::MultiHandler::BusDisconnect();
         }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
         void MotionSetAsset::Reflect(AZ::ReflectContext* context)
         {
             if (AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
@@ -194,7 +194,7 @@ namespace EMotionFX
                 }
                 assetData->m_emfxMotionSet->SetFilename(assetFilename.c_str());
             }
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
             // Set motion set's motion load callback, so if EMotion FX queries back for a motion,
             // we can pull the one managed through an AZ::Asset.
             {
@@ -227,6 +227,10 @@ namespace EMotionFX
 
             return true;
 #else
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_CONCURRENCY_RW)
+            {
+            AZStd::shared_lock<AZStd::shared_mutex> readLock(assetData->m_emfxMotionSet->GetMotionEntriesMutex());
+#endif
             // now load them in:
             const EMotionFX::MotionSet::MotionEntries& motionEntries = assetData->m_emfxMotionSet->GetMotionEntries();
             // Get the motions in the motion set.  Escalate them to the top of the build queue first so that they can be done in parallel.
@@ -288,6 +292,9 @@ namespace EMotionFX
                     AZ_Warning("EMotionFX", false, "Motion \"%s\" in motion set \"%s\" could not be found in the asset catalog.", motionFilename, assetFilename.c_str());
                 }
             }
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_CONCURRENCY_RW)
+            }
+#endif
             // Set motion set's motion load callback, so if EMotion FX queries back for a motion,
             // we can pull the one managed through an AZ::Asset.
             assetData->m_emfxMotionSet->SetCallback(aznew CustomMotionSetCallback(asset));
@@ -297,7 +304,7 @@ namespace EMotionFX
 #endif
         }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
         AZ::Data::AssetHandler::LoadResult MotionSetAssetHandler::LoadAssetData(
             const AZ::Data::Asset<AZ::Data::AssetData>& asset,
             AZStd::shared_ptr<AZ::Data::AssetDataStream> stream,
@@ -324,8 +331,9 @@ namespace EMotionFX
             {
                 assetData->m_emfxNativeData = AZStd::move(serializedData.m_emfxNativeData);
                 assetData->m_motionAssets = AZStd::move(serializedData.m_motionAssets);
+                return AZ::Data::AssetHandler::LoadResult::LoadComplete;
             }
-            return loadSuccess ? AZ::Data::AssetHandler::LoadResult::LoadComplete : AZ::Data::AssetHandler::LoadResult::Error;
+            return AZ::Data::AssetHandler::LoadResult::Error;
         }
 #endif
 

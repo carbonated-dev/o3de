@@ -148,7 +148,7 @@ namespace EMotionFX
             return;
         }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
         serializeContext->Class<MotionEntry>()
             ->Version(2)
             ->Field("id", &MotionEntry::m_id)

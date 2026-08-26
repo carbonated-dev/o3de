@@ -11,7 +11,8 @@
 #include <EMotionFX/Source/MotionSet.h>
 #include <EMotionFX/Source/EMotionFXManager.h>
 #include <Integration/Assets/MotionSetAsset.h>
-#if defined(CARBONATED)
+#include <AzFramework/StringFunc/StringFunc.h>
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
 #include <AzCore/Asset/AssetManagerBus.h>
 #include <AzCore/Serialization/Utils.h>
 #include <AzCore/Utils/Utils.h>
@@ -24,7 +25,7 @@ namespace EMotionFX
 {
     namespace EMotionFXBuilder
     {
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
         namespace
         {
             struct AuthoredMotionDependency
@@ -53,7 +54,7 @@ namespace EMotionFX
                         AZ_Error(
                             AssetBuilderSDK::ErrorWindow,
                             false,
-                            "Motion \"%s\" (entry \"%s\") in \"%s\" does not contain its Scene source path. "
+                            "Motion '%s' (entry '%s') in '%s' does not contain its Scene source path. "
                             "Open and save the motion set in Animation Editor to upgrade it.\n",
                             motionEntry->GetFilename(),
                             motionId.c_str(),
@@ -83,7 +84,7 @@ namespace EMotionFX
                         AZ_Error(
                             AssetBuilderSDK::ErrorWindow,
                             false,
-                            "Motion product \"%s\" in \"%s\" declares conflicting Scene sources.\n",
+                            "Motion product '%s' in '%s' declares conflicting Scene sources.\n",
                             dependencies[dependencyIndex].m_productPath.c_str(),
                             motionSetPath.c_str());
                         return false;
@@ -167,7 +168,7 @@ namespace EMotionFX
             motionSetBuilderDescriptor.m_name = "MotionSetBuilderWorker";
             motionSetBuilderDescriptor.m_patterns.emplace_back(AssetBuilderSDK::AssetBuilderPattern("*.motionset", AssetBuilderSDK::AssetBuilderPattern::PatternType::Wildcard));
             motionSetBuilderDescriptor.m_busId = azrtti_typeid<MotionSetBuilderWorker>();
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
             // Version 4 reads the producing Scene source directly from each authored motion-set entry.
             motionSetBuilderDescriptor.m_version = 4;
 #else
@@ -196,7 +197,7 @@ namespace EMotionFX
                 return;
             }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
             AZStd::string fullPath;
             AzFramework::StringFunc::Path::ConstructFull(
                 request.m_watchFolder.c_str(), request.m_sourceFile.c_str(), fullPath, true);
@@ -225,7 +226,7 @@ namespace EMotionFX
                 descriptor.m_critical = true;
                 descriptor.SetPlatformIdentifier(info.m_identifier.c_str());
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
                 // The motion set product embeds the AssetIds of its motion products. Make sure Scene compilation has
                 // registered those products before this job attempts to resolve them.
                 for (const AZStd::string& sourcePath : motionSourcePaths)
@@ -264,7 +265,7 @@ namespace EMotionFX
             // Do all work inside the tempDirPath.
             AzFramework::StringFunc::Path::ConstructFull(request.m_tempDirPath.c_str(), fileName.c_str(), destPath, true);
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
             AZStd::vector<AuthoredMotionDependency> motionDependencies;
             if (!LoadAuthoredMotionDependencies(request.m_fullPath, motionDependencies))
             {
@@ -298,7 +299,7 @@ namespace EMotionFX
                     AZ_Error(
                         AssetBuilderSDK::ErrorWindow,
                         false,
-                        "Motion product \"%s\" referenced by motion set %s could not be resolved.\n",
+                        "Motion product '%s' referenced by motion set %s could not be resolved.\n",
                         dependency.m_productPath.c_str(),
                         fileName.c_str());
                     continue;

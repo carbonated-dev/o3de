@@ -69,7 +69,7 @@ namespace EMotionFX
              */
             const AZStd::string& GetFilenameString() const                                                      { return m_filename; }
 
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
             void SetSourceFilename(const AZStd::string& sourceFilename)                                         { m_sourceFilename = sourceFilename; }
             const AZStd::string& GetSourceFilename() const                                                      { return m_sourceFilename; }
 #endif
@@ -127,7 +127,7 @@ namespace EMotionFX
 
         private:
             AZStd::string   m_filename;     /**< The local filename of the motion. */
-#if defined(CARBONATED)
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
             AZStd::string   m_sourceFilename; /**< The Scene source file that produces the motion asset. */
 #endif
             AZStd::string   m_id;           /**< The motion name. */
