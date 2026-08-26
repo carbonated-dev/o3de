@@ -416,8 +416,15 @@ namespace AzToolsFramework
                 return findInstancesResult->get();
             }
 
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+            AZ::JsonSerializationResult::ResultCode ApplyPatches(
+                PrefabDomValue& prefabDomToApplyPatchesOn, PrefabDom::AllocatorType& allocator, const PrefabDomValue& patches,
+                AZStd::unordered_set<AZStd::string>* const invalidOverridesPaths /*= nullptr*/)
+
+#else
             AZ::JsonSerializationResult::ResultCode ApplyPatches(
                 PrefabDomValue& prefabDomToApplyPatchesOn, PrefabDom::AllocatorType& allocator, const PrefabDomValue& patches)
+#endif
             {
                 AZStd::string scratchBuffer;
                 auto issueReportingCallback = [&scratchBuffer]
@@ -429,8 +436,17 @@ namespace AzToolsFramework
 
                 AZ::JsonApplyPatchSettings applyPatchSettings;
                 applyPatchSettings.m_reporting = AZStd::move(issueReportingCallback);
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                if (invalidOverridesPaths)
+                {
+                    applyPatchSettings.m_reporting = nullptr; // Do not report patch errors while gathering information on invalid patches to be removed
+                }
+                return AZ::JsonSerialization::ApplyPatch(
+                    prefabDomToApplyPatchesOn, allocator, patches, AZ::JsonMergeApproach::JsonPatch, applyPatchSettings, invalidOverridesPaths);
+#else
                 return AZ::JsonSerialization::ApplyPatch(
                     prefabDomToApplyPatchesOn, allocator, patches, AZ::JsonMergeApproach::JsonPatch, applyPatchSettings);
+#endif
             }
 
             //! Identifies the instance members to reload by parsing through the patches provided.

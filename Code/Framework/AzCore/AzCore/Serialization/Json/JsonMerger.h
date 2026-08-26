@@ -12,6 +12,11 @@
 #include <AzCore/JSON/pointer.h>
 #include <AzCore/Serialization/Json/JsonSerializationResult.h>
 
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+    #include <AzCore/std/containers/unordered_set.h>
+    #include <AzCore/std/string/string.h>
+#endif
+
 namespace AZ
 {
     class StackedString;
@@ -24,9 +29,15 @@ namespace AZ
 
     private:
         //! Implementation of the JSON Patch algorithm: https://tools.ietf.org/html/rfc6902
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+        static JsonSerializationResult::ResultCode ApplyPatch(rapidjson::Value& target,
+            rapidjson::Document::AllocatorType& allocator, const rapidjson::Value& patch,
+            JsonApplyPatchSettings& settings, AZStd::unordered_set<AZStd::string>* const invalidOverridesPaths = nullptr);
+#else
         static JsonSerializationResult::ResultCode ApplyPatch(rapidjson::Value& target,
             rapidjson::Document::AllocatorType& allocator, const rapidjson::Value& patch,
             JsonApplyPatchSettings& settings);
+#endif
 
         //! Function to create JSON Patches: https://tools.ietf.org/html/rfc6902
         static JsonSerializationResult::ResultCode CreatePatch(rapidjson::Value& patch,

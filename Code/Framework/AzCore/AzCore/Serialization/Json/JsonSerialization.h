@@ -15,6 +15,10 @@
 #include <AzCore/std/string/string.h>
 #include <AzCore/std/string/string_view.h>
 
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+    #include <AzCore/std/containers/unordered_set.h>
+#endif
+
 namespace AZ
 {
     class BaseJsonSerializer;
@@ -98,9 +102,19 @@ namespace AZ
         //! @param patch The value holding the patch information.
         //! @param approach The merge algorithm that will be used to apply the patch on top of the target.
         //! @param settings Additional settings to control the way the patch is applied.
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+        //! @param invalidOverridesPaths Pointer to the set to be filled with paths of invalid overrides.
+        //! @return Whether overrides are successfully applied
+        static JsonSerializationResult::ResultCode ApplyPatch(
+            rapidjson::Value& target, rapidjson::Document::AllocatorType& allocator, const rapidjson::Value& patch,
+            JsonMergeApproach approach, JsonApplyPatchSettings& settings, AZStd::unordered_set<AZStd::string>* const invalidOverridesPaths = nullptr);
+#else
         static JsonSerializationResult::ResultCode ApplyPatch(
             rapidjson::Value& target, rapidjson::Document::AllocatorType& allocator, const rapidjson::Value& patch,
             JsonMergeApproach approach, JsonApplyPatchSettings& settings);
+#endif
+
+
 
         //! Merges two json values together by applying "patch" to a copy of "output" and written to output using the
         //! selected merge algorithm. This version of ApplyPatch is non-destructive to "source". If the patch couldn't be

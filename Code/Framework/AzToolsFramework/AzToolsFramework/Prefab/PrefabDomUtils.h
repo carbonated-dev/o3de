@@ -14,6 +14,11 @@
 #include <AzToolsFramework/Prefab/Instance/Instance.h>
 #include <AzToolsFramework/Prefab/PrefabDomTypes.h>
 
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+    #include <AzCore/std/containers/unordered_set.h>
+    #include <AzCore/std/string/string.h>
+#endif
+
 namespace AzToolsFramework
 {
     namespace Prefab
@@ -186,10 +191,22 @@ namespace AzToolsFramework
              */
             PrefabDomValueConstReference GetInstancesValue(const PrefabDomValue& prefabDom);
 
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+            //! Applies patches to a prefab DOM.
+            //! @param prefabDomToApplyPatchesOn The prefab Dom to apply patches on (usually copy of the DOM of the target instance)
+            //! @param allocator The allocator of a target template prefab DOM.
+            //! @param patches The PrefabDomValue representing a JSON Array of patches.
+            //! @param invalidOverridesPaths Optional pointer to the set to be filled with paths of invalid overrides.
+            //! @return result of the Json Serialization.
+            AZ::JsonSerializationResult::ResultCode ApplyPatches(
+                PrefabDomValue& prefabDomToApplyPatchesOn, PrefabDom::AllocatorType& allocator,
+                const PrefabDomValue& patches, AZStd::unordered_set<AZStd::string>* const invalidOverridesPaths = nullptr);
+#else
             AZ::JsonSerializationResult::ResultCode ApplyPatches(
                 PrefabDomValue& prefabDomToApplyPatchesOn,
                 PrefabDom::AllocatorType& allocator,
                 const PrefabDomValue& patches);
+#endif
 
              /**
              * Gets the instances DOM value from the given prefab DOM.

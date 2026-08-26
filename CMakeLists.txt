@@ -69,6 +69,18 @@ if(AP_OPTIMIZATION)
     add_compile_definitions(AZ_AP_OPTIMIZATION)  # AP makes faster file assessment with no extra-analysis, but next AP scan might be longer
 endif(AP_OPTIMIZATION)
 
+if(CARBONATED) # Extensions of Editing functionality
+    OPTION(ACTION_REMOVE_OVERRIDES "Enable removal of overrides on selected Entity and all children" ON)
+    if(ACTION_REMOVE_OVERRIDES)
+        add_compile_definitions(AZ_ACTION_REMOVE_OVERRIDES)
+    endif(ACTION_REMOVE_OVERRIDES)
+
+    OPTION(ACTION_REMOVE_INVALID_OVERRIDES "Enable removal of invalid overrides on selected Entity and all children" ON)
+    if(ACTION_REMOVE_INVALID_OVERRIDES)
+        add_compile_definitions(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+    endif(ACTION_REMOVE_INVALID_OVERRIDES)
+endif(CARBONATED)
+
 include(cmake/LySet.cmake)
 include(cmake/GeneralSettings.cmake)
 include(cmake/FileUtil.cmake)

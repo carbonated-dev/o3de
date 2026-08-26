@@ -174,7 +174,11 @@ namespace AzToolsFramework
             return m_instanceName;
         }
 
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+        bool Link::UpdateTarget(bool removingInvalidOverrides /* = false*/)
+#else
         bool Link::UpdateTarget()
+#endif
         {
             PrefabDomValue& linkedInstanceDom = GetLinkedInstanceDom();
             PrefabDom& targetTemplatePrefabDom = m_prefabSystemComponentInterface->FindTemplateDom(m_targetTemplateId);
@@ -197,8 +201,14 @@ namespace AzToolsFramework
                 // Copy the source template dom so that the actual template DOM does not change and only the linked instance DOM does.
                 linkedInstanceDom.CopyFrom(sourceTemplatePrefabDom, targetTemplatePrefabDom.GetAllocator());
 
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                AZ::JsonSerializationResult::ResultCode applyPatchResult =
+                    PrefabDomUtils::ApplyPatches(linkedInstanceDom, targetTemplatePrefabDom.GetAllocator(), patchesReference->get(),
+                                                removingInvalidOverrides ? & m_invalidOverridesPaths : nullptr);
+#else 
                 AZ::JsonSerializationResult::ResultCode applyPatchResult =
                     PrefabDomUtils::ApplyPatches(linkedInstanceDom, targetTemplatePrefabDom.GetAllocator(), patchesReference->get());
+#endif
 
                 [[maybe_unused]] PrefabDomValueReference sourceTemplateName =
                     PrefabDomUtils::FindPrefabDomValue(sourceTemplatePrefabDom, PrefabDomUtils::SourceName);
@@ -209,23 +219,48 @@ namespace AzToolsFramework
 
                 if (applyPatchResult.GetProcessing() != AZ::JsonSerializationResult::Processing::Completed)
                 {
+#if defined(CARBONATED) // More readable warnings in prefab patches serialization
+    #if defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                    AZ_Error(
+                        "Prefab",
+                        removingInvalidOverrides, // Do not report patch errors while gathering information on invalid patches to be removed
+                        "Link::UpdateTarget - ApplyPatches failed for Prefab DOM from source Template '%s' and target Template '%s'.",
+                        sourceTemplateName->get().GetString(), targetTemplateName->get().GetString());
+    #else
+                    AZ_Error(
+                        "Prefab",
+                        false,
+                        "Link::UpdateTarget - ApplyPatches failed for Prefab DOM from source Template '%s' and target Template '%s'.",
+                        sourceTemplateName->get().GetString(),
+                        targetTemplateName->get().GetString());
+#endif // defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+#else
                     AZ_Error(
                         "Prefab", false,
                         "Link::UpdateTarget - ApplyPatches failed for Prefab DOM from source Template '%u' and target Template '%u'.",
                         m_sourceTemplateId, m_targetTemplateId);
+#endif // defined(CARBONATED)
                     return false;
                 }
                 if (applyPatchResult.GetOutcome() == AZ::JsonSerializationResult::Outcomes::PartialSkip ||
                     applyPatchResult.GetOutcome() == AZ::JsonSerializationResult::Outcomes::Skipped)
                 {
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
+    #if defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                    AZ_Warning(
+                        "Prefab",
+                        removingInvalidOverrides, // Do not report patch errors while gathering information on invalid patches to be removed
+                        "Link::UpdateTarget - Some of the patches couldn't be applied on the Source Template:"
+                        "\n   '%s',\npresent under the Target Template:\n    '%s'.",
+                        sourceTemplateName->get().GetString(), targetTemplateName->get().GetString());
+    #else
                     AZ_Warning(
                         "Prefab",
                         false,
                         "Link::UpdateTarget - Some of the patches couldn't be applied on the Source Template:"
                         "\n   '%s',\npresent under the Target Template:\n    '%s'.",
                         sourceTemplateName->get().GetString(), targetTemplateName->get().GetString());
-                    // TODO : possibly mark target DOM with failed patches as Dirty, filter out failed patches and propose to re-save
+    #endif // defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
 #else
                     AZ_Warning(
                         "Prefab", false,
