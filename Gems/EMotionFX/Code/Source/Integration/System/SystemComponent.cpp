@@ -372,6 +372,9 @@ namespace EMotionFX
         void SystemComponent::Reflect(AZ::ReflectContext* context)
         {
             ReflectEMotionFX(context);
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
+            MotionSetAsset::Reflect(context);
+#endif
 
             // Reflect component for serialization.
             AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(context);

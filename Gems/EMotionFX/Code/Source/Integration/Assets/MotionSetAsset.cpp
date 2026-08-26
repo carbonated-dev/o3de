@@ -6,7 +6,14 @@
  *
  */
 
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
+#include <AzCore/Asset/AssetSerializer.h>
+#include <AzCore/Debug/Profiler.h>
+#include <AzCore/Serialization/SerializeContext.h>
+#include <AzCore/Serialization/Utils.h>
+#else
 #include <AzCore/Asset/AssetManager.h>
+#endif
 #include <AzCore/Component/TickBus.h>
 #include <AzCore/StringFunc/StringFunc.h>
 #include <AzCore/Utils/Utils.h>
@@ -40,6 +47,7 @@ namespace EMotionFX
             {
             }
 
+#if !defined(CARBONATED) || !defined(CARBONATED_ASYNC_MOTION_LOAD)
             EMotionFX::Motion* LoadMotion(EMotionFX::MotionSet::MotionEntry* entry) override
             {
                 // When EMotionFX requests a motion to be loaded, retrieve it from the asset database.
@@ -82,6 +90,7 @@ namespace EMotionFX
                 AZ_Error("EMotionFX", false, "Failed to locate motion \"%s\" in the asset database.", entry->GetFilename());
                 return nullptr;
             }
+#endif
 
             MotionSetAsset* m_assetData;
         };
@@ -94,6 +103,19 @@ namespace EMotionFX
         {
             AZ::Data::AssetBus::MultiHandler::BusDisconnect();
         }
+
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
+        void MotionSetAsset::Reflect(AZ::ReflectContext* context)
+        {
+            if (AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(context))
+            {
+                serializeContext->Class<MotionSetAsset::SerializedData>()
+                    ->Version(1)
+                    ->Field("EMFXNativeData", &MotionSetAsset::SerializedData::m_emfxNativeData)
+                    ->Field("MotionAssets", &MotionSetAsset::SerializedData::m_motionAssets);
+            }
+        }
+#endif
 
         void MotionSetAsset::SetData(EMotionFX::MotionSet* motionSet)
         {
@@ -172,6 +194,39 @@ namespace EMotionFX
                 }
                 assetData->m_emfxMotionSet->SetFilename(assetFilename.c_str());
             }
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
+            // Set motion set's motion load callback, so if EMotion FX queries back for a motion,
+            // we can pull the one managed through an AZ::Asset.
+            {
+                assetData->m_emfxMotionSet->SetCallback(aznew CustomMotionSetCallback(asset));
+
+                // A MotionEntry remembers a failed callback result and otherwise never retries. Clear failures left by
+                // an earlier Editor/game-mode use now that the complete preloaded dependency set is installed.
+                for (const auto& item : assetData->m_emfxMotionSet->GetMotionEntries())
+                {
+                    item.second->Reset();
+                }
+
+                assetData->ReleaseEMotionFXData();
+            }
+
+            // OnInitAsset can run while AssetLoadBus is dispatching on a worker. Connecting to AssetBus here creates a lock-order
+            // inversion with AssetBus callbacks that queue dependent assets (AssetBus -> AssetLoadBus). Defer the reload listeners
+            // until the main tick, after the AssetLoadBus callback has completely unwound.
+            const AZ::Data::Asset<MotionSetAsset> motionSetAsset(asset);
+            AZ::TickBus::QueueFunction(
+                [motionSetAsset]()
+                {
+                    MotionSetAsset* motionSetAssetData = motionSetAsset.Get();
+                    motionSetAssetData->AZ::Data::AssetBus::MultiHandler::BusDisconnect();
+                    for (const AZ::Data::Asset<MotionAsset>& motionAsset : motionSetAssetData->m_motionAssets)
+                    {
+                        motionSetAssetData->BusConnect(motionAsset.GetId());
+                    }
+                });
+
+            return true;
+#else
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_CONCURRENCY_RW)
             {
             AZStd::shared_lock<AZStd::shared_mutex> readLock(assetData->m_emfxMotionSet->GetMotionEntriesMutex());
@@ -223,11 +278,7 @@ namespace EMotionFX
 
                     if (motionAsset)
                     {
-#if defined(CARBONATED) && defined(CARBONATED_ASSET_WAIT_TIMEOUT)
-                        motionAsset.BlockUntilLoadComplete(10000);
-#else
                         motionAsset.BlockUntilLoadComplete();
-#endif
                         assetData->BusConnect(motionAssetId);
                         assetData->m_motionAssets.push_back(motionAsset);
                     }
@@ -250,7 +301,41 @@ namespace EMotionFX
             assetData->ReleaseEMotionFXData();
 
             return true;
+#endif
         }
+
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
+        AZ::Data::AssetHandler::LoadResult MotionSetAssetHandler::LoadAssetData(
+            const AZ::Data::Asset<AZ::Data::AssetData>& asset,
+            AZStd::shared_ptr<AZ::Data::AssetDataStream> stream,
+            const AZ::Data::AssetFilterCB& assetLoadFilterCB)
+        {
+            MotionSetAsset* assetData = asset.GetAs<MotionSetAsset>();
+            if (!assetData)
+            {
+                return AZ::Data::AssetHandler::LoadResult::Error;
+            }
+
+            MotionSetAsset::SerializedData serializedData;
+            bool loadSuccess = false;
+            {
+                loadSuccess = AZ::Utils::LoadObjectFromStreamInPlace(
+                    *stream,
+                    serializedData,
+                    nullptr,
+                    AZ::ObjectStream::FilterDescriptor(assetLoadFilterCB));
+            }
+
+            AZ_Error("EMotionFX", loadSuccess, "Failed to deserialize motion set asset %s", asset.GetHint().c_str());
+            if (loadSuccess)
+            {
+                assetData->m_emfxNativeData = AZStd::move(serializedData.m_emfxNativeData);
+                assetData->m_motionAssets = AZStd::move(serializedData.m_motionAssets);
+                return AZ::Data::AssetHandler::LoadResult::LoadComplete;
+            }
+            return AZ::Data::AssetHandler::LoadResult::Error;
+        }
+#endif
 
         //////////////////////////////////////////////////////////////////////////
         AZ::Data::AssetType MotionSetAssetHandler::GetAssetType() const

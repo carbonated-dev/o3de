@@ -17,6 +17,10 @@
 
 namespace AZ
 {
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
+    class ReflectContext;
+#endif
+
     namespace IO
     {
         class GenericStream;
@@ -42,8 +46,22 @@ namespace EMotionFX
             AZ_RTTI(MotionSetAsset, "{1DA936A0-F766-4B2F-B89C-9F4C8E1310F9}", EMotionFXAsset)
             AZ_CLASS_ALLOCATOR_DECL
 
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
+            struct SerializedData
+            {
+                AZ_TYPE_INFO(SerializedData, "{4DA65B00-E524-4DDE-9D80-D3A10B738418}");
+
+                AZStd::vector<AZ::u8> m_emfxNativeData;
+                AZStd::vector<AZ::Data::Asset<MotionAsset>> m_motionAssets;
+            };
+#endif
+
             MotionSetAsset(AZ::Data::AssetId id = AZ::Data::AssetId());
             ~MotionSetAsset() override;
+
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
+            static void Reflect(AZ::ReflectContext* context);
+#endif
 
             // AZ::Data::AssetBus::MultiHandler
             void OnAssetReloaded(AZ::Data::Asset<AZ::Data::AssetData> asset) override;
@@ -66,6 +84,12 @@ namespace EMotionFX
             AZ_CLASS_ALLOCATOR_DECL
 
             bool OnInitAsset(const AZ::Data::Asset<AZ::Data::AssetData>& asset) override;
+#if defined(CARBONATED) && defined(CARBONATED_ASYNC_MOTION_LOAD)
+            AZ::Data::AssetHandler::LoadResult LoadAssetData(
+                const AZ::Data::Asset<AZ::Data::AssetData>& asset,
+                AZStd::shared_ptr<AZ::Data::AssetDataStream> stream,
+                const AZ::Data::AssetFilterCB& assetLoadFilterCB) override;
+#endif
             AZ::Data::AssetType GetAssetType() const override;
             void GetAssetTypeExtensions(AZStd::vector<AZStd::string>& extensions) override;
             const char* GetAssetTypeDisplayName() const override;
