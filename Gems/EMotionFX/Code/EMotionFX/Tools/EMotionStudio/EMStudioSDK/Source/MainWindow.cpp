@@ -1104,7 +1104,11 @@ namespace EMStudio
         const CommandSystem::SelectionList& selectionList = GetCommandManager()->GetCurrentSelection();
         const size_t numSelectedActors = selectionList.GetNumSelectedActors();
         const size_t numSelectedActorInstances = selectionList.GetNumSelectedActorInstances();
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        if (((numSelectedActors > 0) || (numSelectedActorInstances > 0)) && EMotionFX::GetPrefabManager().GetNumPrefabs() == 0)
+#else
         if ((numSelectedActors > 0) || (numSelectedActorInstances > 0))
+#endif
         {
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
             m_openPrefabAction->setDisabled(true);
