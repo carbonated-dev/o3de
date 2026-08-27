@@ -1,0 +1,57 @@
+{
+    "Type": "JsonSerialization",
+    "Version": 1,
+    "ClassName": "PassAsset",
+    "ClassData": {
+        "PassTemplate": {
+            "Name": "FroxelDepthBoundsDilateTemplate",
+            "PassClass": "ComputePass",
+            "Slots": [
+                {
+                    "Name": "FroxelMaxVisibleSliceInput",
+                    "SlotType": "Input",
+                    "ShaderInputName": "m_froxelMaxVisibleSliceInput",
+                    "ScopeAttachmentUsage": "Shader"
+                },
+                {
+                    "Name": "FroxelMaxVisibleSliceOutput",
+                    "SlotType": "Output",
+                    "ShaderInputName": "m_froxelMaxVisibleSliceOutput",
+                    "ScopeAttachmentUsage": "Shader"
+                }
+            ],
+            "ImageAttachments": [
+                {
+                    "Name": "FroxelMaxVisibleSliceDilated",
+                    "SizeSource": {
+                        "Source": {
+                            "Pass": "This",
+                            "Attachment": "FroxelMaxVisibleSliceInput"
+                        }
+                    },
+                    "ImageDescriptor": {
+                        "Format": "R32_UINT",
+                        "SharedQueueMask": "All"
+                    }
+                }
+            ],
+            "Connections": [
+                {
+                    "LocalSlot": "FroxelMaxVisibleSliceOutput",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "FroxelMaxVisibleSliceDilated"
+                    }
+                }
+            ],
+            "PassData": {
+                "$type": "ComputePassData",
+                "ShaderAsset": {
+                    "FilePath": "Shaders/VolumetricFog/FroxelDepthBoundsDilate.shader"
+                },
+                "Make Fullscreen Pass": true,
+                "Use Async Compute": true
+            }
+        }
+    }
+}

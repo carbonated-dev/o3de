@@ -697,6 +697,10 @@
                 "Path": "Passes/FroxelMaxVisibleSlice.pass"
             },
             {
+                "Name": "FroxelDepthBoundsDilateTemplate",
+                "Path": "Passes/FroxelDepthBoundsDilate.pass"
+            },
+            {
                 "Name": "FroxelInjectTemplate",
                 "Path": "Passes/FroxelInject.pass"
             },

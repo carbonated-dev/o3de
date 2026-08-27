@@ -365,6 +365,10 @@ namespace AZ::Render
                 {
                     m_froxelMaxVisibleSlicePass->QueueForBuildAndInitialization();
                 }
+                if (m_froxelDepthBoundsDilatePass)
+                {
+                    m_froxelDepthBoundsDilatePass->QueueForBuildAndInitialization();
+                }
             }
         }
     }
@@ -381,6 +385,7 @@ namespace AZ::Render
         m_integratePass = nullptr;
         m_froxelParentPass = nullptr;
         m_froxelMaxVisibleSlicePass = nullptr;
+        m_froxelDepthBoundsDilatePass = nullptr;
         m_froxelCompositePass = nullptr;
 
         if (renderPipeline == nullptr)
@@ -423,6 +428,12 @@ namespace AZ::Render
         }
 
         {
+            const auto templateName = Name("FroxelDepthBoundsDilateTemplate");
+            auto passFilter = AZ::RPI::PassFilter::CreateWithTemplateName(templateName, renderPipeline);
+            m_froxelDepthBoundsDilatePass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(passFilter);
+        }
+
+        {
             const auto templateName = Name("FroxelParentTemplate");
             auto passFilter = AZ::RPI::PassFilter::CreateWithTemplateName(templateName, renderPipeline);
             if (auto foundPass = AZ::RPI::PassSystemInterface::Get()->FindFirstPass(passFilter); foundPass)
@@ -443,7 +454,8 @@ namespace AZ::Render
 
         // remember which render pipeline we found our passes on
         m_renderPipeline =
-            (m_froxelMaxVisibleSlicePass && m_injectPass && m_scatterPass && m_integratePass && m_froxelParentPass &&
+            (m_froxelMaxVisibleSlicePass && m_froxelDepthBoundsDilatePass && m_injectPass && m_scatterPass &&
+                m_integratePass && m_froxelParentPass &&
                 m_froxelCompositePass)
             ? renderPipeline
             : nullptr;
@@ -720,6 +732,11 @@ namespace AZ::Render
         if (m_froxelMaxVisibleSlicePass)
         {
             m_froxelMaxVisibleSlicePass->SetEnabled(enabled);
+        }
+
+        if (m_froxelDepthBoundsDilatePass)
+        {
+            m_froxelDepthBoundsDilatePass->SetEnabled(enabled);
         }
 
         if (m_froxelParentPass)

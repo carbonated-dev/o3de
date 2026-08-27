@@ -78,6 +78,20 @@
                     ]
                 },
                 {
+                    "Name": "FroxelDepthBoundsDilatePass",
+                    "TemplateName": "FroxelDepthBoundsDilateTemplate",
+                    "Enabled": false,
+                    "Connections": [
+                        {
+                            "LocalSlot": "FroxelMaxVisibleSliceInput",
+                            "AttachmentRef": {
+                                "Pass": "FroxelMaxVisibleSlicePass",
+                                "Attachment": "FroxelMaxVisibleSlice"
+                            }
+                        }
+                    ]
+                },
+                {
                     "Name": "Shadows",
                     "TemplateName": "ShadowParentTemplate",
                     "Connections": [
@@ -173,8 +187,8 @@
                         {
                             "LocalSlot": "FroxelMaxVisibleSlice",
                             "AttachmentRef": {
-                                "Pass": "FroxelMaxVisibleSlicePass",
-                                "Attachment": "FroxelMaxVisibleSlice"
+                                "Pass": "FroxelDepthBoundsDilatePass",
+                                "Attachment": "FroxelMaxVisibleSliceOutput"
                             }
                         },
                         {

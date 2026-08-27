@@ -1,0 +1,47 @@
+/*
+ * Copyright (c) Contributors to the Open 3D Engine Project.
+ * For complete copyright and license terms please see the LICENSE at the root of this distribution.
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR MIT
+ */
+
+#include <scenesrg.srgi>
+
+#define FROXEL_DEPTH_BOUNDS_THREADS_PER_GROUP 16
+
+ShaderResourceGroup PassSrg : SRG_PerPass_WithFallback
+{
+    Texture2D<uint> m_froxelMaxVisibleSliceInput;
+    RWTexture2D<uint> m_froxelMaxVisibleSliceOutput;
+}
+
+[numthreads(FROXEL_DEPTH_BOUNDS_THREADS_PER_GROUP, FROXEL_DEPTH_BOUNDS_THREADS_PER_GROUP, 1)]
+void MainCS(uint2 froxelId : SV_DispatchThreadID)
+{
+    uint2 froxelCount = SceneSrg::m_volumetricFogData.m_froxelCount.xy;
+    if (any(froxelId >= froxelCount))
+    {
+        return;
+    }
+
+    uint maximumVisibleSlice = 0;
+    int2 maximumFroxelId = int2(froxelCount) - 1;
+
+    [unroll]
+    for (int yOffset = -1; yOffset <= 1; ++yOffset)
+    {
+        [unroll]
+        for (int xOffset = -1; xOffset <= 1; ++xOffset)
+        {
+            int2 sampleId = clamp(
+                int2(froxelId) + int2(xOffset, yOffset),
+                int2(0, 0),
+                maximumFroxelId);
+            maximumVisibleSlice = max(
+                maximumVisibleSlice,
+                PassSrg::m_froxelMaxVisibleSliceInput[uint2(sampleId)]);
+        }
+    }
+
+    PassSrg::m_froxelMaxVisibleSliceOutput[froxelId] = maximumVisibleSlice;
+}
