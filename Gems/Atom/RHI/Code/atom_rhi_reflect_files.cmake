@@ -69,6 +69,9 @@ set(FILES
     Include/Atom/RHI.Reflect/RenderAttachmentLayout.h
     Include/Atom/RHI.Reflect/RenderAttachmentLayoutBuilder.h
     Include/Atom/RHI.Reflect/PipelineLibraryData.h
+# Begin Carbonated
+    Include/Atom/RHI.Reflect/PipelineStateDescriptorForDrawPreloadData.h
+# End Carbonated
     Include/Atom/RHI.Reflect/RenderStates.h
     Include/Atom/RHI.Reflect/SamplerState.h
     Include/Atom/RHI.Reflect/ShaderSemantic.h

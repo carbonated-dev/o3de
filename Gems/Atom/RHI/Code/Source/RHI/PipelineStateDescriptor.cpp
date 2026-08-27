@@ -10,6 +10,9 @@
 #include <Atom/RHI.Reflect/PipelineLayoutDescriptor.h>
 #include <Atom/RHI.Reflect/ShaderStageFunction.h>
 #include <Atom/RHI.Reflect/InputStreamLayout.h>
+#if defined(CARBONATED) && defined(CARBONATED_SHADER_PRELOAD)
+#include <Atom/RHI.Reflect/PipelineStateDescriptorForDrawPreloadData.h>
+#endif
 
 namespace AZ::RHI
 {
@@ -51,6 +54,31 @@ namespace AZ::RHI
     PipelineStateDescriptorForRayTracing::PipelineStateDescriptorForRayTracing()
         : PipelineStateDescriptor(PipelineStateType::RayTracing)
     {}
+
+#if defined(CARBONATED) && defined(CARBONATED_SHADER_PRELOAD)
+    void PipelineStateDescriptorForDrawPreloadData::Reflect(ReflectContext* context)
+    {
+        if (SerializeContext* serializeContext = azrtti_cast<SerializeContext*>(context))
+        {
+            serializeContext->Class<PipelineStateDescriptorForDrawPreloadData>()
+                ->Version(0)
+                ->Field("ShaderPath", &PipelineStateDescriptorForDrawPreloadData::m_shaderPath)
+                ->Field("InputStreamLayout", &PipelineStateDescriptorForDrawPreloadData::m_inputStreamLayout)
+                ->Field("RenderAttachmentConfiguration", &PipelineStateDescriptorForDrawPreloadData::m_renderAttachmentConfiguration)
+                ->Field("RenderStates", &PipelineStateDescriptorForDrawPreloadData::m_renderStates)
+                ->Field("MainRenderStates", &PipelineStateDescriptorForDrawPreloadData::m_mainRenderStates);
+        }
+    }
+    PipelineStateDescriptorForDrawPreloadData::PipelineStateDescriptorForDrawPreloadData(
+        const AZStd::string& shaderPath, const PipelineStateDescriptorForDraw& psd, const RenderStates& mainRenderStates)
+        : m_shaderPath(shaderPath)
+    {
+        m_inputStreamLayout = psd.m_inputStreamLayout;
+        m_renderAttachmentConfiguration = psd.m_renderAttachmentConfiguration;
+        m_renderStates = psd.m_renderStates;
+        m_mainRenderStates = mainRenderStates;
+    }
+#endif
 
     AZ::HashValue64 PipelineStateDescriptorForDispatch::GetHashInternal() const
     {

@@ -20,6 +20,9 @@
 #if defined(CARBONATED)
 #include <Atom/RHI/ConstantsData.h>
 #include <AzCore/Memory/MemoryMarker.h>
+#if defined(CARBONATED_SHADER_PRELOAD)
+#include <Atom/RHI.Reflect/PipelineStateDescriptorForDrawPreloadData.h>
+#endif
 #if defined(CARBONATED_SHADER_LOADING_TIME)
 #include <AzCore/Time/ITime.h>
 #endif
@@ -646,8 +649,52 @@ namespace AZ
                         {
                             if (!fallbackPipelineState)
                             {
+#if !defined(RELEASE) && defined(CARBONATED_SHADER_PRELOAD)
+                                const int begin = int(AZ::GetRealElapsedTimeMs());
                                 fallbackPipelineState = fallbackShader->AcquirePipelineState(
                                     fallbackPipelineStateDescriptor, RHI::PipelineStateAcquireFlags::None);
+                                const int end = int(AZ::GetRealElapsedTimeMs());
+                                const int [[maybe_unused]] dt = end - begin;
+                                // it saves more shaders than we want to preload because many freezes happen during level loading
+                                // so check the log right after micro-freeze you experienced
+                                if (dt > 100)
+                                {
+                                    constexpr const char* LOG_TAG = "shaderpreload";
+#if defined(CARBONATED_SHADER_SAVE_FOR_PRELOAD)
+
+                                    AZStd::string shaderName = shaderItem.GetShaderAsset().GetHint();
+                                    for (char* p = shaderName.data(); *p; p++)
+                                    {
+                                        if (*p == '/' || *p == '.')
+                                        {
+                                            *p = '_';
+                                        }
+                                    }
+                                    AZStd::string fileName =
+                                        AZStd::string::format("%s_%llu", shaderName.c_str(), fallbackPipelineStateDescriptor.GetHash());
+                                    AZStd::string filePath = AZStd::string::format("@user@/shaderpreloaddata/%s.json", fileName.c_str());
+                                    AZ::RHI::PipelineStateDescriptorForDrawPreloadData data(
+                                        shaderItem.GetShaderAsset().GetHint(),
+                                        fallbackPipelineStateDescriptor,
+                                        pipelineStateDescriptor.m_renderStates);
+
+                                    bool res = AZ::Utils::SaveObjectToFile(filePath, AZ::ObjectStream::ST_JSON, &data);
+                                    if (res)
+                                    {
+                                        AZ_Info(LOG_TAG, "Saved shader preload data to %s, compile time %d", filePath.c_str(), dt);
+                                    }
+                                    else
+                                    {
+                                        AZ_Error(LOG_TAG, false, "Cannot save shader preload data to %s", filePath.c_str());
+                                    }
+#else
+                                    AZ_Info(LOG_TAG, "Shader compile time %d, might need preload for %s", dt, shaderItem.GetShaderAsset().GetHint());
+#endif
+                                }
+#else
+                                fallbackPipelineState = fallbackShader->AcquirePipelineState(
+                                    fallbackPipelineStateDescriptor, RHI::PipelineStateAcquireFlags::None);
+#endif
                             }
                             pipelineState = fallbackPipelineState;
                             isUsingFallbackPipelineState = true;
@@ -818,7 +865,7 @@ namespace AZ
 #endif
                         if (dt > threshold)
                         {
-                            AZ_Info("PrimitiveLoadTime", "appended shader '%s' for pipeline '%s' in  %d ms", shaderItem.GetShaderAsset().GetHint().c_str(), materialPipelineName.GetCStr(), dt);
+                            AZ_Info("PrimitiveLoadTime", "appended shader '%s' for pipeline '%s' in %d ms", shaderItem.GetShaderAsset().GetHint().c_str(), materialPipelineName.GetCStr(), dt);
                         }
 #else
                         appendShader(shaderItem, materialPipelineName);
