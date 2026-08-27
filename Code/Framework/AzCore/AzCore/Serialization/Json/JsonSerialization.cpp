@@ -18,6 +18,10 @@
 #include <AzCore/Serialization/Json/StackedString.h>
 #include <AzCore/std/sort.h>
 
+#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
+#pragma optimize("", off)
+#endif
+
 namespace AZ
 {
     namespace JsonSerializationInternal
@@ -106,26 +110,57 @@ namespace AZ
         return ApplyPatch(target, allocator, patch, approach, settingsCopy);
     }
 
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+    JsonSerializationResult::ResultCode JsonSerialization::ApplyPatch(rapidjson::Value& target,
+        rapidjson::Document::AllocatorType& allocator, const rapidjson::Value& patch, JsonMergeApproach approach,
+        JsonApplyPatchSettings& settings, AZStd::unordered_set<AZStd::string>* const invalidOverridesPaths /* = nullptr */)
+#else
     JsonSerializationResult::ResultCode JsonSerialization::ApplyPatch(rapidjson::Value& target,
         rapidjson::Document::AllocatorType& allocator, const rapidjson::Value& patch, JsonMergeApproach approach,
         JsonApplyPatchSettings& settings)
+#endif
     {
         using namespace JsonSerializationResult;
 
         AZStd::string scratchBuffer;
-        auto issueReportingCallback = [&scratchBuffer](AZStd::string_view message, ResultCode result, AZStd::string_view target) -> ResultCode
+        auto issueReportingCallback =
+            [&scratchBuffer](AZStd::string_view message, ResultCode result, AZStd::string_view target) -> ResultCode
         {
             return JsonSerialization::DefaultIssueReporter(scratchBuffer, message, result, target);
         };
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+        // Do not report patch errors while gathering information on invalid patches to be removed
+        auto issueNoReportingCallback =
+            []([[maybe_unused]] AZStd::string_view message, ResultCode result, [[maybe_unused]] AZStd::string_view target) -> ResultCode
+        {
+            return result;
+        };
+
+        if (!settings.m_reporting)
+        {
+            if (invalidOverridesPaths)
+            {
+                settings.m_reporting = issueNoReportingCallback;
+            }
+            else
+            {
+                settings.m_reporting = issueReportingCallback;
+            }
+        }
+#else
         if (!settings.m_reporting)
         {
             settings.m_reporting = issueReportingCallback;
         }
-
+#endif // defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
         switch (approach)
         {
         case JsonMergeApproach::JsonPatch:
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+            return JsonMerger::ApplyPatch(target, allocator, patch, settings, invalidOverridesPaths);
+#else
             return JsonMerger::ApplyPatch(target, allocator, patch, settings);
+#endif
         case JsonMergeApproach::JsonMergePatch:
             return JsonMerger::ApplyMergePatch(target, allocator, patch, settings);
         default:
@@ -599,3 +634,7 @@ namespace AZ
             JsonSerializerCompareResult::Greater;
     }
 } // namespace AZ
+
+#if !defined(_RELEASE) && defined(AZ_PLATFORM_WINDOWS)
+#pragma optimize("", on)
+#endif

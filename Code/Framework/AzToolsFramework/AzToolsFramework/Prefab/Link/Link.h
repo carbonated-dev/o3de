@@ -15,6 +15,11 @@
 #include <AzToolsFramework/Prefab/PrefabDomTypes.h>
 #include <AzToolsFramework/Prefab/PrefabIdTypes.h>
 
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+    #include <AzCore/std/containers/unordered_set.h>
+    #include <AzCore/std/string/string.h>
+#endif
+
 AZ_DECLARE_BUDGET(PrefabSystem);
 
 namespace AzToolsFramework
@@ -141,7 +146,17 @@ namespace AzToolsFramework
             PrefabDomPath GetInstancePath() const;
             const AZStd::string& GetInstanceName() const;
 
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+            //! @returns The set of invalid overrides' paths found during @UpdateTarget processing, or empty set.
+            const AZStd::unordered_set<AZStd::string>& GetInvalidOverridesPaths() const { return m_invalidOverridesPaths; }
+
+            //! Applies patches, if present, to in-memory copy of the DOM of the target instance that the link points to.
+            //! @param removingInvalidOverrides Whether the invalid overrides' paths are going to be cached and then removed.
+            //! @return Whether overrides are successfully applied
+            bool UpdateTarget(bool removingInvalidOverrides = false);
+#else
             bool UpdateTarget();
+#endif
 
             /**
              * Get the DOM of the instance that the link points to.
@@ -197,6 +212,10 @@ namespace AzToolsFramework
 
             // Index counter for generating patches.
             AZ::u32 m_patchIndexCounter = 0u;
+
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+            AZStd::unordered_set<AZStd::string> m_invalidOverridesPaths;
+#endif
 
             PrefabSystemComponentInterface* m_prefabSystemComponentInterface = nullptr;
         };

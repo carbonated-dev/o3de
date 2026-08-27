@@ -51,6 +51,11 @@
 #include <AzToolsFramework/UI/UICore/WidgetHelpers.h>
 #include <AzToolsFramework/Viewport/ActionBus.h>
 
+#if defined(CARBONATED) && (defined(AZ_ACTION_REMOVE_OVERRIDES) || defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES))
+    #include <AzToolsFramework/Prefab/PrefabSystemComponentInterface.h>
+    #include <AzToolsFramework/Prefab/Undo/PrefabUndoRevertOverrides.h>
+#endif
+
 #include <QApplication>
 #include <QMainWindow>
 #include <QMenu>
@@ -837,6 +842,13 @@ namespace AzToolsFramework
                                 return;
                             }
 
+                            // TODO : (CARBONATED) refactor RevertOverrides code path to allow removing overrides in the root ContainerEntity.
+                            // Disabling deletion of "add" patches is questionable.
+                            // Disabling deletion of patches in the ContainerEntity was made because such operation would delete
+                            // { "op" : "replace", "path" : "/ContainerEntity/Components/TransformComponent/Parent Entity",
+                            //   "value" : "../<ENTITY_ALIAS>" },
+                            // and after that the broken instance cannot be re-parented with current Editor code.
+                            // But most patches are placed in the root ContainerEntity, so this feature is mostly unusable.
                             if (!s_prefabPublicInterface->IsInstanceContainerEntity(selectedEntityId) &&
                                 m_prefabOverridePublicInterface->AreOverridesPresent(selectedEntityId) &&
                                 m_prefabOverridePublicInterface->GetEntityOverrideType(selectedEntityId) != OverrideType::AddEntity)
@@ -869,19 +881,136 @@ namespace AzToolsFramework
                                 return false;
                             }
 
+                            // TODO : (CARBONATED) refactor RevertOverrides code path to allow removing overrides in the root ContainerEntity.
+                            // Please see the corresponding comment above.
                             return !prefabPublicInterface->IsInstanceContainerEntity(selectedEntityId) &&
                                 prefabOverridePublicInterface->AreOverridesPresent(selectedEntityId) &&
                                 prefabOverridePublicInterface->GetEntityOverrideType(selectedEntityId) != OverrideType::AddEntity;
                         }
                     );
 
-                    // Refresh this action whenever instance propagation ends, as that could have changed overrideson the current selection.
+                    // Refresh this action whenever instance propagation ends, as that could have changed overrides on the current selection.
                     m_actionManagerInterface->AddActionToUpdater(
                         EditorIdentifiers::EntitySelectionChangedUpdaterIdentifier, actionIdentifier);
                     m_actionManagerInterface->AddActionToUpdater(
                         PrefabIdentifiers::PrefabInstancePropagationEndUpdaterIdentifier, actionIdentifier);
                 }
             }
+
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_OVERRIDES)
+            if (IsOutlinerOverrideManagementEnabled())
+            {
+                // Remove prefab instance patches on Entity, selected in the Entity Outliner, and its children, if these are prefab instances.
+                {
+                    AZStd::string actionIdentifier = "o3de.action.prefabs.revertOverridesOnEntityAndDescendants";
+                    AzToolsFramework::ActionProperties actionProperties;
+                    actionProperties.m_name = "Revert overrides on entity and all children";
+                    actionProperties.m_description = "Revert overrides on this entity and its children, if these are prefab instances.";
+                    actionProperties.m_category = "Prefabs";
+
+                    m_actionManagerInterface->RegisterAction(
+                        EditorIdentifiers::MainWindowActionContextIdentifier,
+                        actionIdentifier,
+                        actionProperties,
+                        [this]()
+                        {
+                            AzToolsFramework::EntityIdList selectedEntities;
+                            AzToolsFramework::ToolsApplicationRequests::Bus::BroadcastResult(
+                                selectedEntities, &AzToolsFramework::ToolsApplicationRequests::Bus::Events::GetSelectedEntities);
+
+                            if (selectedEntities.size() < 1)
+                            {
+                                return;
+                            }
+
+                            AZ::EntityId selectedEntityId = selectedEntities.front();
+
+                            if (!s_prefabPublicInterface->IsOwnedByPrefabInstance(selectedEntityId))
+                            {
+                                return;
+                            }
+
+                            ContextMenu_RevertOverridesOnEntityAndDescendants(selectedEntityId);
+                        });
+
+                    m_actionManagerInterface->InstallEnabledStateCallback(
+                        actionIdentifier,
+                        []() -> bool
+                        {
+                            AzToolsFramework::EntityIdList selectedEntities;
+                            AzToolsFramework::ToolsApplicationRequests::Bus::BroadcastResult(
+                                selectedEntities, &AzToolsFramework::ToolsApplicationRequests::Bus::Events::GetSelectedEntities);
+
+                            return !selectedEntities.empty();
+                        });
+
+                    // Refresh this action whenever instance propagation ends, as that could have changed overrides on the current selection.
+                    m_actionManagerInterface->AddActionToUpdater(
+                        EditorIdentifiers::EntitySelectionChangedUpdaterIdentifier, actionIdentifier);
+                    m_actionManagerInterface->AddActionToUpdater(
+                        PrefabIdentifiers::PrefabInstancePropagationEndUpdaterIdentifier, actionIdentifier);
+                }
+            }
+#endif // defined(CARBONATED) && defined(AZ_ACTION_REMOVE_OVERRIDES)
+
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+            if (IsOutlinerOverrideManagementEnabled())
+            {
+                // Remove prefab instance patches on Entity, selected in the Entity Outliner, and its children, if these are prefab
+                // instances.
+                {
+                    AZStd::string actionIdentifier = "o3de.action.prefabs.removeInvalidOverridesOnEntityAndDescendants";
+                    AzToolsFramework::ActionProperties actionProperties;
+                    actionProperties.m_name = "Remove invalid overrides on entity and all children";
+                    actionProperties.m_description = "Remove existing invalid overrides on this entity and its children.";
+                    actionProperties.m_category = "Prefabs";
+
+                    m_actionManagerInterface->RegisterAction(
+                        EditorIdentifiers::MainWindowActionContextIdentifier,
+                        actionIdentifier,
+                        actionProperties,
+                        [this]()
+                        {
+                            AzToolsFramework::EntityIdList selectedEntities;
+                            AzToolsFramework::ToolsApplicationRequests::Bus::BroadcastResult(
+                                selectedEntities, &AzToolsFramework::ToolsApplicationRequests::Bus::Events::GetSelectedEntities);
+
+                            if (selectedEntities.size() < 1)
+                            {
+                                return;
+                            }
+
+                            AZ::EntityId selectedEntityId = selectedEntities.front();
+
+                            if (!s_prefabPublicInterface->IsOwnedByPrefabInstance(selectedEntityId))
+                            {
+                                return;
+                            }
+
+                            ContextMenu_RemoveInvalidOverridesOnEntityAndDescendants(selectedEntityId);
+                        });
+
+                    m_actionManagerInterface->InstallEnabledStateCallback(
+                        actionIdentifier,
+                        []() -> bool
+                        {
+                            AzToolsFramework::EntityIdList selectedEntities;
+                            AzToolsFramework::ToolsApplicationRequests::Bus::BroadcastResult(
+                                selectedEntities, &AzToolsFramework::ToolsApplicationRequests::Bus::Events::GetSelectedEntities);
+
+                            return !selectedEntities.empty();
+                        });
+
+                    // Refresh this action whenever instance propagation ends, as that could have changed overrides on the current
+                    // selection.
+                    m_actionManagerInterface->AddActionToUpdater(
+                        EditorIdentifiers::EntitySelectionChangedUpdaterIdentifier, actionIdentifier);
+                    m_actionManagerInterface->AddActionToUpdater(
+                        PrefabIdentifiers::PrefabInstancePropagationEndUpdaterIdentifier, actionIdentifier);
+                }
+            }
+#endif // defined(CARBONATED)
+
 
             // Revert overrides on Component
             {
@@ -1080,6 +1209,13 @@ namespace AzToolsFramework
 #endif
             m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::EntityOutlinerContextMenuIdentifier, "o3de.action.prefabs.save", 30100);
             m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::EntityOutlinerContextMenuIdentifier, "o3de.action.prefabs.revertInstanceOverrides", 30200);
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_OVERRIDES)
+            m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::EntityOutlinerContextMenuIdentifier, "o3de.action.prefabs.revertOverridesOnEntityAndDescendants", 30220);
+#endif
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+            m_menuManagerInterface->AddActionToMenu(
+                EditorIdentifiers::EntityOutlinerContextMenuIdentifier, "o3de.action.prefabs.removeInvalidOverridesOnEntityAndDescendants", 30240);
+#endif
 
             // Viewport Context Menu
             m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::ViewportContextMenuIdentifier, "o3de.action.prefabs.edit", 10500);
@@ -1097,6 +1233,12 @@ namespace AzToolsFramework
 #endif
             m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::ViewportContextMenuIdentifier, "o3de.action.prefabs.save", 30100);
             m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::ViewportContextMenuIdentifier, "o3de.action.prefabs.revertInstanceOverrides", 30200);
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_OVERRIDES)
+            m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::ViewportContextMenuIdentifier, "o3de.action.prefabs.revertOverridesOnEntityAndDescendants", 30220);
+#endif
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+            m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::ViewportContextMenuIdentifier, "o3de.action.prefabs.removeInvalidOverridesOnEntityAndDescendants", 30240);
+#endif
 
             // Inspector Entity Component Context Menu
             m_menuManagerInterface->AddActionToMenu(EditorIdentifiers::InspectorEntityComponentContextMenuIdentifier, "o3de.action.prefabs.applyComponentOverrides", 10000);   
@@ -1178,7 +1320,13 @@ namespace AzToolsFramework
         void PrefabIntegrationManager::OnStartPlayInEditorBegin()
         {
             // Focus on the root prefab (AZ::EntityId() will default to it)
+#if defined(CARBONATED) // Import the fix from v26.10
+            // We use the private interface, so that it does not try to create an undo batch for the focus change.
+            // Since play in editor is not an edit operation
+            s_prefabFocusInterface->FocusOnPrefabInstanceOwningEntityId(AZ::EntityId());
+#else
             s_prefabFocusPublicInterface->FocusOnOwningPrefab(AZ::EntityId());
+#endif
         }
 
         void PrefabIntegrationManager::OnStopPlayInEditor()
@@ -1578,8 +1726,407 @@ namespace AzToolsFramework
 
         void PrefabIntegrationManager::ContextMenu_RevertOverrides(AZ::EntityId entityId)
         {
+            // TODO : (CARBONATED) refactor RevertOverrides code path to allow removing overrides in the root ContainerEntity.
+            // Please see the corresponding comment above in the caller.
+            // The method called below removes all overrides with path starting with the EntityAlias, which is also questionable.
             m_prefabOverridePublicInterface->RevertOverrides(entityId);
         }
+
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_OVERRIDES)
+        void PrefabIntegrationManager::ContextMenu_RevertOverridesOnEntityAndDescendants(AZ::EntityId entityId)
+        {
+            constexpr const char* logTag = "RevertOverridesOnEntityAndDescendants";
+            if (!entityId.IsValid())
+            {
+                AZ_Error(logTag, false, "Invalid EntityId");
+                return;
+            }
+
+            const auto prefabFocusInterface = AZ::Interface<PrefabFocusInterface>::Get();
+            const auto instanceToTemplateInterface = AZ::Interface<InstanceToTemplateInterface>::Get();
+            const auto prefabSystemComponentInterface = AZ::Interface<PrefabSystemComponentInterface>::Get();
+            if (!(prefabFocusInterface && instanceToTemplateInterface && prefabSystemComponentInterface &&
+                  s_prefabPublicInterface && m_prefabOverridePublicInterface))
+            {
+                AZ_Error(logTag, prefabFocusInterface, "Failed to get PrefabFocusInterface.");
+                AZ_Error(logTag, instanceToTemplateInterface, "Failed to get InstanceToTemplateInterface.");
+                AZ_Error(logTag, prefabSystemComponentInterface, "Failed to get PrefabSystemComponentInterface.");
+                AZ_Error(logTag, s_prefabPublicInterface, "Invalid s_prefabPublicInterface.");
+                AZ_Error(logTag, m_prefabOverridePublicInterface, "Invalid m_prefabOverridePublicInterface.");
+                return;
+            }
+
+            AzFramework::EntityContextId editorEntityContextId = AzFramework::EntityContextId::CreateNull();
+            AzToolsFramework::EditorEntityContextRequestBus::BroadcastResult(
+                editorEntityContextId, &AzToolsFramework::EditorEntityContextRequests::GetEditorEntityContextId);
+            if (editorEntityContextId.IsNull())
+            {
+                AZ_Error(logTag, prefabFocusInterface, "Failed to get EntityContextId.");
+                return;
+            }
+            InstanceOptionalReference focusedInstance = prefabFocusInterface->GetFocusedPrefabInstance(editorEntityContextId);
+            if (!focusedInstance.has_value())
+            {
+                AZ_Error(logTag, prefabFocusInterface, "Failed to get level instance.");
+                return;
+            }
+
+            AZStd::string entityName;
+            AZ::ComponentApplicationBus::BroadcastResult(entityName, &AZ::ComponentApplicationRequests::GetEntityName, entityId);
+            {
+                const AZStd::string message = AZStd::string::format(
+                    "All prefab overrides except those on transform components\nwill be removed starting with Entity\n'%s', %s.\nProceed?",
+                    entityName.c_str(), entityId.ToString().c_str());
+                QMessageBox msgBox(AzToolsFramework::GetActiveWindow());
+                msgBox.setWindowTitle("Revert overrides on Entity and descendants");
+                msgBox.setText("Use with caution:");
+                msgBox.setInformativeText(message.c_str());
+                msgBox.setStandardButtons({ QMessageBox::Cancel, QMessageBox::Ok });
+                msgBox.setDefaultButton(QMessageBox::Ok);
+                msgBox.setDetailedText("In order to remove overrides in a prefab instance, this must be selected and open for editing.");
+                if (msgBox.exec() != QMessageBox::Ok)
+                {
+                    return;
+                }
+            }
+
+            AZStd::unordered_set<AzToolsFramework::Prefab::LinkId> evaluatedLinkIds;
+
+            uint64_t removedPatchesCount = 0;
+            AZStd::vector<AZ::EntityId> entityAndDescendantsIds;
+            AZ::TransformBus::EventResult(entityAndDescendantsIds, entityId, &AZ::TransformBus::Events::GetEntityAndAllDescendants);
+            for (const auto& candidateId : entityAndDescendantsIds)
+            {
+                if (!candidateId.IsValid() || !s_prefabPublicInterface->IsOwnedByPrefabInstance(candidateId))
+                {
+                    continue; // selected Entity does not belong to a prefab instance
+                }
+
+                AZ::Dom::Path absoluteEntityAliasPath = instanceToTemplateInterface->GenerateEntityPathFromFocusedPrefab(candidateId);
+                // The first 2 tokens of the path represent the path of the instance below the focused prefab.
+                if (absoluteEntityAliasPath.size() < 2)
+                {
+                    continue;
+                }
+
+                AZStd::string_view topMostInstanceKey = absoluteEntityAliasPath[1].GetKey().GetStringView();
+                InstanceOptionalReference topMostInstance = focusedInstance->get().FindNestedInstance(topMostInstanceKey);
+                if (!topMostInstance.has_value())
+                {
+                    continue;
+                }
+
+                AZ::ComponentApplicationBus::BroadcastResult(entityName, &AZ::ComponentApplicationRequests::GetEntityName, candidateId);
+
+                const auto& linkId = topMostInstance->get().GetLinkId();
+                if (linkId == InvalidLinkId)
+                {
+                    AZ_Warning(logTag, false, "Invalid link Id for Instance key '%s' for entity '%s'.", topMostInstanceKey.data(), entityName.c_str());
+                    continue;
+                }
+
+                if (evaluatedLinkIds.contains(linkId))
+                {
+                    continue;
+                }
+                evaluatedLinkIds.emplace(linkId);
+
+                auto linkRef = prefabSystemComponentInterface->FindLink(linkId);
+                if (!linkRef.has_value())
+                {
+                    AZ_Warning(logTag, false, "Failed to get link for Instance key '%s' for entity '%s.", topMostInstanceKey.data(), entityName.c_str());
+                    continue;
+                }
+
+                PrefabDom linkPatches;
+                linkRef->get().GetLinkPatches(linkPatches, linkPatches.GetAllocator());
+                if (!linkPatches.IsArray() || linkPatches.Empty())
+                {
+                    continue;
+                }
+
+                // Unconditional removing overrides in a ContainerEntity of a prefab instance in a Level would delete
+                // { "op" : "replace", "path" : "/ContainerEntity/Components/TransformComponent/Parent Entity",
+                //   "value" : "../<ENTITY_ALIAS>" }, making the level DOM corrupted.
+                // Yet most of patches are added to a ContainerEntity of a prefab instance,
+                // and thus overrides are to be removed from such entities, excluding the above sampled path and
+                // also translation, rotation and scale patches in the TransformComponent of a ContainerEntity.
+                // Hence excluded sub-paths are generalized to explicit or aliased TransformComponents' data overrides,
+                // plus harmless but useful "/Name" patch.
+                constexpr const char* excludedSubPaths[] = { "/TransformComponent", "/Transform Data", "/Parent Entity", "/Name" };
+                constexpr const uint32_t excludedSubPathsCount = aznumeric_cast<uint32_t>(sizeof(excludedSubPaths) / sizeof(const char*));
+
+                // Remove selected patches
+                RAPIDJSON_NAMESPACE::SizeType removedPatchesCountOnEntity = 0;
+                [[maybe_unused]] RAPIDJSON_NAMESPACE::SizeType patchIndex = 0;
+                for (const rapidjson::Value& patch : linkPatches.GetArray())
+                {
+
+                    if (!(patch.HasMember("op") && patch.HasMember("path")))
+                    {
+                        AZ_Error(logTag, false, "Invalid patch #%u for entity '&s'.", patchIndex, entityName.c_str());
+                        continue;
+                    }
+                    ++patchIndex;
+
+                    AZStd::string patchPath(patch.FindMember("path")->value.GetString());
+
+                    // Skip overrides with paths containing the excluded sub-paths
+                    bool excluded = false;
+                    for (uint32_t i = 0; i < excludedSubPathsCount; ++i)
+                    {
+                        if (patchPath.contains(excludedSubPaths[i]))
+                        {
+                            excluded = true;
+                            break;
+                        }
+                    }
+                    if (excluded)
+                    {
+                        continue;
+                    }
+
+                    AZ::Dom::Path domPath(patchPath);
+
+                    auto subTree = linkRef->get().RemoveOverrides(domPath);
+                    if (subTree.IsEmpty())
+                    {
+                        continue;
+                    }
+
+                    ScopedUndoBatch undoBatch("Revert Prefab Overrides");
+                    PrefabUndoRevertOverrides* state = new Prefab::PrefabUndoRevertOverrides("Capture Override SubTree");
+                    state->Capture(domPath, AZStd::move(subTree), linkId);
+                    state->SetParent(undoBatch.GetUndoBatch());
+
+                    linkRef->get().UpdateTarget();
+                    const auto targetTemplateId = linkRef->get().GetTargetTemplateId();
+                    prefabSystemComponentInterface->SetTemplateDirtyFlag(targetTemplateId, true);
+                    prefabSystemComponentInterface->PropagateTemplateChanges(targetTemplateId);
+                    ++removedPatchesCountOnEntity;
+                    ++removedPatchesCount;
+                    [[maybe_unused]] AZStd::string patchOp(patch.FindMember("op")->value.GetString());
+                    AZ_Info(logTag, "Removed patch '%s' at path '%s'.", patchOp.c_str(), patchPath.c_str());
+                }
+
+                if (removedPatchesCountOnEntity > 0)
+                {
+                    AZ_Info(logTag, "Removed %u patches on Entity '%s'.", removedPatchesCountOnEntity, entityName.c_str());
+
+                }
+            }
+
+            if (removedPatchesCount > 0)
+            {
+                AZ_Info(logTag, "Removed total of %llu patches.", removedPatchesCount);
+                // The entire tree should be refreshed after reverting overrides, this operation
+                // re-spawns (as in, deletes and recreates) any entities that have the overrides.
+                // The inspector MUST drop its references to those entities which are about to be destroyed!
+                AzToolsFramework::ToolsApplicationEvents::Bus::Broadcast(
+                    &AzToolsFramework::ToolsApplicationEvents::Bus::Events::InvalidatePropertyDisplay,
+                    AzToolsFramework::Refresh_EntireTree); 
+            }
+        }
+#endif // defined(CARBONATED) && defined(AZ_ACTION_REMOVE_OVERRIDES)
+
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+        void PrefabIntegrationManager::ContextMenu_RemoveInvalidOverridesOnEntityAndDescendants(AZ::EntityId entityId)
+        {
+            constexpr const char* logTag = "RemoveInvalidOverridesOnEntityAndDescendants";
+            if (!entityId.IsValid())
+            {
+                AZ_Error(logTag, false, "Invalid EntityId");
+                return;
+            }
+
+            const auto prefabFocusInterface = AZ::Interface<PrefabFocusInterface>::Get();
+            const auto instanceToTemplateInterface = AZ::Interface<InstanceToTemplateInterface>::Get();
+            const auto prefabSystemComponentInterface = AZ::Interface<PrefabSystemComponentInterface>::Get();
+            if (!(prefabFocusInterface && instanceToTemplateInterface && prefabSystemComponentInterface && s_containerEntityInterface &&
+                  s_prefabPublicInterface && s_prefabFocusPublicInterface && m_prefabOverridePublicInterface))
+            {
+                AZ_Error(logTag, prefabFocusInterface, "Failed to get PrefabFocusInterface.");
+                AZ_Error(logTag, instanceToTemplateInterface, "Failed to get InstanceToTemplateInterface.");
+                AZ_Error(logTag, prefabSystemComponentInterface, "Failed to get PrefabSystemComponentInterface.");
+                AZ_Error(logTag, s_containerEntityInterface, "Invalid s_containerEntityInterface.");
+                AZ_Error(logTag, s_prefabPublicInterface, "Invalid s_prefabPublicInterface.");
+                AZ_Error(logTag, s_prefabFocusPublicInterface, "Invalid s_prefabFocusPublicInterface.");
+                AZ_Error(logTag, m_prefabOverridePublicInterface, "Invalid m_prefabOverridePublicInterface.");
+                return;
+            }
+
+            AzFramework::EntityContextId editorEntityContextId = AzFramework::EntityContextId::CreateNull();
+            AzToolsFramework::EditorEntityContextRequestBus::BroadcastResult(
+                editorEntityContextId, &AzToolsFramework::EditorEntityContextRequests::GetEditorEntityContextId);
+            if (editorEntityContextId.IsNull())
+            {
+                AZ_Error(logTag, prefabFocusInterface, "Failed to get EntityContextId.");
+                return;
+            }
+            InstanceOptionalReference focusedInstance = prefabFocusInterface->GetFocusedPrefabInstance(editorEntityContextId);
+            if (!focusedInstance.has_value())
+            {
+                AZ_Error(logTag, prefabFocusInterface, "Failed to get level instance.");
+                return;
+            }
+
+            const bool isInstanceContainerEntity = s_prefabPublicInterface->IsInstanceContainerEntity(entityId);
+            const bool isOpen = s_containerEntityInterface->IsContainerOpen(entityId);
+            bool isFocused = s_prefabFocusPublicInterface->IsOwningPrefabBeingFocused(entityId);
+            if (isInstanceContainerEntity && isOpen && !isFocused)
+            {
+                // Maybe a child entity of an open and focused prefab instance is selected?
+                AZ::EntityId parentId = entityId;
+                bool isParentInstanceContainerEntity = false;
+                bool isParentOpen = false;
+                do
+                {
+                    AZ::EntityId nextParentId;
+                    AZ::TransformBus::EventResult(nextParentId, parentId, &AZ::TransformBus::Events::GetParentId);
+                    parentId = nextParentId;
+                    if (!parentId.IsValid())
+                    {
+                        break;
+                    }
+                    isParentInstanceContainerEntity = s_prefabPublicInterface->IsInstanceContainerEntity(parentId);
+                    isParentOpen = s_containerEntityInterface->IsContainerOpen(parentId);
+                    isFocused = s_prefabFocusPublicInterface->IsOwningPrefabBeingFocused(parentId);
+
+                } while (parentId.IsValid() && isParentInstanceContainerEntity && isParentOpen && !isFocused);
+            }
+
+            AZStd::string entityName;
+            AZ::ComponentApplicationBus::BroadcastResult(entityName, &AZ::ComponentApplicationRequests::GetEntityName, entityId);
+            const auto parentWindow = AzToolsFramework::GetActiveWindow();
+            constexpr const char* title = "Remove invalid overrides on Entity and descendants";
+            if (!(isInstanceContainerEntity && isFocused && isOpen))
+            {
+                QMessageBox msgBox(parentWindow);
+                msgBox.setWindowTitle(title);
+                msgBox.setText("Invalid request:");
+                msgBox.setInformativeText("In order to remove overrides in a prefab instance,\nsuch must be selected and open for editing.");
+                msgBox.setStandardButtons(QMessageBox::Cancel);
+                msgBox.exec();
+                return;
+            }
+            else
+            {
+                const AZStd::string message = AZStd::string::format(
+                    "All invalid prefab overrides will be removed starting with Entity\n'%s', %s.\nProceed?",
+                    entityName.c_str(), entityId.ToString().c_str());
+                QMessageBox msgBox(parentWindow);
+                msgBox.setWindowTitle(title);
+                msgBox.setText(message.c_str());
+                msgBox.setInformativeText("Do not forget to save and close affected prefab.");
+                msgBox.setStandardButtons({ QMessageBox::Cancel, QMessageBox::Ok });
+                msgBox.setDefaultButton(QMessageBox::Ok);
+                if (msgBox.exec() != QMessageBox::Ok)
+                {
+                    return;
+                }
+            }
+
+
+            AZStd::unordered_set<AzToolsFramework::Prefab::LinkId> evaluatedLinkIds;
+
+            uint64_t removedPatchesCount = 0;
+            AZStd::vector<AZ::EntityId> entityAndDescendantsIds;
+            AZ::TransformBus::EventResult(entityAndDescendantsIds, entityId, &AZ::TransformBus::Events::GetEntityAndAllDescendants);
+            for (const auto& candidateId : entityAndDescendantsIds)
+            {
+                if (!s_prefabPublicInterface->IsOwnedByPrefabInstance(candidateId))
+                {
+                    continue;
+                }
+
+                AZ::Dom::Path absoluteEntityAliasPath = instanceToTemplateInterface->GenerateEntityPathFromFocusedPrefab(candidateId);
+                // The first 2 tokens of the path represent the path of the instance below the focused prefab.
+                if (absoluteEntityAliasPath.size() < 2)
+                {
+                    continue;
+                }
+
+                AZStd::string_view topMostInstanceKey = absoluteEntityAliasPath[1].GetKey().GetStringView();
+                InstanceOptionalReference topMostInstance = focusedInstance->get().FindNestedInstance(topMostInstanceKey);
+                if (!topMostInstance.has_value())
+                {
+                    continue;
+                }
+                const auto& linkId = topMostInstance->get().GetLinkId();
+                if (linkId == InvalidLinkId)
+                {
+                    AZ_Warning(logTag, false, "Invalid link Id for Instance key '%s'.", topMostInstanceKey.data());
+                    continue;
+                }
+
+                if (evaluatedLinkIds.contains(linkId))
+                {
+                    continue;
+                }
+                evaluatedLinkIds.emplace(linkId);
+
+                auto linkRef = prefabSystemComponentInterface->FindLink(linkId);
+                if (!linkRef.has_value())
+                {
+                    AZ_Warning(logTag, false, "Failed to get link for Instance key '%s'.", topMostInstanceKey.data());
+                    continue;
+                }
+
+                constexpr const bool removingInvalidOverrides = true;
+                linkRef->get().UpdateTarget(removingInvalidOverrides);
+                
+                const auto& invalidPatchesPaths = linkRef->get().GetInvalidOverridesPaths();
+                if (invalidPatchesPaths.empty())
+                {
+                    continue;
+                }
+
+                // Remove invalid patches
+                RAPIDJSON_NAMESPACE::SizeType removedPatchesCountOnEntity = 0;
+                for (const auto& path : invalidPatchesPaths)
+                {
+                    AZ::Dom::Path domPath(path);
+
+                    auto subTree = linkRef->get().RemoveOverrides(AZ::Dom::Path(path));
+                    if (subTree.IsEmpty())
+                    {
+                        continue;
+                    }
+
+                    ScopedUndoBatch undoBatch("Remove Invalid Prefab Overrides");
+                    PrefabUndoRevertOverrides* state = new Prefab::PrefabUndoRevertOverrides("Capture Override SubTree");
+                    state->Capture(domPath, AZStd::move(subTree), linkId);
+                    state->SetParent(undoBatch.GetUndoBatch());
+
+                    linkRef->get().UpdateTarget(removingInvalidOverrides);
+                    const auto targetTemplateId = linkRef->get().GetTargetTemplateId();
+                    prefabSystemComponentInterface->SetTemplateDirtyFlag(targetTemplateId, true);
+                    prefabSystemComponentInterface->PropagateTemplateChanges(targetTemplateId);
+                    ++removedPatchesCountOnEntity;
+                    ++removedPatchesCount;
+                    AZ_Info(logTag, "Removed invalid patch at path '%s'.", domPath.ToString().c_str());
+                }
+
+                if (removedPatchesCountOnEntity > 0)
+                {
+                    AZ::ComponentApplicationBus::BroadcastResult(entityName, &AZ::ComponentApplicationRequests::GetEntityName, candidateId);
+                    AZ_Info(logTag, "Removed %u invalid patches on Entity '%s'.", removedPatchesCountOnEntity, entityName.c_str());
+                }
+            }
+
+            if (removedPatchesCount > 0)
+            {
+                AZ_Info(logTag, "Removed total of %llu invalid patches.", removedPatchesCount);
+                // The entire tree should be refreshed after reverting overrides, this operation
+                // re-spawns (as in, deletes and recreates) any entities that have the overrides.
+                // The inspector MUST drop its references to those entities which are about to be destroyed!
+                AzToolsFramework::ToolsApplicationEvents::Bus::Broadcast(
+                    &AzToolsFramework::ToolsApplicationEvents::Bus::Events::InvalidatePropertyDisplay,
+                    AzToolsFramework::Refresh_EntireTree);
+            }
+        }
+#endif // defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+
 
         void PrefabIntegrationManager::GatherAllReferencedEntitiesAndCompare(
             const EntityIdSet& entities, EntityIdSet& entitiesAndReferencedEntities, bool& hasExternalReferences)

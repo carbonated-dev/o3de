@@ -15,9 +15,15 @@
 
 namespace AZ
 {
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+    JsonSerializationResult::ResultCode JsonMerger::ApplyPatch(rapidjson::Value& target,
+        rapidjson::Document::AllocatorType& allocator, const rapidjson::Value& patch,
+        JsonApplyPatchSettings& settings, AZStd::unordered_set<AZStd::string>* const invalidOverridesPaths /* = nullptr */)
+#else
     JsonSerializationResult::ResultCode JsonMerger::ApplyPatch(rapidjson::Value& target,
         rapidjson::Document::AllocatorType& allocator, const rapidjson::Value& patch,
         JsonApplyPatchSettings& settings)
+#endif
     {
         using namespace JsonSerializationResult;
 
@@ -78,41 +84,98 @@ namespace AZ
                     ResultCode(Tasks::Merge, Outcomes::Invalid), element);
             }
 
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+            ResultCode operationResult(Tasks::Merge); // Storage for the actual operation result before combining to target result
+
+            auto storeInvalidPatchPath = [&invalidOverridesPaths, &pathPointer]()
+            {
+                if (invalidOverridesPaths)
+                {
+                    rapidjson::StringBuffer pointerPathString;
+                    pathPointer.Stringify(pointerPathString);
+                    invalidOverridesPaths->emplace(AZStd::string(pointerPathString.GetString()));
+                }
+            };
+#endif
+
             AZStd::string_view operationName(operation->value.GetString(), operation->value.GetStringLength());
             if (operationName.compare("add") == 0)
             {
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                operationResult = ApplyPatch_Add(target, allocator, entry, pathPointer, element, settings);
+                result.Combine(operationResult);
+#else
                 result.Combine(ApplyPatch_Add(target, allocator, entry, pathPointer, element, settings));
+#endif
             }
             else if (operationName.compare("remove") == 0)
             {
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                operationResult = ApplyPatch_Remove(target, pathPointer, element, settings);
+                result.Combine(operationResult);
+#else
                 result.Combine(ApplyPatch_Remove(target, pathPointer, element, settings));
+#endif
             }
             else if (operationName.compare("replace") == 0)
             {
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                operationResult = ApplyPatch_Replace(target, allocator, entry, pathPointer, element, settings);
+                result.Combine(operationResult);
+#else
                 result.Combine(ApplyPatch_Replace(target, allocator, entry, pathPointer, element, settings));
+#endif
             }
             else if (operationName.compare("move") == 0)
             {
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                operationResult = ApplyPatch_Move(target, allocator, entry, pathPointer, element, settings);
+                result.Combine(operationResult);
+#else
                 result.Combine(ApplyPatch_Move(target, allocator, entry, pathPointer, element, settings));
+#endif
             }
             else if (operationName.compare("copy") == 0)
             {
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                operationResult = ApplyPatch_Copy(target, allocator, entry, pathPointer, element, settings);
+                result.Combine(operationResult);
+#else
                 result.Combine(ApplyPatch_Copy(target, allocator, entry, pathPointer, element, settings));
+#endif
             }
             else if (operationName.compare("test") == 0)
             {
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                operationResult = ApplyPatch_Test(target, entry, pathPointer, element, settings);
+                result.Combine(operationResult);
+#else
                 result.Combine(ApplyPatch_Test(target, entry, pathPointer, element, settings));
+#endif
             }
             else
             {
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                storeInvalidPatchPath();
+#endif
                 auto message = ReporterString::format(R"(Unknown operation "%.*s".)", AZ_STRING_ARG(operationName));
                 return settings.m_reporting(message.c_str(), ResultCode(Tasks::Merge, Outcomes::Unknown), element);
             }
 
             if (result.GetProcessing() == Processing::Halted)
             {
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+                storeInvalidPatchPath();
+#endif
                 return result;
             }
+
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+            if (operationResult.GetOutcome() == Outcomes::Skipped || operationResult.GetOutcome() >= Outcomes::TypeMismatch)
+            {
+                storeInvalidPatchPath();
+            }
+#endif
         }
 
         result.Combine(ResultCode(Tasks::Merge, Outcomes::Success));
@@ -327,7 +390,7 @@ namespace AZ
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
             constexpr const auto message = R"(The target path for "add" operation does not exist at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
-                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+                ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #else
             return settings.m_reporting(R"(The target path for "add" operation does not exist.)",
                 ResultCode(Tasks::Merge, Outcomes::Invalid), element);
@@ -364,7 +427,7 @@ namespace AZ
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
                     const auto message = R"(The target path for "add" operation is not an index value at path:)";
                     return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
-                        ResultCode(Tasks::Merge, Outcomes::Missing), element);
+                        ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #else
                     return settings.m_reporting(R"(The target path for "add" operation is not an index value.)",
                         ResultCode(Tasks::Merge, Outcomes::Invalid), element);
@@ -393,7 +456,7 @@ namespace AZ
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
                     constexpr const auto message = R"(The target path for "add" operation is not a valid index at path:)";
                     return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
-                        ResultCode(Tasks::Merge, Outcomes::Missing), element);
+                        ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #else
                     return settings.m_reporting(R"(The target path for "add" operation is not a valid index.)",
                         ResultCode(Tasks::Merge, Outcomes::Invalid), element);
@@ -406,7 +469,7 @@ namespace AZ
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
             constexpr const auto message = R"(The target for "add" operation is not an object or array at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
-                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+                ResultCode(Tasks::Merge, Outcomes::TypeMismatch), element);
 #else
             return settings.m_reporting(R"(The target for "add" operation is not an object or array.)",
                 ResultCode(Tasks::Merge, Outcomes::TypeMismatch), element);
@@ -445,7 +508,7 @@ namespace AZ
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
             constexpr const auto message = R"(The target path for "remove" operation does not exist at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
-                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+                ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #else
             return settings.m_reporting(R"(The target path for "remove" operation does not exist.)",
                 ResultCode(Tasks::Merge, Outcomes::Invalid), element);
@@ -459,7 +522,7 @@ namespace AZ
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
             constexpr const auto message = R"(The "remove" operation failed to remove the member from object at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
-                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+                ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #else
                 rapidjson::StringBuffer pathString;
                 path.Stringify(pathString);
@@ -483,7 +546,7 @@ namespace AZ
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
             constexpr const auto message = R"(The target path for "remove" operation has an invalid index at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
-                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+                ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #else
                 return settings.m_reporting(R"(The target path for "remove" operation has an invalid index.)",
                     ResultCode(Tasks::Merge, Outcomes::Invalid), element);
@@ -495,7 +558,7 @@ namespace AZ
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
             constexpr const auto message = R"(The target for "remove" operation is not an object or array at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
-                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+                ResultCode(Tasks::Merge, Outcomes::TypeMismatch), element);
 #else
             return settings.m_reporting(R"(The target for "remove" operation is not an object or array.)",
                 ResultCode(Tasks::Merge, Outcomes::TypeMismatch), element);
@@ -541,7 +604,7 @@ namespace AZ
 #if defined(CARBONATED) // More readable warnings in prefab patches serialization
             constexpr const auto message = R"(The target for "replace" operation doesn't exist at path:)";
             return settings.m_reporting(AZStd::string::format("%s\n   '%s'.", message, pointerPathString.GetString()),
-                ResultCode(Tasks::Merge, Outcomes::Missing), element);
+                ResultCode(Tasks::Merge, Outcomes::Invalid), element);
 #else
             return settings.m_reporting(R"(The target for "replace" operation doesn't exist.)",
                 ResultCode(Tasks::Merge, Outcomes::Invalid), element);
@@ -564,12 +627,24 @@ namespace AZ
     {
         using namespace JsonSerializationResult;
 
+#if defined(CARBONATED) // Safety check
+        rapidjson::Value* fromValue = nullptr;
+#else
         rapidjson::Value* fromValue;
+#endif
         rapidjson::Pointer fromPointer;
         ResultCode result = ApplyPatch_GetFromValue(&fromValue, fromPointer, target, entry, element, settings);
         if (result.GetProcessing() != Processing::Halted)
         {
+#if defined(CARBONATED) // Safety check
+            if (!fromValue)
+            {
+                return settings.m_reporting(R"(The "fromValue" was retrieved but is still null.)",
+                    ResultCode(Tasks::Merge, Outcomes::Invalid), element);
+            }
+#else
             AZ_Assert(fromValue, R"(The "fromValue" was retrieved but is still null.)");
+#endif // !defined(CARBONATED)
             rapidjson::Value moved = AZStd::move(*fromValue);
             result.Combine(ApplyPatch_Remove(target, fromPointer, element, settings));
             result.Combine(ApplyPatch_AddValue(target, allocator, path, AZStd::move(moved), element, settings));

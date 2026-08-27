@@ -131,6 +131,12 @@ namespace AzToolsFramework
             void ContextMenu_DeleteSelected();
             void ContextMenu_DetachPrefab(AZ::EntityId containerEntity);
             void ContextMenu_RevertOverrides(AZ::EntityId entityId);
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_OVERRIDES)
+            void ContextMenu_RevertOverridesOnEntityAndDescendants(AZ::EntityId entityId);
+#endif
+#if defined(CARBONATED) && defined(AZ_ACTION_REMOVE_INVALID_OVERRIDES)
+            void ContextMenu_RemoveInvalidOverridesOnEntityAndDescendants(AZ::EntityId entityId);
+#endif
 
             // Reference detection
             static void GatherAllReferencedEntitiesAndCompare(
