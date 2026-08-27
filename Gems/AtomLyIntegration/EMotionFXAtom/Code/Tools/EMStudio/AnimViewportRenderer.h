@@ -75,8 +75,9 @@ namespace EMStudio
         const AZStd::vector<AZ::Entity*>& GetActorEntities() const;
 
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
-        void InstantiatePrefab(EMotionFX::PrefabData& prefabData);
+        void InstantiatePrefab(EMotionFX::PrefabData& prefabData, bool weapon = false);
         void OnSpawnableInstantiated(AZ::Entity* entity, EMotionFX::PrefabData& prefabData);
+        void OnWeaponSpawnableInstantiated(AZ::Entity* entity, EMotionFX::PrefabData& prefabData);
 
         // This function resets the light, camera and other environment settings.
         void ResetEnvironment();

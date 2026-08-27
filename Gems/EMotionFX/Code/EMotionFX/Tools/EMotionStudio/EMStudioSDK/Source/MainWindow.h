@@ -135,7 +135,7 @@ namespace EMStudio
         void LoadFiles(const AZStd::vector<AZStd::string>& filenames, int32 contextMenuPosX = 0, int32 contextMenuPosY = 0, bool contextMenuEnabled = true, bool reload = false);
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
         void LoadPrefab(AZStd::string const& fileName);
-        void OnRecentPrefabFile(QAction* action);
+        void LoadWeaponPrefab(AZStd::string const& fileName);
         void OnOpenDroppedPrefab();
         void AddRecentPrefabFile(const QString& fileName);
 #endif
@@ -227,6 +227,8 @@ namespace EMStudio
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
         QAction*                m_openActorAction = nullptr;
         QAction*                m_openPrefabAction = nullptr;
+        QAction*                m_takeWeaponAction = nullptr;
+        QAction*                m_removeWeaponAction = nullptr;
         MysticQt::RecentFiles   m_recentPrefabs;
         AZStd::string           m_droppedPrefabFileName;
 #endif
@@ -371,6 +373,9 @@ namespace EMStudio
         void OnRemoveLayoutButtonClicked(QAbstractButton* button);
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
         void OnFileOpenPrefab();
+        void OnTakeWeaponPrefab();
+        void OnRemoveWeaponPrefab();
+        void OnRecentPrefabFile(QAction* action);
 #endif
 
      signals:

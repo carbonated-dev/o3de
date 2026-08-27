@@ -19,6 +19,8 @@ namespace CommandSystem
 {
 
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    MCORE_DEFINECOMMAND(CommandImportWeaponPrefab, "ImportWeaponPrefab", "Import weapon prefab", false)
+    MCORE_DEFINECOMMAND(CommandRemoveWeaponPrefab, "RemoveWeaponPrefab", "Remove weapon prefab", false)
     MCORE_DEFINECOMMAND(CommandPrefabLoaded, "PrefabLoaded", "Prefab loaded", false)
     // add prefab
     MCORE_DEFINECOMMAND_START(CommandImportPrefab, "Import prefab", true)

@@ -68,6 +68,7 @@ namespace EMotionFX
          * @param The prefab to register.
          */
         void RegisterPrefab(PrefabData const& prefabData);
+        void RegisterWeaponPrefab(PrefabData const& prefabData);
 
         /**
          * Unregister all prefabs.
@@ -80,7 +81,8 @@ namespace EMotionFX
          * Unregister a specific prefab.
          * @param prefab The prefab you passed to the RegisterPrefab function sometime before.
          */
-        void UnregisterPrefab(AZ::Data::AssetId prefabAssetID);
+        void UnregisterPrefab(AZ::Data::AssetId const& prefabAssetID);
+        void UnregisterWeaponPrefab();
 
         /**
          * Get the number of registered prefabs.
@@ -89,6 +91,7 @@ namespace EMotionFX
          */
         MCORE_INLINE int GetNumPrefabs() const { return static_cast<int>(m_prefabDatas.size()); }
 
+        bool HasWeaponPrefab() const { return m_weaponPrefabData.m_prefabAsset.IsReady(); }
         /**
          * Get a given prefab.
          * This will return a Prefab object that contains an array of Prefab objects.
@@ -99,6 +102,9 @@ namespace EMotionFX
          */
         PrefabData& GetPrefabData(size_t nr);
         PrefabData const& GetPrefabData(size_t nr) const;
+
+        PrefabData& GetWeaponPrefabData() { return m_weaponPrefabData; }
+        PrefabData const& GetWeaponPrefabData() const { return m_weaponPrefabData; }
 
         /**
          * Find the given prefab by assetId.
@@ -128,6 +134,7 @@ namespace EMotionFX
 
     private:
         AZStd::vector<PrefabData> m_prefabDatas;
+        PrefabData                m_weaponPrefabData;
         MCore::MutexRecursive     m_prefabLock; /**< The multithread lock for touching the prefabs array. */
 
         /**

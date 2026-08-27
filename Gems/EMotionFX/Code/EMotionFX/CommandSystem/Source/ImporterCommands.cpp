@@ -487,5 +487,77 @@ namespace CommandSystem
         return "This command can be used when prefab loaded";
     }
 
+    bool CommandImportWeaponPrefab::Execute(
+        [[maybe_unused]] const MCore::CommandLine& parameters, [[maybe_unused]] AZStd::string& outResult)
+    {
+        AZStd::string filename;
+        parameters.GetValue("filename", "", filename);
+
+        AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::Bus::Events::NormalizePathKeepCase, filename);
+
+        // Resolve the filename if it starts with a path alias
+        if (filename.starts_with('@'))
+        {
+            filename = EMotionFX::EMotionFXManager::ResolvePath(filename.c_str());
+        }
+
+        AZ::Data::Asset<AzFramework::Spawnable> asset;
+        if (!AzFramework::AssetHelpers::GetSpawnableAsset(filename.c_str(), asset))
+        {
+            outResult = AZStd::string::format("Cannot import prefab. Cannot find asset at path %s.", filename.c_str());
+            return false;
+        }
+
+        asset.BlockUntilLoadComplete();
+
+        EMotionFX::PrefabData prefabData(AZStd::move(asset));
+
+        // mark the workspace as dirty
+        GetCommandManager()->SetWorkspaceDirtyFlag(true);
+
+        // return the id of the newly created actor
+        outResult = AZStd::string::format("The weapon prefab %s was successfully imported.", filename.c_str());
+
+        // Register actor asset.
+        EMotionFX::GetPrefabManager().RegisterWeaponPrefab(prefabData);
+
+        return true;
+    }
+
+    bool CommandImportWeaponPrefab::Undo([[maybe_unused]] const MCore::CommandLine& parameters, [[maybe_unused]] AZStd::string& outResult)
+    {
+        return true;
+    }
+
+    void CommandImportWeaponPrefab::InitSyntax()
+    {
+        GetSyntax().ReserveParameters(1);
+        GetSyntax().AddRequiredParameter("filename", "The filename of the weapon prefab file to load.", MCore::CommandSyntax::PARAMTYPE_STRING);
+    }
+
+    const char* CommandImportWeaponPrefab::GetDescription() const
+    {
+        return "This command can be used to import weapon prefabs";
+    }
+
+    bool CommandRemoveWeaponPrefab::Execute(
+        [[maybe_unused]] const MCore::CommandLine& parameters, [[maybe_unused]] AZStd::string& outResult)
+    {
+        return true;
+    }
+
+    bool CommandRemoveWeaponPrefab::Undo([[maybe_unused]] const MCore::CommandLine& parameters, [[maybe_unused]] AZStd::string& outResult)
+    {
+        return true;
+    }
+
+    void CommandRemoveWeaponPrefab::InitSyntax()
+    {
+    }
+
+    const char* CommandRemoveWeaponPrefab::GetDescription() const
+    {
+        return "This command can be used to import weapon prefabs";
+    }
 #endif
 } // namespace CommandSystem

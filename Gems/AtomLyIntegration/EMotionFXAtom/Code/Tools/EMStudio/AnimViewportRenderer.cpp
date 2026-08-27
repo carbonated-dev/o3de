@@ -467,9 +467,22 @@ namespace EMStudio
                 InstantiatePrefab(prefabData);
             }
         }
+
+        if (numPrefabs)
+        {
+            auto& prefabManager = EMotionFX::GetPrefabManager();
+            if (prefabManager.HasWeaponPrefab())
+            {
+                auto& weaponPrefabData = prefabManager.GetWeaponPrefabData();
+                if (weaponPrefabData.m_spawnTicket.IsValid() && !weaponPrefabData.m_isSpawned)
+                {
+                    InstantiatePrefab(weaponPrefabData, true);
+                }
+            }
+        }
     }
 
-    void AnimViewportRenderer::InstantiatePrefab(EMotionFX::PrefabData& prefabData)
+    void AnimViewportRenderer::InstantiatePrefab(EMotionFX::PrefabData& prefabData, bool weapon)
     {
         prefabData.m_isSpawned = true;
 
@@ -495,7 +508,7 @@ namespace EMStudio
             }
         };
 
-        auto completionCallback = [this, &prefabData](
+        auto completionCallback = [this, &prefabData, weapon](
                 [[maybe_unused]] AzFramework::EntitySpawnTicket::Id ticketId, AzFramework::SpawnableConstEntityContainerView entities)
         {
             AZ::Entity* rootEntity = nullptr;
@@ -527,7 +540,14 @@ namespace EMStudio
                     }
                 }
             }
-            OnSpawnableInstantiated(rootEntity, prefabData);
+            if (weapon)
+            {
+                OnWeaponSpawnableInstantiated(rootEntity, prefabData);
+            }
+            else
+            {
+                OnSpawnableInstantiated(rootEntity, prefabData);
+            }
         };
 
         AzFramework::SpawnAllEntitiesOptionalArgs optionalArgs;
@@ -535,6 +555,20 @@ namespace EMStudio
         optionalArgs.m_completionCallback = AZStd::move(completionCallback);
         optionalArgs.m_entityContext = m_entityContext.get();
         AzFramework::SpawnableEntitiesInterface::Get()->SpawnAllEntities(prefabData.m_spawnTicket, optionalArgs);
+    }
+
+    void AnimViewportRenderer::OnWeaponSpawnableInstantiated(AZ::Entity* entity, EMotionFX::PrefabData& prefabData)
+    {
+        if (!entity)
+        {
+            AZ_Error("EMotionFX", false, "Weapon spawned entity is nullptr");
+
+            return;
+        }
+        prefabData;
+
+        auto actorComponent = m_actorEntities[0]->FindComponent<EMotionFX::Integration::ActorComponent>();
+        actorComponent->AttachToEntity(entity->GetId(), EMotionFX::Integration::AttachmentType::SkinAttachment);
     }
 
     void AnimViewportRenderer::OnSpawnableInstantiated(AZ::Entity* entity, EMotionFX::PrefabData& prefabData)

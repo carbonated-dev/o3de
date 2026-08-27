@@ -104,8 +104,10 @@ namespace EMStudio
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
         MCORE_DEFINECOMMANDCALLBACK(PrefabLoadedCallback);
         MCORE_DEFINECOMMANDCALLBACK(ImportPrefabCallback);
+        MCORE_DEFINECOMMANDCALLBACK(ImportWeaponPrefabCallback);
         PrefabLoadedCallback* m_prefabLoadedCallback = nullptr;
         ImportPrefabCallback* m_importPrefabCallback = nullptr;
+        ImportWeaponPrefabCallback* m_importWeaponPrefabCallback = nullptr;
 #endif
         ImportActorCallback* m_importActorCallback = nullptr;
         RemoveActorCallback* m_removeActorCallback = nullptr;

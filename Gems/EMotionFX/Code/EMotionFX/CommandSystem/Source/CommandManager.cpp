@@ -48,6 +48,8 @@ namespace CommandSystem
         RegisterCommand(new CommandImportPrefab());
         RegisterCommand(new CommandPrefabLoaded());
         RegisterCommand(new CommandRemovePrefab());
+        RegisterCommand(new CommandImportWeaponPrefab());
+        RegisterCommand(new CommandRemoveWeaponPrefab());
 #endif
         RegisterCommand(new CommandImportActor());
         RegisterCommand(new CommandRemoveActor());

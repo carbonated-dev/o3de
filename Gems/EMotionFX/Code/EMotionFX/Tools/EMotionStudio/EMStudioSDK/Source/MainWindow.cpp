@@ -366,6 +366,16 @@ namespace EMStudio
 
         m_recentPrefabs.Init(menu, m_options.GetMaxRecentFiles(), "Recent Prefabs", "recentPrefabFiles");
         connect(&m_recentPrefabs, &MysticQt::RecentFiles::OnRecentFile, this, &MainWindow::OnRecentPrefabFile);
+
+        menu->addSeparator();
+
+        m_takeWeaponAction = menu->addAction(tr("Take Weapon"), this, &MainWindow::OnTakeWeaponPrefab);
+        m_takeWeaponAction->setObjectName("EMFX.MainWindow.TakeWeaponAction");
+        m_takeWeaponAction->setDisabled(true);
+
+        m_removeWeaponAction = menu->addAction(tr("Remove Weapon"), this, &MainWindow::OnRemoveWeaponPrefab);
+        m_removeWeaponAction->setObjectName("EMFX.MainWindow.RemoveWeaponAction");
+        m_removeWeaponAction->setDisabled(true);
 #endif
 
         // workspace file actions
@@ -1113,6 +1123,8 @@ namespace EMStudio
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
             m_openPrefabAction->setDisabled(true);
             m_recentPrefabs.SetEnabled(false);
+            m_takeWeaponAction->setDisabled(true);
+            m_removeWeaponAction->setDisabled(true);
 #endif
             EnableSaveSelectedActorsMenu();
         }
@@ -1121,6 +1133,16 @@ namespace EMStudio
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
             m_openPrefabAction->setDisabled(false);
             m_recentPrefabs.SetEnabled(true);
+            if (EMotionFX::GetPrefabManager().GetNumPrefabs() > 0)
+            {
+                m_takeWeaponAction->setDisabled(false);
+                m_removeWeaponAction->setDisabled(false);
+            }
+            else
+            {
+                m_takeWeaponAction->setDisabled(true);
+                m_removeWeaponAction->setDisabled(true);
+            }
 #endif
             DisableSaveSelectedActorsMenu();
         }
@@ -1821,6 +1843,32 @@ namespace EMStudio
     }
 
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    void MainWindow::OnTakeWeaponPrefab()
+    {
+        AZStd::string prefabFilePath;
+        if (AzToolsFramework::Prefab::PrefabSaveHandler::QueryUserForPrefabFilePath(prefabFilePath))
+        {
+            const auto relativePath = AZ::IO::PathView(prefabFilePath).LexicallyProximate(AZ::IO::PathView(AZ::Utils::GetProjectPath())).StringAsPosix();
+
+            LoadWeaponPrefab(relativePath);
+        }
+        activateWindow();
+    }
+
+    void MainWindow::OnRemoveWeaponPrefab()
+    {
+        const AZStd::string commandGroupName = "Weapon Prefab";
+
+        MCore::CommandGroup commandGroup(commandGroupName.c_str());
+        commandGroup.AddCommandString("RemoveWeaponPrefab");
+
+        AZStd::string outResult;
+        if (GetCommandManager()->ExecuteCommandGroup(commandGroup, outResult) == false)
+        {
+            MCore::LogError("Could not remove weapon.");
+        }
+    }
+
     void MainWindow::OnFileOpenPrefab()
     {
         if (m_dirtyFileManager->SaveDirtyFiles({ azrtti_typeid<EMotionFX::Actor>() }) == DirtyFileManager::CANCELED)
@@ -1837,6 +1885,26 @@ namespace EMStudio
             m_recentPrefabs.AddRecentFile(prefabFilePath);
         }
         activateWindow();
+    }
+
+    void MainWindow::LoadWeaponPrefab(AZStd::string const& fileName)
+    {
+        const AZStd::string commandGroupName = "Weapon Prefab";
+
+        // create the command group
+        MCore::CommandGroup commandGroup(commandGroupName.c_str());
+
+        AZStd::string loadActorCommand = AZStd::string::format("ImportWeaponPrefab -filename \"%s\" ", fileName.c_str());
+
+        // add the load and the create instance commands
+        commandGroup.AddCommandString(loadActorCommand.c_str());
+
+        // execute the group command
+        AZStd::string outResult;
+        if (GetCommandManager()->ExecuteCommandGroup(commandGroup, outResult) == false)
+        {
+            MCore::LogError("Could not load weapon prefab '%s'.", fileName.c_str());
+        }
     }
 
     void MainWindow::LoadPrefab(AZStd::string const& fileName)
@@ -1864,9 +1932,6 @@ namespace EMStudio
         loadActorCommand += " -loadSkinningInfo " + AZStd::to_string(loadActorSettings.m_loadSkinningInfo);
         loadActorCommand += " -loadSkeletalLODs " + AZStd::to_string(loadActorSettings.m_loadSkeletalLoDs);
         loadActorCommand += " -dualQuatSkinning " + AZStd::to_string(loadActorSettings.m_dualQuaternionSkinning);
-
-        // add the load and the create instance commands
-        commandGroup.AddCommandString(loadActorCommand.c_str());
 
         // add the load and the create instance commands
         commandGroup.AddCommandString(loadActorCommand.c_str());
@@ -2359,7 +2424,7 @@ namespace EMStudio
 
             if (contextMenuEnabled)
             {
-                if (EMotionFX::GetActorManager().GetNumActors() > 0)
+                if (EMotionFX::GetPrefabManager().GetNumPrefabs() > 0)
                 {
                     // create the drop context menu
                     QMenu menu(this);

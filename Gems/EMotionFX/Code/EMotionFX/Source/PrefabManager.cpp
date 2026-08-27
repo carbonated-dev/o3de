@@ -29,7 +29,7 @@ namespace EMotionFX
 
     // constructor
     PrefabManager::PrefabManager()
-        : MCore::RefCounted()
+        : MCore::RefCounted(), m_weaponPrefabData({})
     {
     }
 
@@ -64,6 +64,15 @@ namespace EMotionFX
 
         // register it
         m_prefabDatas.emplace_back(AZStd::move(prefabData));
+
+        UnlockPrefabs();
+    }
+
+    void PrefabManager::RegisterWeaponPrefab(PrefabData const& prefabData)
+    {
+        LockPrefabs();
+
+        m_weaponPrefabData = prefabData;
 
         UnlockPrefabs();
     }
@@ -164,7 +173,16 @@ namespace EMotionFX
         return (found != m_prefabDatas.end()) ? AZStd::distance(m_prefabDatas.begin(), found) : InvalidIndex;
     }
 
-    void PrefabManager::UnregisterPrefab(AZ::Data::AssetId assetID)
+    void PrefabManager::UnregisterWeaponPrefab()
+    {
+        LockPrefabs();
+
+        m_weaponPrefabData = PrefabData({});
+
+        UnlockPrefabs();
+    }
+
+    void PrefabManager::UnregisterPrefab(AZ::Data::AssetId const& assetID)
     {
         LockPrefabs();
 
@@ -186,6 +204,8 @@ namespace EMotionFX
     void PrefabManager::UnregisterAllPrefabs()
     {
         LockPrefabs();
+
+        UnregisterWeaponPrefab();
 
         for (PrefabData& prefabData : m_prefabDatas)
         {

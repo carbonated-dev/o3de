@@ -50,6 +50,8 @@ namespace EMStudio
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
         GetCommandManager()->RemoveCommandCallback(m_prefabLoadedCallback, false);
         GetCommandManager()->RemoveCommandCallback(m_importPrefabCallback, false);
+        GetCommandManager()->RemoveCommandCallback(m_importWeaponPrefabCallback, false);
+        delete m_importWeaponPrefabCallback;
         delete m_prefabLoadedCallback;
         delete m_importPrefabCallback;
 #endif
@@ -148,9 +150,11 @@ namespace EMStudio
 #if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
         m_prefabLoadedCallback = new PrefabLoadedCallback(false);
         m_importPrefabCallback = new ImportPrefabCallback(false);
+        m_importWeaponPrefabCallback = new ImportWeaponPrefabCallback(false);
 
         EMStudioManager::GetInstance()->GetCommandManager()->RegisterCommandCallback("PrefabLoaded", m_prefabLoadedCallback);
         EMStudioManager::GetInstance()->GetCommandManager()->RegisterCommandCallback("ImportPrefab", m_importPrefabCallback);
+        EMStudioManager::GetInstance()->GetCommandManager()->RegisterCommandCallback("ImportWeaponPrefab", m_importWeaponPrefabCallback);
 #endif
         EMStudioManager::GetInstance()->GetCommandManager()->RegisterCommandCallback("ImportActor", m_importActorCallback);
         EMStudioManager::GetInstance()->GetCommandManager()->RegisterCommandCallback("RemoveActor", m_removeActorCallback);
@@ -456,6 +460,25 @@ namespace EMStudio
             AZ_Error("AtomRenderPlugin", false, "Cannot execute command callback. Atom render plugin does not exist.");
         }
         return static_cast<AtomRenderPlugin*>(plugin);
+    }
+
+    bool AtomRenderPlugin::ImportWeaponPrefabCallback::Execute(
+        [[maybe_unused]] MCore::Command* command, [[maybe_unused]] const MCore::CommandLine& commandLine)
+    {
+        if (AtomRenderPlugin* atomRenderPlugin = GetRenderPlugin())
+        {
+            atomRenderPlugin->ReinitPrefab();
+        }
+        return true;
+    }
+    bool AtomRenderPlugin::ImportWeaponPrefabCallback::Undo(
+        [[maybe_unused]] MCore::Command* command, [[maybe_unused]] const MCore::CommandLine& commandLine)
+    {
+        if (AtomRenderPlugin* atomRenderPlugin = GetRenderPlugin())
+        {
+            atomRenderPlugin->ReinitPrefab();
+        }
+        return true;
     }
 
     bool AtomRenderPlugin::ImportPrefabCallback::Execute(
