@@ -654,38 +654,42 @@ namespace AZ
                                 fallbackPipelineState = fallbackShader->AcquirePipelineState(
                                     fallbackPipelineStateDescriptor, RHI::PipelineStateAcquireFlags::None);
                                 const int end = int(AZ::GetRealElapsedTimeMs());
-                                const int dt = end - begin;
+                                const int [[maybe_unused]] dt = end - begin;
                                 // it saves more shaders than we want to preload because many freezes happen during level loading
                                 // so check the log right after micro-freeze you experienced
                                 if (dt > 100)
                                 {
+                                    constexpr const char* LOG_TAG = "shaderpreload";
+#if defined(CARBONATED_SHADER_SAVE_FOR_PRELOAD)
+
+                                    AZStd::string shaderName = shaderItem.GetShaderAsset().GetHint();
+                                    for (char* p = shaderName.data(); *p; p++)
                                     {
-                                        constexpr const char* LOG_TAG = "shaderpreload";
-
-                                        AZStd::string fileName = shaderItem.GetShaderAsset().GetHint();
-                                        for (char* p = fileName.data(); *p; p++)
+                                        if (*p == '/' || *p == '.')
                                         {
-                                            if (*p == '/' || *p == '.')
-                                            {
-                                                *p = '_';
-                                            }
-                                        }
-                                        AZStd::string filePath = AZStd::string::format("@user@/shaderpreloaddata/%s.json", fileName.c_str());
-                                        AZ::RHI::PipelineStateDescriptorForDrawPreloadData data(
-                                            shaderItem.GetShaderAsset().GetHint(),
-                                            fallbackPipelineStateDescriptor,
-                                            pipelineStateDescriptor.m_renderStates);
-
-                                        bool res = AZ::Utils::SaveObjectToFile(filePath, AZ::ObjectStream::ST_JSON, &data);
-                                        if (res)
-                                        {
-                                            AZ_Info(LOG_TAG, "Saved shader preload data to %s, compile time %d", filePath.c_str(), dt);
-                                        }
-                                        else
-                                        {
-                                            AZ_Error(LOG_TAG, false, "Cannot save shader preload data to %s", filePath.c_str());
+                                            *p = '_';
                                         }
                                     }
+                                    AZStd::string fileName =
+                                        AZStd::string::format("%s_%llu", shaderName.c_str(), fallbackPipelineStateDescriptor.GetHash());
+                                    AZStd::string filePath = AZStd::string::format("@user@/shaderpreloaddata/%s.json", fileName.c_str());
+                                    AZ::RHI::PipelineStateDescriptorForDrawPreloadData data(
+                                        shaderItem.GetShaderAsset().GetHint(),
+                                        fallbackPipelineStateDescriptor,
+                                        pipelineStateDescriptor.m_renderStates);
+
+                                    bool res = AZ::Utils::SaveObjectToFile(filePath, AZ::ObjectStream::ST_JSON, &data);
+                                    if (res)
+                                    {
+                                        AZ_Info(LOG_TAG, "Saved shader preload data to %s, compile time %d", filePath.c_str(), dt);
+                                    }
+                                    else
+                                    {
+                                        AZ_Error(LOG_TAG, false, "Cannot save shader preload data to %s", filePath.c_str());
+                                    }
+#else
+                                    AZ_Info(LOG_TAG, "Shader compile time %d, might need preload for %s", dt, shaderItem.GetShaderAsset().GetHint());
+#endif
                                 }
 #else
                                 fallbackPipelineState = fallbackShader->AcquirePipelineState(
