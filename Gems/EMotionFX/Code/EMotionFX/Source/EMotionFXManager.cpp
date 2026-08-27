@@ -30,6 +30,9 @@
 #include <EMotionFX/Source/MotionData/MotionDataFactory.h>
 #include <EMotionFX/Source/PoseDataFactory.h>
 #include <Integration/Rendering/RenderActorSettings.h>
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+#include "PrefabManager.h"
+#endif
 
 namespace EMotionFX
 {
@@ -75,6 +78,9 @@ namespace EMotionFX
         gEMFX.Get()->SetDebugDraw             (aznew DebugDraw());
         gEMFX.Get()->SetPoseDataFactory       (aznew PoseDataFactory());
         gEMFX.Get()->SetGlobalSimulationSpeed (1.0f);
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        gEMFX.Get()->SetPrefabManager(PrefabManager::Create());
+#endif
 
         // set the number of threads
         const AZ::u32 numThreads = AZ::JobContext::GetGlobalContext()->GetJobManager().GetNumWorkerThreads();
@@ -274,6 +280,14 @@ namespace EMotionFX
     {
         m_actorManager = manager;
     }
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+     // set the prefab manager.
+    void EMotionFXManager::SetPrefabManager(PrefabManager* manager)
+    {
+        m_prefabManager = manager;
+    }
+#endif
 
 
     // set the motion manager

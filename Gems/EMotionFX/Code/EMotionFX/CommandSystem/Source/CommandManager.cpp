@@ -44,6 +44,11 @@ namespace CommandSystem
     CommandManager::CommandManager()
         : MCore::CommandManager()
     {
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        RegisterCommand(new CommandImportPrefab());
+        RegisterCommand(new CommandPrefabLoaded());
+        RegisterCommand(new CommandRemovePrefab());
+#endif
         RegisterCommand(new CommandImportActor());
         RegisterCommand(new CommandRemoveActor());
         RegisterCommand(new CommandScaleActorData());

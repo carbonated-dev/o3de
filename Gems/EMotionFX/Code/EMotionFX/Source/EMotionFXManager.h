@@ -38,6 +38,9 @@ namespace EMotionFX
     class EventDataFactory;
     class DebugDraw;
     class PoseDataFactory;
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    class PrefabManager;
+#endif
 
     // versions
 #define EMFX_HIGHVERSION 4
@@ -137,6 +140,15 @@ namespace EMotionFX
          * @result A pointer to the actor manager.
          */
         MCORE_INLINE ActorManager* GetActorManager() const                          { return m_actorManager; }
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        /**
+         * Get the prefab manager.
+         * This can also be accessed with the GetPrefabManager() macro.
+         * @result A pointer to the prefab manager.
+         */
+        MCORE_INLINE PrefabManager* GetPrefabManager() const                        { return m_prefabManager; }
+#endif
 
         /**
          * Get the motion manager.
@@ -356,6 +368,10 @@ namespace EMotionFX
         uint32                      m_lowVersion;            /**< The low version, which would be 100 in case of v3.10 or 10 in case of v3.01. */
         Importer*                   m_importer;              /**< The importer that can load actors and motions. */
         ActorManager*               m_actorManager;          /**< The actor manager. */
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        PrefabManager*              m_prefabManager;         /**< The prefab manager. */
+#endif
+
         MotionManager*              m_motionManager;         /**< The motion manager. */
         EventManager*               m_eventManager;          /**< The motion event manager. */
         SoftSkinManager*            m_softSkinManager;       /**< The softskin manager. */
@@ -394,6 +410,14 @@ namespace EMotionFX
          * @param manager The actor manager to use.
          */
         void SetActorManager(ActorManager* manager);
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        /**
+         * Set the prefab manager.
+         * @param manager The prefab manager to use.
+         */
+        void SetPrefabManager(PrefabManager* manager);
+#endif
 
         /**
          * Set the motion manager.
@@ -524,6 +548,9 @@ namespace EMotionFX
     MCORE_INLINE SoftSkinManager&           GetSoftSkinManager()        { return *GetEMotionFX().GetSoftSkinManager(); }    /**< Get the softskin manager. */
     MCORE_INLINE AnimGraphManager&          GetAnimGraphManager()       { return *GetEMotionFX().GetAnimGraphManager(); }   /**< Get the animgraph manager. */
     MCORE_INLINE Recorder&                  GetRecorder()               { return *GetEMotionFX().GetRecorder(); }           /**< Get the recorder. */
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    MCORE_INLINE PrefabManager&             GetPrefabManager()          { return *GetEMotionFX().GetPrefabManager(); }      /**< Get the prefab manager. */
+#endif
     MCORE_INLINE MotionInstancePool&        GetMotionInstancePool()     { return *GetEMotionFX().GetMotionInstancePool(); } /**< Get the motion instance pool. */
     MCORE_INLINE DebugDraw&                 GetDebugDraw()              { return *GetEMotionFX().GetDebugDraw(); }          /**< Get the debug drawing. */
     MCORE_INLINE PoseDataFactory&           GetPoseDataFactory()        { return *GetEMotionFX().GetPoseDataFactory(); }

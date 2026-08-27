@@ -17,6 +17,17 @@
 
 namespace CommandSystem
 {
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    MCORE_DEFINECOMMAND(CommandPrefabLoaded, "PrefabLoaded", "Prefab loaded", false)
+    // add prefab
+    MCORE_DEFINECOMMAND_START(CommandImportPrefab, "Import prefab", true)
+public:
+    uint32 m_previouslyUsedId;
+    bool m_oldWorkspaceDirtyFlag;
+    MCORE_DEFINECOMMAND_END
+#endif
+
     // add actor
     MCORE_DEFINECOMMAND_START(CommandImportActor, "Import actor", true)
 public:

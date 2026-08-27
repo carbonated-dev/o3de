@@ -18,6 +18,9 @@
 #include <Atom/Feature/SkyBox/SkyBoxFeatureProcessorInterface.h>
 #include <Atom/Feature/CoreLights/DirectionalLightFeatureProcessorInterface.h>
 #include <Atom/Feature/Utils/LightingPreset.h>
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+#include <EMotionFX/Source/PrefabManager.h>
+#endif
 
 namespace AZ
 {
@@ -70,11 +73,22 @@ namespace EMStudio
 
         //! Get a list of actor entities in the animation viewport.
         const AZStd::vector<AZ::Entity*>& GetActorEntities() const;
-    private:
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        void InstantiatePrefab(EMotionFX::PrefabData& prefabData);
+        void OnSpawnableInstantiated(AZ::Entity* entity, EMotionFX::PrefabData& prefabData);
 
         // This function resets the light, camera and other environment settings.
         void ResetEnvironment();
 
+        void ReinitPrefabEntities();
+#endif
+    private:
+
+#if !(defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM))
+        // This function resets the light, camera and other environment settings.
+        void ResetEnvironment();
+#endif
         // This function creates in-editor entities for all actor assets stored in the actor manager,
         // and deletes all the actor entities that no longer has an actor asset in the actor manager.
         // Those entities are used in atom render viewport to visualize actors in animation editor.

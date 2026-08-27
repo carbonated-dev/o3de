@@ -47,6 +47,12 @@ namespace EMStudio
         SaveRenderOptions();
         GetCommandManager()->RemoveCommandCallback(m_importActorCallback, false);
         GetCommandManager()->RemoveCommandCallback(m_removeActorCallback, false);
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        GetCommandManager()->RemoveCommandCallback(m_prefabLoadedCallback, false);
+        GetCommandManager()->RemoveCommandCallback(m_importPrefabCallback, false);
+        delete m_prefabLoadedCallback;
+        delete m_importPrefabCallback;
+#endif
         delete m_importActorCallback;
         delete m_removeActorCallback;
 
@@ -88,6 +94,19 @@ namespace EMStudio
         return m_innerWidget;
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    void AtomRenderPlugin::ReinitPrefab()
+    {
+        m_animViewportWidget->ReinitPrefabEntities();
+    }
+
+    void AtomRenderPlugin::ReinitEnv()
+    {
+        m_animViewportWidget->ReinitEnvEntities();
+        SetManipulatorMode(m_renderOptions.GetManipulatorMode());
+    }
+#endif
+
     void AtomRenderPlugin::ReinitRenderer()
     {
         m_animViewportWidget->Reinit();
@@ -126,6 +145,13 @@ namespace EMStudio
         // Register command callbacks.
         m_importActorCallback = new ImportActorCallback(false);
         m_removeActorCallback = new RemoveActorCallback(false);
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        m_prefabLoadedCallback = new PrefabLoadedCallback(false);
+        m_importPrefabCallback = new ImportPrefabCallback(false);
+
+        EMStudioManager::GetInstance()->GetCommandManager()->RegisterCommandCallback("PrefabLoaded", m_prefabLoadedCallback);
+        EMStudioManager::GetInstance()->GetCommandManager()->RegisterCommandCallback("ImportPrefab", m_importPrefabCallback);
+#endif
         EMStudioManager::GetInstance()->GetCommandManager()->RegisterCommandCallback("ImportActor", m_importActorCallback);
         EMStudioManager::GetInstance()->GetCommandManager()->RegisterCommandCallback("RemoveActor", m_removeActorCallback);
 
@@ -420,6 +446,55 @@ namespace EMStudio
 
         return true;
     }
+
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+    AtomRenderPlugin* GetRenderPlugin()
+    {
+        EMStudioPlugin* plugin = EMStudio::GetPluginManager()->FindActivePlugin(static_cast<uint32>(AtomRenderPlugin::CLASS_ID));
+        if (!plugin)
+        {
+            AZ_Error("AtomRenderPlugin", false, "Cannot execute command callback. Atom render plugin does not exist.");
+        }
+        return static_cast<AtomRenderPlugin*>(plugin);
+    }
+
+    bool AtomRenderPlugin::ImportPrefabCallback::Execute(
+        [[maybe_unused]] MCore::Command* command, [[maybe_unused]] const MCore::CommandLine& commandLine)
+    {
+        if (AtomRenderPlugin* atomRenderPlugin = GetRenderPlugin())
+        {
+            atomRenderPlugin->ReinitPrefab();
+        }
+        return true;
+    }
+    bool AtomRenderPlugin::ImportPrefabCallback::Undo(
+        [[maybe_unused]] MCore::Command* command, [[maybe_unused]] const MCore::CommandLine& commandLine)
+    {
+        if (AtomRenderPlugin* atomRenderPlugin = GetRenderPlugin())
+        {
+            atomRenderPlugin->ReinitPrefab();
+        }
+        return true;
+    }
+    bool AtomRenderPlugin::PrefabLoadedCallback::Execute(
+        [[maybe_unused]] MCore::Command* command, [[maybe_unused]] const MCore::CommandLine& commandLine)
+    {
+        if (AtomRenderPlugin* atomRenderPlugin = GetRenderPlugin())
+        {
+            atomRenderPlugin->ReinitEnv();
+        }
+        return true;
+    }
+    bool AtomRenderPlugin::PrefabLoadedCallback::Undo(
+        [[maybe_unused]] MCore::Command* command, [[maybe_unused]] const MCore::CommandLine& commandLine)
+    {
+        if (AtomRenderPlugin* atomRenderPlugin = GetRenderPlugin())
+        {
+            atomRenderPlugin->ReinitEnv();
+        }
+        return true;
+    }
+#endif
 
     bool AtomRenderPlugin::ImportActorCallback::Execute(
         [[maybe_unused]] MCore::Command* command, [[maybe_unused]] const MCore::CommandLine& commandLine)

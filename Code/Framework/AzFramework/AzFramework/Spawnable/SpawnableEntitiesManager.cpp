@@ -18,6 +18,7 @@
 #include <AzCore/std/sort.h>
 #include <AzFramework/StringFunc/StringFunc.h>
 #include <AzCore/Memory/MemoryMarker.h>
+#include <AzFramework/Entity/EntityContext.h>
 #endif
 // Gruber patch end // VMED
 #include <AzFramework/Components/TransformComponent.h>
@@ -72,6 +73,7 @@ namespace AzFramework
 // Gruber patch begin // VMED // Custom entity id remapper
 #ifdef CARBONATED
         queueEntry.m_customEntityIdMapper = optionalArgs.m_customEntityIdMapper;
+        queueEntry.m_entityContext = optionalArgs.m_entityContext;
 #endif
 // Gruber patch end // VMED // Custom entity id remapper
         QueueRequest(ticket, optionalArgs.m_priority, AZStd::move(queueEntry));
@@ -301,6 +303,40 @@ namespace AzFramework
 
 // Gruber patch begin. // LVB. // Support unique instances
 #ifdef CARBONATED
+    void SpawnableEntitiesManager::DespawnAllEntitiesImmediately(EntitySpawnTicket& spawnTicket, DespawnAllEntitiesOptionalArgs optionalArgs)
+    {
+        AZ_Assert(spawnTicket.IsValid(), "Ticket provided to DespawnAllEntitiesImmediately hasn't been initialized.");
+
+        Ticket& ticket = GetTicketPayload<Ticket>(spawnTicket);
+        EntitySpawnTicketStateBus::Broadcast(&EntitySpawnTicketStateBus::Events::OnRemoveEntities, spawnTicket.GetId());
+        for (AZ::Entity* entity : ticket.m_spawnedEntities)
+        {
+            if (entity != nullptr)
+            {
+                entity->SetEntitySpawnTicketId(0);
+                if (ticket.m_entityContext)
+                {
+                    ticket.m_entityContext->DestroyEntityById(entity->GetId());
+                }
+                else
+                {
+                    GameEntityContextRequestBus::Broadcast(&GameEntityContextRequestBus::Events::DestroyGameEntity, entity->GetId());
+                }
+                m_entitySpawnableMap.erase(entity->GetId());
+            }
+        }
+
+        ticket.m_spawnedEntities.clear();
+        ticket.m_spawnedEntityIndices.clear();
+
+        if (optionalArgs.m_completionCallback)
+        {
+            optionalArgs.m_completionCallback(spawnTicket.GetId());
+        }
+
+        ticket.m_currentRequestId++;
+    }
+
     AZStd::shared_ptr<SpawnableInstanceDescriptor> SpawnableEntitiesManager::GetOwningSpawnable(const AZ::EntityId& entityId)
     {
         auto entityInfoMapIt = m_entitySpawnableMap.find(entityId);
@@ -594,6 +630,8 @@ namespace AzFramework
 
 // Gruber patch begin // VMED // Detect a level spawnable 
 #ifdef CARBONATED
+        ticket.m_entityContext = request.m_entityContext;
+
         AZ::EntityId seedEntityId;
         if (!ticket.m_spawnable->IsDynamic())
         {
@@ -755,19 +793,29 @@ namespace AzFramework
 #ifdef CARBONATED
                 if (!ticket.m_spawnable->IsDynamic())   // That means that this spawnable is a Level
                 {
-                    AzFramework::EntityContext* gameContext = nullptr;
-                    AzFramework::GameEntityContextRequestBus::BroadcastResult(
-                        gameContext, &AzFramework::GameEntityContextRequestBus::Events::GetGameEntityContextInstance);
-                    if (gameContext != nullptr)
+                    if (request.m_entityContext)
                     {
                         AzFramework::EntityContextEventBus::Event(
-                            gameContext->GetContextId(),
+                            request.m_entityContext->GetContextId(),
                             &AzFramework::EntityContextEventBus::Events::OnEntityContextLoadedFromStream,
                             ticket.m_spawnedEntities);
                     }
                     else
                     {
-                        AZ_Error("SpawnableEntitiesManager::ProcessRequest", false, "Game entity context for level is not found");
+                        AzFramework::EntityContext* gameContext = nullptr;
+                        AzFramework::GameEntityContextRequestBus::BroadcastResult(
+                            gameContext, &AzFramework::GameEntityContextRequestBus::Events::GetGameEntityContextInstance);
+                        if (gameContext != nullptr)
+                        {
+                            AzFramework::EntityContextEventBus::Event(
+                                gameContext->GetContextId(),
+                                &AzFramework::EntityContextEventBus::Events::OnEntityContextLoadedFromStream,
+                                ticket.m_spawnedEntities);
+                        }
+                        else
+                        {
+                            AZ_Error("SpawnableEntitiesManager::ProcessRequest", false, "Game entity context for level is not found");
+                        }
                     }
                 }
 #endif
@@ -778,7 +826,31 @@ namespace AzFramework
                 {
                     AZ::Entity* clone = (*it);
                     clone->SetEntitySpawnTicketId(request.m_ticketId);
+#if defined(CARBONATED) 
+                    if (request.m_entityContext)
+                    {
+                        request.m_entityContext->AddEntity(clone);
+
+                        if (clone->GetState() == AZ::Entity::State::Constructed)
+                        {
+                            clone->Init();
+                        }
+
+                        if (clone->GetState() == AZ::Entity::State::Init)
+                        {
+                            if (clone->IsRuntimeActiveByDefault())
+                            {
+                                clone->Activate();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        GameEntityContextRequestBus::Broadcast(&GameEntityContextRequestBus::Events::AddGameEntity, clone);
+                    }
+#else
                     GameEntityContextRequestBus::Broadcast(&GameEntityContextRequestBus::Events::AddGameEntity, clone);
+#endif
                 }
 
                 // Let other systems know about newly spawned entities for any post-processing after adding to the scene/game context.
@@ -964,8 +1036,19 @@ namespace AzFramework
                 {
                     // Setting it to 0 is needed to avoid the infinite loop between GameEntityContext and SpawnableEntitiesManager.
                     entity->SetEntitySpawnTicketId(0);
+#ifdef CARBONATED
+                    if (ticket.m_entityContext)
+                    {
+                        ticket.m_entityContext->DestroyEntityById(entity->GetId());
+                    }
+                    else
+                    {
+                        GameEntityContextRequestBus::Broadcast(&GameEntityContextRequestBus::Events::DestroyGameEntity, entity->GetId());
+                    }
+#else
                     GameEntityContextRequestBus::Broadcast(
                         &GameEntityContextRequestBus::Events::DestroyGameEntity, entity->GetId());
+#endif
 
 // Gruber patch begin. // LVB. // Support unique instances
 #ifdef CARBONATED
@@ -1011,8 +1094,21 @@ namespace AzFramework
                 {
                     // Setting it to 0 is needed to avoid the infinite loop between GameEntityContext and SpawnableEntitiesManager.
                     (*entityIterator)->SetEntitySpawnTicketId(0);
+
+#ifdef CARBONATED
+                    if (ticket.m_entityContext)
+                    {
+                        ticket.m_entityContext->DestroyEntityById((*entityIterator)->GetId());
+                    }
+                    else
+                    {
+                        GameEntityContextRequestBus::Broadcast(
+                            &GameEntityContextRequestBus::Events::DestroyGameEntity, (*entityIterator)->GetId());
+                    }
+#else
                     GameEntityContextRequestBus::Broadcast(
                         &GameEntityContextRequestBus::Events::DestroyGameEntity, (*entityIterator)->GetId());
+#endif
 
 // Gruber patch begin. // LVB. // Support unique instances
 #ifdef CARBONATED
@@ -1326,8 +1422,20 @@ namespace AzFramework
                 {
                     // Setting it to 0 is needed to avoid the infinite loop between GameEntityContext and SpawnableEntitiesManager.
                     entity->SetEntitySpawnTicketId(0);
+#ifdef CARBONATED
+                    Ticket& ticket = *request.m_ticket;
+                    if (ticket.m_entityContext)
+                    {
+                        ticket.m_entityContext->DestroyEntityById(entity->GetId());
+                    }
+                    else
+                    {
+                        GameEntityContextRequestBus::Broadcast(&GameEntityContextRequestBus::Events::DestroyGameEntity, entity->GetId());
+                    }
+#else
                     GameEntityContextRequestBus::Broadcast(
                         &GameEntityContextRequestBus::Events::DestroyGameEntity, entity->GetId());
+#endif
 // Gruber patch begin. // LVB. // Support unique instances
 #ifdef CARBONATED
                     m_entitySpawnableMap.erase(entity->GetId());

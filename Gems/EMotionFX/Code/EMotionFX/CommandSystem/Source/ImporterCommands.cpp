@@ -17,8 +17,12 @@
 #include <EMotionFX/Exporters/ExporterLib/Exporter/Exporter.h>
 #include "CommandManager.h"
 #include <AzFramework/API/ApplicationAPI.h>
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+#include <EMotionFX/Source/PrefabManager.h>
+#include <AzFramework/Helpers/AssetHelpers.h>
+#include <AzFramework/Spawnable/Spawnable.h>
+#endif
 #include <Source/Integration/Assets/ActorAsset.h>
-
 
 namespace CommandSystem
 {
@@ -341,4 +345,147 @@ namespace CommandSystem
         return "This command can be used to import EMotion FX motion files. The command can load skeletal as well as morph target motions.";
     }
 
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+
+    //--------------------------------------------------------------------------------
+    // ImportActor
+    //--------------------------------------------------------------------------------
+
+    // constructor
+    CommandImportPrefab::CommandImportPrefab(MCore::Command* orgCommand)
+        : MCore::Command("ImportPrefab", orgCommand)
+    {
+    }
+
+    // destructor
+    CommandImportPrefab::~CommandImportPrefab()
+    {
+    }
+
+    // execute
+    bool CommandImportPrefab::Execute(const MCore::CommandLine& parameters, AZStd::string& outResult)
+    {
+        uint32 prefabID = MCORE_INVALIDINDEX32;
+        if (parameters.CheckIfHasParameter("prefabID"))
+        {
+            prefabID = parameters.GetValueAsInt("prefabID", MCORE_INVALIDINDEX32);
+            if (EMotionFX::GetPrefabManager().FindPrefabByID(prefabID))
+            {
+                outResult = AZStd::string::format("Cannot import actor. Prefab ID %i is already in use.", prefabID);
+                return false;
+            }
+        }
+
+        AZStd::string filename;
+        parameters.GetValue("filename", "", filename);
+
+        AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::Bus::Events::NormalizePathKeepCase, filename);
+
+        // Resolve the filename if it starts with a path alias
+        if (filename.starts_with('@'))
+        {
+            filename = EMotionFX::EMotionFXManager::ResolvePath(filename.c_str());
+        }
+
+        AZ::Data::Asset<AzFramework::Spawnable> asset;
+        if (!AzFramework::AssetHelpers::GetSpawnableAsset(filename.c_str(), asset))
+        {
+            outResult = AZStd::string::format("Cannot import prefab. Cannot find asset at path %s.", filename.c_str());
+            return false;
+        }
+
+        // check if we have already loaded the actor
+        const size_t assetIndex = EMotionFX::GetActorManager().FindActorIndex(asset.GetId());
+        if (assetIndex != InvalidIndex)
+        {
+            return true;
+        }
+
+        asset.BlockUntilLoadComplete();
+
+        EMotionFX::PrefabData prefabData(AZStd::move(asset));
+
+        if (prefabID != MCORE_INVALIDINDEX32)
+        {
+            prefabData.m_id = prefabID;
+        }
+
+        // in case we are in a redo call assign the previously used id
+        if (m_previouslyUsedId != MCORE_INVALIDINDEX32)
+        {
+            prefabData.m_id = m_previouslyUsedId;
+        }
+        m_previouslyUsedId = prefabData.m_id;
+
+        // mark the workspace as dirty
+        m_oldWorkspaceDirtyFlag = GetCommandManager()->GetWorkspaceDirtyFlag();
+        GetCommandManager()->SetWorkspaceDirtyFlag(true);
+
+        // return the id of the newly created actor
+        outResult = AZStd::string::format("The prefab %s was successfully imported.", filename.c_str());
+
+        // Register actor asset.
+        EMotionFX::GetPrefabManager().RegisterPrefab(prefabData);
+
+        return true;
+    }
+
+    // undo the command
+    bool CommandImportPrefab::Undo(const MCore::CommandLine& parameters, AZStd::string& outResult)
+    {
+        uint32 prefabID = parameters.GetValueAsInt("prefabID", MCORE_INVALIDINDEX32);
+        if (prefabID == MCORE_INVALIDINDEX32)
+        {
+            prefabID = m_previouslyUsedId;
+        }
+
+        AZ::Data::AssetId assetId = EMotionFX::GetPrefabManager().FindAssetIdByPrefabId(prefabID);
+        if (!assetId.IsValid())
+        {
+            outResult = AZStd::string::format("Cannot remove prefab. Prefab ID %i is not valid.", prefabID);
+            return false;
+        }
+
+        EMotionFX::GetPrefabManager().UnregisterPrefab(assetId);
+
+        // restore the workspace dirty flag
+        GetCommandManager()->SetWorkspaceDirtyFlag(m_oldWorkspaceDirtyFlag);
+
+        return true;
+    }
+
+    // init the syntax of the command
+    void CommandImportPrefab::InitSyntax()
+    {
+        // required
+        GetSyntax().ReserveParameters(1);
+        GetSyntax().AddRequiredParameter("filename", "The filename of the prefab file to load.", MCore::CommandSyntax::PARAMTYPE_STRING);
+    }
+
+    // get the description
+    const char* CommandImportPrefab::GetDescription() const
+    {
+        return "This command can be used to import EMotion FX prefab files.";
+    }
+
+    bool CommandPrefabLoaded::Execute([[maybe_unused]] const MCore::CommandLine& parameters, [[maybe_unused]] AZStd::string& outResult)
+    {
+        return true;
+    }
+
+    bool CommandPrefabLoaded::Undo([[maybe_unused]] const MCore::CommandLine& parameters, [[maybe_unused]] AZStd::string& outResult)
+    {
+        return true;
+    }
+
+    void CommandPrefabLoaded::InitSyntax()
+    {
+    }
+
+    const char* CommandPrefabLoaded::GetDescription() const
+    {
+        return "This command can be used when prefab loaded";
+    }
+
+#endif
 } // namespace CommandSystem

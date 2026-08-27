@@ -28,6 +28,10 @@ namespace AZ
 
 namespace AzFramework
 {
+#if defined(CARBONATED)
+    class EntityContext;
+#endif
+
     class SpawnableEntitiesManager
         : public SpawnableEntitiesInterface::Registrar
     {
@@ -86,6 +90,8 @@ namespace AzFramework
 
 // Gruber patch begin. // LVB. // Support unique instances
 #ifdef CARBONATED
+        void DespawnAllEntitiesImmediately(EntitySpawnTicket& spawnTicket, DespawnAllEntitiesOptionalArgs optionalArgs = {}) override;
+
         AZStd::shared_ptr<SpawnableInstanceDescriptor> GetOwningSpawnable(const AZ::EntityId& entityId) override;
         void DespawnAllEntitiesInTicketByEntityID(const AZ::EntityId& entityId, DespawnAllEntitiesOptionalArgs optionalArgs) override; // async
 #endif
@@ -133,6 +139,9 @@ namespace AzFramework
             uint32_t m_currentRequestId { 0 }; //!< The id for the command that should be executed.
             uint32_t m_ticketId{ 0 }; //!< The unique id that identifies this ticket.
             bool m_loadAll{ true };
+#if defined(CARBONATED)
+            EntityContext* m_entityContext{ nullptr };
+#endif
         };
 
         struct SpawnAllEntitiesCommand final
@@ -146,6 +155,7 @@ namespace AzFramework
 // Gruber patch begin // VMED // Custom entity id remapper
 #ifdef CARBONATED
             EntityIdToEntityIdMap m_customEntityIdMapper;
+            EntityContext* m_entityContext;
 #endif
 // Gruber patch end // VMED 
         };

@@ -68,7 +68,10 @@ namespace EMStudio
         MCORE_DEFINECOMMANDCALLBACK(CommandActorSetCollisionMeshesCallback);
         MCORE_DEFINECOMMANDCALLBACK(CommandAdjustActorInstanceCallback);
         MCORE_DEFINECOMMANDCALLBACK(CommandScaleActorDataCallback);
-
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        MCORE_DEFINECOMMANDCALLBACK(PrefabLoadedCallback);
+        PrefabLoadedCallback*                   m_prefabLoadedCallback;
+#endif
         ImportActorCallback*                    m_importActorCallback;
         CreateActorInstanceCallback*            m_createActorInstanceCallback;
         CommandSelectCallback*                  m_selectCallback;

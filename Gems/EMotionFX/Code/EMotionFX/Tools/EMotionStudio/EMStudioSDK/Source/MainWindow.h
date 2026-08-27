@@ -29,6 +29,9 @@
 // forward declarations
 QT_FORWARD_DECLARE_CLASS(QPushButton)
 QT_FORWARD_DECLARE_CLASS(QMenu)
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+QT_FORWARD_DECLARE_CLASS(QAction)
+#endif
 QT_FORWARD_DECLARE_CLASS(QTimer)
 QT_FORWARD_DECLARE_CLASS(QDropEvent)
 QT_FORWARD_DECLARE_CLASS(QCheckBox)
@@ -116,11 +119,26 @@ namespace EMStudio
         void Init();
 
         MCORE_INLINE QMenu* GetLayoutsMenu()                                    { return m_layoutsMenu; }
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        MCORE_INLINE QAction* GetSaveSelectedActorsAction()                     { return m_saveSelectedActorsAction; }
+        MCORE_INLINE QAction* GetSaveAllAction()                                { return m_saveAllAction; }
+        MCORE_INLINE QAction* GetMergeActorAction()                             { return m_mergeActorAction; }
+        MCORE_INLINE QAction* GetOpenActorAction()                              { return m_openActorAction; }
+        MCORE_INLINE QAction* GetOpenPrefabAction()                             { return m_openPrefabAction; }
+        MysticQt::RecentFiles& GetRecentActors()                                { return m_recentActors; }
+        MysticQt::RecentFiles& GetRecentPrefabs()                               { return m_recentPrefabs; }
+#endif
 
         void LoadActor(const char* fileName, bool replaceCurrentScene);
         void LoadCharacter(const AZ::Data::AssetId& actorAssetId, const AZ::Data::AssetId& animgraphId, const AZ::Data::AssetId& motionSetId);
         void LoadFile(const AZStd::string& fileName, int32 contextMenuPosX = 0, int32 contextMenuPosY = 0, bool contextMenuEnabled = true, bool reload = false);
         void LoadFiles(const AZStd::vector<AZStd::string>& filenames, int32 contextMenuPosX = 0, int32 contextMenuPosY = 0, bool contextMenuEnabled = true, bool reload = false);
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        void LoadPrefab(AZStd::string const& fileName);
+        void OnRecentPrefabFile(QAction* action);
+        void OnOpenDroppedPrefab();
+        void AddRecentPrefabFile(const QString& fileName);
+#endif
 
         void Activate(const AZ::Data::AssetId& actorAssetId, const EMotionFX::AnimGraph* animGraph, const EMotionFX::MotionSet* motionSet);
 
@@ -206,6 +224,12 @@ namespace EMStudio
         QAction*                m_saveAllAction;
         QAction*                m_mergeActorAction;
         QAction*                m_saveSelectedActorsAction;
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        QAction*                m_openActorAction = nullptr;
+        QAction*                m_openPrefabAction = nullptr;
+        MysticQt::RecentFiles   m_recentPrefabs;
+        AZStd::string           m_droppedPrefabFileName;
+#endif
 
         // application mode
         QComboBox*              m_applicationMode;
@@ -266,6 +290,10 @@ namespace EMStudio
         MCORE_DEFINECOMMANDCALLBACK(CommandUnselectCallback);
         MCORE_DEFINECOMMANDCALLBACK(CommandClearSelectionCallback);
         MCORE_DEFINECOMMANDCALLBACK(CommandSaveWorkspaceCallback);
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        MCORE_DEFINECOMMANDCALLBACK(PrefabLoadedCallback);
+        PrefabLoadedCallback*               m_prefabLoadedCallback;
+#endif
         CommandImportActorCallback*         m_importActorCallback;
         CommandRemoveActorCallback*         m_removeActorCallback;
         CommandRemoveActorInstanceCallback* m_removeActorInstanceCallback;
@@ -341,6 +369,9 @@ namespace EMStudio
         void ApplicationModeChanged(const QString& text);
         void OnUpdateRenderPlugins();
         void OnRemoveLayoutButtonClicked(QAbstractButton* button);
+#if defined(CARBONATED) && defined(CARBONATED_EMOTIONFX_PREFAB_SYSTEM)
+        void OnFileOpenPrefab();
+#endif
 
      signals:
         void HardwareChangeDetected();
