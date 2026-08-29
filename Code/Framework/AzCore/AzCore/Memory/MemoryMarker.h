@@ -7,7 +7,7 @@
  */
 #pragma once
 
-#if defined(AZ_ENABLE_TRACING) && defined(AZ_MEMORY_TAG_TRACING) && !defined(_RELEASE) && defined(CARBONATED)
+#if defined(AZ_ENABLE_TRACING) && defined(AZ_MEMORY_TAG_TRACING) && !defined(_RELEASE) && defined(CARBONATED) && !defined(CARBONATED_PRODUCTION)
 
 namespace AZ
 {
@@ -97,7 +97,7 @@ namespace AZ
 #define MEMORY_SET_ASSET_LIMIT(x) AZ::AssetMemoryTagLimit::SetLimit(x)
 #define MEMORY_GET_ASSET_LIMIT() AZ::AssetMemoryTagLimit::GetLimit()
 
-#else  // AZ_ENABLE_TRACING  && !_RELEASE && CARBONATED
+#else  // AZ_ENABLE_TRACING  && !_RELEASE && CARBONATED && !CARBONATED_PRODUCTION
 
 #define MEMORY_ALLOCATION_MARKER
 #define MEMORY_ALLOCATION_MARKER_NAME(name)

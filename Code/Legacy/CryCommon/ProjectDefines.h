@@ -94,7 +94,7 @@
     #endif
 #endif
 
-#if !defined(_RELEASE)
+#if !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
     #ifndef ENABLE_PROFILING_CODE
         #define ENABLE_PROFILING_CODE
     #endif

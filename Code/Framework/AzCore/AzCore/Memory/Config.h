@@ -7,7 +7,7 @@
  */
 #pragma once
 
-#if !defined(_RELEASE)
+#if !defined(_RELEASE) && !defined(CARBONATED_PRODUCTION)
     #define AZ_MEMORY_PROFILE(...) (__VA_ARGS__)
 #else
     #define AZ_MEMORY_PROFILE(...)
