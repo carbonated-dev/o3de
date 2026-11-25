@@ -10,8 +10,6 @@ package com.amazon.lumberyard.input;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.Rect;
-import android.os.Build;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.ViewGroup;
@@ -105,6 +103,8 @@ public class KeyboardHandler
                 @Override
                 public void run()
                 {
+                    // Mark GONE before hideSoftInput so the inset that follows is ignored.
+                    textView.Hide();
                     if (inputManager != null)
                     {
                         inputManager.hideSoftInputFromWindow(textView.getWindowToken(), 0);
@@ -113,7 +113,6 @@ public class KeyboardHandler
                     {
                         Log.w(s_tag, "KeyboardHandler ime show failed reason=imm_null will_retry");
                     }
-                    textView.Hide();
                 }
             });
         }
@@ -143,6 +142,7 @@ public class KeyboardHandler
             setFocusable(true);
 
             m_isShowing = false;
+            m_showPending = false;
         }
 
         ////////////////////////////////////////////////////////////////
@@ -191,7 +191,7 @@ public class KeyboardHandler
         ////////////////////////////////////////////////////////////////
         public boolean IsShowing()
         {
-            return m_isShowing;
+            return m_isShowing || m_showPending;
         }
 
         ////////////////////////////////////////////////////////////////
@@ -204,11 +204,12 @@ public class KeyboardHandler
             }
 
             setVisibility(View.VISIBLE);
-            // Stay false until an inset check sees the IME. A failed show must not block the next tap.
+            // Visible only after the ime inset. Pending covers the gap so TextEntryStop can still hide.
             m_isShowing = false;
 
             if (!requestFocus())
             {
+                m_showPending = false;
                 Log.w(s_tag, "KeyboardHandler ime show failed reason=focus will_retry");
                 return;
             }
@@ -217,19 +218,17 @@ public class KeyboardHandler
             removeCallbacks(m_showTimeout);
             armInsetListener();
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+            WindowInsetsController controller = getWindowInsetsController();
+            if (controller != null)
             {
-                WindowInsetsController controller = getWindowInsetsController();
-                if (controller != null)
-                {
-                    controller.show(WindowInsets.Type.ime());
-                    Log.i(s_tag, "KeyboardHandler ime show requested path=insets result=requested");
-                    scheduleImeCheck();
-                    return;
-                }
-                Log.w(s_tag, "KeyboardHandler ime show failed reason=insets_controller_null fallback=imm");
+                controller.show(WindowInsets.Type.ime());
+                m_showPending = true;
+                Log.i(s_tag, "KeyboardHandler ime show requested path=insets result=requested");
+                scheduleImeCheck();
+                return;
             }
 
+            Log.w(s_tag, "KeyboardHandler ime show failed reason=insets_controller_null fallback=imm");
             boolean shown = false;
             if (inputManager != null)
             {
@@ -238,11 +237,13 @@ public class KeyboardHandler
             Log.i(s_tag, "KeyboardHandler ime show requested path=imm result=" + shown);
             if (!shown)
             {
-                Log.w(s_tag, "KeyboardHandler ime show failed reason=" + (inputManager == null ? "imm_null" : "imm_false") + " will_retry");
+                m_showPending = false;
                 m_isShowing = false;
+                Log.w(s_tag, "KeyboardHandler ime show failed reason=" + (inputManager == null ? "imm_null" : "imm_false") + " will_retry");
                 return;
             }
 
+            m_showPending = true;
             scheduleImeCheck();
         }
 
@@ -253,6 +254,7 @@ public class KeyboardHandler
             removeCallbacks(m_showTimeout);
             setVisibility(View.GONE);
             m_isShowing = false;
+            m_showPending = false;
 
             View decor = GetView();
             if (decor != null)
@@ -266,11 +268,6 @@ public class KeyboardHandler
 
         private void armInsetListener()
         {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R)
-            {
-                return;
-            }
-
             setOnApplyWindowInsetsListener(new OnApplyWindowInsetsListener() {
                 @Override
                 public WindowInsets onApplyWindowInsets(View view, WindowInsets insets)
@@ -291,19 +288,31 @@ public class KeyboardHandler
 
         private boolean noteIme(WindowInsets insets)
         {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || insets == null)
+            if (insets == null || getVisibility() != View.VISIBLE)
             {
                 return false;
             }
+
             boolean visible = insets.isVisible(WindowInsets.Type.ime());
             int height = insets.getInsets(WindowInsets.Type.ime()).bottom;
-            if (!visible && height <= 0)
+            if (!visible)
             {
+                // Not-yet-visible while pending is the wait, not a dismiss. Only a confirmed show
+                // going away means the system closed the keyboard.
+                if (m_isShowing)
+                {
+                    Log.i(s_tag, "KeyboardHandler ime hidden by system, flag cleared");
+                    m_isShowing = false;
+                    m_showPending = false;
+                    removeCallbacks(m_showTimeout);
+                }
                 return false;
             }
+
             if (!m_isShowing)
             {
                 m_isShowing = true;
+                m_showPending = false;
                 Log.i(s_tag, "KeyboardHandler ime visible h=" + height);
             }
             removeCallbacks(m_showTimeout);
@@ -314,40 +323,18 @@ public class KeyboardHandler
             @Override
             public void run()
             {
-                if (m_isShowing)
+                if (getVisibility() != View.VISIBLE)
                 {
                     return;
                 }
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                View decor = GetView();
+                WindowInsets insets = decor != null ? decor.getRootWindowInsets() : null;
+                if (insets == null)
                 {
-                    View decor = GetView();
-                    WindowInsets insets = decor != null ? decor.getRootWindowInsets() : null;
-                    if (insets == null)
-                    {
-                        insets = getRootWindowInsets();
-                    }
-                    if (noteIme(insets))
-                    {
-                        return;
-                    }
+                    insets = getRootWindowInsets();
                 }
-                else
-                {
-                    View decor = GetView();
-                    if (decor != null)
-                    {
-                        Rect visibleFrame = new Rect();
-                        decor.getWindowVisibleDisplayFrame(visibleFrame);
-                        int height = decor.getHeight() - visibleFrame.bottom;
-                        if (height > 0)
-                        {
-                            m_isShowing = true;
-                            Log.i(s_tag, "KeyboardHandler ime visible h=" + height);
-                            removeCallbacks(m_showTimeout);
-                        }
-                    }
-                }
+                noteIme(insets);
             }
         };
 
@@ -355,15 +342,17 @@ public class KeyboardHandler
             @Override
             public void run()
             {
-                if (!m_isShowing)
+                if (m_showPending)
                 {
-                    Log.w(s_tag, "KeyboardHandler ime show failed reason=timeout will_retry");
+                    m_showPending = false;
                     m_isShowing = false;
+                    Log.w(s_tag, "KeyboardHandler ime show failed reason=timeout will_retry");
                 }
             }
         };
 
-        private boolean m_isShowing;
+        private volatile boolean m_isShowing;
+        private volatile boolean m_showPending;
         private int m_windowFlags;
     }
 
