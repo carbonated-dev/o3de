@@ -76,62 +76,14 @@ public class KeyboardHandler
                 if (m_textView == null)
                 {
                     m_textView = new DummyTextView(activity);
-                    // The decor view is a FrameLayout, whose onMeasure casts every child's params
-                    // to MarginLayoutParams. Plain ViewGroup.LayoutParams crash the next layout pass.
+                    // DecorView is a FrameLayout; its onMeasure casts child params to MarginLayoutParams.
                     viewGroup.addView(m_textView, new FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                 }
 
-                int width = decor.getWidth() > 0 ? decor.getWidth() : ViewGroup.LayoutParams.MATCH_PARENT;
-                int height = decor.getHeight() > 0 ? decor.getHeight() : ViewGroup.LayoutParams.MATCH_PARENT;
-                try
-                {
-                    ApplyTextViewSize(m_textView, width, height);
-                }
-                catch (RuntimeException e)
-                {
-                    // Keep whatever valid params the view already has; the IME can still show on a 0x0 view.
-                    Log.w(s_tag, "KeyboardHandler ime show failed reason=layout_params fallback=keep_params", e);
-                }
-
-                try
-                {
-                    m_textView.Show(m_inputManager);
-                }
-                catch (RuntimeException e)
-                {
-                    Log.w(s_tag, "KeyboardHandler ime show failed reason=show_exception fallback=imm", e);
-                    boolean shown = false;
-                    if (m_inputManager != null)
-                    {
-                        shown = m_inputManager.showSoftInput(m_textView, InputMethodManager.SHOW_IMPLICIT);
-                    }
-                    Log.i(s_tag, "KeyboardHandler ime show requested path=imm_fallback result=" + shown);
-                }
+                m_textView.Show(m_inputManager);
             }
         });
-    }
-
-    ////////////////////////////////////////////////////////////////
-    // Resize the dummy view without replacing its params type. The parent (the decor FrameLayout)
-    // generated params of its own subclass in addView; replacing them with plain
-    // ViewGroup.LayoutParams throws ClassCastException in FrameLayout.onMeasure.
-    private static void ApplyTextViewSize(View view, int width, int height)
-    {
-        ViewGroup.LayoutParams params = view.getLayoutParams();
-        if (params instanceof ViewGroup.MarginLayoutParams)
-        {
-            if (params.width != width || params.height != height)
-            {
-                params.width = width;
-                params.height = height;
-                view.setLayoutParams(params);
-            }
-            return;
-        }
-
-        Log.w(s_tag, "KeyboardHandler ime show params replaced reason=" + (params == null ? "null" : params.getClass().getName()));
-        view.setLayoutParams(new FrameLayout.LayoutParams(width, height));
     }
 
     ////////////////////////////////////////////////////////////////
