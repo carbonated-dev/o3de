@@ -17,6 +17,7 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.inputmethod.InputMethodManager;
 import android.view.View;
+import android.widget.FrameLayout;
 
 
 ////////////////////////////////////////////////////////////////
@@ -75,12 +76,11 @@ public class KeyboardHandler
                 if (m_textView == null)
                 {
                     m_textView = new DummyTextView(activity);
-                    viewGroup.addView(m_textView);
+                    // DecorView is a FrameLayout; its onMeasure casts child params to MarginLayoutParams.
+                    viewGroup.addView(m_textView, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                 }
 
-                int width = decor.getWidth() > 0 ? decor.getWidth() : ViewGroup.LayoutParams.MATCH_PARENT;
-                int height = decor.getHeight() > 0 ? decor.getHeight() : ViewGroup.LayoutParams.MATCH_PARENT;
-                m_textView.setLayoutParams(new ViewGroup.LayoutParams(width, height));
                 m_textView.Show(m_inputManager);
             }
         });
