@@ -1988,12 +1988,6 @@ class AndroidProjectGenerator(object):
                                                template_env=gradle_build_env,
                                                dst_file=az_android_gradle_file)
 
-# CARBONATED -- begin : R8/proguard keep rules, referenced by the release buildType in build.gradle.in (inert while minifyEnabled is false)
-        self.create_file_from_project_template(src_template_file='proguard-rules.pro.in',
-                                               template_env={},
-                                               dst_file=az_android_dst_path / 'proguard-rules.pro')
-# CARBONATED -- end
-
         # Generate a AndroidManifest.xml and write to ${az_android_dst_path}/src/main/AndroidManifest.xml
         dest_src_main_path = az_android_dst_path / 'src/main'
         dest_src_main_path.mkdir(parents=True)
