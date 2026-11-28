@@ -1014,6 +1014,7 @@ ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0' 
     implementation 'com.google.android.gms:play-services-basement:18.1.0'   
     implementation 'androidx.games:games-frame-pacing:2.1.3'
+    implementation 'com.google.android.play:review:2.0.2'
     
     // Core Bugsnag SDK
     implementation "com.bugsnag:bugsnag-android:6.21.0"
