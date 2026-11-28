@@ -47,6 +47,9 @@ ${NATIVE_CMAKE_SECTION_PROFILE_CONFIG}
         release {
             debuggable false
             minifyEnabled false
+// CARBONATED -- begin release keep rules (only used if minifyEnabled is turned on)
+            proguardFiles 'proguard-rules.pro'
+// CARBONATED -- end
 ${NATIVE_CMAKE_SECTION_RELEASE_CONFIG}
             ${SIGNING_RELEASE_CONFIG}
         }

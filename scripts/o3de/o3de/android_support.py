@@ -1014,6 +1014,7 @@ ADDITIONAL_DEPENDENCIES = """
     implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0' 
     implementation 'com.google.android.gms:play-services-basement:18.1.0'   
     implementation 'androidx.games:games-frame-pacing:2.1.3'
+    implementation 'com.google.android.play:review:2.0.2'
     
     // Core Bugsnag SDK
     implementation "com.bugsnag:bugsnag-android:6.21.0"
@@ -1986,6 +1987,12 @@ class AndroidProjectGenerator(object):
         self.create_file_from_project_template(src_template_file='build.gradle.in',
                                                template_env=gradle_build_env,
                                                dst_file=az_android_gradle_file)
+
+# CARBONATED -- begin : R8/proguard keep rules, referenced by the release buildType in build.gradle.in (inert while minifyEnabled is false)
+        self.create_file_from_project_template(src_template_file='proguard-rules.pro.in',
+                                               template_env={},
+                                               dst_file=az_android_dst_path / 'proguard-rules.pro')
+# CARBONATED -- end
 
         # Generate a AndroidManifest.xml and write to ${az_android_dst_path}/src/main/AndroidManifest.xml
         dest_src_main_path = az_android_dst_path / 'src/main'

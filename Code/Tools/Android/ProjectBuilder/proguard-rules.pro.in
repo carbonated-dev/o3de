@@ -1,0 +1,10 @@
+### CARBONATED: keep rules for the generated app module. Release builds have minifyEnabled false today, so nothing here
+### is applied until R8/minify is turned on in build.gradle.in. Lines starting with ### are stripped when the file is generated.
+### NOTE: this is NOT a full audit for enabling minify. Everything else the native code reaches by name over JNI (AZ::Android
+### classes, other gems) would need rules too.
+
+# Play In-App Review. The library ships consumer rules for its own use, this is belt and braces for the call from the Carbonated gem.
+-keep class com.google.android.play.core.review.** { *; }
+
+# The Carbonated gem's Java is called by name from native code (JNI RegisterMethod), so its methods must not be renamed or removed.
+-keep class com.carbonated.carbonatedgem.** { *; }
